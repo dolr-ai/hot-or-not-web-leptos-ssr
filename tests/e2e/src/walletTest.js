@@ -10,8 +10,7 @@ describe("wallet page tests", function () {
         browser.element.findByText('Login to claim', {timeout: 50000, exact: false }).waitUntil('enabled');
     })
     
-    // TODO: update this test so that either 1000 COYNS are present or a 1000 CENTS, never both
-    it("default wallet page contains 1000 COYNS or 1000 CENTS", function(browser) {
+    it("default wallet page contains 1000 CENTS", function(browser) {
         browser.waitForElementVisible('body', 10000);
     
         browser.pause(10000);
@@ -20,7 +19,7 @@ describe("wallet page tests", function () {
         if (centsIsPresent) {
             browser.element.findByText("2000", { timeout: 10000 }).waitUntil('visible', { timeout: 10000 }).assert.enabled();
         } else {
-            browser.element.findByText("COYNS", { timeout: 10000 }).waitUntil('visible', { timeout: 10000 }).assert.enabled();
+            browser.element.findByText("Cents", { timeout: 10000 }).waitUntil('visible', { timeout: 10000 }).assert.enabled();
             browser.element.findByText("1000", { timeout: 10000 }).waitUntil('visible', { timeout: 10000 }).assert.enabled();
         }
     });

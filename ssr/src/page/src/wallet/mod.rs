@@ -48,7 +48,7 @@ fn ProfileCard(details: ProfileDetails, is_own_account: bool, is_connected: bool
             <Show when=move || !is_connected && is_own_account>
                 <ConnectLogin
                     show_login
-                    login_text=if !show_pnd_page() {"Login to claim your COYNs"} else {"Login to claim your Cents"}
+                    login_text=if !show_pnd_page() {"Login to claim your Cents"} else {"Login to claim your Cents"}
                     cta_location="wallet"
                 />
             </Show>

@@ -105,7 +105,7 @@ fn ReferView() -> impl IntoView {
         <div class="flex flex-col w-full h-full items-center text-white gap-10">
             <img class="shrink-0 h-40 select-none" src="/img/common/coins-stash.webp" />
             <div class="flex flex-col w-full items-center gap-4 text-center">
-                <span class="font-bold text-2xl">Invite & Win upto <br />500 Coyns</span>
+                <span class="font-bold text-2xl">Invite & Win upto <br />500 Cents</span>
             </div>
             <div class="flex flex-col w-full gap-2 px-4 text-white items-center">
                 <span class="uppercase text-sm md:text-md">Referral Link</span>
@@ -129,7 +129,7 @@ fn ReferView() -> impl IntoView {
                     />
                     <WorkButton
                         text="You both win
-                        500 Coyns each"
+                        500 Cents each"
                         head="STEP 3"
                     />
                 </div>
