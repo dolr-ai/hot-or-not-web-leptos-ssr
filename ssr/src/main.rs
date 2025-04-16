@@ -1,4 +1,6 @@
 #![recursion_limit = "256"]
+use std::borrow::Cow;
+
 use axum::{
     body::Body as AxumBody,
     extract::{Path, State},
@@ -187,6 +189,7 @@ fn main() {
             release: sentry::release_name!(),
             debug: true,
             traces_sample_rate: 0.25,
+            environment: Some(Cow::Borrowed("development")), // TODO: change to "production" when deploying
             ..Default::default()
         },
     ));

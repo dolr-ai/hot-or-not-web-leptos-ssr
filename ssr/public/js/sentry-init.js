@@ -1,0 +1,1 @@
+import * as Sentry from "https://sentry.yral.com/js-sdk-loader/3f7d672f8461961bd7b6bec57acf7f18.min.js";

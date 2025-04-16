@@ -34,3 +34,4 @@ pub mod token_confetti_symbol;
 pub mod token_logo_sanitize;
 pub mod tooltip;
 pub mod video_player;
+pub mod sentry_wasm_test;

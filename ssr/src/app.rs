@@ -1,4 +1,5 @@
 use component::content_upload::AuthorizedUserToSeedContent;
+use component::sentry_wasm_test::SentryWasmTest;
 use page::icpump::ai::ICPumpAi;
 use page::icpump::ICPumpLanding;
 use page::post_view::PostDetailsCacheCtx;
@@ -218,6 +219,8 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/pnd/withdraw/success") view=withdrawal::result::Success />
                         <Route path=path!("/pnd/withdraw/failure") view=withdrawal::result::Failure />
                         <Route path=path!("/terms-ios") view=TermsIos/>
+                        <Route path=path!("/__sentry_wasm_test") view=SentryWasmTest/>
+
                         // {
                         //     #[cfg(any(feature = "local-bin", feature = "local-lib"))]
                         //     view! {
@@ -235,3 +238,4 @@ pub fn App() -> impl IntoView {
         </Router>
     }
 }
+

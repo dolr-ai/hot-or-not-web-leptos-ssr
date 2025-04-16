@@ -19,6 +19,20 @@ lto = true
 codegen-units = 1
 # panic = "abort"
 
+[profile.bin-release]
+inherits = "release"
+debug = 1
+split-debuginfo = "packed"
+strip = true
+lto = true
+opt-level = 's'
+
+# [profile.bin-debug]
+# inherits = "dev"
+# debug = true
+# split-debuginfo = "packed"
+# strip = true
+
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
 candid = "0.10.3"
