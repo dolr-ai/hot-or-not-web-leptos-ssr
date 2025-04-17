@@ -95,6 +95,13 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
             <head>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <script type="module" src="/js/sentry-init.js"></script>
+                // <script
+                // src="https://browser.sentry-cdn.com/9.13.0/bundle.min.js"
+                // integrity="sha384-olqLaYqebKQ1zNIBl9kZavaSnqmAs4R1c58geKDlNspLy68gL6raUAP4/dL5BQdn"
+                // crossorigin="anonymous"
+                // ></script>
+                // <script src="/js/wasm-support.js"></script>
                 <AutoReload options=options.clone() />
                 <HashedStylesheet id="leptos" options=options.clone()/>
                 <HydrationScripts options/>
@@ -176,11 +183,11 @@ pub fn App() -> impl IntoView {
                 "#}
                 </Script>
             </Show>
-            <Script
-            async_="true"
-            src="https://sentry.yral.com/js-sdk-loader/3f7d672f8461961bd7b6bec57acf7f18.min.js"
-            crossorigin="anonymous"
-            ></Script>
+            // <Script
+            // async_="true"
+            // src="https://sentry.yral.com/js-sdk-loader/3f7d672f8461961bd7b6bec57acf7f18.min.js"
+            // crossorigin="anonymous"
+            // ></Script>
 
             <Router>
             <main class="bg-black" id="body">
