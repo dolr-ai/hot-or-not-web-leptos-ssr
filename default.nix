@@ -12,11 +12,11 @@ pkgs.mkShell {
     leptosfmt
     nodejs_22
     nodePackages_latest.tailwindcss
-    cargo-leptos
     rustup
     openssl
     git
     protobuf_21
+    mold
   ] ++ (if pkgs.stdenv.isDarwin then [
       darwin.apple_sdk.frameworks.Foundation
       darwin.apple_sdk.frameworks.Security

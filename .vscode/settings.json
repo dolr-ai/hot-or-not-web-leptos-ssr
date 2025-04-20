@@ -19,4 +19,5 @@
         "strings": true
     },
     "css.validate": false,
+    "postman.settings.dotenv-detection-notification-visibility": false,
 }
