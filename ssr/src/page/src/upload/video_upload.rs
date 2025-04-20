@@ -82,7 +82,7 @@ pub fn PreVideoUpload(
         })
         .unwrap();
 
-        uid.set(message.data.map(|m| m.uid).flatten());
+        uid.set(message.data.and_then(|m| m.uid));
     });
 
     _ = use_event_listener(video_ref, durationchange, move |_| {
@@ -275,7 +275,7 @@ pub fn VideoUploader(
                     let client = reqwest::Client::new();
 
                     let req = client
-                        .post(&format!("{}/update_metadata", upload_base_url))
+                        .post(format!("{}/update_metadata", upload_base_url))
                         .json(&json!({
                             "video_uid": uid,
                             "delegated_identity_wire": delegated_identity,
