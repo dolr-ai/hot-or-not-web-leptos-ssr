@@ -3,8 +3,6 @@ mod validators;
 mod video_upload;
 use leptos_meta::*;
 
-use component::toggle::ToggleWithLabel;
-
 use utils::{
     event_streaming::events::auth_canisters_store,
     event_streaming::events::{VideoUploadInitiated, VideoUploadUploadButtonClicked},
@@ -17,10 +15,10 @@ use leptos::{
     prelude::*,
 };
 
+use component::buttons::HighlightedButton;
 use leptos_router::components::Redirect;
 use validators::{description_validator, hashtags_validator};
 use video_upload::{PreVideoUpload, VideoUploader};
-use component::buttons::{HighlightedButton, HighlightedLinkButton};
 
 #[derive(Clone)]
 struct UploadParams {
@@ -178,10 +176,6 @@ pub fn YralUploadPostPage() -> impl IntoView {
     view! {
         <Title text="YRAL - Upload" />
         <div class="flex flex-col min-h-dvh w-dvw items-center overflow-y-scroll gap-6 md:gap-8 lg:gap-16 pb-12 pt-4 md:pt-6 px-5 md:px-8 lg:px-12 bg-black text-white justify-center">
-            // <div class="w-full flex justify-center items-center relative h-12">
-            // <img src="/img/yral/logo.webp" class="absolute block sm:hidden top-0 left-0 w-12 h-12" />
-            // <img src="/img/yral/logo-mark.webp" class="hidden absolute sm:block top-0 left-0 h-12" />
-            // </div>
             <div class="flex flex-col lg:flex-row place-content-center min-h-full w-full">
                 <Show
                     when=move || { trigger_upload.with(| trigger_upload | trigger_upload.is_some()) }

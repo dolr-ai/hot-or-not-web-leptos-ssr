@@ -1,5 +1,6 @@
 use super::UploadParams;
 use auth::delegate_short_lived_identity;
+use component::buttons::HighlightedButton;
 use component::modal::Modal;
 use gloo::net::http::Request;
 use leptos::web_sys::{Blob, FormData};
@@ -18,12 +19,10 @@ use utils::{
         auth_canisters_store, VideoUploadSuccessful, VideoUploadUnsuccessful,
         VideoUploadVideoSelected,
     },
-    route::go_to_root,
     try_or_redirect_opt,
     web::FileWithUrl,
 };
 use yral_canisters_common::Canisters;
-use component::buttons::{HighlightedButton, HighlightedLinkButton};
 
 #[component]
 pub fn DropBox() -> impl IntoView {
@@ -111,45 +110,45 @@ pub fn PreVideoUpload(
     });
 
     view! {
-        <label
-            for="dropzone-file"
-            class="w-[627px] h-[600px] bg-neutral-950 rounded-2xl border-2 border-dashed border-neutral-600 flex flex-col items-center justify-center cursor-pointer select-none p-0"
-        >
-            <Show when=move || { file.with(| file | file.is_none()) }>
-                <div class="flex flex-1 flex-col items-center justify-center w-full h-full gap-6">
-                    <div class="text-white text-[16px] font-semibold leading-tight text-center">Upload a video to share with the world!</div>
-                    <div class="text-neutral-400 text-[13px] leading-tight text-center">Drag & Drop or select video file ( Max 60s )</div>
-                    <span class="inline-block px-6 py-2 border border-pink-400 text-pink-400 rounded-lg font-medium text-[15px] bg-transparent hover:bg-pink-400 hover:text-white transition-colors duration-150 cursor-pointer select-none">Select File</span>
-                </div>
-            </Show>
-            <video
-    node_ref=video_ref
-    class="w-full h-full object-contain rounded-xl bg-black p-2"
-    playsinline
-    muted
-    autoplay
-    loop
-    oncanplay="this.muted=true"
-    src=move || file.with(| file | file.as_ref().map(| f | f.url.to_string()))
-    style:display=move || {
-        file.with(| file | file.as_ref().map(| _ | "block").unwrap_or("none"))
-    }
-></video>
-            <input
-                on:click=move |_| modal_show.set(true)
-                id="dropzone-file"
-                node_ref=file_ref
-                type="file"
-                accept="video/*"
-                class="hidden w-0 h-0"
-            />
-        </label>
-        <Modal show=modal_show>
-            <span class="text-lg md:text-xl text-white h-full items-center py-10 text-center w-full flex flex-col justify-center">
-                Please ensure that the video is shorter than 60 seconds
-            </span>
-        </Modal>
-    }
+            <label
+                for="dropzone-file"
+                class="w-[627px] h-[600px] bg-neutral-950 rounded-2xl border-2 border-dashed border-neutral-600 flex flex-col items-center justify-center cursor-pointer select-none p-0"
+            >
+                <Show when=move || { file.with(| file | file.is_none()) }>
+                    <div class="flex flex-1 flex-col items-center justify-center w-full h-full gap-6">
+                        <div class="text-white text-[16px] font-semibold leading-tight text-center">Upload a video to share with the world!</div>
+                        <div class="text-neutral-400 text-[13px] leading-tight text-center">Drag & Drop or select video file ( Max 60s )</div>
+                        <span class="inline-block px-6 py-2 border border-pink-400 text-pink-400 rounded-lg font-medium text-[15px] bg-transparent hover:bg-pink-400 hover:text-white transition-colors duration-150 cursor-pointer select-none">Select File</span>
+                    </div>
+                </Show>
+                <video
+        node_ref=video_ref
+        class="w-full h-full object-contain rounded-xl bg-black p-2"
+        playsinline
+        muted
+        autoplay
+        loop
+        oncanplay="this.muted=true"
+        src=move || file.with(| file | file.as_ref().map(| f | f.url.to_string()))
+        style:display=move || {
+            file.with(| file | file.as_ref().map(| _ | "block").unwrap_or("none"))
+        }
+    ></video>
+                <input
+                    on:click=move |_| modal_show.set(true)
+                    id="dropzone-file"
+                    node_ref=file_ref
+                    type="file"
+                    accept="video/*"
+                    class="hidden w-0 h-0"
+                />
+            </label>
+            <Modal show=modal_show>
+                <span class="text-lg md:text-xl text-white h-full items-center py-10 text-center w-full flex flex-col justify-center">
+                    Please ensure that the video is shorter than 60 seconds
+                </span>
+            </Modal>
+        }
 }
 
 #[allow(dead_code)]
@@ -246,11 +245,13 @@ async fn upload_video_part(
 }
 
 #[component]
-pub fn VideoUploader(params: UploadParams, uid: RwSignal<Option<String>, LocalStorage>) -> impl IntoView {
+pub fn VideoUploader(
+    params: UploadParams,
+    uid: RwSignal<Option<String>, LocalStorage>,
+) -> impl IntoView {
     let file_blob = params.file_blob;
     let hashtags = params.hashtags;
     let description = params.description;
-
 
     let published = RwSignal::new(false);
     let video_url = StoredValue::new_local(file_blob.url);
@@ -271,30 +272,33 @@ pub fn VideoUploader(params: UploadParams, uid: RwSignal<Option<String>, LocalSt
                 let id = canisters.identity();
                 let delegated_identity = delegate_short_lived_identity(id);
                 let res: std::result::Result<reqwest::Response, ServerFnError> = {
-
                     let client = reqwest::Client::new();
 
-                    let req = client.post(&format!("{}/update_metadata", upload_base_url)).json(&json!({
-                        "video_uid": uid,
-                        "delegated_identity_wire": delegated_identity,
-                        "meta": VideoMetadata{
-                            title: description.clone(),
-                            description: description.clone(),
-                            tags: hashtags.join(",")
-                        },
-                        "post_details": SerializablePostDetailsFromFrontend{
-                            is_nsfw,
-                            hashtags,
-                            description,
-                            video_uid: uid.clone(),
-                            creator_consent_for_inclusion_in_hot_or_not: enable_hot_or_not,
-                        }
-                    }));
+                    let req = client
+                        .post(&format!("{}/update_metadata", upload_base_url))
+                        .json(&json!({
+                            "video_uid": uid,
+                            "delegated_identity_wire": delegated_identity,
+                            "meta": VideoMetadata{
+                                title: description.clone(),
+                                description: description.clone(),
+                                tags: hashtags.join(",")
+                            },
+                            "post_details": SerializablePostDetailsFromFrontend{
+                                is_nsfw,
+                                hashtags,
+                                description,
+                                video_uid: uid.clone(),
+                                creator_consent_for_inclusion_in_hot_or_not: enable_hot_or_not,
+                            }
+                        }));
 
-                    req.send().await.map_err(|e| ServerFnError::new(e.to_string()))
+                    req.send()
+                        .await
+                        .map_err(|e| ServerFnError::new(e.to_string()))
                 };
 
-                match res{
+                match res {
                     Ok(_) => published.set(true),
                     Err(_) => {
                         let e = res.as_ref().err().unwrap().to_string();
@@ -308,7 +312,6 @@ pub fn VideoUploader(params: UploadParams, uid: RwSignal<Option<String>, LocalSt
                     }
                 }
                 try_or_redirect_opt!(res);
-
 
                 VideoUploadSuccessful.send_event(
                     uid,
@@ -325,51 +328,52 @@ pub fn VideoUploader(params: UploadParams, uid: RwSignal<Option<String>, LocalSt
     let cans_res = authenticated_canisters();
 
     view! {
-        <div class="w-[627px] h-[600px] bg-neutral-950 rounded-2xl border-2 border-dashed border-neutral-600 flex items-center justify-center">
-            <video
-                class="w-full h-full object-contain rounded-xl bg-black p-2"
-                playsinline
-                muted
-                autoplay
-                loop
-                oncanplay="this.muted=true"
-                src=move || video_url.get_value().to_string()
-            ></video>
-        </div>
-        <div class="flex flex-col w-[627px] h-[600px] gap-4 px-4 bg-[#18181b] rounded-2xl p-8 justify-center">
-            <div class="text-lg font-bold">Uploading Video</div>
-            <p>
-                This may take a moment. Feel free to explore more videos on the home page while you wait!
-            </p>
-
-            // Progress Bar
-            <div class="w-full bg-neutral-800 rounded-full h-2.5 mt-2">
-                <div
-                    class="bg-gradient-to-r from-[#EC55A7] to-[#E2017B] h-2.5 rounded-full transition-width duration-500 ease-in-out"
-                    style:width=move || {
-                        if published.get() {
-                            "100%"
-                        } else if publish_action.pending().get() {
-                            // Indicates processing metadata after initial upload
-                            "50%"
-                        } else {
-                            // Before dispatch starts
-                            "0%"
-                        }
-                    }
-                ></div>
+        <div class="flex flex-col lg:flex-row w-full gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
+            <div class="flex flex-col items-center justify-center w-[627px] h-[600px] bg-[#18181b] rounded-2xl text-center">
+                <video
+                    class="w-full h-full object-contain rounded-xl bg-black p-2"
+                    playsinline
+                    muted
+                    autoplay
+                    loop
+                    oncanplay="this.muted=true"
+                    src=move || video_url.get_value().to_string()
+                ></video>
             </div>
-            <p class="text-sm text-gray-400 text-center mt-1">
-                {move || {
-                    if published.get() {
-                        "Upload complete!".to_string()
-                    } else if publish_action.pending().get() {
-                        "Processing video metadata...".to_string()
-                    } else {
-                        "Initiating final steps...".to_string()
-                    }
-                }}
-            </p>
+            <div class="flex flex-col gap-4 w-[627px] h-[600px] rounded-2xl p-2 justify-center">
+                <h2 class="text-[32px] font-light text-white mb-2">Uploading Video</h2>
+                <div class="flex flex-col gap-y-1">
+                    <p>
+                        This may take a moment. Feel free to explore more videos on the home page while you wait!
+                    </p>
+                </div>
+                <div class="w-full bg-neutral-800 rounded-full h-2.5 mt-2">
+                    <div
+                        class="bg-gradient-to-r from-[#EC55A7] to-[#E2017B] h-2.5 rounded-full transition-width duration-500 ease-in-out"
+                        style:width=move || {
+                            if published.get() {
+                                "100%"
+                            } else if publish_action.pending().get() {
+                                "50%"
+                            } else {
+                                "0%"
+                            }
+                        }
+                    ></div>
+                </div>
+                <p class="text-sm text-gray-400 text-center mt-1">
+                    {move || {
+                        if published.get() {
+                            "Upload complete!".to_string()
+                        } else if publish_action.pending().get() {
+                            "Processing video metadata...".to_string()
+                        } else {
+                            "Waiting to upload...".to_string()
+                        }
+                    }}
+                </p>
+            </div>
+        </div>
 
             <Suspense>
                 {move || {
@@ -386,20 +390,13 @@ pub fn VideoUploader(params: UploadParams, uid: RwSignal<Option<String>, LocalSt
             <Show when=published>
                 <PostUploadScreen />
             </Show>
-            // <button
-            //     on:click=|_| go_to_root()
-            //     disabled=publishing
-            //     class="py-3 w-5/6 md:w-4/6 my-8 self-center disabled:bg-primary-400 disabled:text-white/80 bg-green-600 rounded-full font-bold text-md md:text-lg lg:text-xl"
-            // >
-            //     Continue Browsing
-            // </button>
-        </div>
+
     }.into_any()
 }
 use component::overlay::PopupOverlay;
 use component::share_popup::ShareContent;
 #[component]
-fn PostUploadScreen() -> impl IntoView{
+fn PostUploadScreen() -> impl IntoView {
     let pop_up = RwSignal::new(false);
 
     // dont wanna manually reset the signal so this weird workaround
@@ -411,10 +408,10 @@ fn PostUploadScreen() -> impl IntoView{
             }
             Some(Err(e)) => {
                 // Handle error if reload fails (less common)
-                 log::error!("Failed to reload page: {:?}", e);
+                log::error!("Failed to reload page: {:?}", e);
             }
             None => {
-                 log::error!("Could not get window object");
+                log::error!("Could not get window object");
             }
         }
     };
@@ -441,10 +438,10 @@ fn PostUploadScreen() -> impl IntoView{
 
                 <h1 class="font-semibold text-lg mb-2">Video uploaded sucessfully</h1>
 
-                <p class="text-center px-4 mb-8"> 
+                <p class="text-center px-4 mb-8">
                     Upload more to keep the momentum going or share it with your friends and audience. Lets get your content out there!
                 </p>
-                
+
                 <HighlightedButton
                 alt_style=false
                 disabled=false
