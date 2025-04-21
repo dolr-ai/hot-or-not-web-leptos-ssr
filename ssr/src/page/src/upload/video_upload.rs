@@ -119,7 +119,7 @@ pub fn PreVideoUpload(
                     <div class="flex flex-1 flex-col items-center justify-center w-full h-full gap-6">
                         <div class="text-white text-[16px] font-semibold leading-tight text-center">Upload a video to share with the world!</div>
                         <div class="text-neutral-400 text-[13px] leading-tight text-center">Drag & Drop or select video file ( Max 60s )</div>
-                        <span class="inline-block px-6 py-2 border border-pink-400 text-pink-400 rounded-lg font-medium text-[15px] bg-transparent hover:bg-pink-400 hover:text-white transition-colors duration-150 cursor-pointer select-none">Select File</span>
+                        <span class="inline-block px-6 py-2 border border-pink-300 text-pink-300 rounded-lg font-medium text-[15px] bg-transparent transition-colors duration-150 cursor-pointer select-none">Select File</span>
                     </div>
                 </Show>
                 <video
