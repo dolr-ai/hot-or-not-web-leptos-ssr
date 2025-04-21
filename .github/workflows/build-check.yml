@@ -86,12 +86,12 @@ jobs:
         uses: matbour/setup-sentry-cli@v2
         with:
           url: https://sentry.yral.com
-          token: ${{ SECRETS.SENTRY_AUTH_TOKEN }} # from GitHub secrets
+          token: ${{ secrets.SENTRY_AUTH_TOKEN }}
           organization: sentry
           project: leptos-ssr-server
       - name: Upload sentry Rust source context
         run: |
-          sentry-cli debug-files upload --include-sources ./target/x86_64-unknown-linux-musl/bin-release/
+          sentry-cli debug-files upload --org sentry --project leptos-ssr-server --auth-token ${{ secrets.SENTRY_AUTH_TOKEN }} --include-sources ./target/x86_64-unknown-linux-musl/bin-release/
       - run: touch .empty
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
