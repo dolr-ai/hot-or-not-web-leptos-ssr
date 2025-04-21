@@ -12,6 +12,7 @@ Sentry.init({
   replaysSessionSampleRate: 0.1, // 0.1
   replaysOnErrorSampleRate: 1.0,
   environment: "development",
+  tracePropagationTargets: ["localhost", /^https:\/\/yral\.com\/api/],
 });
 
 (function () {
