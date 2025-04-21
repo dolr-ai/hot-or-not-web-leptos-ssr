@@ -33,6 +33,19 @@ pub fn ServerErrorPage() -> impl IntoView {
         .map(|p| p.err.clone())
         .unwrap_or_else(|_| "Server Error".to_string());
 
+    let error_str_clone = error_str.clone();
+    Effect::new(move |_| {
+        let _ = js_sys::eval(&format!(
+            r#"
+            window.Sentry &&
+                        Sentry.onLoad(function () {{
+                                Sentry.captureException(new Error("{}"));
+                        }});
+            "#,
+            &error_str_clone
+        ));
+    });
+
     let canister_store = auth_canisters_store();
     ErrorEvent.send_event(error_str, canister_store);
 

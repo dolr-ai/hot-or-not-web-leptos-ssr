@@ -27,6 +27,7 @@ pub const REFERRER_STORE: &str = "referrer";
 pub const USER_CANISTER_ID_STORE: &str = "user-canister-id";
 pub const USER_PRINCIPAL_STORE: &str = "user-principal";
 pub const USER_ONBOARDING_STORE: &str = "user-onboarding";
+pub const USER_INTERNAL_STORE: &str = "user-internal";
 
 pub static OFF_CHAIN_AGENT_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev").unwrap());

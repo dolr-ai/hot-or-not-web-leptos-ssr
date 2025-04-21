@@ -13,12 +13,12 @@ pub mod profile;
 pub mod qstash;
 pub mod report;
 pub mod route;
+pub mod sentry_server_test;
 pub mod time;
 pub mod token;
 pub mod types;
 pub mod user;
 pub mod web;
-pub mod sentry_server_test;
 /// Wrapper for PartialEq that always returns false
 /// this is currently only used for resources
 /// this does not provide a sane implementation of PartialEq

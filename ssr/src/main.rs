@@ -18,7 +18,7 @@ use utils::host::is_host_or_origin_from_preview_domain;
 
 use hot_or_not_web_leptos_ssr::app::shell;
 use hot_or_not_web_leptos_ssr::{app::App, init::AppStateBuilder};
-use http::{header, Method};
+use http::{header, HeaderName, Method};
 use leptos::logging::log;
 use leptos::prelude::*;
 use leptos_axum::handle_server_fns_with_context;
@@ -157,7 +157,13 @@ async fn main_impl() {
         .layer(
             CorsLayer::new()
                 .allow_credentials(true)
-                .allow_headers([header::AUTHORIZATION, header::CONTENT_TYPE, header::ACCEPT])
+                .allow_headers([
+                    header::AUTHORIZATION,
+                    header::CONTENT_TYPE,
+                    header::ACCEPT,
+                    HeaderName::from_static("sentry-trace"),
+                    HeaderName::from_static("baggage"),
+                ])
                 .allow_methods([Method::POST, Method::GET, Method::PUT, Method::OPTIONS])
                 .allow_origin(AllowOrigin::predicate(|origin, _| {
                     if let Ok(host) = origin.to_str() {
@@ -189,7 +195,7 @@ fn main() {
             release: sentry::release_name!(),
             debug: true,
             traces_sample_rate: 0.25,
-            environment: Some(Cow::Borrowed("development")), // TODO: change to "production" when deploying
+            environment: Some(Cow::Borrowed("staging-komal")), // TODO: change to "production" when deploying
             ..Default::default()
         },
     ));

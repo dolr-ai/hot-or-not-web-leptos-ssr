@@ -7,6 +7,8 @@ use serde_json::json;
 use wasm_bindgen::prelude::*;
 
 use consts::GTAG_MEASUREMENT_ID;
+#[cfg(all(feature = "ssr", feature = "ga4"))]
+use tracing::instrument;
 
 pub mod events;
 
@@ -44,7 +46,10 @@ pub struct EventHistory {
 pub async fn send_event_ssr(event_name: String, params: String) -> Result<(), ServerFnError> {
     use super::host::get_host;
 
-    let params = serde_json::from_str::<serde_json::Value>(&params).unwrap();
+    let params = serde_json::from_str::<serde_json::Value>(&params).map_err(|e| {
+        log::error!("Error parsing params: {:?}", e);
+        ServerFnError::new(e.to_string())
+    })?;
 
     let host_str = get_host();
     let mut params = params.clone();
@@ -70,20 +75,32 @@ pub async fn send_event_ssr(event_name: String, params: String) -> Result<(), Se
 }
 
 #[cfg(feature = "ga4")]
-pub fn send_event_ssr_spawn(event_name: String, params: String) {
+pub fn send_event_ssr_spawn(event_name: String, params: String) -> Result<(), ServerFnError> {
     use leptos::task::spawn_local;
 
-    let mut params = serde_json::from_str::<serde_json::Value>(&params).unwrap();
-    params["page_location"] = json!(window().location().href().unwrap().to_string());
-    let params = serde_json::to_string(&params).unwrap();
+    let mut params = serde_json::from_str::<serde_json::Value>(&params).map_err(|e| {
+        log::error!("Error parsing params: {:?}", e);
+        ServerFnError::new(e.to_string())
+    })?;
+    params["page_location"] = json!(window().location().href().map_err(|e| {
+        let error_msg = format!("Error getting page location: {:?}", e);
+        log::error!("{}", error_msg);
+        ServerFnError::new(error_msg)
+    })?);
+    let params = serde_json::to_string(&params).map_err(|e| {
+        log::error!("Error serializing params: {:?}", e);
+        ServerFnError::new(e.to_string())
+    })?;
 
     spawn_local(async move {
         let _ = send_event_ssr(event_name, params).await;
     });
+
+    Ok(())
 }
 
 #[cfg(feature = "ga4")]
-pub fn send_user_id(user_id: String) {
+pub fn send_user_id(user_id: String) -> Result<(), ServerFnError> {
     let gtag_measurement_id = GTAG_MEASUREMENT_ID.as_ref();
 
     gtag(
@@ -92,11 +109,17 @@ pub fn send_user_id(user_id: String) {
         &JsValue::from_serde(&json!({
             "user_id": user_id,
         }))
-        .unwrap(),
+        .map_err(|e| {
+            log::error!("Error serializing params: {:?}", e);
+            ServerFnError::new(e.to_string())
+        })?,
     );
+
+    Ok(())
 }
 
 #[cfg(all(feature = "ga4", feature = "ssr"))]
+#[instrument]
 pub async fn send_event_warehouse(event_name: &str, params: &serde_json::Value) {
     use super::host::get_host;
 
@@ -120,7 +143,10 @@ pub async fn send_event_warehouse_ssr(
     event_name: String,
     params: String,
 ) -> Result<(), ServerFnError> {
-    let params = serde_json::from_str::<serde_json::Value>(&params).unwrap();
+    let params = serde_json::from_str::<serde_json::Value>(&params).map_err(|e| {
+        log::error!("Error parsing params: {:?}", e);
+        ServerFnError::new(e.to_string())
+    })?;
     send_event_warehouse(&event_name, &params).await;
 
     Ok(())
@@ -136,6 +162,7 @@ pub fn send_event_warehouse_ssr_spawn(event_name: String, params: String) {
 }
 
 #[cfg(all(feature = "ga4", feature = "ssr"))]
+#[instrument]
 pub async fn stream_to_offchain_agent(
     event: String,
     params: &serde_json::Value,
@@ -191,6 +218,7 @@ fn convert_leaf_values_to_string(value: serde_json::Value) -> serde_json::Value 
 }
 
 #[cfg(all(feature = "ga4", feature = "ssr"))]
+#[instrument]
 pub async fn send_event_ga4(
     user_id: &str,
     event_name: &str,

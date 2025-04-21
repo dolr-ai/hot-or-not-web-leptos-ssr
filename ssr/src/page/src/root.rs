@@ -1,11 +1,14 @@
 use crate::post_view::PostDetailsCacheCtx;
 use crate::pumpdump::PumpNDump;
 use candid::Principal;
+use codee::string::FromToStringCodec;
 use component::spinner::FullScreenSpinner;
+use consts::USER_INTERNAL_STORE;
 use leptos::prelude::*;
 use leptos_meta::*;
-use leptos_router::params::Params;
-use leptos_router::{components::Redirect, hooks::use_query};
+use leptos_router::components::Redirect;
+use leptos_router::hooks::use_query_map;
+use leptos_use::storage::use_local_storage;
 use utils::host::show_nsfw_content;
 use utils::{
     host::{show_cdao_page, show_pnd_page},
@@ -17,7 +20,10 @@ use yral_types::post::PostItem;
 async fn get_top_post_id_global_clean_feed() -> Result<Option<PostItem>, ServerFnError> {
     let posts = get_ml_feed_coldstart_clean(Principal::anonymous(), 1, vec![])
         .await
-        .map_err(|e| ServerFnError::new(e.to_string()))?;
+        .map_err(|e| {
+            log::error!("Error getting top post id global clean feed: {:?}", e);
+            ServerFnError::new(e.to_string())
+        })?;
     if !posts.is_empty() {
         return Ok(Some(posts[0].clone()));
     }
@@ -29,7 +35,10 @@ async fn get_top_post_id_global_clean_feed() -> Result<Option<PostItem>, ServerF
 async fn get_top_post_id_global_nsfw_feed() -> Result<Option<PostItem>, ServerFnError> {
     let posts = get_ml_feed_coldstart_nsfw(Principal::anonymous(), 1, vec![])
         .await
-        .map_err(|e| ServerFnError::new(e.to_string()))?;
+        .map_err(|e| {
+            log::error!("Error getting top post id global nsfw feed: {:?}", e);
+            ServerFnError::new(e.to_string())
+        })?;
     if !posts.is_empty() {
         return Ok(Some(posts[0].clone()));
     }
@@ -44,16 +53,22 @@ pub fn CreatorDaoRootPage() -> impl IntoView {
     }
 }
 
-#[derive(Clone, Params, PartialEq)]
-struct NsfwParam {
-    nsfw: bool,
-}
-
 #[component]
 pub fn YralRootPage() -> impl IntoView {
     // check nsfw param
-    let params = use_query::<NsfwParam>();
-    let nsfw_enabled = params.get_untracked().map(|p| p.nsfw).unwrap_or(false);
+    let params = use_query_map();
+    let params_map = params.get_untracked();
+    let nsfw_enabled = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
+    let utm_source = params_map
+        .get("utm_source")
+        .unwrap_or("external".to_string());
+
+    leptos::logging::log!("utm_source: {:?}", utm_source);
+    if utm_source == "internal" {
+        let (_, set_is_internal_user, _) =
+            use_local_storage::<bool, FromToStringCodec>(USER_INTERNAL_STORE);
+        set_is_internal_user(true); // TODO: this need not be reset once set to internal for now, might need to later
+    }
 
     let target_post = if nsfw_enabled || show_nsfw_content() {
         Resource::new(|| (), |_| get_top_post_id_global_nsfw_feed())

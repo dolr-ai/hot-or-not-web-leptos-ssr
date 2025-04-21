@@ -1,6 +1,5 @@
 // src/component/sentry_wasm_test.rs
 use leptos::prelude::*;
-use leptos::server_fn::error::ServerFnError;
 use utils::sentry_server_test::trigger_server_error;
 use wasm_bindgen::prelude::*;
 
@@ -13,10 +12,8 @@ extern "C" {
     fn call_throwing_js_from_wasm();
 }
 
-
 #[component]
 pub fn SentryWasmTest() -> impl IntoView {
-
     let on_panic_click = move |_| {
         log::info!("Button clicked: Triggering WASM panic...");
         // Directly call the exported WASM function
@@ -28,12 +25,14 @@ pub fn SentryWasmTest() -> impl IntoView {
 
         // Define the JS function that will throw the error globally
         // This ensures it's available when the WASM function calls it.
-        let _ = js_sys::eval(r#"
+        let _ = js_sys::eval(
+            r#"
             window.executeInternalWasmStuff = function() {
                 console.log('---> JS: executeInternalWasmStuff called from WASM');
                 throw new Error("Sentry WASM Test: Whoops! Error from JS called by WASM.");
             };
-        "#);
+        "#,
+        );
 
         // Call the WASM function which in turn calls the JS function
         call_throwing_js_from_wasm();
@@ -86,4 +85,3 @@ pub fn SentryWasmTest() -> impl IntoView {
         </div>
     }
 }
-
