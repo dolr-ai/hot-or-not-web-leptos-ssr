@@ -304,6 +304,7 @@ pub fn Menu() -> impl IntoView {
                     icon=icondata::BiWhatsapp
                     target="_blank"
                 />
+                <MenuItem href="/about-us" text="About Us" icon=icondata::TbInfoCircle />
                 <MenuItem href="/terms-of-service" text="Terms of Service" icon=icondata::TbBook2 />
                 <MenuItem href="/privacy-policy" text="Privacy Policy" icon=icondata::TbLock />
                 <MenuItem href="/settings" text="Settings" icon=icondata::BiCogRegular />

@@ -1,5 +1,6 @@
 use component::content_upload::AuthorizedUserToSeedContent;
 use component::sentry_wasm_test::SentryWasmTest;
+use page::about_us::AboutUs;
 use page::icpump::ai::ICPumpAi;
 use page::icpump::ICPumpLanding;
 use page::post_view::PostDetailsCacheCtx;
@@ -217,6 +218,7 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/profile/:tab") view=ProfileView/>
                         <Route path=path!("/terms-of-service") view=TermsOfService/>
                         <Route path=path!("/privacy-policy") view=PrivacyPolicy/>
+                        <Route path=path!("/about-us") view=AboutUs/>
                         <Route path=path!("/wallet/:id") view=Wallet/>
                         <Route path=path!("/wallet") view=Wallet/>
                         <Route path=path!("/leaderboard") view=Leaderboard/>
