@@ -10,6 +10,7 @@ jobs:
     uses: ./.github/workflows/build-check.yml
     with:
       publish-artifact: true
+      secrets: inherit
 
   deploy:
     name: Deploy

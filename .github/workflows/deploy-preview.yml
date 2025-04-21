@@ -14,6 +14,7 @@ jobs:
     uses: ./.github/workflows/build-check.yml
     with:
       publish-artifact: true
+      secrets: inherit
 
   destroy_preview:
     if: ${{github.event.pull_request.state == 'closed'}}
