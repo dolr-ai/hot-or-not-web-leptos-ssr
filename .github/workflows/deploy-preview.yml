@@ -49,7 +49,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-musl
-      - run: chmod +x target/x86_64-unknown-linux-musl/bin-preview/hot-or-not-web-leptos-ssr
+      - run: chmod +x target/x86_64-unknown-linux-musl/preview-release/hot-or-not-web-leptos-ssr
 
       - name: Deploy
         id: deploy

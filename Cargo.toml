@@ -19,7 +19,7 @@ lto = true
 codegen-units = 1
 # panic = "abort"
 
-[profile.bin-release]
+[profile.prod-release]
 inherits = "release"
 debug = 1
 lto = true
@@ -28,7 +28,7 @@ split-debuginfo = "packed"
 strip = true
 
 
-[profile.bin-preview]
+[profile.preview-release]
 inherits = "release"
 debug = 1
 lto = true
