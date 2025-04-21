@@ -7,7 +7,6 @@ pub mod error_template;
 pub mod fallback;
 #[cfg(feature = "ssr")]
 pub mod init;
-pub mod wasm_test_utils;
 
 #[cfg(feature = "hydrate")]
 #[wasm_bindgen::prelude::wasm_bindgen]
