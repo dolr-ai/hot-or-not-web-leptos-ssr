@@ -1,6 +1,6 @@
 use super::UploadParams;
 use auth::delegate_short_lived_identity;
-use component::buttons::HighlightedButton;
+use component::buttons::HighlightedLinkButton;
 use component::modal::Modal;
 use gloo::net::http::Request;
 use leptos::web_sys::{Blob, FormData};
@@ -113,7 +113,7 @@ pub fn PreVideoUpload(
     view! {
             <label
                 for="dropzone-file"
-                class="w-[627px] h-[600px] bg-neutral-950 rounded-2xl border-2 border-dashed border-neutral-600 flex flex-col items-center justify-center cursor-pointer select-none p-0"
+                class="w-[358px] h-[300px] sm:w-full sm:h-auto sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] bg-neutral-950 rounded-2xl border-2 border-dashed border-neutral-600 flex flex-col items-center justify-center cursor-pointer select-none p-0"
             >
                 <Show when=move || { file.with(| file | file.is_none()) }>
                     <div class="flex flex-1 flex-col items-center justify-center w-full h-full gap-6">
@@ -329,8 +329,8 @@ pub fn VideoUploader(
     let cans_res = authenticated_canisters();
 
     view! {
-        <div class="flex flex-col lg:flex-row w-full gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
-            <div class="flex flex-col items-center justify-center w-[627px] h-[600px] bg-[#18181b] rounded-2xl text-center">
+        <div class="flex flex-col-reverse lg:flex-row w-full gap-4 lg:gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
+            <div class="flex flex-col items-center justify-center w-full h-auto min-h-[200px] max-h-[60vh] sm:min-h-[300px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] lg:min-h-[600px] lg:max-h-[600px] rounded-2xl text-center px-4 mt-0 mb-0 sm:mt-0 sm:mb-0 sm:px-6 lg:px-0 lg:overflow-y-auto">
                 <video
                     class="w-full h-full object-contain rounded-xl bg-black p-2"
                     playsinline
@@ -341,7 +341,7 @@ pub fn VideoUploader(
                     src=move || video_url.get_value().to_string()
                 ></video>
             </div>
-            <div class="flex flex-col gap-4 w-[627px] h-[600px] rounded-2xl p-2 justify-center">
+            <div class="flex flex-col gap-4 w-full max-w-[627px] h-auto min-h-[400px] max-h-[90vh] lg:w-[627px] lg:h-[600px] rounded-2xl p-2 justify-center overflow-y-auto">
                 <h2 class="text-[32px] font-light text-white mb-2">Uploading Video</h2>
                 <div class="flex flex-col gap-y-1">
                     <p>
@@ -394,24 +394,10 @@ pub fn VideoUploader(
 
     }.into_any()
 }
+
+// post as in after not the content post
 #[component]
 fn PostUploadScreen() -> impl IntoView {
-    // dont wanna manually reset the signal so this weird workaround
-    let refresh_page = move || {
-        match leptos::web_sys::window().map(|w| w.location().reload()) {
-            Some(Ok(_)) => {
-                // Reload initiated
-                log::debug!("Reload initiated");
-            }
-            Some(Err(e)) => {
-                // Handle error if reload fails (less common)
-                log::error!("Failed to reload page: {:?}", e);
-            }
-            None => {
-                log::error!("Could not get window object");
-            }
-        }
-    };
     view! {
         <div
         style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
@@ -427,16 +413,16 @@ fn PostUploadScreen() -> impl IntoView {
                 <h1 class="font-semibold text-lg mb-2">Video uploaded sucessfully</h1>
 
                 <p class="text-center px-4 mb-8">
-                    Upload more to keep the momentum going or share it with your friends and audience. Lets get your content out there!
+                    "We're processing your video. It'll be in 'Your Videos' under My Profile soon. Happy scrolling!"
                 </p>
-                <HighlightedButton
-                alt_style=true
+                <HighlightedLinkButton
+                alt_style=false
                 disabled=false
                 classes="max-w-96 w-full mx-auto py-[12px] px-[20px]".to_string()
-                on_click=refresh_page
+                href="/".to_string()
             >
-                "Upload another video"
-            </HighlightedButton>
+                Done
+            </HighlightedLinkButton>
             </div>
         </div>
     }

@@ -104,11 +104,11 @@ fn PreUploadView(
     });
 
     view! {
-        <div class="flex flex-col lg:flex-row w-full gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
-            <div class="flex flex-col items-center justify-center w-[627px] h-[600px] bg-[#18181b] rounded-2xl text-center">
+        <div class="flex flex-col lg:flex-row w-full gap-4 lg:gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
+            <div class="flex flex-col items-center justify-center w-[358px] h-[300px] sm:w-full sm:h-auto sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] rounded-2xl text-center px-2 mx-4 mt-4 mb-4 sm:px-4 sm:mx-6 lg:px-0 lg:mx-0 lg:overflow-y-auto">
                 <PreVideoUpload file_blob=file_blob uid=uid />
             </div>
-            <div class="flex flex-col gap-4 w-[627px] h-[600px] rounded-2xl p-2 justify-between">
+            <div class="flex flex-col gap-4 w-full max-w-[627px] h-auto min-h-[400px] max-h-[90vh] lg:w-[627px] lg:h-[600px] rounded-2xl p-2 justify-between overflow-y-auto">
             <h2 class="text-[32px] font-light text-white mb-2">Upload Video</h2>
             <div class="flex flex-col gap-y-1">
                 <label for="caption-input" class="font-light text-[20px] text-neutral-300 mb-1">Caption</label>
