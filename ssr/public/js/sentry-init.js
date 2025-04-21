@@ -7,7 +7,6 @@ function tracesSampler(samplingContext) {
     const isInternalUser = window.localStorage.getItem('user-internal');
     // If 'user-internal' is explicitly set to 'true', sample all traces
     if (isInternalUser === 'true') {
-      console.log('isInternalUser', isInternalUser);
       return 1.0;
     }
   }
