@@ -80,7 +80,7 @@ jobs:
           cargo clippy --no-deps --all-features --release -- -Dwarnings
 
       - name: Build the Leptos project to `musl` output
-        run: cargo leptos build --lib-features release-lib --bin-features release-bin --bin-cargo-args="--profile" --bin-cargo-args prod-release --lib-cargo-args="--profile" --lib-cargo-args wasm-release
+        run: cargo leptos build --lib-features release-lib --bin-features release-bin  --lib-cargo-args="--profile=wasm-release" --bin-cargo-args="--profile=prod-release"
         env:
           LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
           LEPTOS_HASH_FILES: true
