@@ -28,6 +28,15 @@ split-debuginfo = "packed"
 strip = true
 
 
+[profile.bin-preview]
+inherits = "release"
+debug = 1
+lto = true
+opt-level = 's'
+split-debuginfo = "packed"
+strip = true
+
+
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }
 candid = "0.10.3"

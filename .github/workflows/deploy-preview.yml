@@ -14,6 +14,7 @@ jobs:
     uses: ./.github/workflows/build-check.yml
     with:
       publish-artifact: true
+    secrets: inherit
 
   destroy_preview:
     if: ${{github.event.pull_request.state == 'closed'}}
@@ -48,19 +49,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-musl
-      - run: chmod +x target/x86_64-unknown-linux-musl/bin-release/hot-or-not-web-leptos-ssr
-      - name: Setup Sentry CLI
-        uses: matbour/setup-sentry-cli@v2
-        with:
-          url: https://sentry.yral.com
-          token: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          organization: sentry
-          project: leptos-ssr-server
-      - name: Upload sentry Rust source context
-        run: |
-          sentry-cli debug-files upload --org sentry --project leptos-ssr-server --auth-token $SENTRY_AUTH_TOKEN --include-sources ./target/x86_64-unknown-linux-musl/bin-release/
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      - run: chmod +x target/x86_64-unknown-linux-musl/bin-preview/hot-or-not-web-leptos-ssr
 
       - name: Deploy
         id: deploy
@@ -83,7 +72,7 @@ jobs:
           flyctl secrets set QSTASH_TOKEN="$QSTASH_TOKEN" --app "$APP_NAME" --stage
           flyctl secrets set GA4_API_SECRET="$GA4_API_SECRET" --app "$APP_NAME" --stage
           flyctl secrets set NSFW_GRPC_TOKEN="$NSFW_GRPC_TOKEN" --app "$APP_NAME" --stage
-          flyctl deploy --app $APP_NAME
+          flyctl deploy --app $APP_NAME --dockerfile Dockerfile.preview
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET }}
           BACKEND_ADMIN_IDENTITY: ${{ secrets.YRAL_WHITELISTED_BACKEND_GLOBAL_ADMIN_SECRET_KEY }}

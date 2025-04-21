@@ -380,7 +380,7 @@ bin-default-features = false
 # The profile to use for the bin target when compiling for release
 #
 # Optional. Defaults to "release".
-bin-profile-release = "bin-release"
+# bin-profile-release = "bin-release"
 
 # The profile to use for the bin target when compiling for debug
 #

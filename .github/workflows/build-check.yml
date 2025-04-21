@@ -81,7 +81,20 @@ jobs:
         env:
           LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
           LEPTOS_HASH_FILES: true
+          LEPTOS_BIN_PROFILE_RELEASE: bin-preview
           # LEPTOS_TAILWIND_VERSION: v3.4.17
+      - name: Setup Sentry CLI
+        uses: matbour/setup-sentry-cli@v2
+        with:
+          url: https://sentry.yral.com
+          token: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          organization: sentry
+          project: leptos-ssr-server
+      - name: Upload sentry Rust source context
+        run: |
+          sentry-cli debug-files upload --org sentry --project leptos-ssr-server --auth-token $SENTRY_AUTH_TOKEN --include-sources ./target/x86_64-unknown-linux-musl/bin-preview/
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       - run: touch .empty
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
@@ -89,7 +102,8 @@ jobs:
         with:
           name: build-musl
           path: |
-            target/x86_64-unknown-linux-musl/bin-release/*
+            target/x86_64-unknown-linux-musl/bin-preview/hot-or-not-web-leptos-ssr
+            target/x86_64-unknown-linux-musl/bin-preview/hash.txt 
             target/site
             .empty
 
