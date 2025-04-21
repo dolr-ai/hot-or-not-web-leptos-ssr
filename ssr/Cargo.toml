@@ -401,6 +401,3 @@ lib-default-features = false
 #
 # Optional. Defaults to "release".
 lib-profile-release = "wasm-release"# The profile to use for the lib target when compiling for debug
-#
-# Optional. Defaults to "debug".
-lib-profile-dev = "wasm-release" # TODO: how to make this better
