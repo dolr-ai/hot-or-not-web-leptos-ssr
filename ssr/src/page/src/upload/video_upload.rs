@@ -68,10 +68,10 @@ pub fn PreVideoUpload(
 
     let canister_store = auth_canisters_store();
 
-    let upload_action: Action<(), (), LocalStorage> = Action::new_local(move |_| async move {
+    let upload_action: Action<(), _, LocalStorage> = Action::new_local(move |_| async move {
         let upload_base_url = "https://yral-upload-video.go-bazzinga.workers.dev";
 
-        let message = upload_video_part(
+        let message = try_or_redirect_opt!(upload_video_part(
             upload_base_url,
             "file",
             file_blob.get_untracked().unwrap().file.as_ref(),
@@ -79,10 +79,11 @@ pub fn PreVideoUpload(
         .await
         .inspect_err(|e| {
             VideoUploadUnsuccessful.send_event(e.to_string(), 0, false, true, canister_store);
-        })
-        .unwrap();
+        }));
 
         uid.set(message.data.and_then(|m| m.uid));
+
+        Some(())
     });
 
     _ = use_event_listener(video_ref, durationchange, move |_| {
@@ -393,12 +394,8 @@ pub fn VideoUploader(
 
     }.into_any()
 }
-use component::overlay::PopupOverlay;
-use component::share_popup::ShareContent;
 #[component]
 fn PostUploadScreen() -> impl IntoView {
-    let pop_up = RwSignal::new(false);
-
     // dont wanna manually reset the signal so this weird workaround
     let refresh_page = move || {
         match leptos::web_sys::window().map(|w| w.location().reload()) {
@@ -415,7 +412,6 @@ fn PostUploadScreen() -> impl IntoView {
             }
         }
     };
-
     view! {
         <div
         style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
@@ -425,14 +421,6 @@ fn PostUploadScreen() -> impl IntoView {
          src="/img/airdrop/bg.webp"
          class="absolute inset-0 z-[25] fade-in w-full h-full object-cover"
      />
-
-            <PopupOverlay show=pop_up>
-                <ShareContent
-                    share_link="insert-post-id".to_string()
-                    message="I uploaded my video on yral".to_string()
-                    show_popup=pop_up
-                />
-            </PopupOverlay>
             <div class="z-50 flex flex-col items-center">
             <img src="/img/common/coins/sucess-coin.png" width=170 class="z-[300] mb-6"/>
 
@@ -441,15 +429,6 @@ fn PostUploadScreen() -> impl IntoView {
                 <p class="text-center px-4 mb-8">
                     Upload more to keep the momentum going or share it with your friends and audience. Lets get your content out there!
                 </p>
-
-                <HighlightedButton
-                alt_style=false
-                disabled=false
-                classes="max-w-96 w-full mx-auto py-[12px] px-[20px] mb-4".to_string()
-                on_click=move|| pop_up.set(true)
-            >
-                "Share video"
-            </HighlightedButton>
                 <HighlightedButton
                 alt_style=true
                 disabled=false
