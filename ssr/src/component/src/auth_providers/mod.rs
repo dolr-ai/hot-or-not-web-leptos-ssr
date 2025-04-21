@@ -121,7 +121,7 @@ pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) 
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
 
-            LoginSuccessful.send_event(canisters);
+            let _ = LoginSuccessful.send_event(canisters);
 
             Ok::<_, ServerFnError>(())
         }

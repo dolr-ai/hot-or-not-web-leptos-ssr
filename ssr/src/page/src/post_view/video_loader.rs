@@ -1,7 +1,14 @@
+use std::cmp::Ordering;
+
 use codee::string::FromToStringCodec;
 use indexmap::IndexSet;
+use leptos::ev;
 use leptos::{html::Video, prelude::*};
 use leptos_use::storage::use_local_storage;
+use leptos_use::use_event_listener;
+use state::canisters::unauth_canisters;
+use utils::send_wrap;
+use yral_canisters_client::individual_user_template::PostViewDetailsFromFrontend;
 
 use crate::post_view::BetEligiblePostCtx;
 use component::show_any::ShowAny;
@@ -125,6 +132,82 @@ pub fn VideoView(
             _ = vid.play();
         }
         Some(())
+    });
+
+    // Video views send to canister
+    // 1. When video is paused -> partial video view
+    // 2. When video is 95% done -> full view
+    let post_for_view = post;
+    let send_view_detail_action =
+        Action::new(move |(percentage_watched, watch_count): &(u8, u8)| {
+            let percentage_watched = *percentage_watched;
+            let watch_count = *watch_count;
+            let post_for_view = post_for_view;
+
+            send_wrap(async move {
+                let canisters = unauth_canisters();
+
+                let payload = match percentage_watched.cmp(&95) {
+                    Ordering::Less => {
+                        PostViewDetailsFromFrontend::WatchedPartially { percentage_watched }
+                    }
+                    _ => PostViewDetailsFromFrontend::WatchedMultipleTimes {
+                        percentage_watched,
+                        watch_count,
+                    },
+                };
+
+                let post = post_for_view.get_untracked();
+                let post_id = post.as_ref().map(|p| p.post_id).unwrap();
+                let canister_id = post.as_ref().map(|p| p.canister_id).unwrap();
+                let send_view_res = canisters
+                    .individual_user(canister_id)
+                    .await
+                    .update_post_add_view_details(post_id, payload)
+                    .await;
+
+                if let Err(err) = send_view_res {
+                    log::warn!("failed to send view details: {:?}", err);
+                }
+                Some(())
+            })
+        });
+
+    let video_views_watch_multiple = RwSignal::new(false);
+
+    let _ = use_event_listener(_ref, ev::pause, move |_evt| {
+        let Some(video) = _ref.get() else {
+            return;
+        };
+
+        let duration = video.duration();
+        let current_time = video.current_time();
+        if current_time < 0.5 {
+            return;
+        }
+
+        let percentage_watched = ((current_time / duration) * 100.0) as u8;
+        send_view_detail_action.dispatch((percentage_watched, 0_u8));
+    });
+
+    let _ = use_event_listener(_ref, ev::timeupdate, move |_evt| {
+        let Some(video) = _ref.get() else {
+            return;
+        };
+
+        let duration = video.duration();
+        let current_time = video.current_time();
+        let percentage_watched = ((current_time / duration) * 100.0) as u8;
+
+        if current_time < 0.95 * duration {
+            video_views_watch_multiple.set(false);
+        }
+
+        if percentage_watched >= 95 && !video_views_watch_multiple.get() {
+            send_view_detail_action.dispatch((percentage_watched, 0_u8));
+
+            video_views_watch_multiple.set(true);
+        }
     });
 
     VideoWatched.send_event(post, _ref);

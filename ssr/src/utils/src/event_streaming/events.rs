@@ -177,7 +177,10 @@ impl VideoWatched {
                 let post_o = post_for_time();
                 let post = post_o.as_ref();
 
-                let target = evt.target().unwrap();
+                let Some(target) = evt.target() else {
+                    leptos::logging::error!("No target found for video timeupdate event");
+                    return;
+                };
                 let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
                 let duration = video.duration();
                 let current_time = video.current_time();
@@ -261,7 +264,10 @@ impl VideoWatched {
                 let post = post_o.as_ref();
                 let nsfw_probability = post.map(|p| p.nsfw_probability);
                 let is_nsfw = nsfw_probability.map(|prob| prob > 0.5);
-                let target = evt.target().unwrap();
+                let Some(target) = evt.target() else {
+                    leptos::logging::error!("No target found for video pause event");
+                    return;
+                };
                 let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
                 let duration = video.duration();
                 let current_time = video.current_time();
@@ -448,7 +454,9 @@ impl VideoUploadUploadButtonClicked {
             // video_upload_upload_button_clicked - analytics
             let user = user_details_can_store_or_ret!(cans_store);
 
-            let hashtag_count = hashtag_inp.get_untracked().unwrap().value().len();
+            let hashtag_count = hashtag_inp
+                .get_untracked()
+                .map_or_else(|| 0, |input| input.value().len());
             let is_nsfw_val = is_nsfw
                 .get_untracked()
                 .map(|v| v.checked())
@@ -651,12 +659,15 @@ impl ReferShareLink {
 pub struct LoginSuccessful;
 
 impl LoginSuccessful {
-    pub fn send_event(&self, canisters: Canisters<true>) {
+    pub fn send_event(&self, canisters: Canisters<true>) -> Result<(), anyhow::Error> {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // login_successful - analytics
 
-            let user_id = canisters.identity().sender().unwrap();
+            let user_id = canisters.identity().sender().map_err(|_| {
+                leptos::logging::error!("No sender found for login successful event");
+                anyhow::anyhow!("No sender found for login successful event")
+            })?;
             let canister_id = canisters.user_canister();
 
             let _ = send_user_id(user_id.to_string());
@@ -673,6 +684,8 @@ impl LoginSuccessful {
                 .to_string(),
             );
         }
+
+        Ok(())
     }
 }
 

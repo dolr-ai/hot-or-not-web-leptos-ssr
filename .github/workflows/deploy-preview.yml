@@ -57,7 +57,7 @@ jobs:
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Set secret tokens
         run: |
-          APP_NAME="pr-${{github.event.number}}-yral-dapp-hot-or-not-web-leptos-ssr"
+          APP_NAME="pr-${{github.event.number}}-${{github.repository_owner}}-hot-or-not-web-leptos-ssr"
           flyctl secrets set CF_TOKEN="$CF_TOKEN" --app "$APP_NAME" --stage
           flyctl secrets set BACKEND_ADMIN_IDENTITY="$BACKEND_ADMIN_IDENTITY" --app "$APP_NAME" --stage
           flyctl secrets set COOKIE_KEY="$COOKIE_KEY" --app "$APP_NAME" --stage
@@ -94,5 +94,5 @@ jobs:
     if: ${{ github.event.pull_request.state == 'open'}}
     secrets: inherit
     with:
-      preview_url: https://pr-${{github.event.number}}-yral-dapp-hot-or-not-web-leptos-ssr.fly.dev
+      preview_url: https://pr-${{github.event.number}}-${{github.repository_owner}}-hot-or-not-web-leptos-ssr.fly.dev
       build_name: PR-${{github.event.number}}-commit-${{github.sha}}-attempt-${{github.run_attempt}}

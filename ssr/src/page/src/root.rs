@@ -63,11 +63,12 @@ pub fn YralRootPage() -> impl IntoView {
         .get("utm_source")
         .unwrap_or("external".to_string());
 
-    leptos::logging::log!("utm_source: {:?}", utm_source);
+    let (_, set_is_internal_user, _) =
+        use_local_storage::<bool, FromToStringCodec>(USER_INTERNAL_STORE);
     if utm_source == "internal" {
-        let (_, set_is_internal_user, _) =
-            use_local_storage::<bool, FromToStringCodec>(USER_INTERNAL_STORE);
-        set_is_internal_user(true); // TODO: this need not be reset once set to internal for now, might need to later
+        set_is_internal_user(true);
+    } else if utm_source == "internaloff" {
+        set_is_internal_user(false);
     }
 
     let target_post = if nsfw_enabled || show_nsfw_content() {
