@@ -27,14 +27,14 @@ opt-level = 's'
 split-debuginfo = "packed"
 strip = true
 
-
-[profile.preview-release]
-inherits = "release"
-debug = 1
-lto = true
-opt-level = 's'
-split-debuginfo = "packed"
-strip = true
+# TODO: leaving this here as a reminder to be used once cargo-leptos solves the profile issue
+# [profile.preview-release]
+# inherits = "release"
+# debug = 1
+# lto = true
+# opt-level = 's'
+# split-debuginfo = "packed"
+# strip = true
 
 
 [workspace.dependencies]
