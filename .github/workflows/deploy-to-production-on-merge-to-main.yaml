@@ -54,7 +54,7 @@ jobs:
           GA4_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET }}
           NSFW_GRPC_TOKEN: ${{ secrets.TOKEN_TO_SIGN_OUTGOING_CALLS_TO_NSFW_DETECT_SERVICE }}
       - name: Deploy a docker container to Fly.io
-        run: flyctl deploy --remote-only -c fly-prod.toml --dockerfile Dockerfile.prod
+        run: flyctl deploy --remote-only -c fly-prod.toml
         env:
           FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
 
