@@ -31,7 +31,6 @@ Sentry.init({
   tracesSampler: tracesSampler,
   replaysSessionSampleRate: 0.5, // 0.1 once stailised
   replaysOnErrorSampleRate: 1.0,
-  environment: "staging-komal",
   tracePropagationTargets: ['localhost', /^\//, 'yral.com', 'yral-ml-feed-server.fly.dev', 'icp-off-chain-agent.fly.dev', 'prod-yral-icpumpsearch.fly.dev', 'prod-yral-nsfw-classification.fly.dev'],
 });
 
