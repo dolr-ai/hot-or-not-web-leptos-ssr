@@ -80,9 +80,8 @@ pub fn show_nsfw_content() -> bool {
 }
 
 pub fn show_nsfw_condition(host: String) -> bool {
-    host == "hotornot.wtf"
-        || host == "127.0.0.1:3000"
-        || host.contains("yral-dapp-hot-or-not-web-leptos-ssr.fly.dev")
+    host == "hotornot.wtf" || host == "127.0.0.1:3000"
+    // || host.contains("yral-dapp-hot-or-not-web-leptos-ssr.fly.dev")
 }
 
 #[cfg(test)]
