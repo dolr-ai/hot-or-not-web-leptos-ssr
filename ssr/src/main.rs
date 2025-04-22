@@ -1,6 +1,4 @@
 #![recursion_limit = "256"]
-use std::borrow::Cow;
-
 use axum::{
     body::Body as AxumBody,
     extract::{Path, State},
