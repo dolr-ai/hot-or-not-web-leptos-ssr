@@ -13,7 +13,6 @@ pub mod profile;
 pub mod qstash;
 pub mod report;
 pub mod route;
-pub mod sentry_server_test;
 pub mod time;
 pub mod token;
 pub mod types;

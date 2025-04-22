@@ -1,5 +1,4 @@
 use component::content_upload::AuthorizedUserToSeedContent;
-use component::sentry_wasm_test::SentryWasmTest;
 use page::about_us::AboutUs;
 use page::icpump::ai::ICPumpAi;
 use page::icpump::ICPumpLanding;
@@ -191,11 +190,6 @@ pub fn App() -> impl IntoView {
                 "#}
                 </Script>
             </Show>
-            // <Script
-            // async_="true"
-            // src="https://sentry.yral.com/js-sdk-loader/3f7d672f8461961bd7b6bec57acf7f18.min.js"
-            // crossorigin="anonymous"
-            // ></Script>
 
             <Router>
             <main class="bg-black" id="body">
@@ -235,7 +229,6 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/pnd/withdraw/success") view=withdrawal::result::Success />
                         <Route path=path!("/pnd/withdraw/failure") view=withdrawal::result::Failure />
                         <Route path=path!("/terms-ios") view=TermsIos/>
-                        <Route path=path!("/__sentry_wasm_test") view=SentryWasmTest/>
 
                         // {
                         //     #[cfg(any(feature = "local-bin", feature = "local-lib"))]
