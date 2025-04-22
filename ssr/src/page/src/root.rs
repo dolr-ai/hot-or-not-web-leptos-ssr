@@ -55,27 +55,31 @@ pub fn CreatorDaoRootPage() -> impl IntoView {
 
 #[component]
 pub fn YralRootPage() -> impl IntoView {
-    // check nsfw param
     let params = use_query_map();
-    let params_map = params.get_untracked();
-    let nsfw_enabled = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
-    let utm_source = params_map
-        .get("utm_source")
-        .unwrap_or("external".to_string());
 
-    let (_, set_is_internal_user, _) =
-        use_local_storage::<bool, FromToStringCodec>(USER_INTERNAL_STORE);
-    if utm_source == "internal" {
-        set_is_internal_user(true);
-    } else if utm_source == "internaloff" {
-        set_is_internal_user(false);
-    }
+    Effect::new(move |_| {
+        let params_map = params.get();
+        let utm_source = params_map
+            .get("utm_source")
+            .unwrap_or("external".to_string());
 
-    let target_post = if nsfw_enabled || show_nsfw_content() {
-        Resource::new(|| (), |_| get_top_post_id_global_nsfw_feed())
-    } else {
-        Resource::new(|| (), |_| get_top_post_id_global_clean_feed())
-    };
+        let (_, set_is_internal_user, _) =
+            use_local_storage::<bool, FromToStringCodec>(USER_INTERNAL_STORE);
+        if utm_source == "internal" {
+            set_is_internal_user(true);
+        } else if utm_source == "internaloff" {
+            set_is_internal_user(false);
+        }
+    });
+
+    let target_post = Resource::new(params, move |params_map| async move {
+        let nsfw_enabled = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
+        if nsfw_enabled || show_nsfw_content() {
+            get_top_post_id_global_nsfw_feed().await
+        } else {
+            get_top_post_id_global_clean_feed().await
+        }
+    });
     let post_details_cache: PostDetailsCacheCtx = expect_context();
 
     view! {
