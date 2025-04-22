@@ -1,4 +1,7 @@
 name: Build and Check linting for preview release
+permissions:
+  contents: read
+  pull-requests: none
 
 on:
   workflow_call:

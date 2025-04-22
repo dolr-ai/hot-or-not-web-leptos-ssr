@@ -1,7 +1,7 @@
 name: Build and Check linting for prod release
 permissions:
   contents: read
-  pull-requests: write
+  pull-requests: none
 
 on:
   workflow_call:
