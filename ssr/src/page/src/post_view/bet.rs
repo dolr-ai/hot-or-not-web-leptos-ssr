@@ -480,7 +480,7 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
         move || (),
         move |_| {
             refetch_bet.track();
-            async move {
+            send_wrap(async move {
                 let cans = authenticated_canisters().await?;
                 let cans = Canisters::from_wire(cans, expect_context())?;
                 let post = post.get_value();
@@ -492,7 +492,7 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
                     ))
                     .await?;
                 Ok::<_, ServerFnError>(bet_participation.map(VoteDetails::from))
-            }
+            })
         },
     );
     view! {

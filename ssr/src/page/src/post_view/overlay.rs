@@ -46,7 +46,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
         let post_details = post.clone();
         let canister_store = canisters;
 
-        async move {
+        send_wrap(async move {
             let Some(canisters) = canisters.get_untracked() else {
                 log::warn!("Trying to toggle like without auth");
                 return;
@@ -74,7 +74,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
                     liked.update(|l| _ = l.as_mut().map(|l| *l = !*l));
                 }
             }
-        }
+        })
     });
 
     let liked_fetch = with_cans(move |cans: Canisters<true>| {

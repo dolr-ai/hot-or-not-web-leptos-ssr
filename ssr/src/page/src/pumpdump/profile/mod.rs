@@ -10,6 +10,7 @@ use futures::{stream::FuturesOrdered, StreamExt};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use state::canisters::authenticated_canisters;
+use utils::send_wrap;
 use yral_canisters_client::{
     individual_user_template::IndividualUserTemplate, sns_ledger::MetadataValue,
     sns_root::ListSnsCanistersArg,
@@ -347,8 +348,9 @@ pub fn PndProfilePage() -> impl IntoView {
                 let cans_wire = authenticated_canisters().await?;
                 let user = cans_wire.profile_details.clone();
                 let canisters = Canisters::from_wire(cans_wire.clone(), expect_context())?;
-                let ind_user = canisters.individual_user(canisters.user_canister()).await;
-                ProfileData::load(user, ind_user)
+                let ind_user =
+                    send_wrap(canisters.individual_user(canisters.user_canister())).await;
+                send_wrap(ProfileData::load(user, ind_user))
                     .await
                     .map_err(|e| ServerFnError::new(e.to_string()))
             },
