@@ -16,6 +16,7 @@ function tracesSampler(samplingContext) {
 
 Sentry.init({
   dsn: "https://3f7d672f8461961bd7b6bec57acf7f18@sentry.yral.com/3",
+  environment: 'staging-komal-preview',
   integrations: [
     Sentry.browserTracingIntegration(),
     Sentry.captureConsoleIntegration(),

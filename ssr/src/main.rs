@@ -193,6 +193,7 @@ fn main() {
             release: sentry::release_name!(),
             debug: true,
             traces_sample_rate: 0.25,
+            environment: Some("staging-komal-preview".into()),
             ..Default::default()
         },
     ));
