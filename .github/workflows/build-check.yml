@@ -87,7 +87,7 @@ jobs:
         env:
           LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
           LEPTOS_HASH_FILES: true
-          MOLD_JOBS: 1
+          # MOLD_JOBS: 1
           # LEPTOS_TAILWIND_VERSION: v3.4.17
       - name: Setup Sentry CLI
         uses: matbour/setup-sentry-cli@v2
@@ -98,10 +98,10 @@ jobs:
           project: leptos-ssr-server
       - name: Upload sentry Rust source context
         run: |
-          sentry-cli debug-files upload --org sentry --project leptos-ssr-server --auth-token $SENTRY_AUTH_TOKEN --include-sources . --log-level=debug
           objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
           objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
           objcopy --add-gnu-debuglink target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{.d,}
+          sentry-cli debug-files upload --org sentry --project leptos-ssr-server --auth-token $SENTRY_AUTH_TOKEN --include-sources . --log-level=debug
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       - run: touch .empty
