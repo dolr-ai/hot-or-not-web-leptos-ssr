@@ -39,7 +39,7 @@ fn MenuItem(
             </div>
             <Icon attr:class="text-2xl justify-self-end" icon=icondata::AiRightOutlined />
         </a>
-    }
+    }.into_any()
 }
 
 #[component]
@@ -72,7 +72,7 @@ fn MenuFooter() -> impl IntoView {
                 ></path>
             </svg>
         </div>
-    }
+    }.into_any()
 }
 
 #[component]
@@ -83,7 +83,7 @@ fn ProfileLoading() -> impl IntoView {
             <div class="w-full h-4 bg-white/20 rounded-full"></div>
             <div class="w-full h-4 bg-white/20 rounded-full"></div>
         </div>
-    }
+    }.into_any()
 }
 
 #[component]
@@ -113,14 +113,14 @@ fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
                 View Profile
             </a>
         </div>
-    }
+    }.into_any()
 }
 
 #[component]
 fn ProfileInfo(profile_details: ProfileDetails) -> impl IntoView {
     view! {
         <ProfileLoaded user_details=profile_details />
-    }
+    }.into_any()
 }
 
 #[component]
@@ -148,7 +148,7 @@ fn NsfwToggle() -> impl IntoView {
                 <Toggle checked=nsfw_enabled node_ref=toggle_ref />
             </div>
         </div>
-    }
+    }.into_any()
 }
 
 #[component]
