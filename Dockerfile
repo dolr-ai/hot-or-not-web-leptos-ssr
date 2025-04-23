@@ -1,4 +1,4 @@
-FROM debian:bookworm-20240211
+FROM scratch
 
 WORKDIR /app
 COPY ./target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr .

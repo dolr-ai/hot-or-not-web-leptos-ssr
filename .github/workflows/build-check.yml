@@ -73,6 +73,7 @@ jobs:
 
       - name: lint check
         run: |
+          objcopy --version
           cargo fmt --check
           cargo clippy --no-deps --all-features --release -- -Dwarnings
 
@@ -92,6 +93,9 @@ jobs:
       - name: Upload sentry Rust source context
         run: |
           sentry-cli debug-files upload --org sentry --project leptos-ssr-server --auth-token $SENTRY_AUTH_TOKEN --include-sources . --log-level=debug
+          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
+          objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
+          objcopy --add-gnu-debuglink target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{.d,}
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       - run: touch .empty
