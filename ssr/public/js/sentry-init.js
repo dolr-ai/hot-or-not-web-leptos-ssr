@@ -16,7 +16,6 @@ function tracesSampler(samplingContext) {
 
 Sentry.init({
   dsn: "https://3f7d672f8461961bd7b6bec57acf7f18@sentry.yral.com/3",
-  environment: 'staging-komal-preview',
   integrations: [
     Sentry.browserTracingIntegration(),
     Sentry.captureConsoleIntegration(),
@@ -24,7 +23,7 @@ Sentry.init({
     Sentry.extraErrorDataIntegration(),
     Sentry.httpClientIntegration(),
     Sentry.replayIntegration({
-      networkDetailAllowUrls: ['localhost', /^\//, 'yral.com', 'yral-ml-feed-server.fly.dev', 'icp-off-chain-agent.fly.dev', 'prod-yral-icpumpsearch.fly.dev', 'prod-yral-nsfw-classification.fly.dev'],
+      networkDetailAllowUrls: [/^\//, 'yral.com', 'yral-ml-feed-server.fly.dev', 'icp-off-chain-agent.fly.dev', 'prod-yral-icpumpsearch.fly.dev', 'prod-yral-nsfw-classification.fly.dev'],
       maskAllText: false,
       blockAllMedia: false,
     }),
@@ -32,7 +31,7 @@ Sentry.init({
   tracesSampler: tracesSampler,
   replaysSessionSampleRate: 0.5, // 0.1 once stailised
   replaysOnErrorSampleRate: 1.0,
-  tracePropagationTargets: ['localhost', /^\//, 'yral.com', 'yral-ml-feed-server.fly.dev', 'icp-off-chain-agent.fly.dev', 'prod-yral-icpumpsearch.fly.dev', 'prod-yral-nsfw-classification.fly.dev'],
+  tracePropagationTargets: [/^\//, 'yral.com', 'yral-ml-feed-server.fly.dev', 'icp-off-chain-agent.fly.dev', 'prod-yral-icpumpsearch.fly.dev', 'prod-yral-nsfw-classification.fly.dev'],
 });
 
 window.Sentry = Sentry;
