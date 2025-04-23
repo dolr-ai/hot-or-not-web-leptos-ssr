@@ -21,11 +21,11 @@ codegen-units = 1
 
 [profile.prod-release]
 inherits = "release"
-debug = 1
+debug = 2
 lto = true
 opt-level = 's'
 split-debuginfo = "packed"
-strip = true
+# strip = true
 
 # TODO: leaving this here as a reminder to be used once cargo-leptos solves the profile issue
 # [profile.preview-release]
