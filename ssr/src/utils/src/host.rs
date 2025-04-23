@@ -66,10 +66,9 @@ pub fn show_pnd_page() -> bool {
 }
 
 pub fn show_pnd_condition(host: &str) -> bool {
-    host == "pumpdump.wtf"
-        || host == "www.pumpdump.wtf"
-        // || host.contains("localhost")
-        // || host.contains("dolr-ai-hot-or-not-web-leptos-ssr.fly.dev")
+    host == "pumpdump.wtf" || host == "www.pumpdump.wtf"
+    // || host.contains("localhost")
+    // || host.contains("dolr-ai-hot-or-not-web-leptos-ssr.fly.dev")
     // || host.contains("hot-or-not-web-leptos-ssr-staging.fly.dev") // Use this when testing icpump changes
 }
 
@@ -81,9 +80,8 @@ pub fn show_nsfw_content() -> bool {
 }
 
 pub fn show_nsfw_condition(host: String) -> bool {
-    host == "hotornot.wtf"
-        || host == "127.0.0.1:3000"
-        // || host.contains("dolr-ai-hot-or-not-web-leptos-ssr.fly.dev")
+    host == "hotornot.wtf" || host == "127.0.0.1:3000"
+    // || host.contains("dolr-ai-hot-or-not-web-leptos-ssr.fly.dev")
 }
 
 #[cfg(test)]
