@@ -42,7 +42,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
     let initial_liked = (post.liked_by_user, post.likes);
     let canisters = auth_canisters_store();
 
-    let like_toggle = Action::new(move |&()| {
+    let like_toggle = Action::new_local(move |&()| {
         let post_details = post.clone();
         let canister_store = canisters;
 

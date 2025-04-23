@@ -484,7 +484,7 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
                 let cans = authenticated_canisters().await?;
                 let cans = Canisters::from_wire(cans, expect_context())?;
                 let post = post.get_value();
-                let user = cans.authenticated_user().await;
+                let user = send_wrap(cans.authenticated_user()).await;
                 let bet_participation =
                     send_wrap(user.get_individual_hot_or_not_bet_placed_by_this_profile(
                         post.canister_id,
