@@ -39,7 +39,8 @@ fn MenuItem(
             </div>
             <Icon attr:class="text-2xl justify-self-end" icon=icondata::AiRightOutlined />
         </a>
-    }.into_any()
+    }
+    .into_any()
 }
 
 #[component]
@@ -113,14 +114,16 @@ fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
                 View Profile
             </a>
         </div>
-    }.into_any()
+    }
+    .into_any()
 }
 
 #[component]
 fn ProfileInfo(profile_details: ProfileDetails) -> impl IntoView {
     view! {
         <ProfileLoaded user_details=profile_details />
-    }.into_any()
+    }
+    .into_any()
 }
 
 #[component]
@@ -148,7 +151,8 @@ fn NsfwToggle() -> impl IntoView {
                 <Toggle checked=nsfw_enabled node_ref=toggle_ref />
             </div>
         </div>
-    }.into_any()
+    }
+    .into_any()
 }
 
 #[component]
