@@ -13,6 +13,11 @@ jobs:
   build_check:
     runs-on: ubuntu-latest
     steps:
+      - name: Set Swap Space # Needed to fix OOM error in runner
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 8
+
       - name: Checkout repo and submodules
         uses: actions/checkout@v3
         with:
@@ -91,7 +96,10 @@ jobs:
           project: leptos-ssr-server
       - name: Upload sentry Rust source context
         run: |
-          sentry-cli debug-files upload --org sentry --project leptos-ssr-server --auth-token $SENTRY_AUTH_TOKEN --include-sources ./target/x86_64-unknown-linux-musl/prod-release/
+          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
+          objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
+          objcopy --add-gnu-debuglink target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{.d,}
+          sentry-cli debug-files upload --org sentry --project leptos-ssr-server --auth-token $SENTRY_AUTH_TOKEN --include-sources .
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       - run: touch .empty

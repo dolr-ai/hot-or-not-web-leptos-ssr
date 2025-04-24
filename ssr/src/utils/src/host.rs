@@ -41,7 +41,7 @@ pub fn is_host_or_origin_from_preview_domain(uri: &str) -> bool {
     use regex::Regex;
 
     static PR_PREVIEW_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(r"^(https:\/\/)?pr-\d*-yral-dapp-hot-or-not-web-leptos-ssr\.fly\.dev$").unwrap()
+        Regex::new(r"^(https:\/\/)?pr-\d*-dolr-ai-hot-or-not-web-leptos-ssr\.fly\.dev$").unwrap()
     });
 
     PR_PREVIEW_PATTERN.is_match_at(uri, 0)
@@ -49,7 +49,7 @@ pub fn is_host_or_origin_from_preview_domain(uri: &str) -> bool {
 
 pub fn show_preview_component() -> bool {
     let host = get_host();
-    host.contains("yral-dapp-hot-or-not-web-leptos-ssr.fly.dev")
+    host.contains("dolr-ai-hot-or-not-web-leptos-ssr.fly.dev")
 }
 
 pub fn show_cdao_condition(host: String) -> bool {
@@ -68,7 +68,7 @@ pub fn show_pnd_page() -> bool {
 pub fn show_pnd_condition(host: &str) -> bool {
     host == "pumpdump.wtf" || host == "www.pumpdump.wtf"
     // || host.contains("localhost")
-    // || host.contains("yral-dapp-hot-or-not-web-leptos-ssr.fly.dev")
+    // || host.contains("dolr-ai-hot-or-not-web-leptos-ssr.fly.dev")
     // || host.contains("hot-or-not-web-leptos-ssr-staging.fly.dev") // Use this when testing icpump changes
 }
 
@@ -80,9 +80,8 @@ pub fn show_nsfw_content() -> bool {
 }
 
 pub fn show_nsfw_condition(host: String) -> bool {
-    host == "hotornot.wtf"
-        || host == "127.0.0.1:3000"
-        || host.contains("yral-dapp-hot-or-not-web-leptos-ssr.fly.dev")
+    host == "hotornot.wtf" || host == "127.0.0.1:3000"
+    // || host.contains("dolr-ai-hot-or-not-web-leptos-ssr.fly.dev")
 }
 
 #[cfg(test)]
