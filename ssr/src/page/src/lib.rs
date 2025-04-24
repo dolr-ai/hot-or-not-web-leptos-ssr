@@ -22,6 +22,7 @@ pub mod scrolling_post_view;
 pub mod settings;
 pub mod terms;
 pub mod terms_ios;
+pub mod test_place_bets;
 pub mod token;
 pub mod upload;
 pub mod view_profile_redirect;
