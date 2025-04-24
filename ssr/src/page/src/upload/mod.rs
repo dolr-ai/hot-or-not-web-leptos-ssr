@@ -1,4 +1,3 @@
-mod cf_upload;
 mod validators;
 mod video_upload;
 use leptos_meta::*;

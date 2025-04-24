@@ -2,6 +2,7 @@ use super::UploadParams;
 use auth::delegate_short_lived_identity;
 use component::buttons::HighlightedLinkButton;
 use component::modal::Modal;
+use consts::UPLOAD_URL;
 use gloo::net::http::Request;
 use leptos::web_sys::{Blob, FormData};
 use leptos::{
@@ -69,10 +70,8 @@ pub fn PreVideoUpload(
     let canister_store = auth_canisters_store();
 
     let upload_action: Action<(), _, LocalStorage> = Action::new_local(move |_| async move {
-        let upload_base_url = "https://yral-upload-video.go-bazzinga.workers.dev";
-
         let message = try_or_redirect_opt!(upload_video_part(
-            upload_base_url,
+            UPLOAD_URL,
             "file",
             file_blob.get_untracked().unwrap().file.as_ref(),
         )
@@ -269,14 +268,13 @@ pub fn VideoUploader(
             let description = description.clone();
             let uid = uid.get_untracked().unwrap();
             async move {
-                let upload_base_url = "https://yral-upload-video.go-bazzinga.workers.dev";
                 let id = canisters.identity();
                 let delegated_identity = delegate_short_lived_identity(id);
                 let res: std::result::Result<reqwest::Response, ServerFnError> = {
                     let client = reqwest::Client::new();
 
                     let req = client
-                        .post(format!("{}/update_metadata", upload_base_url))
+                        .post(format!("{}/update_metadata", UPLOAD_URL))
                         .json(&json!({
                             "video_uid": uid,
                             "delegated_identity_wire": delegated_identity,

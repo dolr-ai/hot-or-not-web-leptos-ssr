@@ -12,6 +12,7 @@ pkgs.mkShell {
     leptosfmt
     nodejs_22
     nodePackages_latest.tailwindcss
+    cargo-leptos
     rustup
     openssl
     git
