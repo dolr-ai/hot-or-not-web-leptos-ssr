@@ -256,15 +256,13 @@ mod server_fn_impl {
             user_canister: Principal,
         ) -> Result<bool, ServerFnError> {
             use state::admin_canisters::admin_canisters;
-            use yral_canisters_client::individual_user_template::{
-                Result14, Result24, SessionType,
-            };
+            use yral_canisters_client::individual_user_template::{Result22, Result9, SessionType};
 
             let admin_cans = admin_canisters();
             let user = admin_cans.individual_user_for(user_canister).await;
             if matches!(
                 user.get_session_type().await?,
-                Result14::Ok(SessionType::RegisteredSession)
+                Result9::Ok(SessionType::RegisteredSession)
             ) {
                 return Ok(false);
             }
@@ -272,8 +270,8 @@ mod server_fn_impl {
                 .await
                 .map_err(ServerFnError::from)
                 .and_then(|res| match res {
-                    Result24::Ok(_) => Ok(()),
-                    Result24::Err(e) => Err(ServerFnError::new(format!(
+                    Result22::Ok(_) => Ok(()),
+                    Result22::Err(e) => Err(ServerFnError::new(format!(
                         "failed to mark user as registered {e}"
                     ))),
                 })?;

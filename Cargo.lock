@@ -7164,7 +7164,6 @@ checksum = "7fcf8323ef1faaee30a44a340193b1ac6814fd9b7b4e88e9d4519a3e4abe1cfd"
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?rev=209963155b549a5ddfa9fb42403ddc0541ba24be#209963155b549a5ddfa9fb42403ddc0541ba24be"
 dependencies = [
  "candid",
  "humantime",
@@ -8909,7 +8908,6 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?rev=209963155b549a5ddfa9fb42403ddc0541ba24be#209963155b549a5ddfa9fb42403ddc0541ba24be"
 dependencies = [
  "anyhow",
  "candid",
@@ -8924,7 +8922,6 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?rev=209963155b549a5ddfa9fb42403ddc0541ba24be#209963155b549a5ddfa9fb42403ddc0541ba24be"
 dependencies = [
  "candid",
  "ciborium",
@@ -8944,6 +8941,7 @@ dependencies = [
  "web-time",
  "yral-canisters-client",
  "yral-grpc-traits",
+ "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
  "yral-metadata-client",
  "yral-metadata-types",
  "yral-pump-n-dump-common",
@@ -8953,7 +8951,6 @@ dependencies = [
 [[package]]
 name = "yral-grpc-traits"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?rev=209963155b549a5ddfa9fb42403ddc0541ba24be#209963155b549a5ddfa9fb42403ddc0541ba24be"
 dependencies = [
  "serde",
 ]
@@ -9008,7 +9005,6 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?rev=209963155b549a5ddfa9fb42403ddc0541ba24be#209963155b549a5ddfa9fb42403ddc0541ba24be"
 dependencies = [
  "candid",
  "ic-agent",
@@ -9023,7 +9019,6 @@ dependencies = [
 [[package]]
 name = "yral-qstash-types"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?rev=209963155b549a5ddfa9fb42403ddc0541ba24be#209963155b549a5ddfa9fb42403ddc0541ba24be"
 dependencies = [
  "candid",
  "serde",
@@ -9044,7 +9039,6 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?rev=209963155b549a5ddfa9fb42403ddc0541ba24be#209963155b549a5ddfa9fb42403ddc0541ba24be"
 dependencies = [
  "ic-agent",
  "k256",

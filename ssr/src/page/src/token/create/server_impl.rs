@@ -294,14 +294,14 @@ mod local_claim {
     }
 }
 
-#[cfg(feature = "backend-admin")]
+// #[cfg(feature = "backend-admin")]
 mod real_impl {
     use std::str::FromStr;
 
     use crate::token::create::DeployedCdaoCanistersRes;
     use auth::delegate_short_lived_identity;
     use utils::token::nsfw::NSFWInfo;
-    use yral_canisters_client::individual_user_template::Result8;
+    use yral_canisters_client::individual_user_template::Result4;
 
     use candid::{Decode, Nat, Principal};
     use consts::ICP_LEDGER_CANISTER_ID;
@@ -372,11 +372,11 @@ mod real_impl {
             .map_err(|e| ServerFnError::new(format!("{e:?}")))?;
 
         let deployed_cans = match res {
-            Result8::Ok(c) => {
+            Result4::Ok(c) => {
                 log::debug!("deployed canister {}", c.governance);
                 c
             }
-            Result8::Err(e) => return Err(ServerFnError::new(format!("{e:?}"))),
+            Result4::Err(e) => return Err(ServerFnError::new(format!("{e:?}"))),
         };
 
         let participate_in_swap_req = ParticipateInSwapRequest {
