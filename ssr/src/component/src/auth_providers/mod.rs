@@ -180,7 +180,9 @@ mod server_fn_impl {
         use leptos::prelude::*;
 
         use state::canisters::unauth_canisters;
-        use yral_canisters_client::individual_user_template::{KnownPrincipalType, Result22, Result9};
+        use yral_canisters_client::individual_user_template::{
+            KnownPrincipalType, Result22, Result9,
+        };
 
         pub async fn issue_referral_rewards_impl(
             referee_canister: Principal,
