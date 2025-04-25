@@ -7164,6 +7164,7 @@ checksum = "7fcf8323ef1faaee30a44a340193b1ac6814fd9b7b4e88e9d4519a3e4abe1cfd"
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=revert-changes2#b0bb1bf3b653702f48da167f80cc94bff99084d5"
 dependencies = [
  "candid",
  "humantime",
@@ -8908,6 +8909,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=revert-changes2#b0bb1bf3b653702f48da167f80cc94bff99084d5"
 dependencies = [
  "anyhow",
  "candid",
@@ -8922,6 +8924,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=revert-changes2#b0bb1bf3b653702f48da167f80cc94bff99084d5"
 dependencies = [
  "candid",
  "ciborium",
@@ -8951,6 +8954,7 @@ dependencies = [
 [[package]]
 name = "yral-grpc-traits"
 version = "0.1.0"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=revert-changes2#b0bb1bf3b653702f48da167f80cc94bff99084d5"
 dependencies = [
  "serde",
 ]
@@ -9005,6 +9009,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=revert-changes2#b0bb1bf3b653702f48da167f80cc94bff99084d5"
 dependencies = [
  "candid",
  "ic-agent",
@@ -9019,6 +9024,7 @@ dependencies = [
 [[package]]
 name = "yral-qstash-types"
 version = "0.1.0"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=revert-changes2#b0bb1bf3b653702f48da167f80cc94bff99084d5"
 dependencies = [
  "candid",
  "serde",
@@ -9039,6 +9045,7 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=revert-changes2#b0bb1bf3b653702f48da167f80cc94bff99084d5"
 dependencies = [
  "ic-agent",
  "k256",
