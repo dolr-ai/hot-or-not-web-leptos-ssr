@@ -45,7 +45,7 @@ pub async fn get_video_status(uid: String) -> Result<String, ServerFnError> {
 #[cfg(feature = "cloudflare")]
 mod cf_impl {
     use leptos::prelude::ServerFnError;
-    use yral_canisters_client::individual_user_template::{PostDetailsFromFrontend, Result2};
+    use yral_canisters_client::individual_user_template::{PostDetailsFromFrontend, Result1};
 
     use yral_canisters_common::Canisters;
 
@@ -138,8 +138,8 @@ mod cf_impl {
             })
             .await?;
         let post_id = match res {
-            Result2::Ok(p) => p,
-            Result2::Err(e) => return Err(ServerFnError::new(e)),
+            Result1::Ok(p) => p,
+            Result1::Err(e) => return Err(ServerFnError::new(e)),
         };
         user.update_post_as_ready_to_view(post_id).await?;
         Ok(post_id)
