@@ -1,5 +1,5 @@
 use candid::Principal;
-use leptos::{logging, prelude::*};
+use leptos::prelude::*;
 use std::collections::BTreeMap;
 
 #[derive(Default, Clone)]
@@ -61,12 +61,10 @@ impl PostViewState {
 
     pub fn increament_view_count(canister_id: Principal, post_id: u64) -> u64 {
         let count = Self::get_view_count_untracked(canister_id, post_id)() + 1;
-        logging::log!("incrementing view count for post {}: {}", post_id, count);
         let this = Self::get();
         this.state.update(|state| {
             state.insert((canister_id, post_id), count);
         });
-        logging::log!("incremented view count for post {}: {}", post_id, count);
         count
     }
 
