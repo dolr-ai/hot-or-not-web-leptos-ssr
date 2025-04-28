@@ -253,12 +253,12 @@ fn HNWonLost(participation: VoteDetails) -> impl IntoView {
             <div class="flex flex-col gap-2 w-full md:w-1/2 lg:w-1/3">
                 // <!-- Result Text -->
                 <div class="p-1 text-sm leading-snug text-white rounded-full">
-                    <p>You staked {bet_amount}tokens on {if is_hot { "Hot" } else { "Not" }}.</p>
+                    <p>You staked {bet_amount} Cents on {if is_hot { "Hot" } else { "Not" }}.</p>
                     <p>
                         {if let Some(reward) = participation.reward() {
-                            format!("You received {reward} tokens.")
+                            format!("You received {reward} Cents.")
                         } else {
-                            format!("You lost {bet_amount} tokens.")
+                            format!("You lost {bet_amount} Cents.")
                         }}
                     </p>
 
@@ -348,7 +348,7 @@ fn HNAwaitingResults(
                 </div>
             </div>
             <p class="p-1 text-center text-white rounded-full bg-black/15 ps-2">
-                You staked {bet_amount}tokens on {bet_direction_text}.
+                You staked {bet_amount} Cents on {bet_direction_text}.
                 Result is still pending.
 
             </p>
