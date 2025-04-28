@@ -2,14 +2,14 @@ use crate::post_view::BetEligiblePostCtx;
 use component::{
     bullet_loader::BulletLoader, canisters_prov::AuthCansProvider, hn_icons::*, spinner::SpinnerFit,
 };
-use consts::PUMP_AND_DUMP_WORKER_URL;
+use consts::{CENTS_IN_E6S, PUMP_AND_DUMP_WORKER_URL};
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_use::use_interval_fn;
 use state::canisters::{authenticated_canisters, unauth_canisters};
 use utils::{send_wrap, time::to_hh_mm_ss, try_or_redirect_opt};
 use web_time::Duration;
-use yral_canisters_client::individual_user_template::BettingStatus;
+use yral_canisters_client::individual_user_template::{BettingStatus, PlacedBetDetail};
 use yral_canisters_common::{
     utils::{
         posts::PostDetails,
@@ -498,7 +498,11 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
                         post.post_id,
                     ),
                 )
-                .await?;
+                .await?
+                .map(|details| PlacedBetDetail {
+                    amount_bet: details.amount_bet / CENTS_IN_E6S,
+                    ..details
+                });
                 Ok::<_, ServerFnError>(bet_participation.map(VoteDetails::from))
             })
         },

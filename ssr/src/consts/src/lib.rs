@@ -12,6 +12,7 @@ pub use remote::*;
 use once_cell::sync::Lazy;
 use reqwest::Url;
 
+pub const CENTS_IN_E6S: u64 = 1_000_000;
 pub const CF_STREAM_BASE: &str = "https://customer-2p3jflss4r4hmpnz.cloudflarestream.com";
 pub const FALLBACK_PROPIC_BASE: &str = "https://api.dicebear.com/7.x/big-smile/svg";
 // an example URL is "https://imagedelivery.net/abXI9nS4DYYtyR1yFFtziA/gob.5/public";
