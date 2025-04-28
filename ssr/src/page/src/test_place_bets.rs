@@ -45,7 +45,7 @@ pub fn TestPlaceBets() -> impl IntoView {
             )
             .map_err(ServerFnError::new)?;
             let claim_url = PUMP_AND_DUMP_WORKER_URL
-                .join("/place_hon_bet")
+                .join("/place_hot_or_not_bet")
                 .expect("Url to be valid");
             let client = reqwest::Client::new();
             let res = client
