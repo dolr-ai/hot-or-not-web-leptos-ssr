@@ -2,6 +2,7 @@ use crate::post_view::BetEligiblePostCtx;
 use component::{
     bullet_loader::BulletLoader, canisters_prov::AuthCansProvider, hn_icons::*, spinner::SpinnerFit,
 };
+use consts::PUMP_AND_DUMP_WORKER_URL;
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_use::use_interval_fn;
@@ -115,7 +116,13 @@ fn HNButtonOverlay(
             let bet_direction = *bet_direction;
             send_wrap(async move {
                 match cans
-                    .vote_on_post(bet_amount, bet_direction, post_id, post_can_id)
+                    .vote_with_cents_on_post_via_cloudflare(
+                        PUMP_AND_DUMP_WORKER_URL.clone(),
+                        bet_amount,
+                        bet_direction,
+                        post_id,
+                        post_can_id,
+                    )
                     .await
                 {
                     Ok(_) => Some(()),
@@ -391,7 +398,7 @@ fn MaybeHNButtons(
                 let canisters = unauth_canisters();
                 let user = canisters.individual_user(post.canister_id).await;
                 let res = user
-                    .get_hot_or_not_bet_details_for_this_post(post.post_id)
+                    .get_hot_or_not_bet_details_for_this_post_v_1(post.post_id)
                     .await
                     .ok()?;
                 Some(matches!(res, BettingStatus::BettingOpen { .. }))
@@ -485,12 +492,13 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
                 let cans = Canisters::from_wire(cans, expect_context())?;
                 let post = post.get_value();
                 let user = send_wrap(cans.authenticated_user()).await;
-                let bet_participation =
-                    send_wrap(user.get_individual_hot_or_not_bet_placed_by_this_profile(
+                let bet_participation = send_wrap(
+                    user.get_individual_hot_or_not_bet_placed_by_this_profile_v_1(
                         post.canister_id,
                         post.post_id,
-                    ))
-                    .await?;
+                    ),
+                )
+                .await?;
                 Ok::<_, ServerFnError>(bet_participation.map(VoteDetails::from))
             })
         },

@@ -11,7 +11,7 @@ use component::profile_placeholders::NoMoreBetsGraphic;
 use state::canisters::unauth_canisters;
 use utils::{bg_url, send_wrap, time::to_hh_mm_ss};
 use yral_canisters_common::{
-    cursored_data::vote::VotesProvider,
+    cursored_data::vote::VotesWithCentsProvider,
     utils::{
         posts::PostDetails,
         profile::ProfileDetails,
@@ -227,7 +227,7 @@ pub fn Speculation(details: VoteDetails, _ref: NodeRef<html::Div>) -> impl IntoV
 
 #[component]
 pub fn ProfileSpeculations(user_canister: Principal, user_principal: Principal) -> impl IntoView {
-    let provider = VotesProvider::new(unauth_canisters(), user_canister);
+    let provider = VotesWithCentsProvider::new(unauth_canisters(), user_canister);
     let location = use_location();
     let empty_text = if location
         .pathname
