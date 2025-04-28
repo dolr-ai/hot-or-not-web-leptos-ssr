@@ -1,11 +1,10 @@
-use super::{
-    cf_upload::{get_upload_info, get_video_status, publish_video, upload_video_stream},
-    UploadParams,
-};
+use super::UploadParams;
+use auth::delegate_short_lived_identity;
+use component::buttons::HighlightedLinkButton;
 use component::modal::Modal;
-use futures::StreamExt;
-use gloo::timers::future::IntervalStream;
-use ic_agent::Identity;
+use consts::UPLOAD_URL;
+use gloo::net::http::Request;
+use leptos::web_sys::{Blob, FormData};
 use leptos::{
     ev::durationchange,
     html::{Input, Video},
@@ -13,18 +12,17 @@ use leptos::{
 };
 use leptos_icons::*;
 use leptos_use::use_event_listener;
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 use state::canisters::authenticated_canisters;
 use utils::{
     event_streaming::events::{
         auth_canisters_store, VideoUploadSuccessful, VideoUploadUnsuccessful,
         VideoUploadVideoSelected,
     },
-    route::go_to_root,
     try_or_redirect_opt,
     web::FileWithUrl,
-    MockPartialEq,
 };
-use web_time::SystemTime;
 use yral_canisters_common::Canisters;
 
 #[component]
@@ -42,7 +40,10 @@ pub fn DropBox() -> impl IntoView {
 }
 
 #[component]
-pub fn PreVideoUpload(file_blob: WriteSignal<Option<FileWithUrl>, LocalStorage>) -> impl IntoView {
+pub fn PreVideoUpload(
+    file_blob: RwSignal<Option<FileWithUrl>, LocalStorage>,
+    uid: RwSignal<Option<String>, LocalStorage>,
+) -> impl IntoView {
     let file_ref = NodeRef::<Input>::new();
     let file = RwSignal::new_local(None::<FileWithUrl>);
     let video_ref = NodeRef::<Video>::new();
@@ -66,6 +67,24 @@ pub fn PreVideoUpload(file_blob: WriteSignal<Option<FileWithUrl>, LocalStorage>)
         });
     }
 
+    let canister_store = auth_canisters_store();
+
+    let upload_action: Action<(), _, LocalStorage> = Action::new_local(move |_| async move {
+        let message = try_or_redirect_opt!(upload_video_part(
+            UPLOAD_URL,
+            "file",
+            file_blob.get_untracked().unwrap().file.as_ref(),
+        )
+        .await
+        .inspect_err(|e| {
+            VideoUploadUnsuccessful.send_event(e.to_string(), 0, false, true, canister_store);
+        }));
+
+        uid.set(message.data.and_then(|m| m.uid));
+
+        Some(())
+    });
+
     _ = use_event_listener(video_ref, durationchange, move |_| {
         let duration = video_ref
             .get_untracked()
@@ -77,11 +96,13 @@ pub fn PreVideoUpload(file_blob: WriteSignal<Option<FileWithUrl>, LocalStorage>)
         if duration <= 60.0 || duration.is_nan() {
             modal_show.set(false);
             file_blob.set(Some(vid_file));
+            upload_action.dispatch(());
             return;
         }
 
         modal_show.set(true);
         file.set(None);
+        uid.set(None);
         file_blob.set(None);
         if let Some(f) = file_ref.get_untracked() {
             f.set_value("");
@@ -89,27 +110,30 @@ pub fn PreVideoUpload(file_blob: WriteSignal<Option<FileWithUrl>, LocalStorage>)
     });
 
     view! {
-        <div class="flex items-center self-center justify-center w-3/4 mb-8 lg:mb-0 lg:pb-12 lg:w-1/2 lg:max-h-full lg:px-8">
             <label
                 for="dropzone-file"
-                class="flex justify-start flex-col h-full w-full cursor-pointer"
+                class="w-[358px] h-[300px] sm:w-full sm:h-auto sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] bg-neutral-950 rounded-2xl border-2 border-dashed border-neutral-600 flex flex-col items-center justify-center cursor-pointer select-none p-0"
             >
                 <Show when=move || { file.with(| file | file.is_none()) }>
-                    <DropBox />
+                    <div class="flex flex-1 flex-col items-center justify-center w-full h-full gap-6">
+                        <div class="text-white text-[16px] font-semibold leading-tight text-center">Upload a video to share with the world!</div>
+                        <div class="text-neutral-400 text-[13px] leading-tight text-center">Drag & Drop or select video file ( Max 60s )</div>
+                        <span class="inline-block px-6 py-2 border border-pink-300 text-pink-300 rounded-lg font-medium text-[15px] bg-transparent transition-colors duration-150 cursor-pointer select-none">Select File</span>
+                    </div>
                 </Show>
                 <video
-                    node_ref=video_ref
-                    class="object-contain w-full"
-                    playsinline
-                    muted
-                    autoplay
-                    loop
-                    oncanplay="this.muted=true"
-                    src=move || file.with(| file | file.as_ref().map(| f | f.url.to_string()))
-                    style:display=move || {
-                        file.with(| file | file.as_ref().map(| _ | "block").unwrap_or("none"))
-                    }
-                ></video>
+        node_ref=video_ref
+        class="w-full h-full object-contain rounded-xl bg-black p-2"
+        playsinline
+        muted
+        autoplay
+        loop
+        oncanplay="this.muted=true"
+        src=move || file.with(| file | file.as_ref().map(| f | f.url.to_string()))
+        style:display=move || {
+            file.with(| file | file.as_ref().map(| _ | "block").unwrap_or("none"))
+        }
+    ></video>
                 <input
                     on:click=move |_| modal_show.set(true)
                     id="dropzone-file"
@@ -119,177 +143,181 @@ pub fn PreVideoUpload(file_blob: WriteSignal<Option<FileWithUrl>, LocalStorage>)
                     class="hidden w-0 h-0"
                 />
             </label>
-        </div>
-        <Modal show=modal_show>
-            <span class="text-lg md:text-xl text-white h-full items-center py-10 text-center w-full flex flex-col justify-center">
-                Please ensure that the video is shorter than 60 seconds
-            </span>
-        </Modal>
+            <Modal show=modal_show>
+                <span class="text-lg md:text-xl text-white h-full items-center py-10 text-center w-full flex flex-col justify-center">
+                    Please ensure that the video is shorter than 60 seconds
+                </span>
+            </Modal>
+        }
+}
+
+#[allow(dead_code)]
+#[derive(Deserialize, Debug, Clone)]
+pub struct Message {
+    pub message: Option<String>,
+    pub success: Option<bool>,
+    pub data: Option<Data>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug, Clone)]
+pub struct Data {
+    #[serde(rename = "scheduledDeletion")]
+    pub scheduled_deletion: Option<String>,
+    pub uid: Option<String>,
+    #[serde(rename = "uploadURL")]
+    pub upload_url: Option<String>,
+    pub watermark: Option<Watermark>,
+}
+#[allow(dead_code)]
+#[derive(Deserialize, Debug, Clone)]
+pub struct Watermark {
+    pub created: Option<String>,
+    #[serde(rename = "downloadedFrom")]
+    pub downloaded_from: Option<String>,
+    pub height: Option<f64>,
+    pub name: Option<String>,
+    pub opacity: Option<f64>,
+    pub padding: Option<f64>,
+    pub position: Option<String>,
+    pub scale: Option<f64>,
+    pub size: Option<f64>,
+    pub uid: Option<String>,
+}
+#[allow(dead_code)]
+#[derive(Serialize, Debug)]
+pub struct VideoMetadata {
+    pub title: String,
+    pub description: String,
+    pub tags: String,
+}
+
+#[derive(Serialize, Debug)]
+pub struct SerializablePostDetailsFromFrontend {
+    pub is_nsfw: bool,
+    pub hashtags: Vec<String>,
+    pub description: String,
+    pub video_uid: String,
+    pub creator_consent_for_inclusion_in_hot_or_not: bool,
+}
+
+async fn upload_video_part(
+    upload_base_url: &str,
+    form_field_name: &str,
+    file_blob: &Blob,
+) -> Result<Message, ServerFnError> {
+    let get_url_endpoint = format!("{}/get_upload_url", upload_base_url);
+    let response = Request::get(&get_url_endpoint).send().await?;
+    if !response.ok() {
+        return Err(ServerFnError::new(format!(
+            "Failed to get upload URL: status {}",
+            response.status()
+        )));
     }
+    let response_text = response.text().await?;
+    let upload_message: Message = serde_json::from_str(&response_text)
+        .map_err(|e| ServerFnError::new(format!("Failed to parse upload URL response: {}", e)))?;
+
+    let upload_url = upload_message
+        .data
+        .clone()
+        .and_then(|d| d.upload_url)
+        .ok_or_else(|| ServerFnError::new("Upload URL not found in response".to_string()))?;
+
+    let form = FormData::new().map_err(|js_value| {
+        ServerFnError::new(format!("Failed to create FormData: {:?}", js_value))
+    })?;
+    form.append_with_blob(form_field_name, file_blob)
+        .map_err(|js_value| {
+            ServerFnError::new(format!("Failed to append blob to FormData: {:?}", js_value))
+        })?;
+
+    let upload_response = Request::post(&upload_url).body(form)?.send().await?;
+
+    if !upload_response.ok() {
+        return Err(ServerFnError::new(format!(
+            "Upload request failed: status {} {}",
+            upload_response.status(),
+            upload_response.status_text()
+        )));
+    }
+
+    Ok(upload_message)
 }
 
 #[component]
-pub fn ProgressItem(
-    #[prop(into)] initial_text: String,
-    #[prop(into)] done_text: String,
-    #[prop(into)] loading: Signal<bool>,
+pub fn VideoUploader(
+    params: UploadParams,
+    uid: RwSignal<Option<String>, LocalStorage>,
 ) -> impl IntoView {
-    view! {
-        <Show
-            when=loading
-            fallback=move || {
-                view! {
-                    <Icon attr:class="w-10 h-10 text-green-600" icon=icondata::BsCheckCircleFill />
-                    <span class="text-white text-lg font-semibold">{done_text.clone()}</span>
-                }
-            }
-        >
-
-            <Icon attr:class="w-10 h-10 text-primary-600 animate-spin" icon=icondata::CgSpinnerTwo />
-            <span class="text-white text-lg font-semibold">{initial_text.clone()}</span>
-        </Show>
-    }
-}
-
-#[component]
-pub fn VideoUploader(params: UploadParams) -> impl IntoView {
     let file_blob = params.file_blob;
     let hashtags = params.hashtags;
     let description = params.description;
 
-    let uploading = RwSignal::new(true);
-    let processing = RwSignal::new(true);
-    let publishing = RwSignal::new(true);
+    let published = RwSignal::new(false);
     let video_url = StoredValue::new_local(file_blob.url);
-    let file_blob = file_blob.file.clone();
 
-    let up_hashtags = hashtags.clone();
-    let hashtags_len = hashtags.len();
     let is_nsfw = params.is_nsfw;
     let enable_hot_or_not = params.enable_hot_or_not;
     let canister_store = auth_canisters_store();
 
-    let up_desc = description.clone();
-
-    let upload_action = LocalResource::new(move || {
-        let cans = canister_store().map(MockPartialEq);
-        let hashtags = up_hashtags.clone();
-        let description = up_desc.clone();
-        let file_blob = file_blob.clone();
-        async move {
-            let cans = cans?.0;
-            let creator_principal = cans.identity().sender().unwrap();
-            let time_ms = SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap()
-                .as_millis();
-
-            // TODO: authenticated call
-            let res = get_upload_info(
-                creator_principal,
-                hashtags,
-                description,
-                time_ms.to_string(),
-            )
-            .await;
-
-            if res.is_err() {
-                let e = res.as_ref().err().unwrap().to_string();
-                VideoUploadUnsuccessful.send_event(
-                    e,
-                    hashtags_len,
-                    is_nsfw,
-                    enable_hot_or_not,
-                    canister_store,
-                );
-            }
-
-            let upload_info = try_or_redirect_opt!(res);
-
-            let res = upload_video_stream(&upload_info, &file_blob).await;
-
-            if res.is_err() {
-                let e = res.as_ref().err().unwrap().to_string();
-                VideoUploadUnsuccessful.send_event(
-                    e,
-                    hashtags_len,
-                    is_nsfw,
-                    enable_hot_or_not,
-                    canister_store,
-                );
-            }
-
-            try_or_redirect_opt!(res);
-
-            uploading.set(false);
-
-            let mut check_status = IntervalStream::new(4000);
-            while (check_status.next().await).is_some() {
-                let uid = upload_info.uid.clone();
-                let res = get_video_status(uid).await;
-
-                if res.is_err() {
-                    let e = res.as_ref().err().unwrap().to_string();
-                    VideoUploadUnsuccessful.send_event(
-                        e,
-                        hashtags_len,
-                        is_nsfw,
-                        enable_hot_or_not,
-                        canister_store,
-                    );
-                }
-
-                let status = try_or_redirect_opt!(res);
-                if status == "ready" {
-                    break;
-                }
-            }
-            processing.set(false);
-
-            Some(upload_info.uid)
-        }
-    });
-
     let publish_action: Action<_, _, LocalStorage> =
-        Action::new_unsync(move |(canisters, uid): &(Canisters<true>, String)| {
+        Action::new_unsync(move |canisters: &Canisters<true>| {
             let canisters = canisters.clone();
             let hashtags = hashtags.clone();
             let hashtags_len = hashtags.len();
             let description = description.clone();
-            let uid = uid.clone();
+            let uid = uid.get_untracked().unwrap();
             async move {
-                let res = publish_video(
-                    canisters,
-                    hashtags,
-                    description,
-                    uid.clone(),
-                    params.enable_hot_or_not,
-                    params.is_nsfw,
-                )
-                .await;
+                let id = canisters.identity();
+                let delegated_identity = delegate_short_lived_identity(id);
+                let res: std::result::Result<reqwest::Response, ServerFnError> = {
+                    let client = reqwest::Client::new();
 
-                if res.is_err() {
-                    let e = res.as_ref().err().unwrap().to_string();
-                    VideoUploadUnsuccessful.send_event(
-                        e,
-                        hashtags_len,
-                        is_nsfw,
-                        enable_hot_or_not,
-                        canister_store,
-                    );
+                    let req = client
+                        .post(format!("{}/update_metadata", UPLOAD_URL))
+                        .json(&json!({
+                            "video_uid": uid,
+                            "delegated_identity_wire": delegated_identity,
+                            "meta": VideoMetadata{
+                                title: description.clone(),
+                                description: description.clone(),
+                                tags: hashtags.join(",")
+                            },
+                            "post_details": SerializablePostDetailsFromFrontend{
+                                is_nsfw,
+                                hashtags,
+                                description,
+                                video_uid: uid.clone(),
+                                creator_consent_for_inclusion_in_hot_or_not: enable_hot_or_not,
+                            }
+                        }));
+
+                    req.send()
+                        .await
+                        .map_err(|e| ServerFnError::new(e.to_string()))
+                };
+
+                match res {
+                    Ok(_) => published.set(true),
+                    Err(_) => {
+                        let e = res.as_ref().err().unwrap().to_string();
+                        VideoUploadUnsuccessful.send_event(
+                            e,
+                            hashtags_len,
+                            is_nsfw,
+                            enable_hot_or_not,
+                            canister_store,
+                        );
+                    }
                 }
-
                 try_or_redirect_opt!(res);
 
-                publishing.set(false);
-
-                let post_id = res.unwrap();
                 VideoUploadSuccessful.send_event(
                     uid,
                     hashtags_len,
                     is_nsfw,
                     enable_hot_or_not,
-                    post_id,
+                    0,
                     canister_store,
                 );
 
@@ -299,44 +327,101 @@ pub fn VideoUploader(params: UploadParams) -> impl IntoView {
     let cans_res = authenticated_canisters();
 
     view! {
-        <div class="flex flex-col justify-start self-center w-3/4 mb-8 lg:mb-0 lg:pb-12 lg:max-h-full lg:w-1/2 basis-full lg:basis-5/12">
-            <video
-                class="object-contain w-full"
-                playsinline
-                muted
-                autoplay
-                loop
-                oncanplay="this.muted=true"
-                src=move || video_url.get_value().to_string()
-            ></video>
-        </div>
-        <div class="flex flex-col basis-full lg:basis-7/12 gap-4 px-4">
-            <div class="flex flex-row gap-4">
-                <ProgressItem initial_text="Uploading" done_text="Uploaded" loading=uploading />
+        <div class="flex flex-col-reverse lg:flex-row w-full gap-4 lg:gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
+            <div class="flex flex-col items-center justify-center w-full h-auto min-h-[200px] max-h-[60vh] sm:min-h-[300px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] lg:min-h-[600px] lg:max-h-[600px] rounded-2xl text-center px-4 mt-0 mb-0 sm:mt-0 sm:mb-0 sm:px-6 lg:px-0 lg:overflow-y-auto">
+                <video
+                    class="w-full h-full object-contain rounded-xl bg-black p-2"
+                    playsinline
+                    muted
+                    autoplay
+                    loop
+                    oncanplay="this.muted=true"
+                    src=move || video_url.get_value().to_string()
+                ></video>
             </div>
-            <div class="flex flex-row gap-4">
-                <ProgressItem initial_text="Processing" done_text="Processed" loading=processing />
-            </div>
-            <div class="flex flex-row gap-4">
-                <ProgressItem initial_text="Publishing" done_text="Published" loading=publishing />
-                <Suspense>
+            <div class="flex flex-col gap-4 w-full max-w-[627px] h-auto min-h-[400px] max-h-[90vh] lg:w-[627px] lg:h-[600px] rounded-2xl p-2 justify-center overflow-y-auto">
+                <h2 class="text-[32px] font-light text-white mb-2">Uploading Video</h2>
+                <div class="flex flex-col gap-y-1">
+                    <p>
+                        This may take a moment. Feel free to explore more videos on the home page while you wait!
+                    </p>
+                </div>
+                <div class="w-full bg-neutral-800 rounded-full h-2.5 mt-2">
+                    <div
+                        class="bg-gradient-to-r from-[#EC55A7] to-[#E2017B] h-2.5 rounded-full transition-width duration-500 ease-in-out"
+                        style:width=move || {
+                            if published.get() {
+                                "100%"
+                            } else if publish_action.pending().get() {
+                                "50%"
+                            } else {
+                                "0%"
+                            }
+                        }
+                    ></div>
+                </div>
+                <p class="text-sm text-gray-400 text-center mt-1">
                     {move || {
-                        let uid = upload_action.get().map(|a| a.take())??;
-                        let cans_wire = cans_res.get()?.ok()?;
-                        let canisters = Canisters::from_wire(cans_wire, expect_context()).ok()?;
-                        publish_action.dispatch((canisters, uid));
-                        Some(())
+                        if published.get() {
+                            "Upload complete!".to_string()
+                        } else if publish_action.pending().get() {
+                            "Processing video metadata...".to_string()
+                        } else {
+                            "Waiting to upload...".to_string()
+                        }
                     }}
-
-                </Suspense>
+                </p>
             </div>
-            <button
-                on:click=|_| go_to_root()
-                disabled=publishing
-                class="py-3 w-5/6 md:w-4/6 my-8 self-center disabled:bg-primary-400 disabled:text-white/80 bg-green-600 rounded-full font-bold text-md md:text-lg lg:text-xl"
-            >
-                Continue Browsing
-            </button>
         </div>
+
+            <Suspense>
+                {move || {
+                    let cans_wire = cans_res.get()?.ok()?;
+                    let canisters = Canisters::from_wire(cans_wire, expect_context()).ok()?;
+                    // Dispatching the action starts the process
+                     if !publish_action.pending().get() && !published.get() { // Avoid re-dispatching
+                          publish_action.dispatch(canisters);
+                     }
+                    Some(())
+                }}
+            </Suspense>
+
+            <Show when=published>
+                <PostUploadScreen />
+            </Show>
+
     }.into_any()
+}
+
+// post as in after not the content post
+#[component]
+fn PostUploadScreen() -> impl IntoView {
+    view! {
+        <div
+        style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
+         class="fixed top-0 bottom-0 left-0 right-0 z-50 flex justify-center items-center h-screen w-screen ">
+         <img
+         alt="bg"
+         src="/img/airdrop/bg.webp"
+         class="absolute inset-0 z-[25] fade-in w-full h-full object-cover"
+     />
+            <div class="z-50 flex flex-col items-center">
+            <img src="/img/common/coins/sucess-coin.png" width=170 class="z-[300] mb-6"/>
+
+                <h1 class="font-semibold text-lg mb-2">Video uploaded sucessfully</h1>
+
+                <p class="text-center px-4 mb-8">
+                    "We're processing your video. It'll be in 'Your Videos' under My Profile soon. Happy scrolling!"
+                </p>
+                <HighlightedLinkButton
+                alt_style=false
+                disabled=false
+                classes="max-w-96 w-full mx-auto py-[12px] px-[20px]".to_string()
+                href="/".to_string()
+            >
+                Done
+            </HighlightedLinkButton>
+            </div>
+        </div>
+    }
 }

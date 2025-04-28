@@ -1,9 +1,6 @@
-mod cf_upload;
 mod validators;
 mod video_upload;
 use leptos_meta::*;
-
-use component::toggle::ToggleWithLabel;
 
 use utils::{
     event_streaming::events::auth_canisters_store,
@@ -17,6 +14,7 @@ use leptos::{
     prelude::*,
 };
 
+use component::buttons::HighlightedButton;
 use leptos_router::components::Redirect;
 use validators::{description_validator, hashtags_validator};
 use video_upload::{PreVideoUpload, VideoUploader};
@@ -31,7 +29,10 @@ struct UploadParams {
 }
 
 #[component]
-fn PreUploadView(trigger_upload: WriteSignal<Option<UploadParams>, LocalStorage>) -> impl IntoView {
+fn PreUploadView(
+    trigger_upload: WriteSignal<Option<UploadParams>, LocalStorage>,
+    uid: RwSignal<Option<String>, LocalStorage>,
+) -> impl IntoView {
     let description_err = RwSignal::new(String::new());
     let desc_err_memo = Memo::new(move |_| description_err());
     let hashtags = RwSignal::new(Vec::new());
@@ -45,7 +46,7 @@ fn PreUploadView(trigger_upload: WriteSignal<Option<UploadParams>, LocalStorage>
                 // Hashtags error
                 || !hashtags_err_memo.with(|hashtags_err_memo| hashtags_err_memo.is_empty())
                 // File is not uploaded
-                || file_blob.with(|file_blob| file_blob.is_none())
+                || uid.with(|uid| uid.is_none())
                 // Hashtags are empty
                 || hashtags.with(|hashtags| hashtags.is_empty())
                 // Description is empty
@@ -55,7 +56,6 @@ fn PreUploadView(trigger_upload: WriteSignal<Option<UploadParams>, LocalStorage>
     let enable_hot_or_not = NodeRef::<Input>::new();
     let is_nsfw = NodeRef::<Input>::new();
     let canister_store = auth_canisters_store();
-
     VideoUploadInitiated.send_event();
 
     let on_submit = move || {
@@ -103,58 +103,62 @@ fn PreUploadView(trigger_upload: WriteSignal<Option<UploadParams>, LocalStorage>
     });
 
     view! {
-        <PreVideoUpload file_blob=file_blob.write_only() />
-        <div class="flex flex-col gap-4 lg:basis-7/12">
-            <div class="flex flex-col gap-y-2">
+        <div class="flex flex-col lg:flex-row w-full gap-4 lg:gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
+            <div class="flex flex-col items-center justify-center w-[358px] h-[300px] sm:w-full sm:h-auto sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] rounded-2xl text-center px-2 mx-4 mt-4 mb-4 sm:px-4 sm:mx-6 lg:px-0 lg:mx-0 lg:overflow-y-auto">
+                <PreVideoUpload file_blob=file_blob uid=uid />
+            </div>
+            <div class="flex flex-col gap-4 w-full max-w-[627px] h-auto min-h-[400px] max-h-[90vh] lg:w-[627px] lg:h-[600px] rounded-2xl p-2 justify-between overflow-y-auto">
+            <h2 class="text-[32px] font-light text-white mb-2">Upload Video</h2>
+            <div class="flex flex-col gap-y-1">
+                <label for="caption-input" class="font-light text-[20px] text-neutral-300 mb-1">Caption</label>
                 <Show when=move || { description_err.with(| description_err | ! description_err.is_empty()) }>
                     <span class="text-red-500 text-sm">{desc_err_memo()}</span>
                 </Show>
                 <textarea
+                    id="caption-input"
                     node_ref=desc
                     on:input=move |ev| {
                         let desc = event_target_value(&ev);
                         description_err.set(description_validator(desc).err().unwrap_or_default());
                     }
-
-                    class="p-4 bg-neutral-800 rounded-md min-w-full"
-                    rows=3
-                    placeholder="Write your description here.."
+                    class="p-3 bg-neutral-900 rounded-lg min-w-full border border-neutral-800 focus:border-pink-400 focus:ring-pink-400 outline-none transition text-[15px] placeholder:text-neutral-500 placeholder:font-light"
+                    rows=12
+                    placeholder="Enter the caption here"
                 ></textarea>
             </div>
-            <div class="flex flex-col gap-y-2">
+            <div class="flex flex-col gap-y-1 mt-2">
+                <label for="hashtag-input" class="font-light text-[20px] text-neutral-300 mb-1">Add Hashtag</label>
                 <Show
                     when=move || { hashtags_err.with(| hashtags_err | ! hashtags_err.is_empty()) }
-                    fallback=|| {
-                        view! { <h3 class="font-semibold text-neutral-600">Add Hashtags</h3> }
-                    }
                 >
-
-                    <h3 class="text-red-500 font-semibold">{hashtags_err_memo()}</h3>
+                    <span class="text-red-500 text-sm font-semibold">{hashtags_err_memo()}</span>
                 </Show>
                 <input
+                    id="hashtag-input"
                     node_ref=hashtag_inp
                     on:input=move |ev| {
                         let hts = event_target_value(&ev);
                         hashtag_on_input(hts);
                     }
-
-                    class="p-4 py-5 bg-neutral-800 rounded-md"
+                    class="p-3 bg-neutral-900 rounded-lg border border-neutral-800 focus:border-pink-400 focus:ring-pink-400 outline-none transition text-[15px] placeholder:text-neutral-500 placeholder:font-light"
                     type="text"
-                    placeholder="#hashtag1,#hashtag2,#hashtag3..."
+                    placeholder="Hit enter to add #hashtags"
                 />
             </div>
-            <div class="flex flex-col gap-y-2">
-                // <ToggleWithLabel node_ref=enable_hot_or_not lab="Participate in Hot or Not"/>
-                <ToggleWithLabel lab="NSFW" />
-            </div>
-            <button
-                on:click=move |_| on_submit()
-                disabled=invalid_form
-                class="py-3 w-5/6 md:w-4/6 my-8 self-center disabled:bg-primary-400 disabled:text-white/80 bg-primary-600 rounded-full font-bold text-md md:text-lg lg:text-xl"
-            >
-                Upload Video
-            </button>
+            {move || {
+                let disa = invalid_form.get();
+                view! {
+                    <HighlightedButton
+                        on_click=move || on_submit()
+                        disabled=disa
+                        classes="w-full mx-auto py-[12px] px-[20px] rounded-xl bg-gradient-to-r from-pink-300 to-pink-500 text-white font-light text-[17px] transition disabled:opacity-60 disabled:cursor-not-allowed".to_string()
+                    >
+                        "Upload"
+                    </HighlightedButton>
+                }
+            }}
         </div>
+    </div>
     }
 }
 
@@ -166,24 +170,20 @@ pub fn CreatorDaoCreatePage() -> impl IntoView {
 #[component]
 pub fn YralUploadPostPage() -> impl IntoView {
     let trigger_upload = RwSignal::new_local(None::<UploadParams>);
+    let uid = RwSignal::new_local(None);
 
     view! {
         <Title text="YRAL - Upload" />
-        <div class="flex flex-col min-h-dvh w-dvw items-center overflow-y-scroll gap-6 md:gap-8 lg:gap-16 pb-12 pt-4 md:pt-6 px-3 md:px-6 lg:px-10 bg-black text-white">
-            <div class="w-full flex justify-center items-center relative h-12">
-            <h1 class="text-xl font-bold">Upload</h1>
-            <img src="/img/yral/logo.webp" class="absolute block sm:hidden top-0 left-0 w-12 h-12" />
-            <img src="/img/yral/logo-mark.webp" class="hidden absolute sm:block top-0 left-0 h-12" />
-            </div>
+        <div class="flex flex-col min-h-dvh w-dvw items-center overflow-y-scroll gap-6 md:gap-8 lg:gap-16 pb-12 pt-4 md:pt-6 px-5 md:px-8 lg:px-12 bg-black text-white justify-center">
             <div class="flex flex-col lg:flex-row place-content-center min-h-full w-full">
                 <Show
                     when=move || { trigger_upload.with(| trigger_upload | trigger_upload.is_some()) }
                     fallback=move || {
-                        view! { <PreUploadView trigger_upload=trigger_upload.write_only() /> }
+                        view! { <PreUploadView trigger_upload=trigger_upload.write_only() uid=uid /> }
                     }
                 >
 
-                    <VideoUploader params=trigger_upload.get_untracked().unwrap() />
+                    <VideoUploader params=trigger_upload.get_untracked().unwrap() uid=uid />
                 </Show>
             </div>
         </div>

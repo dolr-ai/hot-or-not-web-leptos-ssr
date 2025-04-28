@@ -296,6 +296,7 @@ local-bin = [
     "yral-canisters-common/local",
     "dep:yral-metadata-client",
     "dep:yral-metadata-types",
+    "dep:rand_chacha",
     "consts/local-bin",
     "utils/local-bin",
     "state/local-bin",

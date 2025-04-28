@@ -18,6 +18,7 @@ pkgs.mkShell {
     git
     mold
     protobuf_21
+    mold
   ] ++ (if pkgs.stdenv.isDarwin then [
       darwin.apple_sdk.frameworks.Foundation
       darwin.apple_sdk.frameworks.Security

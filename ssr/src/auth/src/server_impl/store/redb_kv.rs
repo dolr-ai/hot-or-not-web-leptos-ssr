@@ -12,6 +12,7 @@ const RAW_METADATA_TABLE: TableDefinition<&str, &str> = TableDefinition::new("kv
 pub struct ReDBKV(Arc<Database>);
 
 impl ReDBKV {
+    #[allow(clippy::result_large_err)]
     pub fn new() -> Result<Self, redb::Error> {
         let db = Database::create("./redb-kv.db")?;
         let write_txn = db.begin_write()?;

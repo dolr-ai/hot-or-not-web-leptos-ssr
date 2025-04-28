@@ -85,3 +85,5 @@ pub mod google {
     pub const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
     pub const GOOGLE_ISSUER_URL: &str = "https://accounts.google.com";
 }
+
+pub const UPLOAD_URL: &str = "https://yral-upload-video.go-bazzinga.workers.dev";

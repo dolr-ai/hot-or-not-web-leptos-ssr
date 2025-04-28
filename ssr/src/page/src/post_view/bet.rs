@@ -480,11 +480,11 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
         move || (),
         move |_| {
             refetch_bet.track();
-            async move {
+            send_wrap(async move {
                 let cans = authenticated_canisters().await?;
                 let cans = Canisters::from_wire(cans, expect_context())?;
                 let post = post.get_value();
-                let user = cans.authenticated_user().await;
+                let user = send_wrap(cans.authenticated_user()).await;
                 let bet_participation =
                     send_wrap(user.get_individual_hot_or_not_bet_placed_by_this_profile(
                         post.canister_id,
@@ -492,7 +492,7 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
                     ))
                     .await?;
                 Ok::<_, ServerFnError>(bet_participation.map(VoteDetails::from))
-            }
+            })
         },
     );
     view! {
