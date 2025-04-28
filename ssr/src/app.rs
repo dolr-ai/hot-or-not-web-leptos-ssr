@@ -4,6 +4,7 @@ use page::icpump::ai::ICPumpAi;
 use page::icpump::ICPumpLanding;
 use page::post_view::PostDetailsCacheCtx;
 use page::pumpdump::{withdrawal, PndProfilePage};
+use page::test_place_bets::TestPlaceBets;
 use state::app_type::AppType;
 // use crate::page::wallet::TestIndex;
 use crate::error_template::{AppError, ErrorTemplate};
@@ -229,6 +230,7 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/pnd/withdraw/success") view=withdrawal::result::Success />
                         <Route path=path!("/pnd/withdraw/failure") view=withdrawal::result::Failure />
                         <Route path=path!("/terms-ios") view=TermsIos/>
+                        <Route path=path!("/test/placebets/:post_canister_id/:post_id") view=TestPlaceBets />
 
                         // {
                         //     #[cfg(any(feature = "local-bin", feature = "local-lib"))]
