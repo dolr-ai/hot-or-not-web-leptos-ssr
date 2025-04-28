@@ -7,6 +7,7 @@ use leptos::{html::Video, prelude::*};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use state::canisters::unauth_canisters;
+use state::post_view_state::PostViewState;
 use utils::send_wrap;
 use yral_canisters_client::individual_user_template::PostViewDetailsFromFrontend;
 
@@ -92,6 +93,14 @@ pub fn VideoView(
     let view_bg_url = move || uid().map(bg_url);
     let view_video_url = move || uid().map(mp4_url);
 
+    let post_details = post.get_untracked().unwrap();
+
+    PostViewState::set_view_count(
+        post_details.canister_id,
+        post_details.post_id,
+        post_details.views,
+    );
+
     // Handles mute/unmute
     Effect::new(move |_| {
         let vid = _ref.get()?;
@@ -137,6 +146,7 @@ pub fn VideoView(
                 let post = post_for_view.get_untracked();
                 let post_id = post.as_ref().map(|p| p.post_id).unwrap();
                 let canister_id = post.as_ref().map(|p| p.canister_id).unwrap();
+                let _ = PostViewState::increament_view_count(canister_id, post_id);
                 let send_view_res = canisters
                     .individual_user(canister_id)
                     .await
@@ -144,6 +154,7 @@ pub fn VideoView(
                     .await;
 
                 if let Err(err) = send_view_res {
+                    let _ = PostViewState::decreament_view_count(canister_id, post_id);
                     log::warn!("failed to send view details: {:?}", err);
                 }
                 Some(())
@@ -151,21 +162,7 @@ pub fn VideoView(
         });
 
     let video_views_watch_multiple = RwSignal::new(false);
-
-    let _ = use_event_listener(_ref, ev::pause, move |_evt| {
-        let Some(video) = _ref.get() else {
-            return;
-        };
-
-        let duration = video.duration();
-        let current_time = video.current_time();
-        if current_time < 0.5 {
-            return;
-        }
-
-        let percentage_watched = ((current_time / duration) * 100.0) as u8;
-        send_view_detail_action.dispatch((percentage_watched, 0_u8));
-    });
+    let video_views_watch_event_sent = RwSignal::new(false);
 
     let _ = use_event_listener(_ref, ev::timeupdate, move |_evt| {
         let Some(video) = _ref.get() else {
@@ -176,13 +173,21 @@ pub fn VideoView(
         let current_time = video.current_time();
         let percentage_watched = ((current_time / duration) * 100.0) as u8;
 
+        if current_time < 0.5 {
+            return;
+        }
+
+        if !video_views_watch_event_sent.get() {
+            send_view_detail_action.dispatch((percentage_watched, 0_u8));
+            video_views_watch_event_sent.set(true);
+        }
+
         if current_time < 0.95 * duration {
             video_views_watch_multiple.set(false);
         }
 
         if percentage_watched >= 95 && !video_views_watch_multiple.get() {
             send_view_detail_action.dispatch((percentage_watched, 0_u8));
-
             video_views_watch_multiple.set(true);
         }
     });

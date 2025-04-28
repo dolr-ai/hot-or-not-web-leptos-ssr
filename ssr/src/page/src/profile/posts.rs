@@ -5,6 +5,7 @@ use candid::Principal;
 
 use component::profile_placeholders::NoMorePostsGraphic;
 use state::canisters::unauth_canisters;
+use state::post_view_state::PostViewState;
 use utils::{
     bg_url, event_streaming::events::auth_canisters_store,
     event_streaming::events::ProfileViewVideo, profile::PostsProvider,
@@ -65,7 +66,7 @@ fn Post(details: PostDetails, user_canister: Principal, _ref: NodeRef<html::Div>
                         attr:class="h-5 w-5 p-1 text-white rounded-full bg-black/30"
                             icon=icondata::AiEyeOutlined
                         />
-                        <span class="text-white text-xs">{details.views}</span>
+                        <span class="text-white text-xs">{ move || PostViewState::get_view_count(details.canister_id, details.post_id)()}</span>
                     </div>
                 </a>
             </div>
