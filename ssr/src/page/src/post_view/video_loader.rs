@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use codee::string::FromToStringCodec;
 use indexmap::IndexSet;
-use leptos::{ev, logging};
+use leptos::ev;
 use leptos::{html::Video, prelude::*};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
