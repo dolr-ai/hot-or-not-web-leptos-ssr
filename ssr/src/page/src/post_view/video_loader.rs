@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use codee::string::FromToStringCodec;
 use indexmap::IndexSet;
-use leptos::ev;
+use leptos::{ev, logging};
 use leptos::{html::Video, prelude::*};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
@@ -137,6 +137,7 @@ pub fn VideoView(
                 let post = post_for_view.get_untracked();
                 let post_id = post.as_ref().map(|p| p.post_id).unwrap();
                 let canister_id = post.as_ref().map(|p| p.canister_id).unwrap();
+                logging::log!("View event percent: {}", percentage_watched);
                 let send_view_res = canisters
                     .individual_user(canister_id)
                     .await
@@ -166,17 +167,14 @@ pub fn VideoView(
             return;
         }
 
-        if !video_views_watch_event_sent.get() {
+        if !video_views_watch_event_sent.get() && percentage_watched < 98 && percentage_watched > 3
+        {
             send_view_detail_action.dispatch((percentage_watched, 0_u8));
             video_views_watch_event_sent.set(true);
-        }
-
-        if current_time < 0.95 * duration {
-            video_views_watch_multiple.set(false);
-        }
-
-        if percentage_watched >= 95 && !video_views_watch_multiple.get() {
             video_views_watch_multiple.set(true);
+        }
+
+        if percentage_watched >= 98 {
             video_views_watch_event_sent.set(false);
         }
     });
