@@ -3,6 +3,7 @@ use page::about_us::AboutUs;
 use page::icpump::ai::ICPumpAi;
 use page::icpump::ICPumpLanding;
 use page::post_view::PostDetailsCacheCtx;
+use page::preview_google_redirect::PreviewGoogleRedirector;
 use page::pumpdump::{withdrawal, PndProfilePage};
 use state::app_type::AppType;
 // use crate::page::wallet::TestIndex;
@@ -45,7 +46,7 @@ use yral_canisters_common::Canisters;
 fn NotFound() -> impl IntoView {
     let mut outside_errors = Errors::default();
     outside_errors.insert_with_default_key(AppError::NotFound);
-    view! { <ErrorTemplate outside_errors/> }
+    view! { <ErrorTemplate outside_errors /> }
 }
 
 #[component(transparent)]
@@ -60,11 +61,11 @@ fn GoogleAuthRedirectHandlerRoute() -> impl MatchNestedRoutes + Clone {
 
         // }
         use page::google_redirect::GoogleRedirectHandler;
-        view! { <Route path view=GoogleRedirectHandler/> }.into_inner()
+        view! { <Route path view=GoogleRedirectHandler /> }.into_inner()
     }
     #[cfg(not(any(feature = "oauth-ssr", feature = "oauth-hydrate")))]
     {
-        view! { <Route path view=NotFound/> }.into_inner()
+        view! { <Route path view=NotFound /> }.into_inner()
     }
 }
 
@@ -80,11 +81,31 @@ fn GoogleAuthRedirectorRoute() -> impl MatchNestedRoutes + Clone {
 
         // }
         use page::google_redirect::GoogleRedirector;
-        view! { <Route path view=GoogleRedirector/> }.into_inner()
+        view! { <Route path view=GoogleRedirector /> }.into_inner()
     }
     #[cfg(not(any(feature = "oauth-ssr", feature = "oauth-hydrate")))]
     {
-        view! { <Route path view=NotFound/> }.into_inner()
+        view! { <Route path view=NotFound /> }.into_inner()
+    }
+}
+
+#[component(transparent)]
+fn GooglePreviewAuthRedirectorRoute() -> impl MatchNestedRoutes + Clone {
+    let path = path!("/preview/auth/perform_google_redirect");
+    #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
+    {
+        use page::preview_google_redirect::PreviewGoogleRedirector;
+        view! { <Route path view=PreviewGoogleRedirector /> }.into_inner()
+    }
+}
+
+#[component(transparent)]
+fn GooglePreviewAuthRedirectHandlerRoute() -> impl MatchNestedRoutes + Clone {
+    let path = path!("/preview/auth/google_redirect");
+    #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
+    {
+        use page::preview_google_redirect::PreviewGoogleRedirectHandler;
+        view! { <Route path view=PreviewGoogleRedirectHandler /> }.into_inner()
     }
 }
 
@@ -93,30 +114,30 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
         <!DOCTYPE html>
         <html lang="en">
             <head>
-                <meta charset="utf-8"/>
-                <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <script type="module" src="/js/sentry-init.js" async></script>
                 <script type="module" src="/js/mixpanel-init.js" async></script>
                 <Script async_="true">
                     {r#"
-                        (function(w,d,s,l,i){
-                            w[l]=w[l]||[];
-                            w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});
-                            var f=d.getElementsByTagName(s)[0], 
-                            j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
-                            j.async=true;
-                            j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
-                            f.parentNode.insertBefore(j,f);
-                        })(window,document,'script','dataLayer','GTM-MNBWSPVJ');
-                        "#}
+                    (function(w,d,s,l,i){
+                    w[l]=w[l]||[];
+                    w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});
+                    var f=d.getElementsByTagName(s)[0], 
+                    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
+                    j.async=true;
+                    j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
+                    f.parentNode.insertBefore(j,f);
+                    })(window,document,'script','dataLayer','GTM-MNBWSPVJ');
+                    "#}
                 </Script>
                 <AutoReload options=options.clone() />
-                <HashedStylesheet id="leptos" options=options.clone()/>
-                <HydrationScripts options/>
-                <MetaTags/>
+                <HashedStylesheet id="leptos" options=options.clone() />
+                <HydrationScripts options />
+                <MetaTags />
             </head>
             <body>
-                <App/>
+                <App />
             </body>
         </html>
     }
@@ -161,89 +182,105 @@ pub fn App() -> impl IntoView {
     }
 
     view! {
+        <Title text=app_state.name />
 
-            <Title text=app_state.name/>
+        // Favicon
+        <Link
+            rel="icon"
+            type_="image/svg+xml"
+            href=format!("/{}/favicon.svg", app_state.asset_path())
+        />
+        <Link rel="shortcut icon" href=format!("/{}/favicon.ico", app_state.asset_path()) />
+        <Link
+            rel="apple-touch-icon"
+            sizes="180x180"
+            href=format!("/{}/favicon-apple.png", app_state.asset_path())
+        />
 
-            // Favicon
-            <Link rel="icon" type_="image/svg+xml" href=format!("/{}/favicon.svg", app_state.asset_path()) />
-            <Link rel="shortcut icon" href=format!("/{}/favicon.ico", app_state.asset_path()) />
-            <Link rel="apple-touch-icon" sizes="180x180" href=format!("/{}/favicon-apple.png", app_state.asset_path()) />
+        // Meta
+        <Meta name="apple-mobile-web-app-title" content=app_state.name />
 
-            // Meta
-            <Meta name="apple-mobile-web-app-title" content=app_state.name />
+        // App manifest
+        <Link rel="manifest" href=format!("/{}/manifest.json", app_state.asset_path()) />
 
-            // App manifest
-            <Link rel="manifest" href=format!("/{}/manifest.json", app_state.asset_path())/>
-
-            // GA4 Global Site Tag (gtag.js) - Google Analytics
-            // G-6W5Q2MRX0E to test locally | G-PLNNETMSLM
-            <Show when=enable_ga4_script>
-                <Script
-                    async_="true"
-                    src=concat!("https://www.googletagmanager.com/gtag/js?id=", "G-PLNNETMSLM")
-                />
-                <Script>
-                    {r#"
+        // GA4 Global Site Tag (gtag.js) - Google Analytics
+        // G-6W5Q2MRX0E to test locally | G-PLNNETMSLM
+        <Show when=enable_ga4_script>
+            <Script
+                async_="true"
+                src=concat!("https://www.googletagmanager.com/gtag/js?id=", "G-PLNNETMSLM")
+            />
+            <Script>
+                {r#"
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
                 gtag('js', new Date());
                 gtag('config', 'G-PLNNETMSLM');
                 "#}
-                </Script>
-            </Show>
+            </Script>
+        </Show>
 
-            <Router>
+        <Router>
             <main class="bg-black" id="body">
-                <Routes fallback=|| view! { <NotFound/> }.into_view()>
+                <Routes fallback=|| view! { <NotFound /> }.into_view()>
                     // auth redirect routes exist outside main context
-                    <GoogleAuthRedirectHandlerRoute/>
-                    <GoogleAuthRedirectorRoute/>
+                    <GoogleAuthRedirectHandlerRoute />
+                    <GoogleAuthRedirectorRoute />
                     <ParentRoute path=path!("") view=BaseRoute>
-                        <Route path=path!("/") view=RootPage/>
-                        <Route path=path!("/hot-or-not/:canister_id/:post_id") view=PostView/>
-                        <Route path=path!("/post/:canister_id/:post_id") view=SinglePost/>
-                        <Route path=path!("/profile/:canister_id/post/:post_id") view=ProfilePost/>
-                        <Route path=path!("/pnd/profile") view=PndProfilePage/>
-                        <Route path=path!("/upload") view=UploadPostPage/>
-                        <Route path=path!("/error") view=ServerErrorPage/>
-                        <Route path=path!("/menu") view=Menu/>
-                        <Route path=path!("/settings") view=Settings/>
-                        <Route path=path!("/refer-earn") view=ReferEarn/>
-                        <Route path=path!("/profile/:id/:tab") view=ProfileView/>
-                        <Route path=path!("/profile/:tab") view=ProfileView/>
-                        <Route path=path!("/terms-of-service") view=TermsOfService/>
-                        <Route path=path!("/privacy-policy") view=PrivacyPolicy/>
-                        <Route path=path!("/about-us") view=AboutUs/>
-                        <Route path=path!("/wallet/:id") view=Wallet/>
-                        <Route path=path!("/wallet") view=Wallet/>
-                        <Route path=path!("/leaderboard") view=Leaderboard/>
-                        <Route path=path!("/logout") view=Logout/>
-                        <Route path=path!("/token/create") view=CreateToken/>
-                        <Route path=path!("/token/create/settings") view=CreateTokenSettings/>
-                        <Route path=path!("/token/create/faq") view=CreateTokenFAQ/>
-                        <Route path=path!("/token/info/:token_root/:key_principal") view=TokenInfo/>
-                        <Route path=path!("/token/info/:token_root") view=TokenInfo/>
-                        <Route path=path!("/token/transfer/:token_root") view=TokenTransfer/>
-                        <Route path=path!("/board") view=ICPumpLanding/>
-                        <Route path=path!("/icpump-ai") view=ICPumpAi/>
+                        <Route path=path!("/") view=RootPage />
+                        <Route path=path!("/hot-or-not/:canister_id/:post_id") view=PostView />
+                        <Route path=path!("/post/:canister_id/:post_id") view=SinglePost />
+                        <Route path=path!("/profile/:canister_id/post/:post_id") view=ProfilePost />
+                        <Route path=path!("/pnd/profile") view=PndProfilePage />
+                        <Route path=path!("/upload") view=UploadPostPage />
+                        <Route path=path!("/error") view=ServerErrorPage />
+                        <Route path=path!("/menu") view=Menu />
+                        <Route path=path!("/settings") view=Settings />
+                        <Route path=path!("/refer-earn") view=ReferEarn />
+                        <Route path=path!("/profile/:id/:tab") view=ProfileView />
+                        <Route path=path!("/profile/:tab") view=ProfileView />
+                        <Route path=path!("/terms-of-service") view=TermsOfService />
+                        <Route path=path!("/privacy-policy") view=PrivacyPolicy />
+                        <Route path=path!("/about-us") view=AboutUs />
+                        <Route path=path!("/wallet/:id") view=Wallet />
+                        <Route path=path!("/wallet") view=Wallet />
+                        <Route path=path!("/leaderboard") view=Leaderboard />
+                        <Route path=path!("/logout") view=Logout />
+                        <Route path=path!("/token/create") view=CreateToken />
+                        <Route path=path!("/token/create/settings") view=CreateTokenSettings />
+                        <Route path=path!("/token/create/faq") view=CreateTokenFAQ />
+                        <Route
+                            path=path!("/token/info/:token_root/:key_principal")
+                            view=TokenInfo
+                        />
+                        <Route path=path!("/token/info/:token_root") view=TokenInfo />
+                        <Route path=path!("/token/transfer/:token_root") view=TokenTransfer />
+                        <Route path=path!("/board") view=ICPumpLanding />
+                        <Route path=path!("/icpump-ai") view=ICPumpAi />
                         <Route path=path!("/pnd/withdraw") view=withdrawal::PndWithdrawal />
-                        <Route path=path!("/pnd/withdraw/success") view=withdrawal::result::Success />
-                        <Route path=path!("/pnd/withdraw/failure") view=withdrawal::result::Failure />
-                        <Route path=path!("/terms-ios") view=TermsIos/>
+                        <Route
+                            path=path!("/pnd/withdraw/success")
+                            view=withdrawal::result::Success
+                        />
+                        <Route
+                            path=path!("/pnd/withdraw/failure")
+                            view=withdrawal::result::Failure
+                        />
+                        <Route path=path!("/terms-ios") view=TermsIos />
 
-                        // {
-                        //     #[cfg(any(feature = "local-bin", feature = "local-lib"))]
-                        //     view! {
-                        //         <Route path=path!("/pnd/test/:token_root") view=crate::page::pumpdump::PndTest />
-                        //     }
-                        // }
+                    // {
+                    // #[cfg(any(feature = "local-bin", feature = "local-lib"))]
+                    // view! {
+                    // <Route path=path!("/pnd/test/:token_root") view=crate::page::pumpdump::PndTest />
+                    // }
+                    // }
                     // <Route path="/test" view=TestIndex/>
                     </ParentRoute>
                 </Routes>
 
             </main>
             <nav>
-                <NavBar/>
+                <NavBar />
             </nav>
         </Router>
     }
