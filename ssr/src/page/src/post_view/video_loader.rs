@@ -137,7 +137,6 @@ pub fn VideoView(
                 let post = post_for_view.get_untracked();
                 let post_id = post.as_ref().map(|p| p.post_id).unwrap();
                 let canister_id = post.as_ref().map(|p| p.canister_id).unwrap();
-                logging::log!("View event percent: {}", percentage_watched);
                 let send_view_res = canisters
                     .individual_user(canister_id)
                     .await
