@@ -1,4 +1,5 @@
 use candid::Principal;
+use consts::CENTS_IN_E6S;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_icons::*;
@@ -182,6 +183,7 @@ pub fn Speculation(details: VoteDetails, _ref: NodeRef<html::Div>) -> impl IntoV
             }.into_any(),
         ),
     };
+    let amt = amt / CENTS_IN_E6S;
 
     view! {
         <div node_ref=_ref class="relative w-1/2 md:w-1/3 lg:w-1/4 px-1">
@@ -216,7 +218,7 @@ pub fn Speculation(details: VoteDetails, _ref: NodeRef<html::Div>) -> impl IntoV
                 <div class="flex flex-col gap-y-5 z-20">
                     <div class="flex flex-col px-3">
                         <span class="text-xs font-medium uppercase">{bet_res}</span>
-                        <span class="text-sm font-semibold md:text-base">{amt}Tokens</span>
+                        <span class="text-sm font-semibold md:text-base">{amt} Cents</span>
                     </div>
                     {icon}
                 </div>
