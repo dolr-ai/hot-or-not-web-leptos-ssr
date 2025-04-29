@@ -256,7 +256,7 @@ fn HNWonLost(participation: VoteDetails) -> impl IntoView {
                     <p>You staked {bet_amount} Cents on {if is_hot { "Hot" } else { "Not" }}.</p>
                     <p>
                         {if let Some(reward) = participation.reward() {
-                            format!("You received {reward} Cents.")
+                            format!("You received {} Cents.", reward / CENTS_IN_E6S)
                         } else {
                             format!("You lost {bet_amount} Cents.")
                         }}
