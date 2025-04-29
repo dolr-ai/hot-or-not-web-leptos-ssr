@@ -20,7 +20,7 @@ use state::canisters::authenticated_canisters;
 use state::canisters::unauth_canisters;
 use utils::event_streaming::events::account_connected_reader;
 use utils::event_streaming::events::CentsAdded;
-use utils::host::{get_host, show_pnd_page};
+use utils::host::get_host;
 use utils::send_wrap;
 use utils::token::icpump::IcpumpTokenInfo;
 use yral_canisters_common::cursored_data::token_roots::{TokenListResponse, TokenRootList};
@@ -54,11 +54,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
                             user_canister,
                             user_principal,
                             nsfw_detector: IcpumpTokenInfo,
-                            exclude: if show_pnd_page() {
-                                vec![RootType::COYNS]
-                            } else {
-                                vec![RootType::CENTS]
-                            },
+                            exclude: vec![],
                         };
 
                         view! {
