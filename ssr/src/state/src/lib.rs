@@ -7,7 +7,6 @@ pub mod auth;
 pub mod canisters;
 pub mod content_seed_client;
 pub mod local_storage;
-pub mod post_view_state;
 
 #[cfg(feature = "ssr")]
 pub mod server {

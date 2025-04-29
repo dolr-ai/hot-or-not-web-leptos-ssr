@@ -5,7 +5,6 @@ use page::icpump::ICPumpLanding;
 use page::post_view::PostDetailsCacheCtx;
 use page::pumpdump::{withdrawal, PndProfilePage};
 use state::app_type::AppType;
-use state::post_view_state::PostViewState;
 // use crate::page::wallet::TestIndex;
 use crate::error_template::{AppError, ErrorTemplate};
 use component::{base_route::BaseRoute, nav::NavBar};
@@ -144,8 +143,6 @@ pub fn App() -> impl IntoView {
     let history_ctx = HistoryCtx::default();
     provide_context(history_ctx.clone());
 
-    // Post View count
-    PostViewState::register_global();
 
     #[cfg(feature = "hydrate")]
     {

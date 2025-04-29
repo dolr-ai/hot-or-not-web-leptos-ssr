@@ -10,7 +10,6 @@ use leptos::{prelude::*, task::spawn_local};
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
-use state::post_view_state::PostViewState;
 use utils::event_streaming::events::auth_canisters_store;
 use utils::host::show_nsfw_content;
 use utils::{
@@ -245,10 +244,7 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                                 attr:class="text-sm md:text-base lg:text-lg"
                                     icon=icondata::AiEyeOutlined
                                 />
-                                { move || PostViewState::get_view_count(
-                                    post.canister_id,
-                                    post.post_id,
-                                )()}
+                                {post.views}
                             </span>
                         </div>
                         <ExpandableText description=post.description />
