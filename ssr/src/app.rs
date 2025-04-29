@@ -143,7 +143,6 @@ pub fn App() -> impl IntoView {
     let history_ctx = HistoryCtx::default();
     provide_context(history_ctx.clone());
 
-
     #[cfg(feature = "hydrate")]
     {
         Effect::new(move |_| {
