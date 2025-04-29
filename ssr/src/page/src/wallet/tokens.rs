@@ -20,7 +20,7 @@ use state::canisters::authenticated_canisters;
 use state::canisters::unauth_canisters;
 use utils::event_streaming::events::account_connected_reader;
 use utils::event_streaming::events::CentsAdded;
-use utils::host::{get_host, show_pnd_page};
+use utils::host::get_host;
 use utils::send_wrap;
 use utils::token::icpump::IcpumpTokenInfo;
 use yral_canisters_common::cursored_data::token_roots::{TokenListResponse, TokenRootList};
@@ -178,7 +178,7 @@ pub fn WalletCard(
                         <div class="text-xs">{symbol}</div>
                     </div>
                 </div>
-                {(is_cents && show_pnd_page()).then_some(view! {
+                {is_cents.then_some(view! {
                     <div class="border-t border-neutral-700 flex flex-col pt-4 gap-2">
                         <div class="flex items-center">
                             <Icon attr:class="text-neutral-300" icon=if is_withdrawable { PadlockOpen } else { PadlockClose } />
