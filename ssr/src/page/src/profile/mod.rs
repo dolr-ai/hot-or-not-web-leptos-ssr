@@ -42,16 +42,6 @@ struct ProfileParams {
     id: String,
 }
 
-#[component]
-fn Stat(stat: u64, #[prop(into)] info: String) -> impl IntoView {
-    view! {
-        <div class="flex flex-1 flex-col items-center text-white space-y-0.5">
-            <span class="font-bold text-xl">{stat}</span>
-            <span class="text-md">{info}</span>
-        </div>
-    }
-}
-
 #[derive(Params, Clone, PartialEq)]
 struct TabsParam {
     tab: String,
@@ -118,7 +108,7 @@ fn ProfileViewInner(user: ProfileDetails, user_canister: Principal) -> impl Into
     let username_or_principal = user.username_or_principal();
     let profile_pic = user.profile_pic_or_random();
     let display_name = user.display_name_or_fallback();
-    let earnings = user.lifetime_earnings;
+    let _earnings = user.lifetime_earnings;
     let (is_connected, _) = account_connected_reader();
     let (viewer_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
 
@@ -141,11 +131,6 @@ fn ProfileViewInner(user: ProfileDetails, user_canister: Principal) -> impl Into
                             >
                                 {display_name}
                             </span>
-                            <div class="text-sm flex flex-row">
-                                // TODO: Add username when it's available
-                                // <p class="text-white">@ {username_or_principal}</p>
-                                <p class="text-primary-500">{earnings} Earnings</p>
-                            </div>
                             <Show when=move || !is_connected() && viewer_principal.get().map(|v| v.to_text() == username_or_principal).unwrap_or(false)>
                                 <div class="md:w-4/12 w-6/12 pt-5">
                                     <ConnectLogin cta_location="profile" />
@@ -153,12 +138,6 @@ fn ProfileViewInner(user: ProfileDetails, user_canister: Principal) -> impl Into
                             </Show>
                         </div>
                     </div>
-                </div>
-                <div class="flex justify-around text-center rounded-full divide-x-2 divide-white/20 bg-white/10 p-4 my-4 w-11/12 sm:w-7/12">
-                    // <Stat stat=user.followers_cnt info="Lovers"/>
-                    // <Stat stat=user.following_cnt info="Loving"/>
-                    <Stat stat=user.hots info="Hots" />
-                    <Stat stat=user.nots info="Nots" />
                 </div>
                 <ListSwitcher1 user_canister user_principal=user.principal />
             </div>
