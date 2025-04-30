@@ -2,13 +2,14 @@ use crate::post_view::BetEligiblePostCtx;
 use component::{
     bullet_loader::BulletLoader, canisters_prov::AuthCansProvider, hn_icons::*, spinner::SpinnerFit,
 };
+use consts::{CENTS_IN_E6S, PUMP_AND_DUMP_WORKER_URL};
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_use::use_interval_fn;
 use state::canisters::{authenticated_canisters, unauth_canisters};
 use utils::{send_wrap, time::to_hh_mm_ss, try_or_redirect_opt};
 use web_time::Duration;
-use yral_canisters_client::individual_user_template::BettingStatus;
+use yral_canisters_client::individual_user_template::{BettingStatus, PlacedBetDetail};
 use yral_canisters_common::{
     utils::{
         posts::PostDetails,
@@ -115,7 +116,13 @@ fn HNButtonOverlay(
             let bet_direction = *bet_direction;
             send_wrap(async move {
                 match cans
-                    .vote_on_post(bet_amount, bet_direction, post_id, post_can_id)
+                    .vote_with_cents_on_post_via_cloudflare(
+                        PUMP_AND_DUMP_WORKER_URL.clone(),
+                        bet_amount,
+                        bet_direction,
+                        post_id,
+                        post_can_id,
+                    )
                     .await
                 {
                     Ok(_) => Some(()),
@@ -246,12 +253,12 @@ fn HNWonLost(participation: VoteDetails) -> impl IntoView {
             <div class="flex flex-col gap-2 w-full md:w-1/2 lg:w-1/3">
                 // <!-- Result Text -->
                 <div class="p-1 text-sm leading-snug text-white rounded-full">
-                    <p>You staked {bet_amount}tokens on {if is_hot { "Hot" } else { "Not" }}.</p>
+                    <p>You staked {bet_amount} Cents on {if is_hot { "Hot" } else { "Not" }}.</p>
                     <p>
                         {if let Some(reward) = participation.reward() {
-                            format!("You received {reward} tokens.")
+                            format!("You received {} Cents.", reward / CENTS_IN_E6S)
                         } else {
-                            format!("You lost {bet_amount} tokens.")
+                            format!("You lost {bet_amount} Cents.")
                         }}
                     </p>
 
@@ -341,7 +348,7 @@ fn HNAwaitingResults(
                 </div>
             </div>
             <p class="p-1 text-center text-white rounded-full bg-black/15 ps-2">
-                You staked {bet_amount}tokens on {bet_direction_text}.
+                You staked {bet_amount} Cents on {bet_direction_text}.
                 Result is still pending.
 
             </p>
@@ -391,7 +398,7 @@ fn MaybeHNButtons(
                 let canisters = unauth_canisters();
                 let user = canisters.individual_user(post.canister_id).await;
                 let res = user
-                    .get_hot_or_not_bet_details_for_this_post(post.post_id)
+                    .get_hot_or_not_bet_details_for_this_post_v_1(post.post_id)
                     .await
                     .ok()?;
                 Some(matches!(res, BettingStatus::BettingOpen { .. }))
@@ -485,12 +492,17 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
                 let cans = Canisters::from_wire(cans, expect_context())?;
                 let post = post.get_value();
                 let user = send_wrap(cans.authenticated_user()).await;
-                let bet_participation =
-                    send_wrap(user.get_individual_hot_or_not_bet_placed_by_this_profile(
+                let bet_participation = send_wrap(
+                    user.get_individual_hot_or_not_bet_placed_by_this_profile_v_1(
                         post.canister_id,
                         post.post_id,
-                    ))
-                    .await?;
+                    ),
+                )
+                .await?
+                .map(|details| PlacedBetDetail {
+                    amount_bet: details.amount_bet / CENTS_IN_E6S,
+                    ..details
+                });
                 Ok::<_, ServerFnError>(bet_participation.map(VoteDetails::from))
             })
         },

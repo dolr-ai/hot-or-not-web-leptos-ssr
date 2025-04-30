@@ -353,39 +353,36 @@ pub fn CreateToken() -> impl IntoView {
 
     let cans_wire_res = authenticated_canisters();
 
-    let create_action = Action::new(move |&()| {
-        let cans_wire_res = cans_wire_res;
-        async move {
-            let cans_wire = cans_wire_res.await.map_err(|e| e.to_string())?;
-            let cans = Canisters::from_wire(cans_wire.clone(), expect_context())
-                .map_err(|_| "Unable to authenticate".to_string())?;
+    let create_action = Action::new(move |&()| async move {
+        let cans_wire = cans_wire_res.await.map_err(|e| e.to_string())?;
+        let cans = Canisters::from_wire(cans_wire.clone(), use_context().unwrap_or_default())
+            .map_err(|_| "Unable to authenticate".to_string())?;
 
-            let canister_id = cans.user_canister();
-            let profile_details = cans.profile_details();
+        let canister_id = cans.user_canister();
+        let profile_details = cans.profile_details();
 
-            let sns_form = ctx.form_state.get_untracked();
-            let sns_config = sns_form.try_into_config(&cans)?;
+        let sns_form = ctx.form_state.get_untracked();
+        let sns_config = sns_form.try_into_config(&cans)?;
 
-            let create_sns = sns_config.try_convert_to_sns_init_payload()?;
-            let server_available = is_server_available().await.map_err(|e| e.to_string())?;
-            log::debug!(
-                "Server details: {}, {}",
-                server_available.0,
-                server_available.1
-            );
-            if !server_available.0 {
-                return Err("Server is not available".to_string());
-            }
-
-            TokenCreationStarted.send_event(create_sns.clone(), auth_cans);
-
-            let _deployed_cans_response =
-                deploy_cdao_canisters(cans_wire, create_sns.clone(), profile_details, canister_id)
-                    .await
-                    .map_err(|e| e.to_string())?;
-
-            Ok(())
+        let create_sns = sns_config.try_convert_to_sns_init_payload()?;
+        let server_available = is_server_available().await.map_err(|e| e.to_string())?;
+        log::debug!(
+            "Server details: {}, {}",
+            server_available.0,
+            server_available.1
+        );
+        if !server_available.0 {
+            return Err("Server is not available".to_string());
         }
+
+        TokenCreationStarted.send_event(create_sns.clone(), auth_cans);
+
+        let _deployed_cans_response =
+            deploy_cdao_canisters(cans_wire, create_sns.clone(), profile_details, canister_id)
+                .await
+                .map_err(|e| e.to_string())?;
+
+        Ok(())
     });
     let creating = create_action.pending();
 

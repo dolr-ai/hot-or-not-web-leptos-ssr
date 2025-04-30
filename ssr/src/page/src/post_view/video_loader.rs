@@ -66,7 +66,7 @@ pub fn BgView(
                     on_click=move |_| set_show_refer_login_popup.set(false)
                     header_text="Claim Your Referral
                     Rewards Now!"
-                    body_text="SignUp from this link to get 500 COYNs as referral rewards."
+                    body_text="SignUp from this link to get 500 Cents as referral rewards."
                     login_text="Sign Up"
                 />
             </ShowAny>

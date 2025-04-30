@@ -16,11 +16,12 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::hooks::use_navigate;
+use state::app_type::AppType;
 use state::canisters::authenticated_canisters;
 use state::canisters::unauth_canisters;
 use utils::event_streaming::events::account_connected_reader;
 use utils::event_streaming::events::CentsAdded;
-use utils::host::{get_host, show_pnd_page};
+use utils::host::get_host;
 use utils::send_wrap;
 use utils::token::icpump::IcpumpTokenInfo;
 use yral_canisters_common::cursored_data::token_roots::{TokenListResponse, TokenRootList};
@@ -41,6 +42,11 @@ pub fn TokenViewFallback() -> impl IntoView {
 
 #[component]
 pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl IntoView {
+    let app_type: AppType = AppType::select();
+    let exclude = match app_type {
+        AppType::YRAL | AppType::Pumpdump => vec![RootType::COYNS],
+        _ => vec![RootType::CENTS],
+    };
     view! {
         <div class="flex flex-col w-full gap-2 mb-2 items-center">
            <Suspense>
@@ -54,11 +60,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
                             user_canister,
                             user_principal,
                             nsfw_detector: IcpumpTokenInfo,
-                            exclude: if show_pnd_page() {
-                                vec![RootType::COYNS]
-                            } else {
-                                vec![RootType::CENTS]
-                            },
+                            exclude,
                         };
 
                         view! {

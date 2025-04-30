@@ -1,12 +1,12 @@
 pub const GENERAL_ITEMS: [(&str, &str); 15] = [
       (
         "What is Hot or Not?",
-        "It is a short video content sharing platform, similar to Tik-Tok, built on the ICP (Internet Computer Protocol) blockchain. Hot or Not combines the entertainment of short-video social media with end-user monetisation by enabling users to speculate on the content and earn tokens (COYN token). Hot or not is the second version of GoBazzinga, developed by GoBazzinga inc. taking forward the vision to create a social media platform that financially rewards the consumers of the platform instead of advertisers.",
+        "It is a short video content sharing platform, similar to Tik-Tok, built on the ICP (Internet Computer Protocol) blockchain. Hot or Not combines the entertainment of short-video social media with end-user monetisation by enabling users to speculate on the content and earn tokens Cents. Hot or not is the second version of GoBazzinga, developed by GoBazzinga inc. taking forward the vision to create a social media platform that financially rewards the consumers of the platform instead of advertisers.",
       ),
       (
         "How does the Hot or Not monetisation work?",
         "The current app is the alpha version which does not contain the Hot or Not monetisation system. This will be added to the platform in the coming months, in accordance with GoBazzinga's Dfinity grant milestones.
-              The platform will contain an in-app game called “Hot or Not”. Users can stake their COYN tokens on any video, on either “Hot” or “Not” outcomes, depending on their thoughts on the viral capacity of the video. 
+              The platform will contain an in-app game called “Hot or Not”. Users can stake their Cents tokens on any video, on either “Hot” or “Not” outcomes, depending on their thoughts on the viral capacity of the video. 
               If the user stakes their token on the side of the majority, they win and earn double their tokens back. 
               If the user stakes their tokens on the minority side, they lose all the tokens staked on that particular video.
               Hot or Not also monetises content creation without relying on advertisers, by giving 10% of all tokens staked to the creator of the video, regardless of the outcome.",
@@ -79,11 +79,11 @@ pub const GENERAL_ITEMS: [(&str, &str); 15] = [
 pub const TOKENS_ITEMS: [(&str, &str); 4] = [
     (
         "Which tokens are being used on the app?",
-        "The GoBazzinga tokens are being renamed COYN tokens, which will be available in the Hot or Not app wallet. These tokens will be used for playing, staking, tipping and many more activities on the Hot or Not app. Wallet and tokens will be added to the app in the coming months.",
+        "The GoBazzinga tokens are being renamed Cents tokens, which will be available in the Hot or Not app wallet. These tokens will be used for playing, staking, tipping and many more activities on the Hot or Not app. Wallet and tokens will be added to the app in the coming months.",
       ),
       (
-        "What is the value of the COYN token?",
-        "The value of a COYN token will be determined by the market demand when it is listed on an exchange. Have a look at our roadmap to know more.",
+        "What is the value of the Cents token?",
+        "The value of a Cents token will be determined by the market demand when it is listed on an exchange. Have a look at our roadmap to know more.",
       ),
       (
         "Where can I learn more about the tokenomics of Hot or Not?",
@@ -91,7 +91,7 @@ pub const TOKENS_ITEMS: [(&str, &str); 4] = [
       ),
       (
         "Where will the winners of GoBazzinga tokens in giveaways receive their rewards?",
-        "The giveaway winners of GoBazzinga tokens (now COYN tokens) will receive their rewards in the Hot or Not app wallet. This will be done once the app has gone through alpha and beta testing, to ensure all winners get their rewards without any lapse.",
+        "The giveaway winners of GoBazzinga tokens (now Cents tokens) will receive their rewards in the Hot or Not app wallet. This will be done once the app has gone through alpha and beta testing, to ensure all winners get their rewards without any lapse.",
       ),
 ];
 
