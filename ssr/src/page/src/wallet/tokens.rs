@@ -16,6 +16,7 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::hooks::use_navigate;
+use state::app_type::AppType;
 use state::canisters::authenticated_canisters;
 use state::canisters::unauth_canisters;
 use utils::event_streaming::events::account_connected_reader;
@@ -41,6 +42,11 @@ pub fn TokenViewFallback() -> impl IntoView {
 
 #[component]
 pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl IntoView {
+    let app_type: AppType = expect_context();
+    let exclude = match app_type {
+        AppType::YRAL | AppType::Pumpdump => vec![RootType::COYNS],
+        _ => vec![RootType::CENTS],
+    };
     view! {
         <div class="flex flex-col w-full gap-2 mb-2 items-center">
            <Suspense>
@@ -54,7 +60,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
                             user_canister,
                             user_principal,
                             nsfw_detector: IcpumpTokenInfo,
-                            exclude: vec![],
+                            exclude,
                         };
 
                         view! {
