@@ -150,15 +150,12 @@ pub fn VideoView(
             })
         });
 
-    let video_views_watch_multiple = RwSignal::new(false);
-
     let _ = use_event_listener(_ref, ev::playing, move |_evt| {
         let Some(_) = _ref.get() else {
             return;
         };
 
         send_view_detail_action.dispatch((100, 0_u8));
-        video_views_watch_multiple.set(true);
     });
 
     VideoWatched.send_event(post, _ref);
