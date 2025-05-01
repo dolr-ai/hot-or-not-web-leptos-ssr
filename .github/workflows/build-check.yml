@@ -45,6 +45,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           cache-all-crates: "true"
+          prefix-key: "v0-test-cache-rust"
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -78,10 +79,6 @@ jobs:
           packages: musl-tools # provides musl-gcc
           version: 1.0
 
-
-      - name: print tree
-        run: tree ./target
-
       - name: lint check
         run: |
           objcopy --version
@@ -94,6 +91,9 @@ jobs:
           LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
           LEPTOS_HASH_FILES: true
           # LEPTOS_TAILWIND_VERSION: v3.4.17
+      
+      - name: Post build tree
+        run: tree ./target
       - run: touch .empty
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
