@@ -25,7 +25,7 @@ jobs:
 
       - name: Install prereqs
         run: |
-          sudo apt-get install protobuf-compiler
+          sudo apt-get install protobuf-compiler exa
 
       - name: Install mold linker
         uses: rui314/setup-mold@v1
@@ -75,8 +75,8 @@ jobs:
 
       - uses: awalsh128/cache-apt-pkgs-action@v1
         with:
-          packages: musl-tools exa # provides musl-gcc
-          version: 2.0
+          packages: musl-tools # provides musl-gcc
+          version: 1.0
 
       - name: print tree
         run: exa -T ./target
