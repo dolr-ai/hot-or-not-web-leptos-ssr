@@ -25,7 +25,7 @@ jobs:
 
       - name: Install prereqs
         run: |
-          sudo apt-get install protobuf-compiler exa
+          sudo apt-get install protobuf-compiler tree
 
       - name: Install mold linker
         uses: rui314/setup-mold@v1
@@ -79,7 +79,7 @@ jobs:
           version: 1.0
 
       - name: print tree
-        run: exa -T ./target
+        run: tree ./target
 
       - name: lint check
         run: |
