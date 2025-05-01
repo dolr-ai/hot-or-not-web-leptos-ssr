@@ -43,6 +43,8 @@ jobs:
 
       - name: Cache rust dependencies and build output
         uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: "true"
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -73,8 +75,11 @@ jobs:
 
       - uses: awalsh128/cache-apt-pkgs-action@v1
         with:
-          packages: musl-tools # provides musl-gcc
+          packages: musl-tools exa # provides musl-gcc
           version: 1.0
+
+      - name: print tree
+        run: exa -T ./target
 
       - name: lint check
         run: |
