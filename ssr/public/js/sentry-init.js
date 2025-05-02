@@ -23,7 +23,7 @@ Sentry.init({
     Sentry.extraErrorDataIntegration(),
     Sentry.httpClientIntegration(),
     Sentry.replayIntegration({
-      networkDetailAllowUrls: [/^\//, 'yral.com', 'yral-ml-feed-server.fly.dev', 'icp-off-chain-agent.fly.dev', 'prod-yral-icpumpsearch.fly.dev', 'prod-yral-nsfw-classification.fly.dev'],
+      networkDetailAllowUrls: [/^\//, 'yral.com', 'yral-ml-feed-server.fly.dev', 'icp-off-chain-agent.fly.dev', 'prod-yral-icpumpsearch.fly.dev', 'prod-yral-nsfw-classification.fly.dev', 'yral-pump-n-dump.go-bazzinga.workers.dev'],
       maskAllText: false,
       blockAllMedia: false,
     }),
