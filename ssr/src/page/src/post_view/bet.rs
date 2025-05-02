@@ -7,7 +7,13 @@ use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_use::use_interval_fn;
 use state::canisters::{authenticated_canisters, unauth_canisters};
-use utils::{send_wrap, time::to_hh_mm_ss, try_or_redirect_opt};
+use utils::{
+    mixpanel::mixpanel_events::{MixPanelEvent, MixpanelHotOrNotPlayedProps},
+    send_wrap,
+    time::to_hh_mm_ss,
+    try_or_redirect_opt,
+    user::UserDetails,
+};
 use web_time::Duration;
 use yral_canisters_client::individual_user_template::{BettingStatus, PlacedBetDetail};
 use yral_canisters_common::{
@@ -114,7 +120,20 @@ fn HNButtonOverlay(
             let cans = canisters.clone();
             let bet_amount = *bet_amount;
             let bet_direction = *bet_direction;
+            let post_mix = post.clone();
             send_wrap(async move {
+                let user = UserDetails::try_get();
+                MixPanelEvent::track_hot_or_not_played(MixpanelHotOrNotPlayedProps {
+                    publisher_user_id: post_mix.poster_principal.to_text(),
+                    is_logged_in: user.is_some(),
+                    user_id: user.clone().map(|f| f.details.principal()),
+                    canister_id: user.map(|f| f.canister_id.to_text()),
+                    video_id: post_mix.uid.clone(),
+                    is_nsfw: post_mix.is_nsfw,
+                    is_hotor_not: post_mix.hot_or_not_feed_ranking_score.is_some(),
+                    view_count: post_mix.views,
+                    like_count: post_mix.likes,
+                });
                 match cans
                     .vote_with_cents_on_post_via_cloudflare(
                         PUMP_AND_DUMP_WORKER_URL.clone(),

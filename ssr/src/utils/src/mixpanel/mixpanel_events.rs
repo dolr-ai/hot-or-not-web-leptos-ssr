@@ -1,0 +1,181 @@
+use serde::Serialize;
+use serde_wasm_bindgen::to_value;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsValue;
+
+#[wasm_bindgen]
+extern "C" {
+    // mixpanel.track(event, properties)
+    #[wasm_bindgen(js_namespace = mixpanel)]
+    fn track(event_name: &str, properties: JsValue);
+
+    // mixpanel.identify(user_id)
+    #[wasm_bindgen(js_namespace = mixpanel)]
+    fn identify(user_id: &str);
+}
+
+/// Call this once you know the logged‑in user's id (e.g. after login)
+pub fn identify_user(user_id: &str) {
+    identify(user_id);
+}
+
+/// Generic helper — anything that implements `Serialize` can be sent as props
+pub fn track_event<T>(event_name: &str, props: T)
+where
+    T: Serialize,
+{
+    // turn your Rust `props` into a JS object
+    let js_props = to_value(&props).expect("failed to serialize Mixpanel props");
+    track(event_name, js_props);
+}
+
+/// Fired once a video has been watched for ≥3 seconds
+#[derive(Serialize)]
+pub struct MixpanelVideoViewedProps {
+    pub publisher_user_id: String,
+    pub user_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: Option<String>,
+    pub video_id: String,
+    pub is_nsfw: bool,
+    pub is_hotor_not: bool,
+    pub view_count: u64,
+    pub like_count: u64,
+    // pub share_count: u64,
+}
+
+/// Fired once a video upload completes successfully
+#[derive(Serialize)]
+pub struct MixpanelVideoUploadSuccessfulProps {
+    pub user_id: Option<String>,
+    pub canister_id: Option<String>,
+    pub is_nsfw: bool,
+    pub is_hotor_not: bool,
+}
+
+/// Fired once the user has logged in successfully
+#[derive(Serialize)]
+pub struct MixpanelLoginSuccessfulProps {
+    pub publisher_user_id: String,
+    pub canister_id: Option<String>,
+    pub referred_by: Option<String>,
+}
+
+/// Fired whenever the NSFW toggle is flipped
+#[derive(Serialize)]
+pub struct MixpanelNsfwToggleProps {
+    pub user_id: Option<String>,
+    pub publisher_user_id: String,
+    pub is_logged_in: bool,
+    pub canister_id: Option<String>,
+    pub video_id: String,
+}
+
+/// Fired when the user taps “Like”
+#[derive(Serialize)]
+pub struct MixpanelLikeVideoProps {
+    pub publisher_user_id: String,
+    pub user_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: Option<String>,
+    pub video_id: String,
+    pub is_nsfw: bool,
+    pub is_hotor_not: bool,
+    pub view_count: u64,
+    pub like_count: u64,
+    // pub share_count: u64,
+}
+
+/// Fired when the user taps Hot/Not
+#[derive(Serialize)]
+pub struct MixpanelHotOrNotPlayedProps {
+    pub publisher_user_id: String,
+    pub user_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: Option<String>,
+    pub video_id: String,
+    pub is_nsfw: bool,
+    pub is_hotor_not: bool,
+    pub view_count: u64,
+    pub like_count: u64,
+    // pub creator_commission: f64,
+}
+
+/// Fired once a Hot/Not game round concludes
+#[derive(Serialize)]
+pub struct MixpanelUserGameConcludedProps {
+    pub user_id: Option<String>,
+    pub video_id: String,
+    pub vote_direction: String, // e.g. "hot" or "not"
+    pub conclusion: String,     // e.g. "won" or "lost"
+    pub is_nsfw: bool,
+    pub like_count: u64,
+    pub stake_amount: f64,
+    pub won_amount: f64,
+    pub updated_cents_wallet_balance: u64,
+}
+
+/// Fired when the user withdraws cents → DOLR
+#[derive(Serialize)]
+pub struct MixpanelCentsToDolrProps {
+    pub user_id: Option<String>,
+    pub cents_converted: f64,
+    pub updated_cents_wallet_balance: f64,
+    // pub updated_dolr_wallet_balance: f64,
+    pub conversion_ratio: f64,
+}
+
+/// Fired when the user sends DOLR to a 3rd‑party wallet
+#[derive(Serialize)]
+pub struct MixpanelDolrTo3rdPartyWalletProps {
+    pub user_id: Option<String>,
+    pub token_transferred: f64,
+    pub updated_wallet_balance: f64,
+    pub transferred_wallet: String,
+    pub gas_fee: f64,
+    pub token_name: String,
+}
+
+pub struct MixPanelEvent;
+
+impl MixPanelEvent {
+    pub fn track_video_viewed(p: MixpanelVideoViewedProps) {
+        track_event("video_viewed", p);
+    }
+
+    pub fn track_video_upload_successful(p: MixpanelVideoUploadSuccessfulProps) {
+        track_event("video_upload_successful", p);
+    }
+
+    pub fn track_login_successful(p: MixpanelLoginSuccessfulProps) {
+        track_event("login_successful", p);
+    }
+
+    pub fn track_nsfw_true(p: MixpanelNsfwToggleProps) {
+        track_event("NSFW_True", p);
+    }
+
+    pub fn track_nsfw_false(p: MixpanelNsfwToggleProps) {
+        track_event("NSFW_False", p);
+    }
+
+    pub fn track_like_video(p: MixpanelLikeVideoProps) {
+        track_event("like_video", p);
+    }
+
+    pub fn track_hot_or_not_played(p: MixpanelHotOrNotPlayedProps) {
+        track_event("hot_or_not_played", p);
+    }
+
+    pub fn track_user_game_concluded(p: MixpanelUserGameConcludedProps) {
+        track_event("user_game_concluded", p);
+    }
+
+    pub fn track_cents_to_dolr(p: MixpanelCentsToDolrProps) {
+        track_event("cents_to_DOLR", p);
+    }
+
+    pub fn track_yral_to_3rd_party_wallet(p: MixpanelDolrTo3rdPartyWalletProps) {
+        track_event("DOLR_to_3rd_party_wallet", p);
+    }
+}
