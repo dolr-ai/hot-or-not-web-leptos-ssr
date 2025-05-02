@@ -55,16 +55,16 @@ fn CtxProvider(children: ChildrenFn) -> impl IntoView {
 
     let referrer_query = use_query::<Referrer>();
     let referrer_principal = Signal::derive(move || {
-        referrer_query()
+        referrer_query.get()
             .ok()
             .and_then(|r| Principal::from_text(r.user_refer).ok())
     });
     let (referrer_store, set_referrer_store, _) = use_referrer_store();
     Effect::new(move |_| {
-        if referrer_store.get_untracked().is_some() {
+        if referrer_store.get().is_some() {
             return;
         }
-        set_referrer_store(referrer_principal.get_untracked())
+        set_referrer_store(referrer_principal.get())
     });
 
     // We need to perform this cleanup in case the user's cookie expired
