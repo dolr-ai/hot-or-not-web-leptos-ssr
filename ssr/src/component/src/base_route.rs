@@ -55,7 +55,8 @@ fn CtxProvider(children: ChildrenFn) -> impl IntoView {
 
     let referrer_query = use_query::<Referrer>();
     let referrer_principal = Signal::derive(move || {
-        referrer_query.get()
+        referrer_query
+            .get()
             .ok()
             .and_then(|r| Principal::from_text(r.user_refer).ok())
     });
