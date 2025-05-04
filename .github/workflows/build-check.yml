@@ -46,8 +46,6 @@ jobs:
         with:
           cache-all-crates: "true"
           prefix-key: "v0-test-cache-rust"
-      - name: Post build tree
-        run: tree ./target
 
       - name: Install Node.js
         uses: actions/setup-node@v4
