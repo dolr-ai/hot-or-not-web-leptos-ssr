@@ -94,14 +94,16 @@ jobs:
           token: ${{ secrets.SENTRY_AUTH_TOKEN }}
           organization: sentry
           project: leptos-ssr-server
-      - name: Upload sentry Rust source context
-        run: |
-          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
-          objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
-          objcopy --add-gnu-debuglink target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{.d,}
-          sentry-cli debug-files upload --org sentry --project leptos-ssr-server --auth-token $SENTRY_AUTH_TOKEN --include-sources .
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+      # deployment has been failing due to this block, removing temporarily
+      # https://github.com/dolr-ai/hot-or-not-web-leptos-ssr/actions/runs/14794595524/job/41538772251#step:19:1
+      # - name: Upload sentry Rust source context
+      #   run: |
+      #     objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
+      #     objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
+      #     objcopy --add-gnu-debuglink target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{.d,}
+      #     sentry-cli debug-files upload --org sentry --project leptos-ssr-server --auth-token $SENTRY_AUTH_TOKEN --include-sources .
+      #   env:
+      #     SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       - run: touch .empty
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
