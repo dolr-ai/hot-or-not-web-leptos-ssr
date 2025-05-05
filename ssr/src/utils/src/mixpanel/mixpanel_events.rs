@@ -130,7 +130,7 @@ pub struct MixpanelCentsToDolrProps {
 pub struct MixpanelDolrTo3rdPartyWalletProps {
     pub user_id: Option<String>,
     pub token_transferred: f64,
-    pub updated_wallet_balance: f64,
+    // pub updated_wallet_balance: f64,
     pub transferred_wallet: String,
     pub gas_fee: f64,
     pub token_name: String,

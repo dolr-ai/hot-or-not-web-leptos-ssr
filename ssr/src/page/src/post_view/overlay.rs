@@ -233,7 +233,6 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
 
             if !nsfw_enabled() && !show_nsfw_permission() {
                 show_nsfw_permission.set(true);
-                MixPanelEvent::track_nsfw_true(mixpanel_params);
             } else {
                 if !nsfw_enabled() && show_nsfw_permission() {
                     show_nsfw_permission.set(false);

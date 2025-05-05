@@ -166,14 +166,14 @@ fn TokenTransferInner(
 
     let auth_cans_wire = authenticated_canisters();
 
-    let mix_balance = balance.clone();
+    // let mix_balance = balance.clone();
     let mix_fees = info.fees.clone();
     let token_name = info.symbol.clone();
 
     let send_action = Action::new(move |&()| {
         let root = root.clone();
         let auth_cans_wire = auth_cans_wire;
-        let mix_balance = mix_balance.clone();
+        // let mix_balance = mix_balance.clone();
         let fees = mix_fees.clone();
         let token_name = token_name.clone();
 
@@ -241,16 +241,15 @@ fn TokenTransferInner(
             let user_id = UserDetails::try_get().map(|f| f.details.principal());
             let fees = fees.humanize_float().parse::<f64>().unwrap_or_default();
             let amount_transferred = amt.humanize_float().parse::<f64>().unwrap_or_default();
-            let mix_balance = mix_balance
-                .humanize_float()
-                .parse::<f64>()
-                .unwrap_or_default()
-                - amount_transferred
-                - fees;
+            // let mix_balance = mix_balance
+            //     .humanize_float()
+            //     .parse::<f64>()
+            //     .unwrap_or_default()
+            //     - amount_transferred
+            //     - fees;
             MixPanelEvent::track_yral_to_3rd_party_wallet(MixpanelDolrTo3rdPartyWalletProps {
                 user_id,
                 token_transferred: amount_transferred,
-                updated_wallet_balance: mix_balance,
                 transferred_wallet: destination.to_string(),
                 gas_fee: fees,
                 token_name,

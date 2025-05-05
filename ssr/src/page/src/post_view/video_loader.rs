@@ -152,7 +152,6 @@ pub fn VideoView(
             })
         });
 
-
     let playing_started = RwSignal::new(false);
 
     let _ = use_event_listener(_ref, ev::playing, move |_evt| {
