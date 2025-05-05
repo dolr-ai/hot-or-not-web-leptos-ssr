@@ -1,3 +1,13 @@
+use candid::Principal;
+use codee::string::FromToStringCodec;
+use codee::string::JsonSerdeCodec;
+use consts::USER_CANISTER_ID_STORE;
+use consts::USER_PRINCIPAL_STORE;
+use leptos::prelude::GetUntracked;
+use leptos::prelude::RwSignal;
+use leptos::prelude::*;
+use leptos_use::storage::use_local_storage;
+use leptos_use::use_cookie;
 use serde::Serialize;
 use serde_wasm_bindgen::to_value;
 use wasm_bindgen::prelude::*;
@@ -27,6 +37,47 @@ where
     // turn your Rust `props` into a JS object
     let js_props = to_value(&props).expect("failed to serialize Mixpanel props");
     track(event_name, js_props);
+}
+
+#[derive(Serialize, Clone)]
+pub struct UserCanisterAndPrincipal {
+    pub user_id: String,
+    pub canister_id: String,
+}
+
+#[derive(Clone)]
+pub struct IsHotOrNot(RwSignal<bool>);
+
+impl IsHotOrNot {
+    pub fn register() {
+        provide_context(IsHotOrNot(RwSignal::new(false)));
+    }
+
+    pub fn set(is_hot_or_not: bool) {
+        let this: Self = expect_context();
+        this.0.set(is_hot_or_not);
+    }
+
+    pub fn get() -> bool {
+        let this = expect_context::<IsHotOrNot>();
+        this.0.get_untracked()
+    }
+}
+
+impl UserCanisterAndPrincipal {
+    pub fn try_get() -> Option<Self> {
+        let (canister_id, _, _) =
+            use_local_storage::<Option<Principal>, JsonSerdeCodec>(USER_CANISTER_ID_STORE);
+        let (principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
+
+        match (canister_id.get_untracked(), principal.get_untracked()) {
+            (Some(canister_id), Some(principal)) => Some(Self {
+                user_id: principal.to_string(),
+                canister_id: canister_id.to_string(),
+            }),
+            _ => None,
+        }
+    }
 }
 
 /// Fired once a video has been watched for ≥3 seconds

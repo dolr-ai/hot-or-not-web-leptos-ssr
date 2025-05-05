@@ -16,7 +16,6 @@ use utils::event_streaming::events::CentsAdded;
 use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, ProviderKind};
 use utils::mixpanel::mixpanel_events::MixPanelEvent;
 use utils::mixpanel::mixpanel_events::MixpanelLoginSuccessfulProps;
-use utils::user::UserDetails;
 use yral_canisters_common::Canisters;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
@@ -124,15 +123,15 @@ pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) 
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
 
-            let _ = LoginSuccessful.send_event(canisters);
+            let _ = LoginSuccessful.send_event(canisters.clone());
 
-            if let Some(f) = UserDetails::try_get() {
-                MixPanelEvent::track_login_successful(MixpanelLoginSuccessfulProps {
-                    publisher_user_id: f.details.principal.to_text(),
-                    canister_id: Some(f.canister_id.to_text()),
-                    referred_by: referrer.map(|f| f.to_text()),
-                });
-            }
+            let profile_details = canisters.profile_details();
+
+            MixPanelEvent::track_login_successful(MixpanelLoginSuccessfulProps {
+                publisher_user_id: profile_details.principal(),
+                canister_id: Some(canisters.user_canister().to_text()),
+                referred_by: referrer.map(|f| f.to_text()),
+            });
 
             Ok::<_, ServerFnError>(())
         }

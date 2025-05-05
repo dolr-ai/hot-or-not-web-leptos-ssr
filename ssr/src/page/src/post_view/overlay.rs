@@ -66,9 +66,11 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
             if should_like {
                 likes.update(|l| *l += 1);
                 LikeVideo.send_event(post_details.clone(), likes, canister_store);
-                let user_id = UserDetails::try_get().map(|f| f.details.principal.to_text());
+                let user = UserCanisterAndPrincipal::try_get();
+                let user_id = user.clone().map(|f| f.user_id);
+                let canister_id = user.map(|f| f.canister_id);
                 MixPanelEvent::track_like_video(MixpanelLikeVideoProps {
-                    canister_id: Some(post_details.canister_id.to_text()),
+                    canister_id,
                     publisher_user_id: post_details.poster_principal.to_text(),
                     is_logged_in: user_id.is_some(),
                     user_id: user_id.clone(),
@@ -221,13 +223,13 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                 return;
             }
 
-            let user = UserDetails::try_get_from_canister_store(canisters_copy);
+            let user = UserCanisterAndPrincipal::try_get();
 
             let mixpanel_params = MixpanelNsfwToggleProps {
                 is_logged_in: user.is_some(),
-                user_id: user.clone().map(|f| f.details.principal()),
+                user_id: user.clone().map(|f| f.user_id),
                 publisher_user_id: post.poster_principal.to_text(),
-                canister_id: user.map(|f| f.canister_id.to_text()),
+                canister_id: user.map(|f| f.canister_id),
                 video_id,
             };
 

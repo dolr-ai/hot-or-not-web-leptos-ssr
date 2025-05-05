@@ -8,11 +8,12 @@ use leptos_icons::*;
 use leptos_use::use_interval_fn;
 use state::canisters::{authenticated_canisters, unauth_canisters};
 use utils::{
-    mixpanel::mixpanel_events::{MixPanelEvent, MixpanelHotOrNotPlayedProps},
+    mixpanel::mixpanel_events::{
+        IsHotOrNot, MixPanelEvent, MixpanelHotOrNotPlayedProps, UserCanisterAndPrincipal,
+    },
     send_wrap,
     time::to_hh_mm_ss,
     try_or_redirect_opt,
-    user::UserDetails,
 };
 use web_time::Duration;
 use yral_canisters_client::individual_user_template::{BettingStatus, PlacedBetDetail};
@@ -122,15 +123,17 @@ fn HNButtonOverlay(
             let bet_direction = *bet_direction;
             let post_mix = post.clone();
             send_wrap(async move {
-                let user = UserDetails::try_get();
+                let user = UserCanisterAndPrincipal::try_get();
+                let is_hot_or_not = IsHotOrNot::get();
+
                 MixPanelEvent::track_hot_or_not_played(MixpanelHotOrNotPlayedProps {
                     publisher_user_id: post_mix.poster_principal.to_text(),
                     is_logged_in: user.is_some(),
-                    user_id: user.clone().map(|f| f.details.principal()),
-                    canister_id: user.map(|f| f.canister_id.to_text()),
+                    user_id: user.clone().map(|f| f.user_id),
+                    canister_id: user.map(|f| f.canister_id),
                     video_id: post_mix.uid.clone(),
                     is_nsfw: post_mix.is_nsfw,
-                    is_hotor_not: post_mix.hot_or_not_feed_ranking_score.is_some(),
+                    is_hotor_not: is_hot_or_not,
                     view_count: post_mix.views,
                     like_count: post_mix.likes,
                 });
@@ -431,6 +434,7 @@ fn MaybeHNButtons(
             {move || {
                 is_betting_enabled.get()
                     .and_then(|enabled| {
+                        IsHotOrNot::set(enabled.unwrap_or_default());
                         if !enabled.unwrap_or_default() {
                             can_place_bet.set(false);
                             return None;

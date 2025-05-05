@@ -10,10 +10,11 @@ use leptos_router::components::Redirect;
 use leptos_router::hooks::use_params;
 use server_fn::codec::Json;
 use state::canisters::authenticated_canisters;
-use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelDolrTo3rdPartyWalletProps};
+use utils::mixpanel::mixpanel_events::{
+    MixPanelEvent, MixpanelDolrTo3rdPartyWalletProps, UserCanisterAndPrincipal,
+};
 use utils::send_wrap;
 use utils::token::icpump::IcpumpTokenInfo;
-use utils::user::UserDetails;
 use utils::{
     event_streaming::events::TokensTransferred,
     web::{copy_to_clipboard, paste_from_clipboard},
@@ -238,7 +239,7 @@ fn TokenTransferInner(
                 RootType::CENTS => return Err(ServerFnError::new("Cents cannot be transferred")),
             }
             TokensTransferred.send_event(amt.e8s.to_string(), destination, cans.clone());
-            let user_id = UserDetails::try_get().map(|f| f.details.principal());
+            let user_id = UserCanisterAndPrincipal::try_get().map(|f| f.user_id);
             let fees = fees.humanize_float().parse::<f64>().unwrap_or_default();
             let amount_transferred = amt.humanize_float().parse::<f64>().unwrap_or_default();
             // let mix_balance = mix_balance
