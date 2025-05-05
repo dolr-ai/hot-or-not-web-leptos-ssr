@@ -40,7 +40,7 @@ impl ProfVideoStream<10> for ProfileVideoBetsStream {
     ) -> Result<PostsRes, CanistersError> {
         let user = canisters.individual_user(user_canister).await;
         let bets = user
-            .get_hot_or_not_bets_placed_by_this_profile_with_pagination(cursor.start)
+            .get_hot_or_not_bets_placed_by_this_profile_with_pagination_v_1(cursor.start)
             .await?;
         let end = bets.len() < 10;
         let posts = bets

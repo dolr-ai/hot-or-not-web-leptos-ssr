@@ -16,7 +16,6 @@ use state::canisters::unauth_canisters;
 use state::{app_state::AppState, canisters::authenticated_canisters};
 use tokens::TokenList;
 use utils::event_streaming::events::account_connected_reader;
-use utils::host::show_pnd_page;
 use utils::send_wrap;
 use utils::try_or_redirect_opt;
 use yral_canisters_common::utils::profile::ProfileDetails;
@@ -48,7 +47,7 @@ fn ProfileCard(details: ProfileDetails, is_own_account: bool, is_connected: bool
             <Show when=move || !is_connected && is_own_account>
                 <ConnectLogin
                     show_login
-                    login_text=if !show_pnd_page() {"Login to claim your COYNs"} else {"Login to claim your Cents"}
+                    login_text="Login to claim your Cents"
                     cta_location="wallet"
                 />
             </Show>

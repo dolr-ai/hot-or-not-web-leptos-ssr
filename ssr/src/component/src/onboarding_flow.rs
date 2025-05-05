@@ -66,7 +66,7 @@ pub fn OnboardingPopUp(onboard_on_click: WriteSignal<bool>) -> impl IntoView {
                                 class="text-white text-center font-medium text-base leading-normal font-sans"
                                 on:click=move |_| onboard_on_click.set(true)
                             >
-                                Skip Tutorial
+                                Maybe Later
                             </button>
                         </div>
                     </div>
@@ -115,7 +115,7 @@ pub fn OnboardingPopUp(onboard_on_click: WriteSignal<bool>) -> impl IntoView {
                             </div>
                             <div class="self-center">
                                 <p class="text-white text-center font-medium text-sm leading-normal">
-                                    Refer and get COYNS
+                                    Refer and Earn Cents
                                 </p>
                             </div>
                         </div>

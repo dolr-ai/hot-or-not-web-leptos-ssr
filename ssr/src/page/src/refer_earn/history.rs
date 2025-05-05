@@ -26,7 +26,7 @@ fn HistoryItem(detail: HistoryDetails, _ref: NodeRef<html::Div>) -> impl IntoVie
                 </div>
             </div>
             <span class="text-white text-md md:text-xl text-center justify-self-end">
-                {detail.amount}Coyns
+                {detail.amount} Cents
             </span>
         </div>
     }
