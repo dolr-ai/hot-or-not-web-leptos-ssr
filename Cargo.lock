@@ -4444,8 +4444,9 @@ dependencies = [
 
 [[package]]
 name = "leptos-use"
-version = "0.15.6"
-source = "git+https://github.com/Synphonyte/leptos-use?rev=bacd162a9d11b3f1be117851308469e3eec09f30#bacd162a9d11b3f1be117851308469e3eec09f30"
+version = "0.15.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e612389629007497d1e90deecf5bddd790e59e32358546fa7beaf88a68d2067b"
 dependencies = [
  "cfg-if",
  "chrono",
