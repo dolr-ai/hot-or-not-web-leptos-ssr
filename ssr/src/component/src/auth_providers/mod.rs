@@ -102,32 +102,33 @@ fn LoginProvButton<Cb: Fn(ev::MouseEvent) + 'static>(
 #[component]
 pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) -> impl IntoView {
     let auth = auth_state();
-    let storage_sync_ctx = use_context::<LocalStorageSyncContext>().expect("LocalStorageSyncContext not provided");
+    let storage_sync_ctx =
+        use_context::<LocalStorageSyncContext>().expect("LocalStorageSyncContext not provided");
 
     let processing = RwSignal::new(None);
     let (referrer_store, _, _) = use_referrer_store();
 
-    
     let login_action = Action::new(move |id: &DelegatedIdentityWire| {
         // Clone the necessary parts
         let id = id.clone();
         // Capture the context signal setter
         async move {
-                let referrer = referrer_store.get_untracked();
+            let referrer = referrer_store.get_untracked();
 
-                // This is some redundant work, but saves us 100+ lines of resource handling
-                let canisters = send_wrap(Canisters::authenticate_with_network(id.clone(), referrer)).await?;
+            // This is some redundant work, but saves us 100+ lines of resource handling
+            let canisters =
+                send_wrap(Canisters::authenticate_with_network(id.clone(), referrer)).await?;
 
-                if let Err(e) = send_wrap(handle_user_login(canisters.clone(), referrer)).await {
-                    log::warn!("failed to handle user login, err {e}. skipping");
-                }
+            if let Err(e) = send_wrap(handle_user_login(canisters.clone(), referrer)).await {
+                log::warn!("failed to handle user login, err {e}. skipping");
+            }
 
-                let _ = LoginSuccessful.send_event(canisters);
+            let _ = LoginSuccessful.send_event(canisters);
 
-                // Update the context signal instead of writing directly
-                storage_sync_ctx.account_connected.set(true);
-                auth.set(Some(id.clone()));
-                show_modal.set(false);
+            // Update the context signal instead of writing directly
+            storage_sync_ctx.account_connected.set(true);
+            auth.set(Some(id.clone()));
+            show_modal.set(false);
 
             Ok::<_, ServerFnError>(())
         }
