@@ -8,6 +8,11 @@ use state::app_type::AppType;
 // use crate::page::wallet::TestIndex;
 use crate::error_template::{AppError, ErrorTemplate};
 use component::{base_route::BaseRoute, nav::NavBar};
+use leptos::prelude::*;
+use leptos_meta::*;
+use leptos_router::hooks::use_location;
+use leptos_router::{components::*, path, MatchNestedRoutes};
+use page::terms_ios::TermsIos;
 use page::{
     err::ServerErrorPage,
     leaderboard::Leaderboard,
@@ -30,12 +35,6 @@ use page::{
     wallet::Wallet,
 };
 use state::app_state::AppState;
-
-use leptos::prelude::*;
-use leptos_meta::*;
-use leptos_router::hooks::use_location;
-use leptos_router::{components::*, path, MatchNestedRoutes};
-use page::terms_ios::TermsIos;
 use state::{audio_state::AudioState, content_seed_client::ContentSeedClient};
 use utils::event_streaming::events::HistoryCtx;
 use utils::event_streaming::EventHistory;
@@ -225,6 +224,8 @@ pub fn App() -> impl IntoView {
                     // auth redirect routes exist outside main context
                     <GoogleAuthRedirectHandlerRoute />
                     <GoogleAuthRedirectorRoute />
+                    <GooglePreviewAuthRedirectorRoute />
+                    <GooglePreviewAuthRedirectHandlerRoute />
                     <ParentRoute path=path!("") view=BaseRoute>
                         <Route path=path!("/") view=RootPage />
                         <Route path=path!("/hot-or-not/:canister_id/:post_id") view=PostView />
