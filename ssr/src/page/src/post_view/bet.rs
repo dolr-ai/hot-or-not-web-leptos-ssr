@@ -114,6 +114,7 @@ fn HNButtonOverlay(
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
 ) -> impl IntoView {
+    IsHotOrNot::set(post.canister_id, post.post_id, true);
     let place_bet_action = Action::new(
         move |(canisters, bet_direction, bet_amount): &(Canisters<true>, VoteKind, u64)| {
             let post_can_id = post.canister_id;
@@ -124,7 +125,7 @@ fn HNButtonOverlay(
             let post_mix = post.clone();
             send_wrap(async move {
                 let user = UserCanisterAndPrincipal::try_get();
-                let is_hot_or_not = IsHotOrNot::get();
+                let is_hot_or_not = true;
 
                 MixPanelEvent::track_hot_or_not_played(MixpanelHotOrNotPlayedProps {
                     publisher_user_id: post_mix.poster_principal.to_text(),
@@ -434,9 +435,10 @@ fn MaybeHNButtons(
             {move || {
                 is_betting_enabled.get()
                     .and_then(|enabled| {
-                        IsHotOrNot::set(enabled.unwrap_or_default());
                         if !enabled.unwrap_or_default() {
                             can_place_bet.set(false);
+                            let post = post.get_value();
+                            IsHotOrNot::set(post.canister_id, post.post_id, enabled.unwrap_or_default());
                             return None;
                         }
                         Some(

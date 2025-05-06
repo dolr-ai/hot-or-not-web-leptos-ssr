@@ -10,6 +10,7 @@ use leptos_use::storage::use_local_storage;
 use leptos_use::use_cookie;
 use serde::Serialize;
 use serde_wasm_bindgen::to_value;
+use std::collections::BTreeMap;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 
@@ -46,21 +47,31 @@ pub struct UserCanisterAndPrincipal {
 }
 
 #[derive(Clone)]
-pub struct IsHotOrNot(RwSignal<bool>);
+pub struct IsHotOrNot {
+    post: RwSignal<BTreeMap<(Principal, u64), bool>>,
+}
 
 impl IsHotOrNot {
     pub fn register() {
-        provide_context(IsHotOrNot(RwSignal::new(false)));
+        provide_context(IsHotOrNot {
+            post: RwSignal::new(BTreeMap::new()),
+        });
     }
 
-    pub fn set(is_hot_or_not: bool) {
+    pub fn set(canister_id: Principal, post_id: u64, is_hot_or_not: bool) {
         let this: Self = expect_context();
-        this.0.set(is_hot_or_not);
+        this.post.update(|f| {
+            f.insert((canister_id, post_id), is_hot_or_not);
+        });
     }
 
-    pub fn get() -> bool {
+    pub fn get(canister_id: Principal, post_id: u64) -> bool {
         let this = expect_context::<IsHotOrNot>();
-        this.0.get_untracked()
+        *this
+            .post
+            .get_untracked()
+            .get(&(canister_id, post_id))
+            .unwrap_or(&false)
     }
 }
 
