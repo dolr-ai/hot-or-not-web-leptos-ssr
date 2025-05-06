@@ -1,7 +1,7 @@
 use leptos::{ev, prelude::*};
 use leptos_icons::*;
 use leptos_use::{use_event_listener, use_interval_fn, use_window};
-use utils::icon_gen;
+use utils::{host::show_preview_component, icon_gen};
 use yral_types::delegated_identity::DelegatedIdentityWire;
 pub type GoogleAuthMessage = Result<DelegatedIdentityWire, String>;
 
@@ -31,7 +31,11 @@ pub fn GoogleAuthProvider() -> impl IntoView {
     let on_click = move || {
         let window = window();
         let origin = window.origin();
-        let redirect_uri = format!("{origin}/auth/perform_google_redirect");
+        let redirect_uri = if show_preview_component() {
+            format!("{origin}/preview/auth/perform_google_redirect")
+        } else {
+            format!("{origin}/auth/perform_google_redirect")
+        };
         // Open a popup window with the redirect URL
         let target = window
             .open_with_url(&redirect_uri)
