@@ -55,7 +55,7 @@ ic-base-types = { git = "https://github.com/dfinity/ic", rev = "tags/release-202
 icp-ledger = { git = "https://github.com/dfinity/ic", rev = "tags/release-2024-10-17_03-07-base" }
 serde-wasm-bindgen = "0.6.5"
 futures = "0.3.30"
-leptos-use = { git = "https://github.com/Synphonyte/leptos-use", rev = "bacd162a9d11b3f1be117851308469e3eec09f30" }
+leptos-use = { version = "0.15.7" }
 codee = { version = "0.3.0", features = ["json_serde"] }
 reqwest = { version = "0.12", default-features = false, features = [
     "json",

@@ -1,4 +1,7 @@
+use codee::string::FromToStringCodec;
 use component::content_upload::AuthorizedUserToSeedContent;
+use consts::ACCOUNT_CONNECTED_STORE;
+use leptos_use::storage::use_local_storage;
 use page::about_us::AboutUs;
 use page::icpump::ai::ICPumpAi;
 use page::icpump::ICPumpLanding;
@@ -6,6 +9,7 @@ use page::post_view::PostDetailsCacheCtx;
 use page::pumpdump::{withdrawal, PndProfilePage};
 use state::app_type::AppType;
 use utils::mixpanel::mixpanel_events::IsHotOrNot;
+use state::local_storage::LocalStorageSyncContext;
 // use crate::page::wallet::TestIndex;
 use crate::error_template::{AppError, ErrorTemplate};
 use component::{base_route::BaseRoute, nav::NavBar};
@@ -182,6 +186,22 @@ pub fn App() -> impl IntoView {
         enable_ga4_script.set(true);
         provide_context(EventHistory::default());
     }
+
+    // Set up local storage sync
+    let (initial_account_connected, write_account_connected, _) =
+        use_local_storage::<bool, FromToStringCodec>(ACCOUNT_CONNECTED_STORE);
+    let account_connected_signal = RwSignal::new(initial_account_connected.get_untracked());
+
+    // Effect to write to local storage when the signal changes
+    Effect::new(move |_| {
+        let current_value = account_connected_signal.get();
+        write_account_connected(current_value);
+    });
+
+    // Provide the context
+    provide_context(LocalStorageSyncContext {
+        account_connected: account_connected_signal,
+    });
 
     view! {
         <Title text=app_state.name />

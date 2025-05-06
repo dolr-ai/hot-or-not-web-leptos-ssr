@@ -12,3 +12,8 @@ pub fn use_referrer_store() -> (
 ) {
     use_local_storage::<Option<Principal>, JsonSerdeCodec>(REFERRER_STORE)
 }
+
+#[derive(Clone, Copy)]
+pub struct LocalStorageSyncContext {
+    pub account_connected: RwSignal<bool>,
+}
