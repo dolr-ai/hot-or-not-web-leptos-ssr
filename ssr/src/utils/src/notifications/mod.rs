@@ -1,32 +1,47 @@
+use leptos::prelude::ServerFnError;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_futures::JsFuture;
+use yral_metadata_types::DeviceRegistrationToken;
 
 pub mod device_id;
 
 #[wasm_bindgen(module = "/src/notifications/setup-firebase-messaging-inline.js")]
 extern "C" {
-    #[wasm_bindgen(js_name = default)]
-    fn get_token() -> js_sys::Promise;
+    #[wasm_bindgen(catch, js_name = getToken)]
+    async fn get_token() -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(catch, js_name = getDeviceFingerprint)]
+    async fn get_device_fingerprint() -> Result<JsValue, JsValue>;
+
+    #[wasm_bindgen(catch, js_name = getNotificationPermission)]
+    async fn get_notification_permission() -> Result<JsValue, JsValue>;
 }
 
-pub async fn get_token_for_principal(principal_id: String) {
-    let token_promise = get_token();
-    match JsFuture::from(token_promise).await {
-        Ok(token_js) => {
-            let token: String = token_js.as_string().unwrap_or_default();
-            #[cfg(feature = "ga4")]
-            {
-                use device_id::send_principal_and_token_offchain;
-                log::info!("sending offchain with params: {}, {}", token, principal_id);
-                send_principal_and_token_offchain(token.clone(), principal_id)
-                    .await
-                    .unwrap();
-            }
-            // Ok(token)
-        }
-        Err(err) => {
-            log::warn!("Failed to get token: {:?}", err);
-            // Err(())
-        }
+pub async fn get_device_registeration_token() -> Result<DeviceRegistrationToken, ServerFnError> {
+    let permission = get_notification_permission()
+        .await
+        .map_err(|e| ServerFnError::new(format!("{:?}", e)))?
+        .as_bool()
+        .ok_or(ServerFnError::new("Failed to get notification permission"))?;
+    if !permission {
+        // TODO: show a notification to the user to allow notifications
+        log::warn!("Notification permission not granted");
+        return Err(ServerFnError::new("Notification permission not granted"));
     }
+
+    let device_fingerprint = get_device_fingerprint()
+        .await
+        .map_err(|e| ServerFnError::new(format!("{:?}", e)))?
+        .as_string()
+        .ok_or(ServerFnError::new("Failed to get device fingerprint"))?;
+
+    let token = get_token()
+        .await
+        .map_err(|e| ServerFnError::new(format!("{:?}", e)))?
+        .as_string()
+        .ok_or(ServerFnError::new("Failed to get token"))?;
+
+    Ok(DeviceRegistrationToken {
+        token,
+        device_fingerprint,
+    })
 }

@@ -11,7 +11,7 @@ use testcontainers::{
     ContainerAsync, GenericImage, Image, ImageExt,
 };
 use yral_metadata_client::MetadataClient;
-use yral_metadata_types::UserMetadata;
+use yral_metadata_types::SetUserMetadataReqMetadata;
 use yral_testcontainers::{
     backend::{self, YralBackend, ADMIN_SECP_BYTES},
     metadata::{self, YralMetadata},
@@ -73,13 +73,15 @@ impl TestContainers {
                 Err(e) => panic!("Failed to get user canister {e}"),
             }
         };
-        let metadata = UserMetadata {
-            user_canister_id: admin_canister,
-            user_name: "".into(),
-        };
 
         metadata_client
-            .set_user_metadata(&id, metadata)
+            .set_user_metadata(
+                &id,
+                SetUserMetadataReqMetadata {
+                    user_canister_id: admin_canister,
+                    user_name: "".into(),
+                },
+            )
             .await
             .unwrap()
     }

@@ -1,17 +1,33 @@
 use component::canisters_prov::AuthCansProvider;
 use leptos::prelude::*;
+use state::canisters::authenticated_canisters;
 use utils::event_streaming::events::account_connected_reader;
-use utils::notifications::get_token_for_principal;
+use utils::notifications::get_device_registeration_token;
 
+use utils::send_wrap;
 use yral_canisters_common::utils::profile::ProfileDetails;
+use yral_canisters_common::Canisters;
+use yral_metadata_client::MetadataClient;
 
 #[component]
 fn NotifInnerComponent(details: ProfileDetails) -> impl IntoView {
     let (_, _) = account_connected_reader();
 
-    let on_token_click: Action<(), (), LocalStorage> = Action::new_unsync(move |()| async move {
-        get_token_for_principal(details.principal.to_string()).await;
-    });
+    let auth_cans = authenticated_canisters();
+
+    let on_token_click: Action<(), Result<(), ServerFnError>, LocalStorage> =
+        Action::new_unsync(move |()| async move {
+            let metaclient = MetadataClient::default();
+            let cans = Canisters::from_wire(auth_cans.await?, expect_context())?;
+
+            let token = send_wrap(get_device_registeration_token()).await?;
+            metaclient
+                .register_device(cans.identity(), token)
+                .await
+                .map_err(|e| ServerFnError::new(format!("{:?}", e)))?;
+
+            Ok::<_, ServerFnError>(())
+        });
 
     view! {
         <h1>"YRAL Notifs for"</h1>
