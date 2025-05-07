@@ -1,3 +1,4 @@
+use crate::event_streaming::events::account_connected_reader;
 use candid::Principal;
 use codee::string::FromToStringCodec;
 use codee::string::JsonSerdeCodec;
@@ -13,7 +14,6 @@ use serde_wasm_bindgen::to_value;
 use std::collections::BTreeMap;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
-use crate::event_streaming::events::account_connected_reader;
 
 #[wasm_bindgen]
 extern "C" {
