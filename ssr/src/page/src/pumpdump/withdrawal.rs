@@ -14,7 +14,12 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
 use state::canisters::authenticated_canisters;
-use utils::{send_wrap, try_or_redirect_opt};
+use utils::{
+    mixpanel::mixpanel_events::{
+        MixPanelEvent, MixpanelCentsToDolrProps, UserCanisterAndPrincipal,
+    },
+    send_wrap, try_or_redirect_opt,
+};
 use yral_canisters_common::{utils::token::balance::TokenBalance, Canisters};
 use yral_pump_n_dump_common::rest::{BalanceInfoResponse, ClaimReq};
 
@@ -61,7 +66,11 @@ fn Header() -> impl IntoView {
                 <div class="flex flex-row justify-between">
                     <BackButton fallback="/" />
                     <span class="font-bold text-2xl">Withdraw</span>
-                    <a href="/wallet/notifications" aria_disabled=true class="text-xl font-semibold">
+                    <a
+                        href="/wallet/notifications"
+                        aria_disabled=true
+                        class="text-xl font-semibold"
+                    >
                         <NotificationIcon show_dot=false class="w-8 h-8 text-neutral-600" />
                     </a>
                 </div>
@@ -80,12 +89,17 @@ fn BalanceDisplay(#[prop(into)] balance: Nat, #[prop(into)] withdrawable: Nat) -
                 <span class="font-bold text-4xl">{format_cents!(balance)}</span>
             </div>
         </div>
-        <div id="breakdown" class="flex justify-between py-2.5 px-3 bg-neutral-900 w-full gap-8 mt-5 rounded-lg">
+        <div
+            id="breakdown"
+            class="flex justify-between py-2.5 px-3 bg-neutral-900 w-full gap-8 mt-5 rounded-lg"
+        >
             <div class="flex gap-2 items-center">
-                <span class="text-xs">
-                    Cents you can withdraw
-                </span>
-                <Tooltip icon=Information title="Withdrawal Tokens" description="Only cents earned above your airdrop amount can be withdrawn." />
+                <span class="text-xs">Cents you can withdraw</span>
+                <Tooltip
+                    icon=Information
+                    title="Withdrawal Tokens"
+                    description="Only cents earned above your airdrop amount can be withdrawn."
+                />
             </div>
             <span class="text-lg font-semibold">{format_cents!(withdrawable)}</span>
         </div>
@@ -114,6 +128,8 @@ pub fn PndWithdrawal() -> impl IntoView {
             TokenBalance::new(dolrs(), 8).humanize_float_truncate_to_dp(4)
         )
     };
+    let init_balance: Option<BalanceInfoResponse> = None;
+    let balance_info_signal = RwSignal::new(init_balance);
 
     let on_input = move |ev: leptos::ev::Event| {
         let value = event_target_value(&ev);
@@ -159,13 +175,35 @@ pub fn PndWithdrawal() -> impl IntoView {
     });
     let is_claiming = send_claim.pending();
     let claim_res = send_claim.value();
+
     Effect::new(move |_| {
         if let Some(res) = claim_res() {
             let nav = use_navigate();
             match res {
                 Ok(_) => {
+                    let cents = cents().e8s;
+                    // let mix_formatted_dolr =
+                    //     TokenBalance::new(cents.clone(), 8).humanize_float_truncate_to_dp(4).parse::<f64>()
+                    //     .unwrap_or(0.0);
+                    let mix_formatted_cents = TokenBalance::new(cents.clone(), 6)
+                        .humanize_float_truncate_to_dp(4)
+                        .parse::<u64>()
+                        .unwrap_or(0);
+                    let cents_value = mix_formatted_cents as f64;
+                    let user = UserCanisterAndPrincipal::try_get();
+                    let balance_info = balance_info_signal.get();
+                    let updated_cents_wallet_balance = format_cents!(balance_info.unwrap().balance)
+                        .parse::<f64>()
+                        .unwrap_or(0.0)
+                        + mix_formatted_cents as f64;
+                    MixPanelEvent::track_cents_to_dolr(MixpanelCentsToDolrProps {
+                        user_id: user.map(|f| f.user_id),
+                        updated_cents_wallet_balance,
+                        conversion_ratio: 0.01,
+                        cents_converted: cents_value,
+                    });
                     nav(
-                        &format!("/pnd/withdraw/success?cents={}", cents().e8s),
+                        &format!("/pnd/withdraw/success?cents={}", cents),
                         Default::default(),
                     );
                 }
@@ -184,60 +222,98 @@ pub fn PndWithdrawal() -> impl IntoView {
             <div class="w-full">
                 <div class="flex flex-col items-center justify-center max-w-md mx-auto px-4 mt-4 pb-6">
                     <Suspense>
-                    {move || {
-                        let (balance_info, _) = try_or_redirect_opt!(details_res.get()?);
-                        Some(view! {
-                            <BalanceDisplay balance=balance_info.balance withdrawable=balance_info.withdrawable />
-                        })
-                    }}
+                        {move || {
+                            let (balance_info_display, _) = try_or_redirect_opt!(details_res.get()?);
+                            balance_info_signal.set(Some(balance_info_display.clone()));
+                            Some(
+                                view! {
+                                    <BalanceDisplay
+                                        balance=balance_info_display.balance
+                                        withdrawable=balance_info_display.withdrawable
+                                    />
+                                },
+                            )
+                        }}
                     </Suspense>
                     <div class="flex flex-col gap-5 mt-8 w-full">
                         <span class="text-sm">Choose how much to redeem:</span>
-                        <div id="input-card" class="rounded-lg bg-neutral-900 p-3 flex flex-col gap-8">
+                        <div
+                            id="input-card"
+                            class="rounded-lg bg-neutral-900 p-3 flex flex-col gap-8"
+                        >
                             <div class="flex flex-col gap-3">
                                 <div class="flex justify-between">
                                     <div class="flex gap-2 items-center">
                                         <span>You withdraw</span>
-                                        <Tooltip icon=Information title="Withdrawal Tokens" description="Only cents earned above your airdrop amount can be withdrawn." />
+                                        <Tooltip
+                                            icon=Information
+                                            title="Withdrawal Tokens"
+                                            description="Only cents earned above your airdrop amount can be withdrawn."
+                                        />
                                     </div>
-                                    <input disabled=is_claiming on:input=on_input type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-32 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg" />
+                                    <input
+                                        disabled=is_claiming
+                                        on:input=on_input
+                                        type="text"
+                                        inputmode="decimal"
+                                        class="bg-neutral-800 h-10 w-32 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg"
+                                    />
                                 </div>
                                 <div class="flex justify-between">
                                     <div class="flex gap-2 items-center">
                                         <span>You get</span>
                                     </div>
-                                    <input disabled type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-32 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg text-neutral-400" value=formated_dolrs />
+                                    <input
+                                        disabled
+                                        type="text"
+                                        inputmode="decimal"
+                                        class="bg-neutral-800 h-10 w-32 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg text-neutral-400"
+                                        value=formated_dolrs
+                                    />
                                 </div>
                             </div>
-                            <Suspense fallback=|| view! {
-                                <button
-                                    disabled
-                                    class="rounded-lg px-5 py-2 text-sm text-center font-bold bg-brand-gradient-disabled"
-                                >Please Wait</button>
-                            }>
-                            {move || {
-                                let (BalanceInfoResponse { withdrawable, .. }, _) = try_or_redirect_opt!(details_res.get()?);
-                                let can_withdraw = TokenBalance::new(withdrawable, 0) >= cents();
-                                let no_input = cents().e8s == 0usize;
-                                let is_claiming = is_claiming();
-                                let message = if no_input {
-                                    "Enter Amount"
-                                } else {
-                                    match (can_withdraw, is_claiming) {
-                                        (false, _) => "Not enough winnings",
-                                        (_, true) => "Claiming...",
-                                        (_, _) => "Withdraw Now!"
-                                    }
-                                };
-                                Some(view! {
+                            <Suspense fallback=|| {
+                                view! {
                                     <button
-                                        disabled=no_input || !can_withdraw
-                                        class=("pointer-events-none", is_claiming)
-                                        class="rounded-lg px-5 py-2 text-sm text-center font-bold bg-brand-gradient disabled:bg-brand-gradient-disabled"
-                                        on:click=move |_ev| {send_claim.dispatch(());}
-                                    >{message}</button>
-                                })
-                            }}
+                                        disabled
+                                        class="rounded-lg px-5 py-2 text-sm text-center font-bold bg-brand-gradient-disabled"
+                                    >
+                                        Please Wait
+                                    </button>
+                                }
+                            }>
+                                {move || {
+                                    let (BalanceInfoResponse { withdrawable, .. }, _) = try_or_redirect_opt!(
+                                        details_res.get()?
+                                    );
+                                    let can_withdraw = TokenBalance::new(withdrawable, 0)
+                                        >= cents();
+                                    let no_input = cents().e8s == 0usize;
+                                    let is_claiming = is_claiming();
+                                    let message = if no_input {
+                                        "Enter Amount"
+                                    } else {
+                                        match (can_withdraw, is_claiming) {
+                                            (false, _) => "Not enough winnings",
+                                            (_, true) => "Claiming...",
+                                            (_, _) => "Withdraw Now!",
+                                        }
+                                    };
+                                    Some(
+                                        view! {
+                                            <button
+                                                disabled=no_input || !can_withdraw
+                                                class=("pointer-events-none", is_claiming)
+                                                class="rounded-lg px-5 py-2 text-sm text-center font-bold bg-brand-gradient disabled:bg-brand-gradient-disabled"
+                                                on:click=move |_ev| {
+                                                    send_claim.dispatch(());
+                                                }
+                                            >
+                                                {message}
+                                            </button>
+                                        },
+                                    )
+                                }}
                             </Suspense>
                         </div>
                         <span class="text-sm">1 Cent = 0.01 DOLR</span>

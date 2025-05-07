@@ -27,7 +27,7 @@ async fn preview_server_set_refersh_token_cookie(
 }
 
 async fn get_google_auth_url(host: String) -> Result<String, ServerFnError> {
-    let client_redirect_uri = format!("https://{}/auth/google_redirect", host);
+    let client_redirect_uri = format!("https://{}/preview/auth/google_redirect", host);
     let url = format!(
         "https://yral.com/api/google_auth_url?client_redirect_uri={}",
         client_redirect_uri
@@ -163,7 +163,11 @@ pub fn PreviewGoogleRedirectHandler() -> impl IntoView {
         <Loading text="Logging out...".to_string()>
             <Suspense>
                 {move || {
-                    identity_resource.get().map(|identity_res| view! { <IdentitySender identity_res=identity_res.take()/> })
+                    identity_resource
+                        .get()
+                        .map(|identity_res| {
+                            view! { <IdentitySender identity_res=identity_res.take() /> }
+                        })
                 }}
 
             </Suspense>

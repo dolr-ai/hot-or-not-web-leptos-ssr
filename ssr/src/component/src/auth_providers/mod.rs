@@ -3,17 +3,18 @@ pub mod google;
 #[cfg(feature = "local-auth")]
 pub mod local_storage;
 use candid::Principal;
-use codee::string::FromToStringCodec;
-use consts::ACCOUNT_CONNECTED_STORE;
 use consts::NEW_USER_SIGNUP_REWARD;
 use consts::REFERRAL_REWARD;
 use ic_agent::Identity;
 use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
-use leptos_use::storage::use_local_storage;
+use state::local_storage::LocalStorageSyncContext;
 use state::{auth::auth_state, local_storage::use_referrer_store};
 use utils::event_streaming::events::CentsAdded;
 use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, ProviderKind};
+use utils::mixpanel::mixpanel_events::MixPanelEvent;
+use utils::mixpanel::mixpanel_events::MixpanelLoginSuccessfulProps;
+use utils::send_wrap;
 use yral_canisters_common::Canisters;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
@@ -102,26 +103,42 @@ fn LoginProvButton<Cb: Fn(ev::MouseEvent) + 'static>(
 
 #[component]
 pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) -> impl IntoView {
-    let (_, write_account_connected, _) =
-        use_local_storage::<bool, FromToStringCodec>(ACCOUNT_CONNECTED_STORE);
     let auth = auth_state();
+    let storage_sync_ctx =
+        use_context::<LocalStorageSyncContext>().expect("LocalStorageSyncContext not provided");
 
     let processing = RwSignal::new(None);
     let (referrer_store, _, _) = use_referrer_store();
 
-    let login_action = Action::new_local(move |id: &DelegatedIdentityWire| {
+    let login_action = Action::new(move |id: &DelegatedIdentityWire| {
+        // Clone the necessary parts
         let id = id.clone();
+        // Capture the context signal setter
         async move {
             let referrer = referrer_store.get_untracked();
 
             // This is some redundant work, but saves us 100+ lines of resource handling
-            let canisters = Canisters::authenticate_with_network(id, referrer).await?;
+            let canisters =
+                send_wrap(Canisters::authenticate_with_network(id.clone(), referrer)).await?;
 
-            if let Err(e) = handle_user_login(canisters.clone(), referrer).await {
+            if let Err(e) = send_wrap(handle_user_login(canisters.clone(), referrer)).await {
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
 
-            let _ = LoginSuccessful.send_event(canisters);
+            let _ = LoginSuccessful.send_event(canisters.clone());
+
+            let profile_details = canisters.profile_details();
+
+            MixPanelEvent::track_login_successful(MixpanelLoginSuccessfulProps {
+                publisher_user_id: profile_details.principal(),
+                canister_id: Some(canisters.user_canister().to_text()),
+                referred_by: referrer.map(|f| f.to_text()),
+            });
+
+            // Update the context signal instead of writing directly
+            storage_sync_ctx.account_connected.set(true);
+            auth.set(Some(id.clone()));
+            show_modal.set(false);
 
             Ok::<_, ServerFnError>(())
         }
@@ -134,10 +151,8 @@ pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) 
             processing.set(val);
         }),
         login_complete: SignalSetter::map(move |val: DelegatedIdentityWire| {
-            login_action.dispatch(val.clone());
-            write_account_connected(true);
-            auth.set(Some(val));
-            show_modal.set(false);
+            // Dispatch just the DelegatedIdentityWire
+            login_action.dispatch(val);
         }),
     };
     provide_context(ctx);

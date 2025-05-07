@@ -7,6 +7,9 @@ use leptos::{html::Video, prelude::*};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use state::canisters::unauth_canisters;
+use utils::mixpanel::mixpanel_events::{
+    IsHotOrNot, MixPanelEvent, MixpanelVideoViewedProps, UserCanisterAndPrincipal,
+};
 use utils::send_wrap;
 use yral_canisters_client::individual_user_template::PostViewDetailsFromFrontend;
 
@@ -150,40 +153,39 @@ pub fn VideoView(
             })
         });
 
-    let video_views_watch_multiple = RwSignal::new(false);
+    let playing_started = RwSignal::new(false);
 
-    let _ = use_event_listener(_ref, ev::pause, move |_evt| {
-        let Some(video) = _ref.get() else {
+    let _ = use_event_listener(_ref, ev::playing, move |_evt| {
+        let Some(_) = _ref.get() else {
             return;
         };
-
-        let duration = video.duration();
-        let current_time = video.current_time();
-        if current_time < 0.5 {
-            return;
-        }
-
-        let percentage_watched = ((current_time / duration) * 100.0) as u8;
-        send_view_detail_action.dispatch((percentage_watched, 0_u8));
+        playing_started.set(true);
+        send_view_detail_action.dispatch((100, 0_u8));
     });
 
     let _ = use_event_listener(_ref, ev::timeupdate, move |_evt| {
         let Some(video) = _ref.get() else {
             return;
         };
-
-        let duration = video.duration();
+        // let duration = video.duration();
         let current_time = video.current_time();
-        let percentage_watched = ((current_time / duration) * 100.0) as u8;
 
-        if current_time < 0.95 * duration {
-            video_views_watch_multiple.set(false);
-        }
-
-        if percentage_watched >= 95 && !video_views_watch_multiple.get() {
-            send_view_detail_action.dispatch((percentage_watched, 0_u8));
-
-            video_views_watch_multiple.set(true);
+        if current_time >= 3.0 && playing_started() {
+            let post = post_for_view.get_untracked().unwrap();
+            let user = UserCanisterAndPrincipal::try_get();
+            let is_hot_or_not = IsHotOrNot::get(post.canister_id, post.post_id);
+            MixPanelEvent::track_video_viewed(MixpanelVideoViewedProps {
+                publisher_user_id: post.poster_principal.to_text(),
+                is_logged_in: user.is_some(),
+                user_id: user.clone().map(|f| f.user_id),
+                canister_id: user.map(|f| f.canister_id),
+                video_id: post.uid,
+                is_nsfw: post.is_nsfw,
+                is_hotor_not: is_hot_or_not,
+                view_count: post.views,
+                like_count: post.likes,
+            });
+            playing_started.set(false);
         }
     });
 
