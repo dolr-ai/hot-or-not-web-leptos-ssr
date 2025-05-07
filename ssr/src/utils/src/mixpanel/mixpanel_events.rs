@@ -13,6 +13,7 @@ use serde_wasm_bindgen::to_value;
 use std::collections::BTreeMap;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
+use crate::event_streaming::events::account_connected_reader;
 
 #[wasm_bindgen]
 extern "C" {
@@ -201,7 +202,9 @@ pub struct MixpanelDolrTo3rdPartyWalletProps {
 pub struct MixPanelEvent;
 
 impl MixPanelEvent {
-    pub fn track_video_viewed(p: MixpanelVideoViewedProps) {
+    pub fn track_video_viewed(mut p: MixpanelVideoViewedProps) {
+        let (is_connected, _) = account_connected_reader();
+        p.is_logged_in = is_connected.get_untracked();
         track_event("video_viewed", p);
     }
 
@@ -213,11 +216,15 @@ impl MixPanelEvent {
         track_event("login_successful", p);
     }
 
-    pub fn track_nsfw_true(p: MixpanelNsfwToggleProps) {
+    pub fn track_nsfw_true(mut p: MixpanelNsfwToggleProps) {
+        let (is_connected, _) = account_connected_reader();
+        p.is_logged_in = is_connected.get_untracked();
         track_event("NSFW_True", p);
     }
 
-    pub fn track_nsfw_false(p: MixpanelNsfwToggleProps) {
+    pub fn track_nsfw_false(mut p: MixpanelNsfwToggleProps) {
+        let (is_connected, _) = account_connected_reader();
+        p.is_logged_in = is_connected.get_untracked();
         track_event("NSFW_False", p);
     }
 
@@ -225,7 +232,9 @@ impl MixPanelEvent {
         track_event("like_video", p);
     }
 
-    pub fn track_hot_or_not_played(p: MixpanelHotOrNotPlayedProps) {
+    pub fn track_hot_or_not_played(mut p: MixpanelHotOrNotPlayedProps) {
+        let (is_connected, _) = account_connected_reader();
+        p.is_logged_in = is_connected.get_untracked();
         track_event("hot_or_not_played", p);
     }
 
