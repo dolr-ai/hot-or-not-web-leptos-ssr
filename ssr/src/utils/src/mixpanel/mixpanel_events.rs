@@ -228,7 +228,9 @@ impl MixPanelEvent {
         track_event("NSFW_False", p);
     }
 
-    pub fn track_like_video(p: MixpanelLikeVideoProps) {
+    pub fn track_like_video(mut p: MixpanelLikeVideoProps) {
+        let (is_connected, _) = account_connected_reader();
+        p.is_logged_in = is_connected.get_untracked();
         track_event("like_video", p);
     }
 

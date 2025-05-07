@@ -308,7 +308,7 @@ pub fn VideoUploader(
                                 user_id: user.clone().map(|f| f.user_id),
                                 canister_id: user.map(|f| f.canister_id),
                                 is_nsfw,
-                                is_hotor_not: enable_hot_or_not,
+                                is_hotor_not: true,
                             },
                         );
                         published.set(true)
