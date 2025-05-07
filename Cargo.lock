@@ -3056,6 +3056,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "hon-worker-common"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "ic-agent",
+ "num-bigint",
+ "serde",
+ "thiserror 2.0.12",
+ "url",
+ "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
+]
+
+[[package]]
 name = "hostname"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5071,9 +5084,9 @@ source = "git+https://github.com/dfinity/ic?rev=tags%2Frelease-2024-10-17_03-07-
 
 [[package]]
 name = "once_cell"
-version = "1.20.3"
+version = "1.21.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "945462a4b81e43c4e3ba96bd7b49d834c6f61198356aa858733bc4acf3cbe62e"
+checksum = "42f5e15c9953c5e4ccceeb2e7382a716482c34515315f7b03532b8b4e8393d2d"
 
 [[package]]
 name = "opaque-debug"
@@ -5247,6 +5260,7 @@ dependencies = [
  "gob-cloudflare",
  "hex",
  "hmac",
+ "hon-worker-common",
  "http 1.2.0",
  "ic-agent",
  "ic-base-types",
@@ -7165,7 +7179,6 @@ checksum = "7fcf8323ef1faaee30a44a340193b1ac6814fd9b7b4e88e9d4519a3e4abe1cfd"
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#1a8c0ddc98f8d813feee686207b8aa6e6ca79cf9"
 dependencies = [
  "candid",
  "humantime",
@@ -8910,7 +8923,6 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#1a8c0ddc98f8d813feee686207b8aa6e6ca79cf9"
 dependencies = [
  "anyhow",
  "candid",
@@ -8925,20 +8937,22 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#1a8c0ddc98f8d813feee686207b8aa6e6ca79cf9"
 dependencies = [
  "candid",
  "ciborium",
  "crc32fast",
  "futures-util",
  "getrandom 0.2.15",
+ "hon-worker-common",
  "ic-agent",
  "k256",
  "log",
+ "once_cell",
  "reqwest 0.12.12",
  "rust_decimal",
  "send_wrapper",
  "serde",
+ "serde_json",
  "sns-validation",
  "thiserror 2.0.12",
  "url",
@@ -8955,7 +8969,6 @@ dependencies = [
 [[package]]
 name = "yral-grpc-traits"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#1a8c0ddc98f8d813feee686207b8aa6e6ca79cf9"
 dependencies = [
  "serde",
 ]
@@ -9010,7 +9023,6 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#1a8c0ddc98f8d813feee686207b8aa6e6ca79cf9"
 dependencies = [
  "candid",
  "ic-agent",
@@ -9025,7 +9037,6 @@ dependencies = [
 [[package]]
 name = "yral-qstash-types"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#1a8c0ddc98f8d813feee686207b8aa6e6ca79cf9"
 dependencies = [
  "candid",
  "serde",
@@ -9046,7 +9057,6 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#1a8c0ddc98f8d813feee686207b8aa6e6ca79cf9"
 dependencies = [
  "ic-agent",
  "k256",

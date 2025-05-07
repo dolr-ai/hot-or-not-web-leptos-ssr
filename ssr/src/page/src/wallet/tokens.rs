@@ -69,7 +69,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
                             fetch_count=5
                             children=move |TokenListResponse{token_metadata, airdrop_claimed, root}, _ref| {
                                 view! {
-                                    <WalletCard user_principal token_metadata=token_metadata is_airdrop_claimed=airdrop_claimed _ref=_ref.unwrap_or_default() is_utility_token=matches!(root, RootType::COYNS | RootType::CENTS)/>
+                                    <WalletCard user_principal token_metadata=token_metadata is_airdrop_claimed=airdrop_claimed _ref=_ref.unwrap_or_default() is_utility_token=matches!(root, RootType::COYNS | RootType::CENTS | RootType::SATS)/>
                                 }
                             }
                         />
