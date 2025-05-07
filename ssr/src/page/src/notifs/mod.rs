@@ -15,18 +15,16 @@ fn NotifInnerComponent(details: ProfileDetails) -> impl IntoView {
 
     let auth_cans = authenticated_canisters();
 
-    let on_token_click: Action<(), Result<(), ServerFnError>, LocalStorage> =
+    let on_token_click: Action<(), (), LocalStorage> =
         Action::new_unsync(move |()| async move {
             let metaclient = MetadataClient::default();
-            let cans = Canisters::from_wire(auth_cans.await?, expect_context())?;
+            let cans = Canisters::from_wire(auth_cans.await.unwrap(), expect_context()).unwrap();
 
-            let token = get_device_registeration_token().await?;
+            let token = get_device_registeration_token().await.unwrap();
             metaclient
                 .register_device(cans.identity(), token)
                 .await
-                .map_err(|e| ServerFnError::new(format!("{:?}", e)))?;
-
-            Ok::<_, ServerFnError>(())
+                .unwrap();
         });
 
     view! {

@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-// Import onMessage for client-side foreground message handling
-import { getMessaging, onMessage } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js";
+// Import onMessage and getToken for client-side foreground message handling
+import { getMessaging, onMessage, getToken as firebaseGetToken } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyCwo0EWTJz_w-J1lUf9w9NcEBdLNmGUaIo",
@@ -16,11 +16,21 @@ const messaging = getMessaging(app);
 const vapidKey =
   "BOmsEya6dANYUoElzlUWv3Jekmw08_nqDEUFu06aTak-HQGd-G_Lsk8y4Bs9B4kcEjBM8FXF0IQ_oOpJDmU3zMs";
 
+// Renamed the imported getToken to avoid conflict if there was a local getToken variable elsewhere
 export async function getToken() {
-  // Note: Firebase docs show getToken(messaging, {vapidKey: "..."}) for modular SDK.
-  // This messaging.getToken() might be for compat mode. If issues, check Firebase docs.
-  const currentToken = await messaging.getToken({ vapidKey: vapidKey });
-  return currentToken;
+  try {
+    console.log("Requesting FCM token...");
+    const currentToken = await firebaseGetToken(messaging, { vapidKey: vapidKey });
+    if (currentToken) {
+      console.log("FCM Token received: ", currentToken);
+    } else {
+      console.log('No registration token available. Request permission to generate one.');
+    }
+    return currentToken;
+  } catch (err) {
+    console.error('An error occurred while retrieving token. ', err);
+    throw err; // Re-throw the error so wasm_bindgen can catch it
+  }
 }
 
 export async function getDeviceFingerprint() {

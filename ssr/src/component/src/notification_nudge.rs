@@ -22,22 +22,20 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
 
     let popup_signal = Signal::derive(move || !notifs_enabled.get() && pop_up.get());
 
-    let notification_action: Action<(), Result<(), ServerFnError>, LocalStorage> =
+    let notification_action: Action<(), (), LocalStorage> =
         Action::new_unsync(move |()| async move {
             let metaclient = MetadataClient::default();
-            let cans = Canisters::from_wire(cans.await?, expect_context())?;
+            let cans = Canisters::from_wire(cans.await.unwrap(), expect_context()).unwrap();
 
             // Removed send_wrap as get_device_registeration_token involves !Send JS futures
-            let token = get_device_registeration_token().await?;
+            let token = get_device_registeration_token().await.unwrap();
 
             metaclient
                 .register_device(cans.identity(), token)
                 .await
-                .map_err(|e| ServerFnError::new(format!("{:?}", e)))?;
+                .unwrap();
 
             set_notifs_enabled(true);
-
-            Ok::<_, ServerFnError>(())
         });
     view! {
         <ShadowOverlay show=popup_signal >
