@@ -81,7 +81,7 @@ pulldown-cmark = { workspace = true }
 ic-certification = { workspace = true }
 ciborium = { workspace = true }
 yral-metadata-client = { workspace = true, optional = true }
-yral-metadata-types = { workspace = true, optional = true }
+yral-metadata-types = { workspace = true }
 yral-pump-n-dump-common = { workspace = true }
 uuid = { workspace = true, features = ["v4", "js"] }
 regex = { workspace = true, optional = true }
@@ -193,7 +193,6 @@ local-bin = [
     "dep:yral-testcontainers",
     "yral-canisters-common/local",
     "dep:yral-metadata-client",
-    "dep:yral-metadata-types",
     "consts/local-bin",
 ]
 local-lib = [

@@ -4,7 +4,7 @@ use leptos::prelude::*;
 use leptos_icons::Icon;
 use leptos_use::storage::use_local_storage;
 use state::canisters::authenticated_canisters;
-use utils::{notifications::get_device_registeration_token, send_wrap};
+use utils::notifications::get_device_registeration_token;
 use yral_canisters_common::Canisters;
 use yral_metadata_client::MetadataClient;
 
@@ -27,9 +27,10 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
             let metaclient = MetadataClient::default();
             let cans = Canisters::from_wire(cans.await?, expect_context())?;
 
-            let token = send_wrap(get_device_registeration_token()).await?;
+            // Removed send_wrap as get_device_registeration_token involves !Send JS futures
+            let token = get_device_registeration_token().await?;
 
-            let _ = metaclient
+            metaclient
                 .register_device(cans.identity(), token)
                 .await
                 .map_err(|e| ServerFnError::new(format!("{:?}", e)))?;

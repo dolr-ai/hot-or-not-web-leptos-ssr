@@ -1,9 +1,9 @@
 use candid::Principal;
 use ic_agent::identity::Secp256k1Identity;
-use leptos::prelude::*;
+use leptos::{ev, prelude::*};
 use leptos_router::components::Outlet;
 use leptos_router::hooks::use_query;
-use leptos_use::use_cookie;
+use leptos_use::{use_cookie, use_event_listener};
 
 use auth::delegate_identity;
 use auth::{
@@ -11,14 +11,17 @@ use auth::{
 };
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use consts::{ACCOUNT_CONNECTED_STORE, USER_CANISTER_ID_STORE, USER_PRINCIPAL_STORE};
+use leptos::web_sys::CustomEvent;
 use leptos_router::params::Params;
 use leptos_use::storage::use_local_storage;
+use leptos_use::use_window;
 use state::{
     auth::AuthState,
     canisters::{do_canister_auth, AuthCansResource},
     local_storage::use_referrer_store,
 };
 use utils::event_streaming::events::PageVisit;
+use utils::notifications::handle_foreground_notification;
 use utils::send_wrap;
 use utils::{try_or_redirect, MockPartialEq};
 use yral_canisters_common::Canisters;
@@ -103,6 +106,17 @@ fn CtxProvider(children: ChildrenFn) -> impl IntoView {
 
     let location = leptos_router::hooks::use_location();
 
+    // Setup Firebase foreground message listener using leptos-use
+    let window_target = use_window();
+    let _ = use_event_listener(
+        window_target,
+        ev::Custom::new("firebaseForegroundMessage"),
+        move |event: CustomEvent| {
+            let payload = event.detail();
+            handle_foreground_notification(payload);
+        },
+    );
+
     view! {
         {children()}
         <Suspense>
@@ -145,17 +159,6 @@ fn CtxProvider(children: ChildrenFn) -> impl IntoView {
                         "#,
                     ));
                 });
-
-                // We need to perform this cleanup in case the user's cookie expired
-                // Cleanup doent work, it sets it but simulatanously removes it lols
-                // Effect::new(move |_| {
-                //     if temp_id.is_some() {
-                //         log::debug!("Removing user principal");
-                //         set_logged_in(false);
-                //         set_user_canister_id(None);
-                //         set_user_principal(None);
-                //     }
-                // });
 
                 canisters_store.set(Some(cans.clone()));
                 Effect::new(move |_| {

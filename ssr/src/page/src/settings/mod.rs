@@ -13,7 +13,6 @@ use state::canisters::authenticated_canisters;
 use utils::event_streaming::events::account_connected_reader;
 use utils::host::{show_cdao_page, show_pnd_page};
 use utils::notifications::get_device_registeration_token;
-use utils::send_wrap;
 use yral_canisters_common::utils::profile::ProfileDetails;
 use yral_canisters_common::Canisters;
 use yral_metadata_client::MetadataClient;
@@ -135,7 +134,7 @@ fn EnableNotifications() -> impl IntoView {
             let metaclient = MetadataClient::default();
             let cans = Canisters::from_wire(auth_cans.await?, expect_context())?;
 
-            let token = send_wrap(get_device_registeration_token()).await?;
+            let token = get_device_registeration_token().await?;
 
             if notifs_enabled.get_untracked() {
                 metaclient

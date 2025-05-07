@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getMessaging } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js";
+// Import onMessage for client-side foreground message handling
+import { getMessaging, onMessage } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js";
 
 const app = initializeApp({
   apiKey: "AIzaSyCwo0EWTJz_w-J1lUf9w9NcEBdLNmGUaIo",
@@ -16,6 +17,8 @@ const vapidKey =
   "BOmsEya6dANYUoElzlUWv3Jekmw08_nqDEUFu06aTak-HQGd-G_Lsk8y4Bs9B4kcEjBM8FXF0IQ_oOpJDmU3zMs";
 
 export async function getToken() {
+  // Note: Firebase docs show getToken(messaging, {vapidKey: "..."}) for modular SDK.
+  // This messaging.getToken() might be for compat mode. If issues, check Firebase docs.
   const currentToken = await messaging.getToken({ vapidKey: vapidKey });
   return currentToken;
 }
@@ -51,38 +54,29 @@ export async function getNotificationPermission() {
   return permission === "granted";
 }
 
-// This is called when a message is received while the app is in the foreground
-messaging.onMessage((payload) => {
-  console.log("Message received. ", payload);
+// Handles messages when the web app is in the foreground
+onMessage(messaging, (payload) => {
+  console.log("Message received in JS (foreground), dispatching event.", payload);
 
+  // Dispatch a custom event for Leptos to handle
+  const event = new CustomEvent("firebaseForegroundMessage", { detail: payload });
+  window.dispatchEvent(event);
+
+  // Optionally, still show a default browser notification from JS
+  // You might want to remove this if Leptos handles the UI exclusively.
   const { notification: notificationData } = payload;
-
-  // We can modify the notification here
-
-  const { title, body, image } = notificationData;
-  const notificationOptions = {
-    body,
-    icon: image,
-  };
-
-  // Send a notification to the user
-  const notification = new Notification(title, notificationOptions);
-  notification.onerror = (event) => {
-    console.log("Could not send notification");
-    console.log(event);
-  };
+  if (notificationData) {
+    const { title, body, image } = notificationData;
+    const notificationOptions = {
+      body: body,
+      icon: image,
+    };
+    const notification = new Notification(title || "New Message", notificationOptions);
+    notification.onerror = (err) => {
+      console.error("Error displaying JS notification:", err);
+    };
+  }
 });
 
-messaging.onBackgroundMessage((payload) => {
-  const { notification } = payload;
-
-  // We can modify the notification here
-
-  const { title, body, image } = notification;
-  const notificationOptions = {
-    body,
-    icon: image,
-  };
-
-  self.registration.showNotification(title, notificationOptions);
-});
+// onBackgroundMessage logic should NOT be in this file.
+// It belongs in your firebase-messaging-sw.js (service worker).

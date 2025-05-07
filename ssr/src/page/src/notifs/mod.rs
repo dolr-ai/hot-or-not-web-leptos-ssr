@@ -20,7 +20,7 @@ fn NotifInnerComponent(details: ProfileDetails) -> impl IntoView {
             let metaclient = MetadataClient::default();
             let cans = Canisters::from_wire(auth_cans.await?, expect_context())?;
 
-            let token = send_wrap(get_device_registeration_token()).await?;
+            let token = get_device_registeration_token().await?;
             metaclient
                 .register_device(cans.identity(), token)
                 .await

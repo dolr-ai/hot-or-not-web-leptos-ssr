@@ -45,3 +45,9 @@ pub async fn get_device_registeration_token() -> Result<DeviceRegistrationToken,
         device_fingerprint,
     })
 }
+
+pub fn handle_foreground_notification(payload: JsValue) {
+    log::info!("Foreground notification received in Rust: {:?}", payload);
+    // Here you could deserialize the payload and update Leptos signals,
+    // trigger actions, etc.
+}
