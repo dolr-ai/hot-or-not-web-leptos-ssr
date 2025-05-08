@@ -5,9 +5,8 @@ use component::{
 use hon_worker_common::{GameInfo, GameResult, WORKER_URL};
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
-use state::canisters::{authenticated_canisters, unauth_canisters};
+use state::canisters::authenticated_canisters;
 use utils::{send_wrap, try_or_redirect_opt};
-use yral_canisters_client::individual_user_template::BettingStatus;
 use yral_canisters_common::{
     utils::{posts::PostDetails, token::balance::TokenBalance, vote::VoteKind},
     Canisters,
@@ -300,58 +299,6 @@ pub fn HNUserParticipation(
 }
 
 #[component]
-fn MaybeHNButtons(
-    post: PostDetails,
-    bet_direction: RwSignal<Option<VoteKind>>,
-    coin: RwSignal<CoinState>,
-    refetch_bet: Trigger,
-) -> impl IntoView {
-    let post = StoredValue::new(post);
-    let is_betting_enabled: Resource<Option<bool>> = Resource::new(
-        move || (),
-        move |_| {
-            let post = post.get_value();
-            send_wrap(async move {
-                let canisters = unauth_canisters();
-                let user = canisters.individual_user(post.canister_id).await;
-                let res = user
-                    .get_hot_or_not_bet_details_for_this_post_v_1(post.post_id)
-                    .await
-                    .ok()?;
-                Some(matches!(res, BettingStatus::BettingOpen { .. }))
-            })
-        },
-    );
-    let BetEligiblePostCtx { can_place_bet } = expect_context();
-
-    view! {
-        <Suspense fallback=LoaderWithShadowBg>
-            {move || {
-                is_betting_enabled.get()
-                    .and_then(|enabled| {
-                        if !enabled.unwrap_or_default() {
-                            can_place_bet.set(false);
-                            return None;
-                        }
-                        Some(
-                            view! {
-                                <HNButtonOverlay
-                                    post=post.get_value()
-                                    bet_direction
-                                    coin
-                                    refetch_bet
-                                />
-                            },
-                        )
-                    })
-            }}
-
-        </Suspense>
-    }
-    .into_any()
-}
-
-#[component]
 fn LoaderWithShadowBg() -> impl IntoView {
     view! {
         <BulletLoader />
@@ -433,7 +380,12 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
                                 }.into_any()
                             } else {
                                 view! {
-                                    <MaybeHNButtons post bet_direction coin refetch_bet />
+                                    <HNButtonOverlay
+                                        post
+                                        bet_direction
+                                        coin
+                                        refetch_bet
+                                    />
                                 }.into_any()
                             },
                         )
