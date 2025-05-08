@@ -79,7 +79,8 @@ jobs:
       - name: lint check
         run: |
           objcopy --version
-          cargo fmt --check
+          # removing cargo fmt requirement as its buggy: https://github.com/rust-lang/cargo/issues/15506
+          # cargo fmt --check
           cargo clippy --no-deps --all-features --release -- -Dwarnings
 
       - name: Build the Leptos project to `musl` output
