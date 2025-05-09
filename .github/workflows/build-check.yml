@@ -23,10 +23,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install prereqs
-        run: |
-          sudo apt-get install protobuf-compiler
-
       - name: Install mold linker
         uses: rui314/setup-mold@v1
 
@@ -73,7 +69,7 @@ jobs:
 
       - uses: awalsh128/cache-apt-pkgs-action@v1
         with:
-          packages: musl-tools # provides musl-gcc
+          packages: musl-tools protobuf-compiler pkg-config libssl-dev
           version: 1.0
 
       - name: lint check

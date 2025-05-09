@@ -1,4 +1,8 @@
-FROM scratch
+FROM alpine:3.21 
+
+RUN apk upgrade --update-cache --available && \
+    apk add openssl && \
+    rm -rf /var/cache/apk/*
 
 WORKDIR /app
 COPY ./target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr .
