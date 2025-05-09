@@ -130,7 +130,7 @@ pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) 
             let profile_details = canisters.profile_details();
 
             MixPanelEvent::track_login_successful(MixpanelLoginSuccessfulProps {
-                publisher_user_id: profile_details.principal(),
+                user_id: profile_details.principal(),
                 canister_id: Some(canisters.user_canister().to_text()),
                 referred_by: referrer.map(|f| f.to_text()),
             });

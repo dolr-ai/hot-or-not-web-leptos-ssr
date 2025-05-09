@@ -195,7 +195,7 @@ pub fn PndWithdrawal() -> impl IntoView {
                     let updated_cents_wallet_balance = format_cents!(balance_info.unwrap().balance)
                         .parse::<f64>()
                         .unwrap_or(0.0)
-                        + mix_formatted_cents as f64;
+                        - mix_formatted_cents as f64;
                     MixPanelEvent::track_cents_to_dolr(MixpanelCentsToDolrProps {
                         user_id: user.map(|f| f.user_id),
                         updated_cents_wallet_balance,
