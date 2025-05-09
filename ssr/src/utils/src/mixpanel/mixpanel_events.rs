@@ -119,7 +119,7 @@ pub struct MixpanelVideoUploadSuccessfulProps {
 /// Fired once the user has logged in successfully
 #[derive(Serialize)]
 pub struct MixpanelLoginSuccessfulProps {
-    pub publisher_user_id: String,
+    pub user_id: String,
     pub canister_id: Option<String>,
     pub referred_by: Option<String>,
 }
