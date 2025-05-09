@@ -133,7 +133,6 @@ pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView 
                         You Lost
                     </div>
                 }.into_any(),
-                
             ),
         },
     };
@@ -190,7 +189,7 @@ pub fn ProfileSpeculations(user_canister: Principal, user_principal: Principal) 
     let empty_text = if location
         .pathname
         .get_untracked()
-        .starts_with(&format!("/profile/{}", user_principal))
+        .starts_with(&format!("/profile/{user_principal}"))
     {
         "You haven't placed any votes yet!"
     } else {

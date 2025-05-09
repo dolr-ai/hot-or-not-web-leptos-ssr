@@ -189,6 +189,9 @@ yral-pump-n-dump-common = { git = "https://github.com/yral-dapp/yral-common", fe
 hon-worker-common = { git = "https://github.com/yral-dapp/yral-common", features = [
     "client",
 ], branch = "feat/revamp-hon", version = "0.1.0" }
+google-cloud-alloydb-v1 = "0.2.0"
+yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adbf4be5cb62a26f2a90032261321bf1df33f08b", default-features = false }
+
 
 # [patch.crates-io]
 # codee = { git = "https://github.com/Synphonyte/codee", branch = "main" }

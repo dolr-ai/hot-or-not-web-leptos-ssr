@@ -108,7 +108,7 @@ pub async fn get_paginated_token_list_with_limit(
                 let elapsed = now - created_at;
 
                 let elapsed_str = if elapsed < 60 {
-                    format!("{}s ago", elapsed)
+                    format!("{elapsed}s ago")
                 } else if elapsed < 3600 {
                     format!("{}m ago", elapsed / 60)
                 } else if elapsed < 86400 {
@@ -178,9 +178,9 @@ pub async fn get_mocked_paginated_token_list(page: u32) -> Vec<TokenListItem> {
 
             TokenListItem {
                 user_id: Principal::anonymous().to_text(),
-                name: format!("Test token {}", id),
-                token_name: format!("Test token {}", id),
-                token_symbol: format!("TST{}", id),
+                name: format!("Test token {id}"),
+                token_name: format!("Test token {id}"),
+                token_symbol: format!("TST{id}"),
                 logo: "https://picsum.photos/200".to_string(),
                 description: "This is a test token".to_string(),
                 created_at: "69".to_string(),
@@ -291,7 +291,7 @@ impl From<icpump_search::SearchItemV1> for TokenListItem {
         let elapsed = now - created_at;
 
         let elapsed_str = if elapsed < 60 {
-            format!("{}s ago", elapsed)
+            format!("{elapsed}s ago")
         } else if elapsed < 3600 {
             format!("{}m ago", elapsed / 60)
         } else if elapsed < 86400 {

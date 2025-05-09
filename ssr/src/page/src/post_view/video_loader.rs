@@ -144,7 +144,7 @@ pub fn VideoView(
                     .await;
 
                 if let Err(err) = send_view_res {
-                    log::warn!("failed to send view details: {:?}", err);
+                    log::warn!("failed to send view details: {err:?}");
                 }
                 Some(())
             })

@@ -190,13 +190,13 @@ fn TokenTransferInner(
             match root {
                 RootType::Other(root) => {
                     let root_canister = cans.sns_root(root).await;
-                    println!("{}", root);
+                    println!("{root}");
                     let sns_cans = root_canister
                         .list_sns_canisters(ListSnsCanistersArg {})
                         .await
                         .unwrap();
                     let ledger_canister = sns_cans.ledger.unwrap();
-                    log::debug!("ledger_canister: {:?}", ledger_canister);
+                    log::debug!("ledger_canister: {ledger_canister:?}");
 
                     transfer_token_to_user_principal(
                         auth_cans_wire.clone(),
@@ -355,7 +355,7 @@ pub fn TokenTransfer() -> impl IntoView {
                 token_metadata_fetch.get().map(|res|{
                     match res{
                         Err(e) => {
-                            println!("Error: {:?}", e);
+                            println!("Error: {e:?}");
                             view! { <Redirect path=format!("/error?err={e}") /> }.into_any()
                         },
                         Ok(None) => view! { <Redirect path="/" /> }.into_any(),

@@ -91,6 +91,7 @@ send_wrapper = {workspace = true}
 consts.workspace = true
 auth.workspace = true
 utils.workspace = true
+google-cloud-alloydb-v1 = { workspace = true, optional = true }
 
 [build-dependencies]
 tonic-build = {workspace = true}
@@ -154,6 +155,7 @@ ga4 = []
 mock-wallet-history = ["dep:rand_chacha"]
 firestore = ["dep:firestore", "speedate"]
 qstash = []
+alloydb = ["dep:google-cloud-alloydb-v1"]
 release-bin = [
     "ssr",
     "cloudflare",
@@ -164,6 +166,7 @@ release-bin = [
     "ga4",
     "firestore",
     "qstash",
+    "alloydb"
 ]
 release-lib = [
     "hydrate",

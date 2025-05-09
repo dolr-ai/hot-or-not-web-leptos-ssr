@@ -1,0 +1,118 @@
+use candid::Principal;
+use hon_worker_common::{VoteRequest, VoteRes};
+use leptos::prelude::*;
+use yral_identity::Signature;
+
+#[server(endpoint = "vote", input = server_fn::codec::Json)]
+pub async fn vote_with_cents_on_post(
+    sender: Principal,
+    req: VoteRequest,
+    sig: Signature,
+) -> Result<VoteRes, ServerFnError> {
+    #[cfg(feature = "alloydb")]
+    use alloydb::vote_with_cents_on_post;
+    #[cfg(not(feature = "alloydb"))]
+    use mock::vote_with_cents_on_post;
+
+    vote_with_cents_on_post(sender, req, sig).await
+}
+
+#[cfg(feature = "alloydb")]
+mod alloydb {
+    use super::*;
+    use hon_worker_common::{HoNGameVoteReq, HotOrNot, VoteRequest, VoteRes, WORKER_URL};
+
+    pub async fn vote_with_cents_on_post(
+        sender: Principal,
+        req: VoteRequest,
+        sig: Signature,
+    ) -> Result<VoteRes, ServerFnError> {
+        use state::alloydb::AlloyDbInstance;
+        use state::server::HonWorkerJwt;
+        use yral_canisters_common::Canisters;
+
+        let cans: Canisters<false> = expect_context();
+        let Some(post_info) = cans
+            .get_post_details(req.post_canister, req.post_id)
+            .await?
+        else {
+            return Err(ServerFnError::new("post not found"));
+        };
+        // sanitization is not required here, as get_post_details verifies that the post is valid
+        // and exists on cloudflare
+        let query = format!(
+            "select hot_or_not_evaluator.get_hot_or_not('{}')",
+            post_info.uid
+        );
+
+        let alloydb: AlloyDbInstance = expect_context();
+        let mut res = alloydb.execute_sql_raw(query).await?;
+        let mut res = res
+            .sql_results
+            .pop()
+            .expect("hot_or_not_evaluator.get_hot_or_not MUST return a result");
+        let mut res = res
+            .rows
+            .pop()
+            .expect("hot_or_not_evaluator.get_hot_or_not MUST return a row");
+        let res = res
+            .values
+            .pop()
+            .expect("hot_or_not_evaluator.get_hot_or_not MUST return a value");
+
+        let res = res.value.clone().map(|v| v.to_uppercase());
+        let sentiment = match res.as_deref() {
+            Some("TRUE") => HotOrNot::Hot,
+            Some("FALSE") => HotOrNot::Not,
+            None => HotOrNot::Not,
+            _ => {
+                return Err(ServerFnError::new(
+                    "hot_or_not_evaluator.get_hot_or_not MUST return a boolean",
+                ));
+            }
+        };
+
+        let worker_req = HoNGameVoteReq {
+            request: req,
+            fetched_sentiment: sentiment,
+            signature: sig,
+        };
+
+        let req_url = format!("{WORKER_URL}/vote/{sender}");
+        let client = reqwest::Client::new();
+        let jwt = expect_context::<HonWorkerJwt>();
+        let res = client
+            .post(&req_url)
+            .json(&worker_req)
+            .header("Authorization", format!("Bearer {}", jwt.0))
+            .send()
+            .await?;
+
+        if res.status() != reqwest::StatusCode::OK {
+            return Err(ServerFnError::new(res.text().await?));
+        }
+
+        let vote_res: VoteRes = res.json().await?;
+
+        Ok(vote_res)
+    }
+}
+
+#[cfg(not(feature = "alloydb"))]
+mod mock {
+    use hon_worker_common::GameResult;
+
+    use super::*;
+
+    pub async fn vote_with_cents_on_post(
+        _sender: Principal,
+        _req: VoteRequest,
+        _sig: Signature,
+    ) -> Result<VoteRes, ServerFnError> {
+        Ok(VoteRes {
+            game_result: GameResult::Win {
+                win_amt: 0u32.into(),
+            },
+        })
+    }
+}

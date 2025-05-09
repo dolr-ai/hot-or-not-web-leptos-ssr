@@ -54,6 +54,9 @@ pub async fn server_fn_handler(
 
             provide_context(app_state.grpc_icpump_search_channel.clone());
             provide_context(app_state.grpc_nsfw_channel.clone());
+
+            #[cfg(feature = "alloydb")]
+            provide_context(app_state.alloydb.clone());
         },
         request,
     )
@@ -87,6 +90,9 @@ pub async fn leptos_routes_handler(state: State<AppState>, req: Request<AxumBody
 
             provide_context(app_state.grpc_icpump_search_channel.clone());
             provide_context(app_state.grpc_nsfw_channel.clone());
+
+            #[cfg(feature = "alloydb")]
+            provide_context(app_state.alloydb.clone());
         },
         move || shell(app_state.leptos_options.clone()),
     );

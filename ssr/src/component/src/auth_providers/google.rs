@@ -70,7 +70,7 @@ pub fn GoogleAuthProvider() -> impl IntoView {
             {
                 Ok(res) => res,
                 Err(e) => {
-                    log::warn!("error processing {:?}. msg {data}", e);
+                    log::warn!("error processing {e:?}. msg {data}");
                     close_popup();
                     return;
                 }

@@ -346,7 +346,7 @@ pub fn CreateToken() -> impl IntoView {
     let set_total_distribution = move |total: u64| {
         ctx.form_state.update(|f| {
             (*f).try_update_total_distribution_tokens(
-                parse_tokens(&format!("{} tokens", total)).unwrap(),
+                parse_tokens(&format!("{total} tokens")).unwrap(),
             );
         });
     };

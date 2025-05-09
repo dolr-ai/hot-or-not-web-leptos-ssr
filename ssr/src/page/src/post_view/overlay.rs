@@ -70,7 +70,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
             match send_wrap(individual.update_post_toggle_like_status_by_caller(post_id)).await {
                 Ok(_) => (),
                 Err(e) => {
-                    log::warn!("Error toggling like status: {:?}", e);
+                    log::warn!("Error toggling like status: {e:?}");
                     liked.update(|l| _ = l.as_mut().map(|l| *l = !*l));
                 }
             }

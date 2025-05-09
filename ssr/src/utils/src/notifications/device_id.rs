@@ -18,7 +18,7 @@ pub async fn send_principal_and_token_offchain(
     // removing whitespaces and new lines for proper parsing
     off_chain_agent_grpc_auth_token.retain(|c| !c.is_whitespace());
 
-    let token: MetadataValue<_> = format!("Bearer {}", off_chain_agent_grpc_auth_token).parse()?;
+    let token: MetadataValue<_> = format!("Bearer {off_chain_agent_grpc_auth_token}").parse()?;
 
     let mut client = off_chain::off_chain_client::OffChainClient::with_interceptor(
         channel,

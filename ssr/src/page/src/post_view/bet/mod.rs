@@ -1,10 +1,14 @@
+mod server_impl;
+
 use crate::post_view::BetEligiblePostCtx;
 use component::{
     bullet_loader::BulletLoader, canisters_prov::AuthCansProvider, hn_icons::*, spinner::SpinnerFit,
 };
-use hon_worker_common::{GameInfo, GameResult, WORKER_URL};
+use hon_worker_common::{sign_vote_request, GameInfo, GameResult, WORKER_URL};
+use ic_agent::Identity;
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
+use server_impl::vote_with_cents_on_post;
 use state::canisters::authenticated_canisters;
 use utils::{send_wrap, try_or_redirect_opt};
 use yral_canisters_common::{
@@ -101,7 +105,7 @@ fn HNButtonOverlay(
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
 ) -> impl IntoView {
-    let place_bet_action = Action::new(
+    let place_bet_action = Action::new_local(
         move |(canisters, bet_direction, bet_amount): &(Canisters<true>, VoteKind, u64)| {
             let post_canister = post.canister_id;
             let post_id = post.post_id;
@@ -114,21 +118,21 @@ fn HNButtonOverlay(
                 vote_amount: bet_amount as u128,
                 direction: bet_direction.into(),
             };
-            send_wrap(async move {
-                match cans
-                    .vote_with_sats_on_post_via_cloudflare(
-                        reqwest::Url::parse(WORKER_URL).unwrap(),
-                        req,
-                    )
-                    .await
-                {
+
+            let identity = cans.identity();
+            let sender = identity.sender().unwrap();
+            let sig = sign_vote_request(identity, req.clone());
+            async move {
+                let sig = sig.ok()?;
+                let res = vote_with_cents_on_post(sender, req, sig).await;
+                match res {
                     Ok(_) => Some(()),
                     Err(e) => {
                         log::error!("{e}");
                         None
                     }
                 }
-            })
+            }
         },
     );
     let place_bet_res = place_bet_action.value();

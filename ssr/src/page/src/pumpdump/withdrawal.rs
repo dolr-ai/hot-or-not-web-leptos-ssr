@@ -119,7 +119,7 @@ pub fn PndWithdrawal() -> impl IntoView {
         let value = event_target_value(&ev);
         let value = TokenBalance::parse(&value, 6)
             .inspect_err(|err| {
-                log::error!("Couldn't parse value: {}", err);
+                log::error!("Couldn't parse value: {err}");
             })
             .ok();
         let value = value.unwrap_or_else(|| TokenBalance::new(0usize.into(), 6));

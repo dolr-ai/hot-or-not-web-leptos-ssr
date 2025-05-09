@@ -96,6 +96,7 @@ component.workspace = true
 state.workspace = true
 rand.workspace = true
 indexmap.workspace = true
+yral-identity.workspace = true
 
 [features]
 hydrate = [
@@ -224,6 +225,7 @@ firestore = [
     "state/firestore",
 ]
 qstash = ["consts/qstash", "utils/qstash", "component/qstash", "state/qstash"]
+alloydb = ["state/alloydb"]
 release-bin = [
     "ssr",
     "cloudflare",
@@ -238,6 +240,7 @@ release-bin = [
     "utils/release-bin",
     "component/release-bin",
     "state/release-bin",
+    "alloydb"
 ]
 release-lib = [
     "hydrate",
