@@ -5,8 +5,8 @@ RUN apk upgrade --update-cache --available && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /app
-COPY ./target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr .
-COPY ./target/x86_64-unknown-linux-musl/prod-release/hash.txt .
+COPY ./target/prod-release/hot-or-not-web-leptos-ssr .
+COPY ./target/prod-release/hash.txt .
 
 COPY ./target/site ./site
 ENV LEPTOS_SITE_ROOT="site"

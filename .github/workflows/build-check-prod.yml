@@ -30,7 +30,7 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "nightly-2025-05-09"
-          targets: "x86_64-unknown-linux-musl,wasm32-unknown-unknown"
+          targets: "wasm32-unknown-unknown"
           components: "clippy,rustfmt"
 
       - uses: cargo-bins/cargo-binstall@main
@@ -69,7 +69,7 @@ jobs:
 
       - uses: awalsh128/cache-apt-pkgs-action@v1
         with:
-          packages: musl-tools protobuf-compiler pkg-config libssl-dev
+          packages: protobuf-compiler pkg-config libssl-dev
           version: 1.0
 
       - name: lint check
@@ -77,10 +77,9 @@ jobs:
           cargo fmt --check
           cargo clippy --no-deps --all-features --release -- -Dwarnings
 
-      - name: Build the Leptos project to `musl` output
+      - name: Build the Leptos project to output
         run: cargo leptos build --release --lib-features release-lib --bin-features release-bin
         env:
-          LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
           LEPTOS_HASH_FILES: true
           # LEPTOS_TAILWIND_VERSION: v3.4.17
       - name: Setup Sentry CLI
@@ -105,10 +104,10 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ inputs.publish-artifact }}
         with:
-          name: build-musl
+          name: build
           path: |
-            target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
-            target/x86_64-unknown-linux-musl/prod-release/hash.txt 
+            target/prod-release/hot-or-not-web-leptos-ssr
+            target/prod-release/hash.txt 
             target/site
             .empty
 
