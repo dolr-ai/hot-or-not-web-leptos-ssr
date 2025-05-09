@@ -4,7 +4,6 @@ use state::canisters::authenticated_canisters;
 use utils::event_streaming::events::account_connected_reader;
 use utils::notifications::get_device_registeration_token;
 
-use utils::send_wrap;
 use yral_canisters_common::utils::profile::ProfileDetails;
 use yral_canisters_common::Canisters;
 use yral_metadata_client::MetadataClient;
@@ -15,17 +14,16 @@ fn NotifInnerComponent(details: ProfileDetails) -> impl IntoView {
 
     let auth_cans = authenticated_canisters();
 
-    let on_token_click: Action<(), (), LocalStorage> =
-        Action::new_unsync(move |()| async move {
-            let metaclient = MetadataClient::default();
-            let cans = Canisters::from_wire(auth_cans.await.unwrap(), expect_context()).unwrap();
+    let on_token_click: Action<(), (), LocalStorage> = Action::new_unsync(move |()| async move {
+        let metaclient = MetadataClient::default();
+        let cans = Canisters::from_wire(auth_cans.await.unwrap(), expect_context()).unwrap();
 
-            let token = get_device_registeration_token().await.unwrap();
-            metaclient
-                .register_device(cans.identity(), token)
-                .await
-                .unwrap();
-        });
+        let token = get_device_registeration_token().await.unwrap();
+        metaclient
+            .register_device(cans.identity(), token)
+            .await
+            .unwrap();
+    });
 
     view! {
         <h1>"YRAL Notifs for"</h1>
