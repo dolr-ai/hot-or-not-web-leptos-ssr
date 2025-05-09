@@ -9,10 +9,13 @@ use leptos::{ev, prelude::*};
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
+use state::canisters::authenticated_canisters;
 use utils::event_streaming::events::account_connected_reader;
 use utils::host::{show_cdao_page, show_pnd_page};
-use utils::notifications::get_token_for_principal;
+use utils::notifications::get_device_registeration_token;
 use yral_canisters_common::utils::profile::ProfileDetails;
+use yral_canisters_common::Canisters;
+use yral_metadata_client::MetadataClient;
 
 #[component]
 #[allow(dead_code)]
@@ -117,15 +120,32 @@ fn ProfileInfo() -> impl IntoView {
 }
 
 #[component]
-fn EnableNotifications(user_details: ProfileDetails) -> impl IntoView {
+fn EnableNotifications() -> impl IntoView {
     let (_, _) = account_connected_reader();
 
     let (notifs_enabled, set_notifs_enabled, _) =
         use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
     let toggle_ref = NodeRef::<Input>::new();
 
+    let auth_cans = authenticated_canisters();
+
     let on_token_click: Action<(), (), LocalStorage> = Action::new_unsync(move |()| async move {
-        get_token_for_principal(user_details.principal.to_string()).await;
+        let metaclient = MetadataClient::default();
+        let cans = Canisters::from_wire(auth_cans.await.unwrap(), expect_context()).unwrap();
+
+        let token = get_device_registeration_token().await.unwrap();
+
+        if notifs_enabled.get_untracked() {
+            metaclient
+                .register_device(cans.identity(), token)
+                .await
+                .unwrap();
+        } else {
+            metaclient
+                .unregister_device(cans.identity(), token)
+                .await
+                .unwrap();
+        }
     });
 
     _ = use_event_listener(toggle_ref, ev::change, move |_| {
@@ -160,9 +180,7 @@ pub fn Settings() -> impl IntoView {
                 </TitleText>
             </div>
             <div class="flex flex-col py-12 px-8 gap-8 w-full text-lg">
-                <AuthCansProvider let:canisters>
-                    <EnableNotifications user_details=canisters.profile_details() />
-                </AuthCansProvider>
+                <EnableNotifications />
             </div>
             <MenuFooter />
         </div>

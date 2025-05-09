@@ -1070,8 +1070,8 @@ dependencies = [
  "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
- "yral-metadata-client",
- "yral-metadata-types",
+ "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=a641efec208088d940df2eafec11a23595217694)",
+ "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=a641efec208088d940df2eafec11a23595217694)",
  "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
@@ -1231,8 +1231,8 @@ dependencies = [
  "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
- "yral-metadata-client",
- "yral-metadata-types",
+ "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=a641efec208088d940df2eafec11a23595217694)",
+ "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=a641efec208088d940df2eafec11a23595217694)",
  "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
@@ -3169,8 +3169,8 @@ dependencies = [
  "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
- "yral-metadata-client",
- "yral-metadata-types",
+ "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=a641efec208088d940df2eafec11a23595217694)",
+ "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=a641efec208088d940df2eafec11a23595217694)",
  "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
@@ -5305,8 +5305,8 @@ dependencies = [
  "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
- "yral-metadata-client",
- "yral-metadata-types",
+ "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=a641efec208088d940df2eafec11a23595217694)",
+ "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=a641efec208088d940df2eafec11a23595217694)",
  "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
@@ -7312,8 +7312,8 @@ dependencies = [
  "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
- "yral-metadata-client",
- "yral-metadata-types",
+ "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=a641efec208088d940df2eafec11a23595217694)",
+ "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=a641efec208088d940df2eafec11a23595217694)",
  "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
@@ -8377,8 +8377,8 @@ dependencies = [
  "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
- "yral-metadata-client",
- "yral-metadata-types",
+ "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=a641efec208088d940df2eafec11a23595217694)",
+ "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=a641efec208088d940df2eafec11a23595217694)",
  "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
@@ -8946,8 +8946,8 @@ dependencies = [
  "yral-canisters-client",
  "yral-grpc-traits",
  "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
- "yral-metadata-client",
- "yral-metadata-types",
+ "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=56e3f1f1f5f452673bee17739520c800c1264295)",
+ "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=56e3f1f1f5f452673bee17739520c800c1264295)",
  "yral-pump-n-dump-common",
  "yral-types",
 ]
@@ -8993,7 +8993,19 @@ dependencies = [
  "reqwest 0.12.12",
  "thiserror 1.0.69",
  "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity.git?rev=156bc0e7a4bc3d9a3b4faab4b9b3048e88a0c701)",
- "yral-metadata-types",
+ "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=56e3f1f1f5f452673bee17739520c800c1264295)",
+]
+
+[[package]]
+name = "yral-metadata-client"
+version = "0.1.0"
+source = "git+https://github.com/yral-dapp/yral-metadata?rev=a641efec208088d940df2eafec11a23595217694#a641efec208088d940df2eafec11a23595217694"
+dependencies = [
+ "ic-agent",
+ "reqwest 0.12.12",
+ "thiserror 1.0.69",
+ "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity.git?rev=156bc0e7a4bc3d9a3b4faab4b9b3048e88a0c701)",
+ "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=a641efec208088d940df2eafec11a23595217694)",
 ]
 
 [[package]]
@@ -9003,6 +9015,18 @@ source = "git+https://github.com/yral-dapp/yral-metadata?rev=56e3f1f1f5f452673be
 dependencies = [
  "candid",
  "serde",
+ "thiserror 1.0.69",
+ "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity.git?rev=156bc0e7a4bc3d9a3b4faab4b9b3048e88a0c701)",
+]
+
+[[package]]
+name = "yral-metadata-types"
+version = "0.1.0"
+source = "git+https://github.com/yral-dapp/yral-metadata?rev=a641efec208088d940df2eafec11a23595217694#a641efec208088d940df2eafec11a23595217694"
+dependencies = [
+ "candid",
+ "serde",
+ "serde_json",
  "thiserror 1.0.69",
  "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity.git?rev=156bc0e7a4bc3d9a3b4faab4b9b3048e88a0c701)",
 ]
