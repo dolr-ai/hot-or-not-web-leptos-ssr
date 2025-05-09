@@ -19,6 +19,7 @@ use state::{
     local_storage::use_referrer_store,
 };
 use utils::event_streaming::events::PageVisit;
+use utils::mixpanel::mixpanel_events::UserCanisterAndPrincipal;
 use utils::send_wrap;
 use utils::{try_or_redirect, MockPartialEq};
 use yral_canisters_common::Canisters;
@@ -35,6 +36,9 @@ fn CtxProvider(children: ChildrenFn) -> impl IntoView {
 
     let canisters_store = RwSignal::new(None::<Canisters<true>>);
     provide_context(canisters_store);
+
+    let user_canister_and_principal = RwSignal::new(None::<UserCanisterAndPrincipal>);
+    provide_context(user_canister_and_principal);
 
     let temp_identity_res = OnceResource::new(async move {
         generate_anonymous_identity_if_required()
@@ -114,7 +118,10 @@ fn CtxProvider(children: ChildrenFn) -> impl IntoView {
                 let cans = try_or_redirect!(maybe_cans);
                 let user_canister = cans.user_canister();
                 let user_principal = cans.user_principal();
-
+                user_canister_and_principal.set(Some(UserCanisterAndPrincipal {
+                    user_id:  user_canister.to_text(),
+                    canister_id: user_principal.to_text(),
+                }));
                 Effect::new(move |_| {
                     if temp_id.is_some() {
                         set_logged_in(false);
@@ -130,6 +137,10 @@ fn CtxProvider(children: ChildrenFn) -> impl IntoView {
                     }
                     set_user_canister_id(Some(user_canister));
                     set_user_principal(Some(user_principal));
+                    user_canister_and_principal.set(Some(UserCanisterAndPrincipal {
+                        user_id:  user_canister.to_text(),
+                        canister_id: user_principal.to_text(),
+                    }));
                     let user_principal_str = user_principal.to_string();
                     let user_canister_str = user_canister.to_string();
                     let _ = js_sys::eval(&format!(

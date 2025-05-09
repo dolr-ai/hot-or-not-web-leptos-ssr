@@ -15,6 +15,9 @@ use leptos_use::use_event_listener;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use state::canisters::authenticated_canisters;
+use utils::mixpanel::mixpanel_events::{
+    MixPanelEvent, MixpanelVideoUploadSuccessfulProps, UserCanisterAndPrincipal,
+};
 use utils::{
     event_streaming::events::{
         auth_canisters_store, VideoUploadSuccessful, VideoUploadUnsuccessful,
@@ -298,7 +301,18 @@ pub fn VideoUploader(
                 };
 
                 match res {
-                    Ok(_) => published.set(true),
+                    Ok(_) => {
+                        let user = UserCanisterAndPrincipal::try_get();
+                        MixPanelEvent::track_video_upload_successful(
+                            MixpanelVideoUploadSuccessfulProps {
+                                user_id: user.clone().map(|f| f.user_id),
+                                canister_id: user.map(|f| f.canister_id),
+                                is_nsfw,
+                                is_hotor_not: true,
+                            },
+                        );
+                        published.set(true)
+                    }
                     Err(_) => {
                         let e = res.as_ref().err().unwrap().to_string();
                         VideoUploadUnsuccessful.send_event(

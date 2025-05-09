@@ -5,6 +5,7 @@ pub mod ab_testing;
 pub mod event_streaming;
 pub mod host;
 pub mod icon;
+pub mod mixpanel;
 pub mod ml_feed;
 pub mod notifications;
 pub mod posts;
