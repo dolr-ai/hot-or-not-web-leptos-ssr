@@ -92,7 +92,7 @@ jobs:
           name: build
           path: |
             target/prod-release/hot-or-not-web-leptos-ssr
-            target/prod-release/hash.txt 
+            target/prod-release/hash.txt
             target/site
             .empty
 
