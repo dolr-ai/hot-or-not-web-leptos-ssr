@@ -7,8 +7,10 @@ RUN apk upgrade --update-cache --available && \
 WORKDIR /app
 COPY ./target/prod-release/hot-or-not-web-leptos-ssr .
 COPY ./target/prod-release/hash.txt .
-
 COPY ./target/site ./site
+
+RUN chmod +x hot-or-not-web-leptos-ssr
+
 ENV LEPTOS_SITE_ROOT="site"
 
 ENV LEPTOS_ENV="production"
