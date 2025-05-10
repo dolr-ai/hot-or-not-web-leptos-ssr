@@ -27,11 +27,9 @@ async fn preview_server_set_refersh_token_cookie(
 }
 
 async fn get_google_auth_url(host: String) -> Result<String, ServerFnError> {
-    let client_redirect_uri = format!("https://{}/preview/auth/google_redirect", host);
-    let url = format!(
-        "https://yral.com/api/google_auth_url?client_redirect_uri={}",
-        client_redirect_uri
-    );
+    let client_redirect_uri = format!("https://{host}/preview/auth/google_redirect");
+    let url =
+        format!("https://yral.com/api/google_auth_url?client_redirect_uri={client_redirect_uri}");
 
     let client = reqwest::Client::new();
 
@@ -93,7 +91,7 @@ pub fn PreviewGoogleRedirector() -> impl IntoView {
         <Suspense>
             {move || {
                 if let Some(Err(err)) = google_redirect.get().map(|res| res.take()) {
-                    log::info!("Error Redirecting {}", err)
+                    log::info!("Error Redirecting {err}")
                 }
                 None::<()>
             }}
@@ -145,7 +143,7 @@ pub fn PreviewGoogleRedirectHandler() -> impl IntoView {
     let query_res = use_query::<OAuthQuery>();
     let identity_resource = LocalResource::new(move || async move {
         if let Err(e) = query_res.get() {
-            return Err(format!("Invalid Params {}", e));
+            return Err(format!("Invalid Params {e}"));
         }
 
         let oauth_query = query_res.get().unwrap();

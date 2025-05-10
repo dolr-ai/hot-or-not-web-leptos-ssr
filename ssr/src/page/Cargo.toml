@@ -77,6 +77,7 @@ yral-types = { workspace = true }
 yral-qstash-types = { workspace = true }
 yral-canisters-client = { workspace = true }
 yral-canisters-common = { workspace = true }
+hon-worker-common = { workspace = true }
 pulldown-cmark = { workspace = true }
 ic-certification = { workspace = true }
 ciborium = { workspace = true }
@@ -88,13 +89,16 @@ regex = { workspace = true, optional = true }
 tonic-build = { workspace = true }
 anyhow = { workspace = true }
 send_wrapper = { workspace = true }
+rand.workspace = true
+indexmap.workspace = true
+yral-identity.workspace = true
+
+# local deps`
 auth = { workspace = true }
 consts = { workspace = true }
 utils.workspace = true
 component.workspace = true
 state.workspace = true
-rand.workspace = true
-indexmap.workspace = true
 
 [features]
 hydrate = [
@@ -223,6 +227,7 @@ firestore = [
     "state/firestore",
 ]
 qstash = ["consts/qstash", "utils/qstash", "component/qstash", "state/qstash"]
+alloydb = ["state/alloydb"]
 release-bin = [
     "ssr",
     "cloudflare",
@@ -237,6 +242,7 @@ release-bin = [
     "utils/release-bin",
     "component/release-bin",
     "state/release-bin",
+    "alloydb"
 ]
 release-lib = [
     "hydrate",

@@ -9,7 +9,7 @@ use leptos_icons::Icon;
 use leptos_router::hooks::use_location;
 use state::canisters::authenticated_canisters;
 use utils::event_streaming::events::CentsAdded;
-use utils::{host::get_host, send_wrap};
+use utils::host::get_host;
 use yral_canisters_common::{
     utils::token::{TokenMetadata, TokenOwner},
     Canisters,
@@ -61,11 +61,11 @@ fn AirdropButton(
     let cans_res = authenticated_canisters();
     let name_for_action = name.clone();
 
-    let airdrop_action = Action::new(move |&()| {
+    let airdrop_action = Action::new_local(move |&()| {
         let cans_res = cans_res;
         let token_owner_cans_id = token_owner.clone().unwrap().canister_id;
         let name_c = name_for_action.clone();
-        send_wrap(async move {
+        async move {
             if claimed.get() && !buffer_signal.get() {
                 return Ok(());
             }
@@ -93,7 +93,7 @@ fn AirdropButton(
             buffer_signal.set(false);
             claimed.set(true);
             Ok::<_, ServerFnError>(())
-        })
+        }
     });
 
     let name_c = name.clone();

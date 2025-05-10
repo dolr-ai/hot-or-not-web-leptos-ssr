@@ -5,10 +5,7 @@ use leptos_router::hooks::use_query;
 use leptos_use::{use_cookie, use_infinite_scroll_with_options, UseInfiniteScrollOptions};
 use log;
 use state::canisters::{authenticated_canisters, unauth_canisters};
-use utils::{
-    send_wrap,
-    token::icpump::{get_paginated_token_list_with_limit, IcpumpTokenInfo, TokenListItem},
-};
+use utils::token::icpump::{get_paginated_token_list_with_limit, IcpumpTokenInfo, TokenListItem};
 use yral_canisters_common::{utils::token::RootType, Canisters};
 
 use crate::icpump::{process_token_list_item, ProcessedTokenListResponse};
@@ -87,11 +84,11 @@ pub fn PumpNDump() -> impl IntoView {
     let tokens = RwSignal::new(Vec::<ProcessedTokenListResponse>::new());
 
     let cans = unauth_canisters();
-    let token_fetch_action = Action::new(move |page: &u32| {
+    let token_fetch_action = Action::new_local(move |page: &u32| {
         let cans_wire_res = auth_cans;
         let cans = cans.clone();
         let page = *page;
-        send_wrap(async move {
+        async move {
             let cans_wire = cans_wire_res.await?;
             let cans = Canisters::from_wire(cans_wire.clone(), cans)?;
 
@@ -125,7 +122,7 @@ pub fn PumpNDump() -> impl IntoView {
             });
 
             Ok::<_, ServerFnError>((page + 1, list_end))
-        })
+        }
     });
     let token_fetching = token_fetch_action.pending();
     let prev_state = token_fetch_action.value();

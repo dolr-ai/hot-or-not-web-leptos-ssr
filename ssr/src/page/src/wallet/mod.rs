@@ -74,7 +74,7 @@ fn ProfileCardLoading() -> impl IntoView {
 fn Header(details: ProfileDetails, is_own_account: bool) -> impl IntoView {
     let share_link = {
         let principal = details.principal();
-        format!("/wallet/{}", principal)
+        format!("/wallet/{principal}")
     };
     let app_state = use_context::<AppState>();
     let message = format!(

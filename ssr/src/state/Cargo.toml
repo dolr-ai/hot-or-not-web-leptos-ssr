@@ -88,6 +88,9 @@ regex = {workspace = true, optional = true}
 tonic-build = {workspace = true}
 anyhow = {workspace = true}
 send_wrapper = {workspace = true}
+google-cloud-alloydb-v1 = { workspace = true, optional = true }
+
+# workspace deps
 consts.workspace = true
 auth.workspace = true
 utils.workspace = true
@@ -108,6 +111,8 @@ hydrate = [
     "tonic/codegen",
     "speedate",
     "send_wrapper/futures",
+    "consts/hydrate",
+    "utils/hydrate",
 ]
 ssr = [
     "dep:axum",
@@ -138,6 +143,9 @@ ssr = [
     "tonic-build/transport",
     "speedate",
     "dep:regex",
+    "auth/ssr",
+    "consts/ssr",
+    "utils/ssr"
 ]
 # Fetch mock referral history instead of history via canister
 mock-referral-history = ["dep:rand_chacha", "k256/arithmetic"]
@@ -154,6 +162,7 @@ ga4 = []
 mock-wallet-history = ["dep:rand_chacha"]
 firestore = ["dep:firestore", "speedate"]
 qstash = []
+alloydb = ["dep:google-cloud-alloydb-v1"]
 release-bin = [
     "ssr",
     "cloudflare",
@@ -164,6 +173,7 @@ release-bin = [
     "ga4",
     "firestore",
     "qstash",
+    "alloydb"
 ]
 release-lib = [
     "hydrate",

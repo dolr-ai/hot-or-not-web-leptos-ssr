@@ -164,10 +164,10 @@ fn TokenTransferInner(
 
     let auth_cans_wire = authenticated_canisters();
 
-    let send_action = Action::new(move |&()| {
+    let send_action = Action::new_local(move |&()| {
         let root = root.clone();
         let auth_cans_wire = auth_cans_wire;
-        send_wrap(async move {
+        async move {
             let auth_cans_wire = auth_cans_wire.await?;
             let cans = Canisters::from_wire(auth_cans_wire.clone(), expect_context())?;
             let destination = destination_res.get_untracked().unwrap().unwrap();
@@ -190,13 +190,13 @@ fn TokenTransferInner(
             match root {
                 RootType::Other(root) => {
                     let root_canister = cans.sns_root(root).await;
-                    println!("{}", root);
+                    println!("{root}");
                     let sns_cans = root_canister
                         .list_sns_canisters(ListSnsCanistersArg {})
                         .await
                         .unwrap();
                     let ledger_canister = sns_cans.ledger.unwrap();
-                    log::debug!("ledger_canister: {:?}", ledger_canister);
+                    log::debug!("ledger_canister: {ledger_canister:?}");
 
                     transfer_token_to_user_principal(
                         auth_cans_wire.clone(),
@@ -227,11 +227,12 @@ fn TokenTransferInner(
                 }
                 RootType::COYNS => return Err(ServerFnError::new("Coyns cannot be transferred")),
                 RootType::CENTS => return Err(ServerFnError::new("Cents cannot be transferred")),
+                RootType::SATS => return Err(ServerFnError::new("Satoshis cannot be transferred")),
             }
             TokensTransferred.send_event(amt.e8s.to_string(), destination, cans.clone());
 
             Ok::<_, ServerFnError>(amt)
-        })
+        }
     });
     let sending = send_action.pending();
 
@@ -354,7 +355,7 @@ pub fn TokenTransfer() -> impl IntoView {
                 token_metadata_fetch.get().map(|res|{
                     match res{
                         Err(e) => {
-                            println!("Error: {:?}", e);
+                            println!("Error: {e:?}");
                             view! { <Redirect path=format!("/error?err={e}") /> }.into_any()
                         },
                         Ok(None) => view! { <Redirect path="/" /> }.into_any(),

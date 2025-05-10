@@ -233,6 +233,34 @@ fn init_qstash_client() -> utils::qstash::QStashClient {
     QStashClient::new(&auth_token)
 }
 
+#[cfg(feature = "alloydb")]
+async fn init_alloydb_client() -> state::alloydb::AlloyDbInstance {
+    use google_cloud_alloydb_v1::client::AlloyDBAdmin;
+    use google_cloud_auth::credentials::service_account::Builder as CredBuilder;
+    use state::alloydb::AlloyDbInstance;
+
+    let sa_json_raw = env::var("ALLOYDB_SERVICE_ACCOUNT_JSON")
+        .expect("`ALLOYDB_SERVICE_ACCOUNT_JSON` is required!");
+    let sa_json: serde_json::Value =
+        serde_json::from_str(&sa_json_raw).expect("Invalid `ALLOYDB_SERVICE_ACCOUNT_JSON`");
+    let credentials = CredBuilder::new(sa_json)
+        .build()
+        .expect("Invalid `ALLOYDB_SERVICE_ACCOUNT_JSON`");
+
+    let client = AlloyDBAdmin::builder()
+        .with_credentials(credentials)
+        .build()
+        .await
+        .expect("Failed to create AlloyDB client");
+
+    let instance = env::var("ALLOYDB_INSTANCE").expect("`ALLOYDB_INSTANCE` is required!");
+    let db_name = env::var("ALLOYDB_DB_NAME").expect("`ALLOYDB_DB_NAME` is required!");
+    let db_user = env::var("ALLOYDB_DB_USER").expect("`ALLOYDB_DB_USER` is required!");
+    let db_password = env::var("ALLOYDB_DB_PASSWORD").expect("`ALLOYDB_DB_PASSWORD` is required!");
+
+    AlloyDbInstance::new(client, instance, db_name, db_user, db_password)
+}
+
 pub struct AppStateRes {
     pub app_state: AppState,
     #[cfg(feature = "local-bin")]
@@ -308,6 +336,15 @@ impl AppStateBuilder {
             qstash: init_qstash_client(),
             grpc_icpump_search_channel: init_grpc_icpump_search_channel().await,
             grpc_nsfw_channel: init_grpc_nsfw_channel().await,
+            #[cfg(feature = "alloydb")]
+            alloydb: init_alloydb_client().await,
+            #[cfg(feature = "alloydb")]
+            hon_worker_jwt: {
+                use state::server::HonWorkerJwt;
+                let jwt = env::var("HON_WORKER_JWT").expect("`HON_WORKER_JWT` is required!");
+
+                HonWorkerJwt(std::sync::Arc::new(jwt))
+            },
         };
 
         AppStateRes {

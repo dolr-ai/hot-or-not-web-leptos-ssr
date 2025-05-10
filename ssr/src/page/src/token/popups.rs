@@ -202,7 +202,7 @@ fn TokenTransferErrorPopup(
 
 #[component]
 pub fn TokenTransferPopup(
-    transfer_action: Action<(), Result<TokenBalance, ServerFnError>>,
+    transfer_action: Action<(), Result<TokenBalance, ServerFnError>, LocalStorage>,
     #[prop(into)] token_name: Signal<String>,
 ) -> impl IntoView {
     let close_popup = RwSignal::new(false);

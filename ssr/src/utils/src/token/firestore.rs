@@ -138,7 +138,7 @@ impl From<TokenFirestoreBindingsItem> for TokenListItem {
         let elapsed = now.duration_since(timestamp).unwrap().as_secs();
 
         let elapsed_str = if elapsed < 60 {
-            format!("{}s ago", elapsed)
+            format!("{elapsed}s ago")
         } else if elapsed < 3600 {
             format!("{}m ago", elapsed / 60)
         } else if elapsed < 86400 {

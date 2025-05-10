@@ -17,7 +17,7 @@ pub struct QStashClient {
 
 impl QStashClient {
     pub fn new(auth_token: &str) -> Self {
-        let mut bearer: HeaderValue = format!("Bearer {}", auth_token)
+        let mut bearer: HeaderValue = format!("Bearer {auth_token}")
             .parse()
             .expect("Invalid QStash auth token");
         bearer.set_sensitive(true);

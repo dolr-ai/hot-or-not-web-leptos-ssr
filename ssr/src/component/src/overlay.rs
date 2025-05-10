@@ -154,12 +154,13 @@ pub fn PopupOverlay(#[prop(into)] show: ShowOverlay, children: ChildrenFn) -> im
 /// close -> Set this signal to true to close the modal (automatically reset upon closing)
 #[component]
 pub fn ActionTrackerPopup<
+    AStorage: Storage<ArcAction<S, R>>,
     S: 'static + Send + Sync,
     R: 'static + Clone + Send + Sync,
     V: IntoView + 'static,
     IV: Fn(R) -> V + Clone + 'static + Send + Sync,
 >(
-    action: Action<S, R>,
+    action: Action<S, R, AStorage>,
     #[prop(into)] loading_message: String,
     modal: IV,
     #[prop(optional, into)] close: RwSignal<bool>,

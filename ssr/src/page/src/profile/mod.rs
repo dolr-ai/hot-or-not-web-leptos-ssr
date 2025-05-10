@@ -72,18 +72,18 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
     };
     view! {
         <div class="relative flex flex-row w-11/12 md:w-9/12 text-center text-xl md:text-2xl">
-            <a class=move || tab_class(0) href=move || format!("/profile/{}/posts", user_principal)>
+            <a class=move || tab_class(0) href=move || format!("/profile/{user_principal}/posts")>
                 <Icon icon=icondata::FiGrid />
             </a>
             <a
                 class=move || tab_class(1)
-                href=move || format!("/profile/{}/stakes", user_principal)
+                href=move || format!("/profile/{user_principal}/stakes")
             >
                 <Icon icon=icondata::BsTrophy />
             </a>
             <a
                 class=move || tab_class(2)
-                href=move || format!("/profile/{}/tokens", user_principal)
+                href=move || format!("/profile/{user_principal}/tokens")
             >
                 <Icon icon=icondata::AiDollarCircleOutlined />
             </a>

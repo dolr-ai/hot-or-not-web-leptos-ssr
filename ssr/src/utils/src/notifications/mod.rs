@@ -17,7 +17,7 @@ pub async fn get_token_for_principal(principal_id: String) {
             #[cfg(feature = "ga4")]
             {
                 use device_id::send_principal_and_token_offchain;
-                log::info!("sending offchain with params: {}, {}", token, principal_id);
+                log::info!("sending offchain with params: {token}, {principal_id}");
                 send_principal_and_token_offchain(token.clone(), principal_id)
                     .await
                     .unwrap();
@@ -25,7 +25,7 @@ pub async fn get_token_for_principal(principal_id: String) {
             // Ok(token)
         }
         Err(err) => {
-            log::warn!("Failed to get token: {:?}", err);
+            log::warn!("Failed to get token: {err:?}");
             // Err(())
         }
     }

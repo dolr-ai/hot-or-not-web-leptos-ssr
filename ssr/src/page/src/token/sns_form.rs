@@ -217,7 +217,7 @@ impl SnsFormState {
         let user_canister = canisters.user_canister();
 
         let prt = self.distribution.clone();
-        log::info!("total distribution: {:?}", prt);
+        log::info!("total distribution: {prt:?}");
 
         Ok(SnsConfigurationFile {
             name: self.name.clone().ok_or("Name is required")?,
