@@ -164,10 +164,10 @@ fn TokenTransferInner(
 
     let auth_cans_wire = authenticated_canisters();
 
-    let send_action = Action::new(move |&()| {
+    let send_action = Action::new_local(move |&()| {
         let root = root.clone();
         let auth_cans_wire = auth_cans_wire;
-        send_wrap(async move {
+        async move {
             let auth_cans_wire = auth_cans_wire.await?;
             let cans = Canisters::from_wire(auth_cans_wire.clone(), expect_context())?;
             let destination = destination_res.get_untracked().unwrap().unwrap();
@@ -232,7 +232,7 @@ fn TokenTransferInner(
             TokensTransferred.send_event(amt.e8s.to_string(), destination, cans.clone());
 
             Ok::<_, ServerFnError>(amt)
-        })
+        }
     });
     let sending = send_action.pending();
 

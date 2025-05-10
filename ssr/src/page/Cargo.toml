@@ -89,14 +89,16 @@ regex = { workspace = true, optional = true }
 tonic-build = { workspace = true }
 anyhow = { workspace = true }
 send_wrapper = { workspace = true }
+rand.workspace = true
+indexmap.workspace = true
+yral-identity.workspace = true
+
+# local deps`
 auth = { workspace = true }
 consts = { workspace = true }
 utils.workspace = true
 component.workspace = true
 state.workspace = true
-rand.workspace = true
-indexmap.workspace = true
-yral-identity.workspace = true
 
 [features]
 hydrate = [

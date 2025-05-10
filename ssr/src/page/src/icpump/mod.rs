@@ -365,12 +365,12 @@ pub fn TokenCard(
     let buffer_signal = RwSignal::new(false);
     let cans_res = authenticated_canisters();
     let token_owner_c = token_owner.clone();
-    let airdrop_action = Action::new(move |&()| {
+    let airdrop_action = Action::new_local(move |&()| {
         let cans_res = cans_res;
         let token_owner_cans_id = token_owner_c.clone().unwrap().canister_id;
         let token_symbol = token_symbol_c.clone();
         airdrop_popup.set(true);
-        send_wrap(async move {
+        async move {
             if claimed.get() && !buffer_signal.get() {
                 return Ok(());
             }
@@ -400,7 +400,7 @@ pub fn TokenCard(
             buffer_signal.set(false);
             claimed.set(true);
             Ok::<_, ServerFnError>(())
-        })
+        }
     });
 
     let airdrop_disabled =

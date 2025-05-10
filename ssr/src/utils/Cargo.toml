@@ -88,8 +88,10 @@ regex = { workspace = true, optional = true }
 tonic-build = { workspace = true }
 anyhow = { workspace = true }
 send_wrapper = { workspace = true }
-consts = { workspace = true }
 indexmap = { workspace = true }
+
+# workspace specific deps
+consts = { workspace = true }
 
 [build-dependencies]
 tonic-build = { workspace = true }

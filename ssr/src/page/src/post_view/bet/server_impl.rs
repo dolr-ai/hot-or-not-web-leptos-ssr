@@ -78,7 +78,7 @@ mod alloydb {
             signature: sig,
         };
 
-        let req_url = format!("{WORKER_URL}/vote/{sender}");
+        let req_url = format!("{WORKER_URL}vote/{sender}");
         let client = reqwest::Client::new();
         let jwt = expect_context::<HonWorkerJwt>();
         let res = client
@@ -89,7 +89,10 @@ mod alloydb {
             .await?;
 
         if res.status() != reqwest::StatusCode::OK {
-            return Err(ServerFnError::new(res.text().await?));
+            return Err(ServerFnError::new(format!(
+                "worker error: {}",
+                res.text().await?
+            )));
         }
 
         let vote_res: VoteRes = res.json().await?;

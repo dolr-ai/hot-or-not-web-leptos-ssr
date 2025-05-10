@@ -128,9 +128,9 @@ pub fn PndWithdrawal() -> impl IntoView {
     };
 
     let auth_wire = authenticated_canisters();
-    let send_claim = Action::new(move |&()| {
+    let send_claim = Action::new_local(move |&()| {
         let auth_wire = auth_wire;
-        send_wrap(async move {
+        async move {
             let auth_wire = auth_wire.await.map_err(ServerFnError::new)?;
 
             let cans = Canisters::from_wire(auth_wire.clone(), expect_context())
@@ -155,7 +155,7 @@ pub fn PndWithdrawal() -> impl IntoView {
             }
 
             Ok::<(), ServerFnError>(())
-        })
+        }
     });
     let is_claiming = send_claim.pending();
     let claim_res = send_claim.value();

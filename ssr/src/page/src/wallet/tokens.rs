@@ -22,7 +22,6 @@ use state::canisters::unauth_canisters;
 use utils::event_streaming::events::account_connected_reader;
 use utils::event_streaming::events::CentsAdded;
 use utils::host::get_host;
-use utils::send_wrap;
 use utils::token::icpump::IcpumpTokenInfo;
 use yral_canisters_common::cursored_data::token_roots::{TokenListResponse, TokenRootList};
 use yral_canisters_common::utils::token::balance::TokenBalance;
@@ -245,13 +244,13 @@ fn WalletCardOptions(
         let token_owner_c = token_owner.clone();
         let root_c = root.clone();
         let cans_res = authenticated_canisters();
-        let airdrop_action = Action::new(move |&()| {
+        let airdrop_action = Action::new_local(move |&()| {
             let cans_res = cans_res;
             let token_owner_cans_id = token_owner_c.clone().unwrap().canister_id;
             airdrop_popup.set(true);
             let root = Principal::from_text(root_c.clone()).unwrap();
 
-            send_wrap(async move {
+            async move {
                 if claimed.get() && !buffer_signal.get() {
                     return Ok(());
                 }
@@ -277,7 +276,7 @@ fn WalletCardOptions(
                 buffer_signal.set(false);
                 claimed.set(true);
                 Ok::<_, ServerFnError>(())
-            })
+            }
         });
 
         let airdrop_disabled = Signal::derive(move || token_owner.is_some() && claimed.get() || token_owner.is_none());

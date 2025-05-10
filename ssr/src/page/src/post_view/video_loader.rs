@@ -7,7 +7,6 @@ use leptos::{html::Video, prelude::*};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use state::canisters::unauth_canisters;
-use utils::send_wrap;
 use yral_canisters_client::individual_user_template::PostViewDetailsFromFrontend;
 
 use crate::post_view::BetEligiblePostCtx;
@@ -116,12 +115,12 @@ pub fn VideoView(
     // 2. When video is 95% done -> full view
     let post_for_view = post;
     let send_view_detail_action =
-        Action::new(move |(percentage_watched, watch_count): &(u8, u8)| {
+        Action::new_local(move |(percentage_watched, watch_count): &(u8, u8)| {
             let percentage_watched = *percentage_watched;
             let watch_count = *watch_count;
             let post_for_view = post_for_view;
 
-            send_wrap(async move {
+            async move {
                 let canisters = unauth_canisters();
 
                 let payload = match percentage_watched.cmp(&95) {
@@ -147,7 +146,7 @@ pub fn VideoView(
                     log::warn!("failed to send view details: {err:?}");
                 }
                 Some(())
-            })
+            }
         });
 
     let _ = use_event_listener(_ref, ev::playing, move |_evt| {

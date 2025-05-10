@@ -359,11 +359,12 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
                 let cans = authenticated_canisters().await?;
                 let cans = Canisters::from_wire(cans, expect_context())?;
                 let post = post.get_value();
-                let game_info = send_wrap(cans.fetch_game_with_sats_info(
-                    reqwest::Url::parse(WORKER_URL).unwrap(),
-                    (post.canister_id, post.post_id).into(),
-                ))
-                .await?;
+                let game_info = cans
+                    .fetch_game_with_sats_info(
+                        reqwest::Url::parse(WORKER_URL).unwrap(),
+                        (post.canister_id, post.post_id).into(),
+                    )
+                    .await?;
                 Ok::<_, ServerFnError>(game_info)
             })
         },
