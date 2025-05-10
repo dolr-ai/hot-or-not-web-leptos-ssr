@@ -1,5 +1,11 @@
 FROM debian:bookworm-slim 
 
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update
+RUN apt-get -y install --no-install-recommends openssl
+RUN apt-get clean
+RUN rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY ./target/prod-release/hot-or-not-web-leptos-ssr .
 COPY ./target/prod-release/hash.txt .
