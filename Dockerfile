@@ -1,8 +1,4 @@
-FROM alpine:3.21 
-
-RUN apk upgrade --update-cache --available && \
-    apk add openssl && \
-    rm -rf /var/cache/apk/*
+FROM debian:bookworm-slim 
 
 WORKDIR /app
 COPY ./target/prod-release/hot-or-not-web-leptos-ssr .
