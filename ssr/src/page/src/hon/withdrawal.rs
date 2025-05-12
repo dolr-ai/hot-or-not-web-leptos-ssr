@@ -1,4 +1,3 @@
-use crate::format_cents;
 use candid::{Nat, Principal};
 use component::{
     auth_providers::handle_user_login,
@@ -7,50 +6,42 @@ use component::{
     title::TitleText,
     tooltip::Tooltip,
 };
-use consts::PUMP_AND_DUMP_WORKER_URL;
 use futures::TryFutureExt;
-use http::StatusCode;
+use hon_worker_common::SatsBalanceInfo;
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
 use state::canisters::authenticated_canisters;
 use utils::{send_wrap, try_or_redirect_opt};
 use yral_canisters_common::{utils::token::balance::TokenBalance, Canisters};
-use yral_pump_n_dump_common::rest::{BalanceInfoResponse, ClaimReq};
 
 pub mod result;
 
-type NetEarnings = Nat;
+macro_rules! format_sats {
+    ($num:expr) => {
+        TokenBalance::new($num, 0).humanize_float_truncate_to_dp(0)
+    };
+}
 
 /// Details for withdrawal functionality
-type Details = (BalanceInfoResponse, NetEarnings);
+type Details = SatsBalanceInfo;
 
 async fn load_withdrawal_details(user_canister: Principal) -> Result<Details, String> {
-    let balance_info = PUMP_AND_DUMP_WORKER_URL
+    let url: reqwest::Url = hon_worker_common::WORKER_URL
+        .parse()
+        .expect("Url to be valid");
+    let balance_info = url
         .join(&format!("/balance/{user_canister}"))
         .expect("Url to be valid");
 
-    let net_earnings = PUMP_AND_DUMP_WORKER_URL
-        .join(&format!("/earnings/{user_canister}"))
-        .expect("Url to be valid");
-
-    let balance_info: BalanceInfoResponse = reqwest::get(balance_info)
+    let balance_info: SatsBalanceInfo = reqwest::get(balance_info)
         .await
         .map_err(|_| "failed to load balance".to_string())?
         .json()
         .await
         .map_err(|_| "failed to read response body".to_string())?;
 
-    let net_earnings: Nat = reqwest::get(net_earnings)
-        .await
-        .map_err(|err| format!("Coulnd't load net earnings: {err}"))?
-        .text()
-        .await
-        .map_err(|err| format!("Couldn't read response for net earnings: {err}"))?
-        .parse()
-        .map_err(|err| format!("Couldn't parse net earnings from response: {err}"))?;
-
-    Ok((balance_info, net_earnings))
+    Ok(balance_info)
 }
 
 #[component]
@@ -71,23 +62,14 @@ fn Header() -> impl IntoView {
 }
 
 #[component]
-fn BalanceDisplay(#[prop(into)] balance: Nat, #[prop(into)] withdrawable: Nat) -> impl IntoView {
+fn BalanceDisplay(#[prop(into)] balance: Nat) -> impl IntoView {
     view! {
         <div id="total-balance" class="self-center flex flex-col items-center gap-1">
             <span class="text-neutral-400 text-sm">Total Cent balance</span>
             <div class="flex items-center gap-3 min-h-14 py-0.5">
-                <img class="size-9" src="/img/pumpdump/cents.webp" alt="cents icon" />
-                <span class="font-bold text-4xl">{format_cents!(balance)}</span>
+                <img class="size-9" src="/img/hotornot/sats.webp" alt="sats icon" />
+                <span class="font-bold text-4xl">{format_sats!(balance)}</span>
             </div>
-        </div>
-        <div id="breakdown" class="flex justify-between py-2.5 px-3 bg-neutral-900 w-full gap-8 mt-5 rounded-lg">
-            <div class="flex gap-2 items-center">
-                <span class="text-xs">
-                    Cents you can withdraw
-                </span>
-                <Tooltip icon=Information title="Withdrawal Tokens" description="Only cents earned above your airdrop amount can be withdrawn." />
-            </div>
-            <span class="text-lg font-semibold">{format_cents!(withdrawable)}</span>
         </div>
     }
 }
@@ -106,25 +88,25 @@ pub fn PndWithdrawal() -> impl IntoView {
             })
         },
     );
-    let cents = RwSignal::new(TokenBalance::new(0usize.into(), 6));
-    let dolrs = move || cents().e8s;
+    let sats = RwSignal::new(0usize);
     let formated_dolrs = move || {
         format!(
-            "{}DOLR",
-            TokenBalance::new(dolrs(), 8).humanize_float_truncate_to_dp(4)
+            "{} BTC",
+            TokenBalance::new(sats().into(), 8).humanize_float_truncate_to_dp(5)
         )
     };
 
     let on_input = move |ev: leptos::ev::Event| {
         let value = event_target_value(&ev);
-        let value = TokenBalance::parse(&value, 6)
+        let value: Option<usize> = value
+            .parse()
             .inspect_err(|err| {
                 log::error!("Couldn't parse value: {err}");
             })
             .ok();
-        let value = value.unwrap_or_else(|| TokenBalance::new(0usize.into(), 6));
+        let value = value.unwrap_or(0);
 
-        cents.set(value);
+        sats.set(value);
     };
 
     let auth_wire = authenticated_canisters();
@@ -138,23 +120,7 @@ pub fn PndWithdrawal() -> impl IntoView {
 
             handle_user_login(cans.clone(), None).await?;
 
-            let req = ClaimReq::new(cans.identity(), dolrs()).map_err(ServerFnError::new)?;
-            let claim_url = PUMP_AND_DUMP_WORKER_URL
-                .join("/claim_gdollr")
-                .expect("Url to be valid");
-            let client = reqwest::Client::new();
-            let res = client
-                .post(claim_url)
-                .json(&req)
-                .send()
-                .await
-                .map_err(ServerFnError::new)?;
-
-            if res.status() != StatusCode::OK {
-                return Err(ServerFnError::new("Request failed"));
-            }
-
-            Ok::<(), ServerFnError>(())
+            Err::<(), _>(ServerFnError::new("Not implmented yet"))
         }
     });
     let is_claiming = send_claim.pending();
@@ -165,13 +131,13 @@ pub fn PndWithdrawal() -> impl IntoView {
             match res {
                 Ok(_) => {
                     nav(
-                        &format!("/pnd/withdraw/success?cents={}", cents().e8s),
+                        &format!("/pnd/withdraw/success?sats={}", sats()),
                         Default::default(),
                     );
                 }
                 Err(err) => {
                     nav(
-                        &format!("/pnd/withdraw/failure?cents={}&err={err}", cents().e8s),
+                        &format!("/pnd/withdraw/failure?sats={}&err={err}", sats()),
                         Default::default(),
                     );
                 }
@@ -185,9 +151,9 @@ pub fn PndWithdrawal() -> impl IntoView {
                 <div class="flex flex-col items-center justify-center max-w-md mx-auto px-4 mt-4 pb-6">
                     <Suspense>
                     {move || {
-                        let (balance_info, _) = try_or_redirect_opt!(details_res.get()?);
+                        let balance: Nat = try_or_redirect_opt!(details_res.get()?).balance.into();
                         Some(view! {
-                            <BalanceDisplay balance=balance_info.balance withdrawable=balance_info.withdrawable />
+                            <BalanceDisplay balance />
                         })
                     }}
                     </Suspense>
@@ -198,7 +164,7 @@ pub fn PndWithdrawal() -> impl IntoView {
                                 <div class="flex justify-between">
                                     <div class="flex gap-2 items-center">
                                         <span>You withdraw</span>
-                                        <Tooltip icon=Information title="Withdrawal Tokens" description="Only cents earned above your airdrop amount can be withdrawn." />
+                                        <Tooltip icon=Information title="Withdrawal Tokens" description="Only sats earned above your airdrop amount can be withdrawn." />
                                     </div>
                                     <input disabled=is_claiming on:input=on_input type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-32 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg" />
                                 </div>
@@ -216,9 +182,8 @@ pub fn PndWithdrawal() -> impl IntoView {
                                 >Please Wait</button>
                             }>
                             {move || {
-                                let (BalanceInfoResponse { withdrawable, .. }, _) = try_or_redirect_opt!(details_res.get()?);
-                                let can_withdraw = TokenBalance::new(withdrawable, 0) >= cents();
-                                let no_input = cents().e8s == 0usize;
+                                let can_withdraw = true; // all of the money can be withdrawn
+                                let no_input = sats() == 0usize;
                                 let is_claiming = is_claiming();
                                 let message = if no_input {
                                     "Enter Amount"

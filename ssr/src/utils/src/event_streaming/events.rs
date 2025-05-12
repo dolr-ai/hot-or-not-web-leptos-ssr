@@ -1136,6 +1136,33 @@ impl CentsWithdrawn {
 }
 
 #[derive(Default)]
+pub struct SatsWithdrawn;
+
+impl SatsWithdrawn {
+    pub fn send_event(&self, amount_withdrawn: f64) {
+        #[cfg(all(feature = "hydrate", feature = "ga4"))]
+        {
+            let (canister_id, _, _) =
+                use_local_storage::<Option<Principal>, JsonSerdeCodec>(USER_CANISTER_ID_STORE);
+            let (user_id, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
+            let (is_connected, _) = account_connected_reader();
+            let is_connected = is_connected.get_untracked();
+
+            let _ = send_event_ssr_spawn(
+                "sats_withdrawn".to_string(),
+                json!({
+                    "user_id": user_id,
+                    "canister_id": canister_id,
+                    "is_loggedin": is_connected,
+                    "amount_withdrawn": amount_withdrawn,
+                })
+                .to_string(),
+            );
+        }
+    }
+}
+
+#[derive(Default)]
 pub struct TokenPumpedDumped;
 
 impl TokenPumpedDumped {
