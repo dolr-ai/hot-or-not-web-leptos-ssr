@@ -1,7 +1,7 @@
 use component::{back_btn::BackButton, title::TitleText};
 use leptos::prelude::*;
 use leptos_router::{hooks::use_query, params::Params};
-use utils::event_streaming::events::SatsWithdrawn;
+// use utils::event_streaming::events::SatsWithdrawn;
 use utils::try_or_redirect_opt;
 use yral_canisters_common::utils::token::balance::TokenBalance;
 #[derive(Debug, PartialEq, Eq, Clone, Params)]
@@ -14,14 +14,15 @@ pub fn Success() -> impl IntoView {
     let params = use_query::<SuccessParams>();
     let SuccessParams { sats } = try_or_redirect_opt!(params.get_untracked());
     let formatted_btc = TokenBalance::new(sats.into(), 8).humanize_float_truncate_to_dp(5);
-    let formatted_sats = TokenBalance::new(sats.into(), 0).humanize_float_truncate_to_dp(0);
+    let _formatted_sats = TokenBalance::new(sats.into(), 0).humanize_float_truncate_to_dp(0);
 
     // Track the withdrawal event
-    let sats_value = formatted_sats.clone().parse::<f64>().unwrap_or(0.0);
+    // let sats_value = formatted_sats.clone().parse::<f64>().unwrap_or(0.0);
 
-    Effect::new(move |_| {
-        SatsWithdrawn.send_event(sats_value);
-    });
+    // TODO huh?
+    // Effect::new(move |_| {
+    //     SatsWithdrawn.send_event(sats_value);
+    // });
 
     Some(view! {
         <div

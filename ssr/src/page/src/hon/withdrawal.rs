@@ -75,7 +75,7 @@ fn BalanceDisplay(#[prop(into)] balance: Nat) -> impl IntoView {
 }
 
 #[component]
-pub fn PndWithdrawal() -> impl IntoView {
+pub fn HonWithdrawal() -> impl IntoView {
     let auth_wire = authenticated_canisters();
     let details_res = Resource::new(
         move || (),
@@ -131,13 +131,13 @@ pub fn PndWithdrawal() -> impl IntoView {
             match res {
                 Ok(_) => {
                     nav(
-                        &format!("/pnd/withdraw/success?sats={}", sats()),
+                        &format!("/hot-or-not/withdraw/success?sats={}", sats()),
                         Default::default(),
                     );
                 }
                 Err(err) => {
                     nav(
-                        &format!("/pnd/withdraw/failure?sats={}&err={err}", sats()),
+                        &format!("/hot-or-not/withdraw/failure?sats={}&err={err}", sats()),
                         Default::default(),
                     );
                 }
@@ -166,13 +166,13 @@ pub fn PndWithdrawal() -> impl IntoView {
                                         <span>You withdraw</span>
                                         <Tooltip icon=Information title="Withdrawal Tokens" description="Only sats earned above your airdrop amount can be withdrawn." />
                                     </div>
-                                    <input disabled=is_claiming on:input=on_input type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-32 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg" />
+                                    <input disabled=is_claiming on:input=on_input type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-40 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg" />
                                 </div>
                                 <div class="flex justify-between">
                                     <div class="flex gap-2 items-center">
                                         <span>You get</span>
                                     </div>
-                                    <input disabled type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-32 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg text-neutral-400" value=formated_dolrs />
+                                    <input disabled type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-40 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg text-neutral-400" value=formated_dolrs />
                                 </div>
                             </div>
                             <Suspense fallback=|| view! {

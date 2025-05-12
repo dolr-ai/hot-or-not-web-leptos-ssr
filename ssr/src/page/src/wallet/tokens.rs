@@ -228,6 +228,7 @@ pub fn WalletCard(
             WithdrawDetails::CannotWithdraw { message } => (false, Some(message), None),
         })
         .unwrap_or_default();
+
     view! {
         <div node_ref=_ref class="flex flex-col gap-4 bg-neutral-900/90 rounded-lg w-full font-kumbh text-white p-4">
             <div class="flex flex-col gap-4 p-3 rounded-sm bg-neutral-800/70">
@@ -243,7 +244,7 @@ pub fn WalletCard(
                     <div class="flex flex-col items-end">
                         {
                             token_metadata.balance.map(|b| view! {
-                                <div class="text-lg font-medium">{b.humanize_float_truncate_to_dp(2)}</div>
+                                <div class="text-lg font-medium">{b.humanize_float_truncate_to_dp(5)}</div>
                             })
                         }
                         <div class="text-xs">{symbol}</div>

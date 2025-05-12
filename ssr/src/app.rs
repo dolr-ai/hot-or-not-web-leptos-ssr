@@ -257,6 +257,15 @@ pub fn App() -> impl IntoView {
                     <GooglePreviewAuthRedirectHandlerRoute />
                     <ParentRoute path=path!("") view=BaseRoute>
                         <Route path=path!("/") view=RootPage />
+                        <Route path=path!("/hot-or-not/withdraw") view=hon::withdrawal::HonWithdrawal />
+                        <Route
+                            path=path!("/hot-or-not/withdraw/success")
+                            view=hon::withdrawal::result::Success
+                        />
+                        <Route
+                            path=path!("/hot-or-not/withdraw/failure")
+                            view=hon::withdrawal::result::Failure
+                        />
                         <Route path=path!("/hot-or-not/:canister_id/:post_id") view=PostView />
                         <Route path=path!("/post/:canister_id/:post_id") view=SinglePost />
                         <Route path=path!("/profile/:canister_id/post/:post_id") view=ProfilePost />
@@ -294,15 +303,6 @@ pub fn App() -> impl IntoView {
                         <Route
                             path=path!("/pnd/withdraw/failure")
                             view=withdrawal::result::Failure
-                        />
-                        <Route path=path!("/hot-or-not/withdraw") view=hon::withdrawal::PndWithdrawal />
-                        <Route
-                            path=path!("/hot-or-not/withdraw/success")
-                            view=hon::withdrawal::result::Success
-                        />
-                        <Route
-                            path=path!("/hot-or-not/withdraw/failure")
-                            view=hon::withdrawal::result::Failure
                         />
                         <Route path=path!("/terms-ios") view=TermsIos />
 

@@ -1,5 +1,6 @@
 use crate::token::RootType;
 use candid::Principal;
+use component::buttons::GradientButton;
 use component::{back_btn::BackButton, spinner::FullScreenSpinner, title::TitleText};
 use leptos::either::Either;
 use leptos::html;
@@ -12,10 +13,7 @@ use server_fn::codec::Json;
 use state::canisters::authenticated_canisters;
 use utils::send_wrap;
 use utils::token::icpump::IcpumpTokenInfo;
-use utils::{
-    event_streaming::events::TokensTransferred,
-    web::{copy_to_clipboard, paste_from_clipboard},
-};
+use utils::{event_streaming::events::TokensTransferred, web::paste_from_clipboard};
 
 use leptos_use::use_event_listener;
 use yral_canisters_client::sns_root::ListSnsCanistersArg;
@@ -82,9 +80,9 @@ fn TokenTransferInner(
     info: TokenMetadata,
     source_addr: Principal,
 ) -> impl IntoView {
-    let copy_source = move || {
-        let _ = copy_to_clipboard(&source_addr.to_string());
-    };
+    // let copy_source = move || {
+    //     let _ = copy_to_clipboard(&source_addr.to_string());
+    // };
 
     let destination_ref = NodeRef::<html::Input>::new();
     let paste_destination: Action<_, _, LocalStorage> = Action::new_unsync(move |&()| async move {
@@ -242,8 +240,11 @@ fn TokenTransferInner(
             && !sending()
     };
 
+    let is_btc = info.name.to_lowercase() == "btc";
+    let formatted_balance = balance.humanize_float_truncate_to_dp(if is_btc { 5 } else { 2 });
+
     Either::Right(view! {
-        <div class="w-dvw min-h-dvh bg-neutral-800 flex flex-col gap-4">
+        <div class="w-dvw min-h-dvh bg-neutral-950 flex flex-col gap-4">
             <TitleText justify_center=false>
                 <div class="grid grid-cols-3 justify-start w-full">
                     <BackButton fallback="/wallet" />
@@ -252,22 +253,20 @@ fn TokenTransferInner(
             </TitleText>
             <div class="flex flex-col w-full gap-4 md:gap-6 items-center p-4">
                 <div class="flex flex-col w-full gap-2 items-center">
-                    <div class="flex flex-row justify-between w-full text-sm md:text-base text-white">
-                        <span>Source:</span>
-                        <span>{format!("{} {}", balance.humanize_float(), info.symbol)}</span>
+                    <div class="flex flex-row justify-between w-full text-sm md:text-base text-neutral-400 font-medium">
+                        <span>Source</span>
                     </div>
                     <div class="flex flex-row gap-2 w-full items-center">
                         <p class="text-sm md:text-md text-white/80">{source_addr.to_string()}</p>
-                        <button on:click=move |_| copy_source()>
-                            <Icon
-                            attr:class="text-white text-lg md:text-xl"
-                                icon=icondata::FaCopyRegular
-                            />
-                        </button>
                     </div>
                 </div>
                 <div class="flex flex-col w-full gap-1">
-                    <span class="text-white text-sm md:text-base">Destination</span>
+                    <div class="flex space-between">
+                        <span class="text-neutral-400 text-sm md:text-base">Destination</span>
+                        {is_btc.then_some(view! {
+                            <a href="text-blue-200 text-sm font-medium md:text-base">Open OISY Wallet</a>
+                        })}
+                    </div>
                     <div
                         class=("border-white/15", move || destination_res.with(|r| r.is_ok()))
                         class=("border-red", move || destination_res.with(|r| r.is_err()))
@@ -286,16 +285,22 @@ fn TokenTransferInner(
                     </div>
                     <FormError res=destination_res />
                 </div>
-                <div class="flex flex-col w-full gap-1">
-                    <div class="flex flex-row justify-between w-full text-sm md:text-base text-white">
+                <div class="flex flex-col w-full gap-1 items-center">
+                    <div class="flex flex-row justify-between w-full text-sm md:text-base text-neutral-400">
                         <span>Amount</span>
-                        <button
-                            class="flex flex-row gap-1 items-center"
-                            on:click=move |_| _ = set_max_amt()
-                        >
-                            <Icon icon=icondata::AiEnterOutlined />
-                            " Max"
-                        </button>
+                        <div class="flex gap-1 items-center">
+                            <span class="text-neutral-400 text-xs font-medium">
+                                Balance: {formatted_balance}
+                            </span>
+                            <button
+                                class="flex justify-center items-center gap-2.5 border border-neutral-600 bg-neutral-700 px-4 py-1.5 rounded-full border-solid text-"
+                                on:click=move |_| _ = set_max_amt()
+                            >
+                                <span class="text-neutral text-xs font-medium">
+                                    Max
+                                </span>
+                            </button>
+                        </div>
                     </div>
                     <input
                         node_ref=amount_ref
@@ -309,13 +314,13 @@ fn TokenTransferInner(
                     <span>Transaction Fee (billed to source)</span>
                     <span>{format!("{} {}", info.fees.humanize_float(), info.symbol)}</span>
                 </div>
-                <button
-                    on:click=move |_| {send_action.dispatch(());}
-                    disabled=move || !valid()
-                    class="flex flex-row justify-center text-white md:text-lg w-full md:w-1/2 rounded-full p-3 bg-primary-600 disabled:opacity-50"
+                <GradientButton
+                    classes="w-full md:w-1/2"
+                    on_click=move || {send_action.dispatch(());}
+                    disabled=Signal::derive(move || !valid())
                 >
                     Send
-                </button>
+                </GradientButton>
             </div>
             <TokenTransferPopup token_name=info.symbol transfer_action=send_action />
         </div>
