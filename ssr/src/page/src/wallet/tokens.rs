@@ -26,8 +26,8 @@ use utils::token::icpump::IcpumpTokenInfo;
 use yral_canisters_common::cursored_data::token_roots::{TokenListResponse, TokenRootList};
 use yral_canisters_common::utils::token::balance::TokenBalance;
 use yral_canisters_common::utils::token::{RootType, TokenMetadata, TokenOwner};
-use yral_canisters_common::Canisters;
 use yral_canisters_common::CENT_TOKEN_NAME;
+use yral_canisters_common::{Canisters, SATS_TOKEN_NAME};
 use yral_pump_n_dump_common::WithdrawalState;
 
 use super::ShowLoginSignal;
@@ -88,6 +88,75 @@ struct WalletCardOptionsContext {
     user_principal: Principal,
 }
 
+enum WithdrawDetails {
+    CanWithdraw {
+        /// most sensibly formatted amount
+        amount: String,
+        // an indicator message
+        message: String,
+    },
+    CannotWithdraw {
+        /// A reason or a suggestion message
+        message: String,
+    },
+}
+
+struct WithdrawSats;
+struct WithdrawCents;
+
+trait WithdrawImpl {
+    fn details(&self, state: WithdrawalState) -> WithdrawDetails;
+
+    /// the url to redirect to when user wishes to withdraw
+    fn withdraw_url(&self) -> String;
+}
+
+// TODO: use enum_dispatch instead
+// when i try adding enum_dispatch, the linker kills itself with a SIGBUS
+type Withdrawer = Box<dyn WithdrawImpl>;
+
+impl WithdrawImpl for WithdrawCents {
+    fn details(&self, state: WithdrawalState) -> WithdrawDetails {
+        match state {
+            WithdrawalState::Value(bal) => WithdrawDetails::CanWithdraw {
+                amount: TokenBalance::new(bal * 100usize, 8).humanize_float_truncate_to_dp(2),
+                message: "Cents you can withdraw".to_string(),
+            },
+            WithdrawalState::NeedMoreEarnings(more) => WithdrawDetails::CannotWithdraw {
+                message: format!(
+                    "Earn {} Cents more to unlock",
+                    TokenBalance::new(more * 100usize, 8).humanize_float_truncate_to_dp(2)
+                ),
+            },
+        }
+    }
+
+    fn withdraw_url(&self) -> String {
+        "/pnd/withdraw".into()
+    }
+}
+
+impl WithdrawImpl for WithdrawSats {
+    fn details(&self, state: WithdrawalState) -> WithdrawDetails {
+        match state {
+            WithdrawalState::Value(bal) => WithdrawDetails::CanWithdraw {
+                amount: TokenBalance::new(bal, 0).humanize_float_truncate_to_dp(0),
+                message: "Sats you can withdraw".to_string(),
+            },
+            WithdrawalState::NeedMoreEarnings(more) => WithdrawDetails::CannotWithdraw {
+                message: format!(
+                    "Earn {} Sats more to unlock",
+                    TokenBalance::new(more, 0).humanize_float_truncate_to_dp(0)
+                ),
+            },
+        }
+    }
+
+    fn withdraw_url(&self) -> String {
+        "/hot-or-not/withdraw".into()
+    }
+}
+
 #[component]
 pub fn WalletCard(
     user_principal: Principal,
@@ -102,6 +171,14 @@ pub fn WalletCard(
         .unwrap_or(token_metadata.name.to_lowercase());
 
     let is_cents = token_metadata.name == CENT_TOKEN_NAME;
+    let show_withdraw_button = token_metadata.withdrawable_state.is_some();
+    let withdrawer: Withdrawer = match token_metadata.name.as_str() {
+        s if s == SATS_TOKEN_NAME => Box::new(WithdrawSats),
+        s if s == CENT_TOKEN_NAME => Box::new(WithdrawCents),
+        _ => unimplemented!("Withdrawing is not implemented for a token"),
+    };
+
+    let withdraw_url = withdrawer.withdraw_url();
 
     let share_link = RwSignal::new("".to_string());
 
@@ -137,7 +214,7 @@ pub fn WalletCard(
             return;
         }
 
-        nav("/pnd/withdraw", Default::default());
+        nav(&withdraw_url, Default::default());
     };
 
     let airdrop_popup = RwSignal::new(false);
@@ -146,20 +223,9 @@ pub fn WalletCard(
     let (is_withdrawable, withdraw_message, withdrawable_balance) = token_metadata
         .withdrawable_state
         .as_ref()
-        .map(|state| match state {
-            WithdrawalState::Value(bal) => (
-                true,
-                Some("Cents you can withdraw".to_string()),
-                Some(TokenBalance::new(bal.clone() * 100usize, 8).humanize_float_truncate_to_dp(2)),
-            ),
-            WithdrawalState::NeedMoreEarnings(more) => (
-                false,
-                Some(format!(
-                    "Earn {} Cents more to unlock",
-                    TokenBalance::new(more.clone() * 100usize, 8).humanize_float_truncate_to_dp(2)
-                )),
-                None,
-            ),
+        .map(|state| match withdrawer.details(state.clone()) {
+            WithdrawDetails::CanWithdraw { amount, message } => (true, Some(message), Some(amount)),
+            WithdrawDetails::CannotWithdraw { message } => (false, Some(message), None),
         })
         .unwrap_or_default();
     view! {
@@ -183,14 +249,16 @@ pub fn WalletCard(
                         <div class="text-xs">{symbol}</div>
                     </div>
                 </div>
-                {is_cents.then_some(view! {
+                {show_withdraw_button.then_some(view! {
                     <div class="border-t border-neutral-700 flex flex-col pt-4 gap-2">
-                        <div class="flex items-center">
-                            <Icon attr:class="text-neutral-300" icon=if is_withdrawable { PadlockOpen } else { PadlockClose } />
-                            <span class="text-neutral-400 text-xs mx-2">{withdraw_message}</span>
-                            <Tooltip icon=Information title="Withdrawal Tokens" description="Only Cents earned above your airdrop amount can be withdrawn." />
-                            <span class="ml-auto">{withdrawable_balance}</span>
-                        </div>
+                        {is_cents.then_some(view! {
+                            <div class="flex items-center">
+                                <Icon attr:class="text-neutral-300" icon=if is_withdrawable { PadlockOpen } else { PadlockClose } />
+                                <span class="text-neutral-400 text-xs mx-2">{withdraw_message}</span>
+                                <Tooltip icon=Information title="Withdrawal Tokens" description="Only Cents earned above your airdrop amount can be withdrawn." />
+                                <span class="ml-auto">{withdrawable_balance}</span>
+                            </div>
+                        })}
                         <button
                             class="rounded-lg px-5 py-2 text-sm text-center font-bold"
                             class=(["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled"], !is_withdrawable)

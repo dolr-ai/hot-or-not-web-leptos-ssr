@@ -3,6 +3,7 @@ use component::content_upload::AuthorizedUserToSeedContent;
 use consts::ACCOUNT_CONNECTED_STORE;
 use leptos_use::storage::use_local_storage;
 use page::about_us::AboutUs;
+use page::hon;
 use page::icpump::ai::ICPumpAi;
 use page::icpump::ICPumpLanding;
 use page::post_view::PostDetailsCacheCtx;
@@ -293,6 +294,15 @@ pub fn App() -> impl IntoView {
                         <Route
                             path=path!("/pnd/withdraw/failure")
                             view=withdrawal::result::Failure
+                        />
+                        <Route path=path!("/hot-or-not/withdraw") view=hon::withdrawal::PndWithdrawal />
+                        <Route
+                            path=path!("/hot-or-not/withdraw/success")
+                            view=hon::withdrawal::result::Success
+                        />
+                        <Route
+                            path=path!("/hot-or-not/withdraw/failure")
+                            view=hon::withdrawal::result::Failure
                         />
                         <Route path=path!("/terms-ios") view=TermsIos />
 

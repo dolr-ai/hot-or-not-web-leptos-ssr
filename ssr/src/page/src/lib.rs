@@ -26,3 +26,4 @@ pub mod token;
 pub mod upload;
 pub mod view_profile_redirect;
 pub mod wallet;
+pub mod hon;

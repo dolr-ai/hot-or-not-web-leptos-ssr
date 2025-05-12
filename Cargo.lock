@@ -3292,7 +3292,7 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#996144ad58022ca4d5af41c57675b07f691a2a21"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#e020066ee7ee0e177200332b14b6e55ac4e6cb01"
 dependencies = [
  "candid",
  "ic-agent",
@@ -7403,7 +7403,7 @@ checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#996144ad58022ca4d5af41c57675b07f691a2a21"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#e020066ee7ee0e177200332b14b6e55ac4e6cb01"
 dependencies = [
  "candid",
  "humantime",
@@ -9273,7 +9273,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#996144ad58022ca4d5af41c57675b07f691a2a21"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#e020066ee7ee0e177200332b14b6e55ac4e6cb01"
 dependencies = [
  "anyhow",
  "candid",
@@ -9288,7 +9288,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#996144ad58022ca4d5af41c57675b07f691a2a21"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#e020066ee7ee0e177200332b14b6e55ac4e6cb01"
 dependencies = [
  "candid",
  "ciborium",
@@ -9321,7 +9321,7 @@ dependencies = [
 [[package]]
 name = "yral-grpc-traits"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#996144ad58022ca4d5af41c57675b07f691a2a21"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#e020066ee7ee0e177200332b14b6e55ac4e6cb01"
 dependencies = [
  "serde",
 ]
@@ -9376,7 +9376,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#996144ad58022ca4d5af41c57675b07f691a2a21"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#e020066ee7ee0e177200332b14b6e55ac4e6cb01"
 dependencies = [
  "candid",
  "ic-agent",
@@ -9391,7 +9391,7 @@ dependencies = [
 [[package]]
 name = "yral-qstash-types"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#996144ad58022ca4d5af41c57675b07f691a2a21"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#e020066ee7ee0e177200332b14b6e55ac4e6cb01"
 dependencies = [
  "candid",
  "serde",
@@ -9412,7 +9412,7 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#996144ad58022ca4d5af41c57675b07f691a2a21"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Frevamp-hon#e020066ee7ee0e177200332b14b6e55ac4e6cb01"
 dependencies = [
  "ic-agent",
  "k256",
