@@ -172,13 +172,13 @@ pub fn WalletCard(
 
     let is_cents = token_metadata.name == CENT_TOKEN_NAME;
     let show_withdraw_button = token_metadata.withdrawable_state.is_some();
-    let withdrawer: Withdrawer = match token_metadata.name.as_str() {
-        s if s == SATS_TOKEN_NAME => Box::new(WithdrawSats),
+    let withdrawer = show_withdraw_button.then(|| match token_metadata.name.as_str() {
+        s if s == SATS_TOKEN_NAME => Box::new(WithdrawSats) as Withdrawer,
         s if s == CENT_TOKEN_NAME => Box::new(WithdrawCents),
         _ => unimplemented!("Withdrawing is not implemented for a token"),
-    };
+    });
 
-    let withdraw_url = withdrawer.withdraw_url();
+    let withdraw_url = withdrawer.as_ref().map(|w| w.withdraw_url());
 
     let share_link = RwSignal::new("".to_string());
 
@@ -209,25 +209,30 @@ pub fn WalletCard(
         .unwrap_or_else(|| RwSignal::new(false));
     let nav = use_navigate();
     let withdraw_handle = move |_| {
+        let Some(ref withdraw_url) = withdraw_url else {
+            return;
+        };
         if !is_connected() {
             show_login.set(true);
             return;
         }
 
-        nav(&withdraw_url, Default::default());
+        nav(withdraw_url, Default::default());
     };
 
     let airdrop_popup = RwSignal::new(false);
     let buffer_signal = RwSignal::new(false);
     let claimed = RwSignal::new(is_airdrop_claimed);
-    let (is_withdrawable, withdraw_message, withdrawable_balance) = token_metadata
-        .withdrawable_state
-        .as_ref()
-        .map(|state| match withdrawer.details(state.clone()) {
-            WithdrawDetails::CanWithdraw { amount, message } => (true, Some(message), Some(amount)),
-            WithdrawDetails::CannotWithdraw { message } => (false, Some(message), None),
-        })
-        .unwrap_or_default();
+    let (is_withdrawable, withdraw_message, withdrawable_balance) =
+        match (token_metadata.withdrawable_state, withdrawer) {
+            (Some(ref state), Some(ref w)) => match w.details(state.clone()) {
+                WithdrawDetails::CanWithdraw { amount, message } => {
+                    (true, Some(message), Some(amount))
+                }
+                WithdrawDetails::CannotWithdraw { message } => (false, Some(message), None),
+            },
+            _ => Default::default(),
+        };
 
     view! {
         <div node_ref=_ref class="flex flex-col gap-4 bg-neutral-900/90 rounded-lg w-full font-kumbh text-white p-4">
