@@ -237,7 +237,7 @@ fn TokenTransferInner(
                 RootType::CENTS => return Err(ServerFnError::new("Cents cannot be transferred")),
             }
             TokensTransferred.send_event(amt.e8s.to_string(), destination, cans.clone());
-            let user_id = UserCanisterAndPrincipal::try_get().map(|f| f.user_id);
+            let user_id = UserCanisterAndPrincipal::try_get(&cans).map(|f| f.user_id);
             let fees = fees.humanize_float().parse::<f64>().unwrap_or_default();
             let amount_transferred = amt.humanize_float().parse::<f64>().unwrap_or_default();
             MixPanelEvent::track_yral_to_3rd_party_wallet(MixpanelDolrTo3rdPartyWalletProps {

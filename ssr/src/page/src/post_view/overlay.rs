@@ -66,7 +66,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
             if should_like {
                 likes.update(|l| *l += 1);
                 LikeVideo.send_event(post_details.clone(), likes, canister_store);
-                let user = UserCanisterAndPrincipal::try_get();
+                let user = UserCanisterAndPrincipal::try_get(&canisters);
                 let user_id = user.clone().map(|f| f.user_id);
                 let canister_id = user.map(|f| f.canister_id);
                 let is_hot_or_not = expect_context::<IsHotOrNot>();
@@ -225,26 +225,38 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                 return;
             }
 
-            let user = UserCanisterAndPrincipal::try_get();
-
-            let mixpanel_params = MixpanelNsfwToggleProps {
-                is_logged_in: user.is_some(),
-                user_id: user.clone().map(|f| f.user_id),
-                publisher_user_id: post.poster_principal.to_text(),
-                canister_id: user.map(|f| f.canister_id),
-                video_id,
-            };
-
             if !nsfw_enabled() && !show_nsfw_permission() {
                 show_nsfw_permission.set(true);
             } else {
                 if !nsfw_enabled() && show_nsfw_permission() {
                     show_nsfw_permission.set(false);
-                    MixPanelEvent::track_nsfw_true(mixpanel_params);
+                    if let Some(cans) = canisters.get() {
+                        let user = UserCanisterAndPrincipal::try_get(&cans);
+
+                        let mixpanel_params = MixpanelNsfwToggleProps {
+                            is_logged_in: user.is_some(),
+                            user_id: user.clone().map(|f| f.user_id),
+                            publisher_user_id: post.poster_principal.to_text(),
+                            canister_id: user.map(|f| f.canister_id),
+                            video_id,
+                        };
+                        MixPanelEvent::track_nsfw_true(mixpanel_params);
+                    }
                     set_nsfw_enabled(!nsfw_enabled());
                 } else {
                     set_nsfw_enabled(!nsfw_enabled());
-                    MixPanelEvent::track_nsfw_false(mixpanel_params);
+                    if let Some(cans) = canisters.get() {
+                        let user = UserCanisterAndPrincipal::try_get(&cans);
+
+                        let mixpanel_params = MixpanelNsfwToggleProps {
+                            is_logged_in: user.is_some(),
+                            user_id: user.clone().map(|f| f.user_id),
+                            publisher_user_id: post.poster_principal.to_text(),
+                            canister_id: user.map(|f| f.canister_id),
+                            video_id,
+                        };
+                        MixPanelEvent::track_nsfw_false(mixpanel_params);
+                    }
                 }
                 // using set_href to hard reload the page
                 let window = window();

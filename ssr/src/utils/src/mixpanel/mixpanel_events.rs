@@ -1,19 +1,14 @@
 use crate::event_streaming::events::account_connected_reader;
 use candid::Principal;
-use codee::string::FromToStringCodec;
-use codee::string::JsonSerdeCodec;
-use consts::USER_CANISTER_ID_STORE;
-use consts::USER_PRINCIPAL_STORE;
 use leptos::prelude::GetUntracked;
 use leptos::prelude::RwSignal;
 use leptos::prelude::*;
-use leptos_use::storage::use_local_storage;
-use leptos_use::use_cookie;
 use serde::Serialize;
 use serde_wasm_bindgen::to_value;
 use std::collections::BTreeMap;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
+use yral_canisters_common::Canisters;
 
 #[wasm_bindgen]
 extern "C" {
@@ -75,18 +70,11 @@ impl IsHotOrNot {
 }
 
 impl UserCanisterAndPrincipal {
-    pub fn try_get() -> Option<Self> {
-        let (canister_id, _, _) =
-            use_local_storage::<Option<Principal>, JsonSerdeCodec>(USER_CANISTER_ID_STORE);
-        let (principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
-
-        match (canister_id.get_untracked(), principal.get_untracked()) {
-            (Some(canister_id), Some(principal)) => Some(Self {
-                user_id: principal.to_string(),
-                canister_id: canister_id.to_string(),
-            }),
-            _ => None,
-        }
+    pub fn try_get(cans: &Canisters<true>) -> Option<Self> {
+        Some(UserCanisterAndPrincipal {
+            user_id: cans.user_principal().to_text(),
+            canister_id: cans.user_canister().to_text(),
+        })
     }
 }
 

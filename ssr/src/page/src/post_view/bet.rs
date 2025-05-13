@@ -136,7 +136,10 @@ fn HNButtonOverlay(
                     .await
                 {
                     Ok(_) => {
-                        let user = UserCanisterAndPrincipal::try_get();
+                        let user = Some(UserCanisterAndPrincipal {
+                            user_id: cans.user_canister().to_text(),
+                            canister_id: cans.user_canister().to_text(),
+                        });
                         let is_hot_or_not = true;
 
                         MixPanelEvent::track_hot_or_not_played(MixpanelHotOrNotPlayedProps {

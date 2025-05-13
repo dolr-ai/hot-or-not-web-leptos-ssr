@@ -170,6 +170,24 @@ pub fn PndWithdrawal() -> impl IntoView {
                 return Err(ServerFnError::new("Request failed"));
             }
 
+            let mix_formatted_cents = TokenBalance::new(cents().e8s, 6)
+                .humanize_float_truncate_to_dp(4)
+                .parse::<u64>()
+                .unwrap_or(0);
+            let cents_value = mix_formatted_cents as f64;
+            let user = UserCanisterAndPrincipal::try_get(&cans);
+            let balance_info = balance_info_signal.get();
+            let updated_cents_wallet_balance = format_cents!(balance_info.unwrap().balance)
+                .parse::<f64>()
+                .unwrap_or(0.0)
+                - mix_formatted_cents as f64;
+            MixPanelEvent::track_cents_to_dolr(MixpanelCentsToDolrProps {
+                user_id: user.map(|f| f.user_id),
+                updated_cents_wallet_balance,
+                conversion_ratio: 0.01,
+                cents_converted: cents_value,
+            });
+
             Ok::<(), ServerFnError>(())
         })
     });
@@ -182,23 +200,6 @@ pub fn PndWithdrawal() -> impl IntoView {
             match res {
                 Ok(_) => {
                     let cents = cents().e8s;
-                    let mix_formatted_cents = TokenBalance::new(cents.clone(), 6)
-                        .humanize_float_truncate_to_dp(4)
-                        .parse::<u64>()
-                        .unwrap_or(0);
-                    let cents_value = mix_formatted_cents as f64;
-                    let user = UserCanisterAndPrincipal::try_get();
-                    let balance_info = balance_info_signal.get();
-                    let updated_cents_wallet_balance = format_cents!(balance_info.unwrap().balance)
-                        .parse::<f64>()
-                        .unwrap_or(0.0)
-                        - mix_formatted_cents as f64;
-                    MixPanelEvent::track_cents_to_dolr(MixpanelCentsToDolrProps {
-                        user_id: user.map(|f| f.user_id),
-                        updated_cents_wallet_balance,
-                        conversion_ratio: 0.01,
-                        cents_converted: cents_value,
-                    });
                     nav(
                         &format!("/pnd/withdraw/success?cents={}", cents),
                         Default::default(),

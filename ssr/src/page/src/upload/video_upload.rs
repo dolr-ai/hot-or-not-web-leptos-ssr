@@ -302,7 +302,7 @@ pub fn VideoUploader(
 
                 match res {
                     Ok(_) => {
-                        let user = UserCanisterAndPrincipal::try_get();
+                        let user = UserCanisterAndPrincipal::try_get(&canisters);
                         MixPanelEvent::track_video_upload_successful(
                             MixpanelVideoUploadSuccessfulProps {
                                 user_id: user.clone().map(|f| f.user_id),
