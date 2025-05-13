@@ -116,7 +116,7 @@ pub fn ShadowOverlay(#[prop(into)] show: ShowOverlay, children: ChildrenFn) -> i
                         #[cfg(not(feature = "hydrate"))] { |_| () }
                     }
 
-                    class="flex cursor-pointer modal-bg w-dvw h-dvh fixed left-0 top-0 bg-black/60 z-[99] justify-center items-center overflow-hidden"
+                    class="flex cursor-pointer modal-bg w-dvw h-dvh fixed left-0 top-0 bg-black/60 z-[99] justify-center items-center overflow-hidden backdrop-blur-sm"
                 >
                     {(children_s.get_value())()}
                 </div>
@@ -163,6 +163,7 @@ pub fn ActionTrackerPopup<
     action: Action<S, R, AStorage>,
     #[prop(into)] loading_message: String,
     modal: IV,
+    #[prop(optional, into)] classes: String,
     #[prop(optional, into)] close: RwSignal<bool>,
 ) -> impl IntoView {
     let pending = action.pending();
@@ -180,6 +181,7 @@ pub fn ActionTrackerPopup<
     });
     let modal_s = StoredValue::new(modal);
     let loading_msg_s = StoredValue::new(loading_message);
+    let (classes, _) = signal(classes);
 
     view! {
         <ShadowOverlay show=show_popup>
@@ -189,7 +191,7 @@ pub fn ActionTrackerPopup<
                     view! { <ActionRunningOverlay message=loading_msg_s.get_value() /> }
                 }
             >
-                <div class="px-4 pt-4 pb-12 mx-6 w-full lg:w-1/2 max-h-[65%] rounded-xl bg-white">
+                <div class=format!("px-4 pt-4 pb-12 mx-6 w-full lg:w-1/2 max-h-[65%] rounded-xl bg-white {}", classes())>
                     {move || (modal_s.get_value())(res().unwrap())}
                 </div>
             </Show>
