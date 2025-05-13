@@ -104,6 +104,11 @@ fn GooglePreviewAuthRedirectorRoute() -> impl MatchNestedRoutes + Clone {
         use page::preview_google_redirect::PreviewGoogleRedirector;
         view! { <Route path view=PreviewGoogleRedirector /> }.into_inner()
     }
+
+    #[cfg(not(any(feature = "oauth-ssr", feature = "oauth-hydrate")))]
+    {
+        view! { <Route path view=NotFound /> }.into_inner()
+    }
 }
 
 #[component(transparent)]
@@ -117,6 +122,11 @@ fn GooglePreviewAuthRedirectHandlerRoute() -> impl MatchNestedRoutes + Clone {
     {
         use page::preview_google_redirect::PreviewGoogleRedirectHandler;
         view! { <Route path view=PreviewGoogleRedirectHandler /> }.into_inner()
+    }
+
+    #[cfg(not(any(feature = "oauth-ssr", feature = "oauth-hydrate")))]
+    {
+        view! { <Route path view=NotFound /> }.into_inner()
     }
 }
 
