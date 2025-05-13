@@ -114,7 +114,8 @@ fn HNButtonOverlay(
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
 ) -> impl IntoView {
-    IsHotOrNot::set(post.canister_id, post.post_id, true);
+    let is_hot_or_not = expect_context::<IsHotOrNot>();
+    is_hot_or_not.set(post.canister_id, post.post_id, true);
     let place_bet_action = Action::new(
         move |(canisters, bet_direction, bet_amount): &(Canisters<true>, VoteKind, u64)| {
             let post_can_id = post.canister_id;
@@ -124,20 +125,6 @@ fn HNButtonOverlay(
             let bet_direction = *bet_direction;
             let post_mix = post.clone();
             send_wrap(async move {
-                let user = UserCanisterAndPrincipal::try_get();
-                let is_hot_or_not = true;
-
-                MixPanelEvent::track_hot_or_not_played(MixpanelHotOrNotPlayedProps {
-                    publisher_user_id: post_mix.poster_principal.to_text(),
-                    is_logged_in: user.is_some(),
-                    user_id: user.clone().map(|f| f.user_id),
-                    canister_id: user.map(|f| f.canister_id),
-                    video_id: post_mix.uid.clone(),
-                    is_nsfw: post_mix.is_nsfw,
-                    is_hotor_not: is_hot_or_not,
-                    view_count: post_mix.views,
-                    like_count: post_mix.likes,
-                });
                 match cans
                     .vote_with_cents_on_post_via_cloudflare(
                         PUMP_AND_DUMP_WORKER_URL.clone(),
@@ -148,7 +135,23 @@ fn HNButtonOverlay(
                     )
                     .await
                 {
-                    Ok(_) => Some(()),
+                    Ok(_) => {
+                        let user = UserCanisterAndPrincipal::try_get();
+                        let is_hot_or_not = true;
+
+                        MixPanelEvent::track_hot_or_not_played(MixpanelHotOrNotPlayedProps {
+                            publisher_user_id: post_mix.poster_principal.to_text(),
+                            is_logged_in: user.is_some(),
+                            user_id: user.clone().map(|f| f.user_id),
+                            canister_id: user.map(|f| f.canister_id),
+                            video_id: post_mix.uid.clone(),
+                            is_nsfw: post_mix.is_nsfw,
+                            is_hotor_not: is_hot_or_not,
+                            view_count: post_mix.views,
+                            like_count: post_mix.likes,
+                        });
+                        Some(())
+                    }
                     Err(e) => {
                         log::error!("{e}");
                         None
@@ -437,8 +440,6 @@ fn MaybeHNButtons(
                     .and_then(|enabled| {
                         if !enabled.unwrap_or_default() {
                             can_place_bet.set(false);
-                            let post = post.get_value();
-                            IsHotOrNot::set(post.canister_id, post.post_id, enabled.unwrap_or_default());
                             return None;
                         }
                         Some(

@@ -173,7 +173,8 @@ pub fn VideoView(
         if current_time >= 3.0 && playing_started() {
             let post = post_for_view.get_untracked().unwrap();
             let user = UserCanisterAndPrincipal::try_get();
-            let is_hot_or_not = IsHotOrNot::get(post.canister_id, post.post_id);
+            let is_hot_or_not = expect_context::<IsHotOrNot>();
+            let is_hot_or_not = is_hot_or_not.get(post.canister_id, post.post_id);
             MixPanelEvent::track_video_viewed(MixpanelVideoViewedProps {
                 publisher_user_id: post.poster_principal.to_text(),
                 is_logged_in: user.is_some(),

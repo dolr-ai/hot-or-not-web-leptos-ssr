@@ -182,9 +182,6 @@ pub fn PndWithdrawal() -> impl IntoView {
             match res {
                 Ok(_) => {
                     let cents = cents().e8s;
-                    // let mix_formatted_dolr =
-                    //     TokenBalance::new(cents.clone(), 8).humanize_float_truncate_to_dp(4).parse::<f64>()
-                    //     .unwrap_or(0.0);
                     let mix_formatted_cents = TokenBalance::new(cents.clone(), 6)
                         .humanize_float_truncate_to_dp(4)
                         .parse::<u64>()

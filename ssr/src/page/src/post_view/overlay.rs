@@ -69,7 +69,8 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
                 let user = UserCanisterAndPrincipal::try_get();
                 let user_id = user.clone().map(|f| f.user_id);
                 let canister_id = user.map(|f| f.canister_id);
-                let is_hot_or_not = IsHotOrNot::get(post.canister_id, post_id);
+                let is_hot_or_not = expect_context::<IsHotOrNot>();
+                let is_hot_or_not = is_hot_or_not.get(post.canister_id, post_id);
                 MixPanelEvent::track_like_video(MixpanelLikeVideoProps {
                     canister_id,
                     publisher_user_id: post_details.poster_principal.to_text(),

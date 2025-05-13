@@ -125,8 +125,6 @@ pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) 
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
 
-            let _ = LoginSuccessful.send_event(canisters.clone());
-
             let profile_details = canisters.profile_details();
 
             MixPanelEvent::track_login_successful(MixpanelLoginSuccessfulProps {
@@ -134,6 +132,8 @@ pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) 
                 canister_id: Some(canisters.user_canister().to_text()),
                 referred_by: referrer.map(|f| f.to_text()),
             });
+
+            let _ = LoginSuccessful.send_event(canisters);
 
             // Update the context signal instead of writing directly
             storage_sync_ctx.account_connected.set(true);

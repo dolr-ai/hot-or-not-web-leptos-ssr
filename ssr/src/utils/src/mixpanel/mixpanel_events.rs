@@ -59,16 +59,14 @@ impl IsHotOrNot {
         });
     }
 
-    pub fn set(canister_id: Principal, post_id: u64, is_hot_or_not: bool) {
-        let this: Self = expect_context();
-        this.post.update(|f| {
+    pub fn set(&self, canister_id: Principal, post_id: u64, is_hot_or_not: bool) {
+        self.post.update(|f| {
             f.insert((canister_id, post_id), is_hot_or_not);
         });
     }
 
-    pub fn get(canister_id: Principal, post_id: u64) -> bool {
-        let this = expect_context::<IsHotOrNot>();
-        *this
+    pub fn get(&self, canister_id: Principal, post_id: u64) -> bool {
+        *self
             .post
             .get_untracked()
             .get(&(canister_id, post_id))
