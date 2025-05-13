@@ -163,7 +163,7 @@ pub fn ActionTrackerPopup<
     action: Action<S, R, AStorage>,
     #[prop(into)] loading_message: String,
     modal: IV,
-    #[prop(optional, into)] classes: String,
+    #[prop(default = "bg-white".to_string(), into)] classes: String,
     #[prop(optional, into)] close: RwSignal<bool>,
 ) -> impl IntoView {
     let pending = action.pending();
@@ -191,7 +191,7 @@ pub fn ActionTrackerPopup<
                     view! { <ActionRunningOverlay message=loading_msg_s.get_value() /> }
                 }
             >
-                <div class=format!("px-4 pt-4 pb-12 mx-6 w-full lg:w-1/2 max-h-[65%] rounded-xl bg-white {}", classes())>
+                <div class=format!("px-4 pt-4 pb-12 mx-6 w-full lg:w-1/2 max-h-[65%] rounded-xl {}", classes())>
                     {move || (modal_s.get_value())(res().unwrap())}
                 </div>
             </Show>

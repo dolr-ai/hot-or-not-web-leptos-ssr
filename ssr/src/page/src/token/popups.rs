@@ -13,8 +13,8 @@ fn SuccessPopup<ImgIV: IntoView, Img: Fn() -> ImgIV, TxtIV: IntoView, Txt: Fn() 
     #[prop(into)] previous_text: String,
 ) -> impl IntoView {
     view! {
-        <div class="flex flex-col items-center w-full h-full gap-6 bg-neutral-900">
-            {img()} <span class="text-base md:text-3xl text-center text-neutral-400">{text()}</span>
+        <div class="flex flex-col items-center w-full h-full gap-6">
+            {img()} <span class="text-base text-center text-neutral-400">{text()}</span>
             <GradientLinkButton href=previous_link() classes="w-3/4">
                 {previous_text}
             </GradientLinkButton>
@@ -164,7 +164,7 @@ fn TokenTransferSuccessPopup(
     let amount_str = amount.humanize_float();
     view! {
         <SuccessPopup
-            img=|| view! { <img src="/img/hotornot/tick.webp" class="w-8/12" /> }
+            img=|| view! { <img src="/img/hotornot/tick.webp" class="max-w-44" /> }
             text=move || { format!("You’ve successfully sent {amount_str} {token_name} to your wallet.") }
 
             previous_link="/wallet"
