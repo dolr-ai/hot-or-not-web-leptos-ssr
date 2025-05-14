@@ -28,12 +28,12 @@ macro_rules! format_sats {
 /// Details for withdrawal functionality
 type Details = SatsBalanceInfo;
 
-async fn load_withdrawal_details(user_canister: Principal) -> Result<Details, String> {
+async fn load_withdrawal_details(user_principal: Principal) -> Result<Details, String> {
     let url: reqwest::Url = hon_worker_common::WORKER_URL
         .parse()
         .expect("Url to be valid");
     let balance_info = url
-        .join(&format!("/balance/{user_canister}"))
+        .join(&format!("/balance/{user_principal}"))
         .expect("Url to be valid");
 
     let balance_info: SatsBalanceInfo = reqwest::get(balance_info)
@@ -74,6 +74,8 @@ async fn withdraw_sats_for_ckbtc(
         return Err(ServerFnError::new("Not allowed to withdraw"));
     }
 
+    log::info!("creating withdraw request");
+
     let worker_req = HoNGameWithdrawReq {
         request: req,
         signature: sig,
@@ -90,7 +92,8 @@ async fn withdraw_sats_for_ckbtc(
 
     if res.status() != reqwest::StatusCode::OK {
         return Err(ServerFnError::new(format!(
-            "worker error: {}",
+            "worker error[{}]: {}",
+            res.status().as_u16(),
             res.text().await?
         )));
     }
@@ -119,9 +122,9 @@ fn Header() -> impl IntoView {
 fn BalanceDisplay(#[prop(into)] balance: Nat) -> impl IntoView {
     view! {
         <div id="total-balance" class="self-center flex flex-col items-center gap-1">
-            <span class="text-neutral-400 text-sm">Total Cent balance</span>
+            <span class="text-neutral-400 text-sm">Total Sats balance</span>
             <div class="flex items-center gap-3 min-h-14 py-0.5">
-                <img class="size-9" src="/img/hotornot/sats.webp" alt="sats icon" />
+                <img class="size-9 rounded-full" src="/img/hotornot/sats.webp" alt="sats icon" />
                 <span class="font-bold text-4xl">{format_sats!(balance)}</span>
             </div>
         </div>
@@ -136,7 +139,8 @@ pub fn HonWithdrawal() -> impl IntoView {
         move |_| {
             send_wrap(async move {
                 let cans_wire = auth_wire.await?;
-                load_withdrawal_details(cans_wire.user_canister)
+                let principal = cans_wire.profile_details.principal;
+                load_withdrawal_details(principal)
                     .map_err(ServerFnError::new)
                     .await
             })
