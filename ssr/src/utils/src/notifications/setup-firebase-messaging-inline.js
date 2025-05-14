@@ -3,18 +3,27 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/fireba
 import { getMessaging, onMessage, getToken as firebaseGetToken } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js";
 
 const app = initializeApp({
-  apiKey: "AIzaSyCwo0EWTJz_w-J1lUf9w9NcEBdLNmGUaIo",
-  authDomain: "hot-or-not-feed-intelligence.firebaseapp.com",
-  projectId: "hot-or-not-feed-intelligence",
-  storageBucket: "hot-or-not-feed-intelligence.appspot.com",
-  messagingSenderId: "82502260393",
-  appId: "1:82502260393:web:390e9d4e588cba65237bb8",
+
+  apiKey: "AIzaSyCc_3-30sOgNhpPprV-YDMSTebf4EAPNIo",
+
+  authDomain: "client-device-notification.firebaseapp.com",
+
+  projectId: "client-device-notification",
+
+  storageBucket: "client-device-notification.firebasestorage.app",
+
+  messagingSenderId: "257800168511",
+
+  appId: "1:257800168511:web:ce7840178c24f97e09048a",
+
+  measurementId: "G-WLPMS55C10"
+
 });
 
 const messaging = getMessaging(app);
 
 const vapidKey =
-  "BOmsEya6dANYUoElzlUWv3Jekmw08_nqDEUFu06aTak-HQGd-G_Lsk8y4Bs9B4kcEjBM8FXF0IQ_oOpJDmU3zMs";
+  "BHVXxI5mw_QCsR148ZO4CwxYrsi0EwqJ691arpO4zxa-EMxmrO7odRdX43vpoVQgRcalWVr7Y7sKH_DlWZbpcEI";
 
 // Renamed the imported getToken to avoid conflict if there was a local getToken variable elsewhere
 export async function getToken() {

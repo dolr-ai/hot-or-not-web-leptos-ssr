@@ -3,12 +3,21 @@ importScripts("https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js
 importScripts("https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js");
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCwo0EWTJz_w-J1lUf9w9NcEBdLNmGUaIo",
-  authDomain: "hot-or-not-feed-intelligence.firebaseapp.com",
-  projectId: "hot-or-not-feed-intelligence",
-  storageBucket: "hot-or-not-feed-intelligence.appspot.com",
-  messagingSenderId: "82502260393",
-  appId: "1:82502260393:web:390e9d4e588cba65237bb8",
+
+  apiKey: "AIzaSyCc_3-30sOgNhpPprV-YDMSTebf4EAPNIo",
+
+  authDomain: "client-device-notification.firebaseapp.com",
+
+  projectId: "client-device-notification",
+
+  storageBucket: "client-device-notification.firebasestorage.app",
+
+  messagingSenderId: "257800168511",
+
+  appId: "1:257800168511:web:ce7840178c24f97e09048a",
+
+  measurementId: "G-WLPMS55C10"
+
 };
 
 // Ensure Firebase is initialized before trying to use messaging

@@ -24,7 +24,10 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
 
     let notification_action: Action<(), (), LocalStorage> =
         Action::new_unsync(move |()| async move {
-            let metaclient = MetadataClient::default();
+            let metaclient: MetadataClient<false> = MetadataClient::with_base_url(
+                reqwest::Url::parse("https://pr-19-dolr-ai-yral-metadata.fly.dev/").unwrap(),
+            );
+
             let cans = Canisters::from_wire(cans.await.unwrap(), expect_context()).unwrap();
 
             // Removed send_wrap as get_device_registeration_token involves !Send JS futures

@@ -15,7 +15,10 @@ fn NotifInnerComponent(details: ProfileDetails) -> impl IntoView {
     let auth_cans = authenticated_canisters();
 
     let on_token_click: Action<(), (), LocalStorage> = Action::new_unsync(move |()| async move {
-        let metaclient = MetadataClient::default();
+        let metaclient: MetadataClient<false> = MetadataClient::with_base_url(
+            reqwest::Url::parse("https://-dolr-ai-yral-metadata.fly.dev").unwrap(),
+        );
+
         let cans = Canisters::from_wire(auth_cans.await.unwrap(), expect_context()).unwrap();
 
         let token = get_device_registeration_token().await.unwrap();

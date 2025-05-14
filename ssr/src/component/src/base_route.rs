@@ -15,13 +15,13 @@ use leptos::web_sys::CustomEvent;
 use leptos_router::params::Params;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
+use serde_json::Value;
 use state::{
     auth::AuthState,
     canisters::{do_canister_auth, AuthCansResource},
     local_storage::use_referrer_store,
 };
 use utils::event_streaming::events::PageVisit;
-use utils::notifications::handle_foreground_notification;
 use utils::send_wrap;
 use utils::{try_or_redirect, MockPartialEq};
 use yral_canisters_common::Canisters;
@@ -30,6 +30,9 @@ use yral_canisters_common::Canisters;
 struct Referrer {
     user_refer: String,
 }
+
+#[derive(Clone)]
+pub struct Notification(pub RwSignal<Option<Value>>);
 
 #[component]
 fn CtxProvider(children: ChildrenFn) -> impl IntoView {
@@ -108,14 +111,22 @@ fn CtxProvider(children: ChildrenFn) -> impl IntoView {
 
     // Setup Firebase foreground message listener using leptos-use
     let window_target = use_window();
+
+    let notification = Notification(RwSignal::new(None));
+
     let _ = use_event_listener(
         window_target,
         ev::Custom::new("firebaseForegroundMessage"),
         move |event: CustomEvent| {
             let payload = event.detail();
-            handle_foreground_notification(payload);
+            notification.0.set(payload.as_string().and_then(|s| {
+                log::info!("Payload: {}", s);
+                serde_json::from_str(&s).ok()
+            }));
         },
     );
+
+    provide_context(notification);
 
     view! {
         {children()}
