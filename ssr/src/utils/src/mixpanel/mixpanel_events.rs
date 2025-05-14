@@ -185,6 +185,15 @@ pub struct MixpanelDolrTo3rdPartyWalletProps {
     pub token_name: String,
 }
 
+#[derive(Serialize)]
+pub struct MixpanelGlobalProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: String,
+}
+
 pub struct MixPanelEvent;
 
 impl MixPanelEvent {
