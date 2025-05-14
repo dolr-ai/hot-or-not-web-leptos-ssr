@@ -76,6 +76,7 @@ mod alloydb {
             request: req,
             fetched_sentiment: sentiment,
             signature: sig,
+            post_creator: Some(post_info.poster_principal),
         };
 
         let req_url = format!("{WORKER_URL}vote/{sender}");
