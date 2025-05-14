@@ -16,6 +16,7 @@ use history::HistoryView;
 use state::app_state::AppState;
 use utils::event_streaming::events::{account_connected_reader, auth_canisters_store};
 use utils::event_streaming::events::{Refer, ReferShareLink};
+use utils::mixpanel::mixpanel_events::*;
 use utils::web::{copy_to_clipboard, share_url};
 
 #[component]
@@ -61,8 +62,22 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
         }
     });
 
+    let mixpanel_event = Action::new(move |refer_link: &String| {
+        let refer_link = refer_link.clone();
+
+        if let Some(cans) = canister_store.get_untracked() {
+            let global = MixpanelGlobalProps::try_get(&cans);
+            MixPanelEvent::track_refer_and_earn(MixpanelReferAndEarnProps {
+                global,
+                refer_link: refer_link.clone(),
+            });
+        }
+        async {}
+    });
+
     let handle_share = move || {
         let url = refer_link.clone();
+        mixpanel_event.dispatch(url.clone());
         if share_url(&url).is_some() {
             return;
         }

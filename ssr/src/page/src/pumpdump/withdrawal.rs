@@ -14,12 +14,7 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
 use state::canisters::authenticated_canisters;
-use utils::{
-    mixpanel::mixpanel_events::{
-        MixPanelEvent, MixpanelCentsToDolrProps, UserCanisterAndPrincipal,
-    },
-    send_wrap, try_or_redirect_opt,
-};
+use utils::{mixpanel::mixpanel_events::*, send_wrap, try_or_redirect_opt};
 use yral_canisters_common::{utils::token::balance::TokenBalance, Canisters};
 use yral_pump_n_dump_common::rest::{BalanceInfoResponse, ClaimReq};
 
@@ -175,14 +170,15 @@ pub fn PndWithdrawal() -> impl IntoView {
                 .parse::<u64>()
                 .unwrap_or(0);
             let cents_value = mix_formatted_cents as f64;
-            let user = UserCanisterAndPrincipal::try_get(&cans);
+            let global = MixpanelGlobalProps::try_get(&cans);
             let balance_info = balance_info_signal.get();
             let updated_cents_wallet_balance = format_cents!(balance_info.unwrap().balance)
                 .parse::<f64>()
                 .unwrap_or(0.0)
                 - mix_formatted_cents as f64;
+
             MixPanelEvent::track_cents_to_dolr(MixpanelCentsToDolrProps {
-                user_id: user.map(|f| f.user_id),
+                global,
                 updated_cents_wallet_balance,
                 conversion_ratio: 0.01,
                 cents_converted: cents_value,

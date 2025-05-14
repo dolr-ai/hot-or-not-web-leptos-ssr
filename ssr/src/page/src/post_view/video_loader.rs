@@ -7,9 +7,7 @@ use leptos::{html::Video, prelude::*};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use state::canisters::unauth_canisters;
-use utils::mixpanel::mixpanel_events::{
-    IsHotOrNot, MixPanelEvent, MixpanelVideoViewedProps, UserCanisterAndPrincipal,
-};
+use utils::mixpanel::mixpanel_events::*;
 use utils::send_wrap;
 use yral_canisters_client::individual_user_template::PostViewDetailsFromFrontend;
 
@@ -91,14 +89,41 @@ pub fn VideoView(
     muted: RwSignal<bool>,
 ) -> impl IntoView {
     let post_for_uid = post;
+    let post_for_mixpanel = post;
     let uid = Memo::new(move |_| post_for_uid.with(|p| p.as_ref().map(|p| p.uid.clone())));
     let view_bg_url = move || uid().map(bg_url);
     let view_video_url = move || uid().map(mp4_url);
+
+    let mixpanel_video_clicked_audio_state = Action::new(move |muted| {
+        let post = post_for_mixpanel.get_untracked().unwrap();
+        let is_hot_or_not = expect_context::<IsHotOrNot>();
+        let is_game_enabled = is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
+
+        if let Some(cans) = auth_canisters_store().get_untracked() {
+            let global = MixpanelGlobalProps::try_get(&cans);
+            MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+                global,
+                publisher_user_id: post.poster_principal.to_text(),
+                like_count: post.likes,
+                view_count: post.views,
+                is_game_enabled,
+                video_id: post.uid,
+                game_type: MixpanelPostGameType::HotOrNot,
+                cta_type: if *muted {
+                    MixpanelVideoClickedCTAType::Mute
+                } else {
+                    MixpanelVideoClickedCTAType::Unmute
+                },
+            });
+        }
+        async {}
+    });
 
     // Handles mute/unmute
     Effect::new(move |_| {
         let vid = _ref.get()?;
         vid.set_muted(muted());
+        mixpanel_video_clicked_audio_state.dispatch(muted());
         Some(())
     });
 
@@ -169,19 +194,17 @@ pub fn VideoView(
         send_wrap(async move {
             if let Some(cans) = canisters.get_untracked() {
                 let post = post_for_view.get_untracked().unwrap();
-                let user = UserCanisterAndPrincipal::try_get(&cans);
+                let global = MixpanelGlobalProps::try_get(&cans);
                 let is_hot_or_not = expect_context::<IsHotOrNot>();
-                let is_hot_or_not = is_hot_or_not.get(post.canister_id, post.post_id);
+                let is_game_enabled = is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
                 MixPanelEvent::track_video_viewed(MixpanelVideoViewedProps {
                     publisher_user_id: post.poster_principal.to_text(),
-                    is_logged_in: user.is_some(),
-                    user_id: user.clone().map(|f| f.user_id),
-                    canister_id: user.map(|f| f.canister_id),
+                    global,
                     video_id: post.uid,
-                    is_nsfw: post.is_nsfw,
-                    is_hotor_not: is_hot_or_not,
                     view_count: post.views,
                     like_count: post.likes,
+                    game_type: MixpanelPostGameType::HotOrNot,
+                    is_game_enabled,
                 });
                 playing_started.set(false);
             }

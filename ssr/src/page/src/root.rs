@@ -9,7 +9,9 @@ use leptos_meta::*;
 use leptos_router::components::Redirect;
 use leptos_router::hooks::use_query_map;
 use leptos_use::storage::use_local_storage;
+use utils::event_streaming::events::auth_canisters_store;
 use utils::host::show_nsfw_content;
+use utils::mixpanel::mixpanel_events::*;
 use utils::{
     host::{show_cdao_page, show_pnd_page},
     ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw},
@@ -74,6 +76,11 @@ pub fn YralRootPage() -> impl IntoView {
 
     let target_post = Resource::new(params, move |params_map| async move {
         let nsfw_enabled = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
+        if let Some(cans) = auth_canisters_store().get_untracked() {
+            let mut global = MixpanelGlobalProps::try_get(&cans);
+            global.is_nsfw_enabled = nsfw_enabled;
+            MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps { global });
+        }
         if nsfw_enabled || show_nsfw_content() {
             get_top_post_id_global_nsfw_feed().await
         } else {
