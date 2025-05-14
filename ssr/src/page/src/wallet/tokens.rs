@@ -249,7 +249,7 @@ pub fn WalletCard(
                     <div class="flex flex-col items-end">
                         {
                             token_metadata.balance.map(|b| view! {
-                                <div class="text-lg font-medium">{b.humanize_float_truncate_to_dp(5)}</div>
+                                <div class="text-lg font-medium">{b.humanize_float_truncate_to_dp(8)}</div>
                             })
                         }
                         <div class="text-xs">{symbol}</div>

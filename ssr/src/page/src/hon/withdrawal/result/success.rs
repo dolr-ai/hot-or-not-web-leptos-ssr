@@ -13,7 +13,7 @@ struct SuccessParams {
 pub fn Success() -> impl IntoView {
     let params = use_query::<SuccessParams>();
     let SuccessParams { sats } = try_or_redirect_opt!(params.get_untracked());
-    let formatted_btc = TokenBalance::new(sats.into(), 8).humanize_float_truncate_to_dp(5);
+    let formatted_btc = TokenBalance::new(sats.into(), 8).humanize_float_truncate_to_dp(8);
     let _formatted_sats = TokenBalance::new(sats.into(), 0).humanize_float_truncate_to_dp(0);
 
     // Track the withdrawal event

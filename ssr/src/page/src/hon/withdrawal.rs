@@ -150,7 +150,7 @@ pub fn HonWithdrawal() -> impl IntoView {
     let formated_dolrs = move || {
         format!(
             "{} BTC",
-            TokenBalance::new(sats().into(), 8).humanize_float_truncate_to_dp(5)
+            TokenBalance::new(sats().into(), 8).humanize_float_truncate_to_dp(8)
         )
     };
 
