@@ -114,7 +114,6 @@ fn CtxProvider(children: ChildrenFn) -> impl IntoView {
                 let cans = try_or_redirect!(maybe_cans);
                 let user_canister = cans.user_canister();
                 let user_principal = cans.user_principal();
-
                 Effect::new(move |_| {
                     if temp_id.is_some() {
                         set_logged_in(false);

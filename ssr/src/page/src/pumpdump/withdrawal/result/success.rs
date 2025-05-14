@@ -42,11 +42,19 @@ pub fn Success() -> impl IntoView {
                         <img class="max-w-44" src="/img/pumpdump/cents-stack.webp" />
                         <div class="flex flex-col gap-8 w-full px-5">
                             <div class="flex flex-col gap-2 items-center">
-                                <span class="font-bold text-lg">{format!("You've successfully claimed {formatted_cents} Cents.")}</span>
-                                <span class="text-neutral-300">Your wallet has been updated with {formatted_dolr} DOLR.</span>
+                                <span class="font-bold text-lg">
+                                    {format!(
+                                        "You've successfully claimed {formatted_cents} Cents.",
+                                    )}
+                                </span>
+                                <span class="text-neutral-300">
+                                    Your wallet has been updated with {formatted_dolr}DOLR.
+                                </span>
                             </div>
                             <a class="rounded-lg px-5 py-2 text-center font-bold bg-white" href="/">
-                                <span class="bg-brand-gradient text-transparent bg-clip-text">Continue Playing</span>
+                                <span class="bg-brand-gradient text-transparent bg-clip-text">
+                                    Continue Playing
+                                </span>
                             </a>
                         </div>
                     </div>

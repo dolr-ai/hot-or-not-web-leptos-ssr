@@ -10,7 +10,13 @@ use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use server_impl::vote_with_cents_on_post;
 use state::canisters::authenticated_canisters;
-use utils::{send_wrap, try_or_redirect_opt};
+use utils::try_or_redirect_opt;
+use utils::{
+    mixpanel::mixpanel_events::{
+        IsHotOrNot, MixPanelEvent, MixpanelHotOrNotPlayedProps, UserCanisterAndPrincipal,
+    },
+    send_wrap,
+};
 use yral_canisters_common::{
     utils::{posts::PostDetails, token::balance::TokenBalance, vote::VoteKind},
     Canisters,
@@ -105,7 +111,9 @@ fn HNButtonOverlay(
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
 ) -> impl IntoView {
-    let place_bet_action = Action::new_local(
+    let is_hot_or_not = expect_context::<IsHotOrNot>();
+    is_hot_or_not.set(post.canister_id, post.post_id, true);
+    let place_bet_action = Action::new(
         move |(canisters, bet_direction, bet_amount): &(Canisters<true>, VoteKind, u64)| {
             let post_canister = post.canister_id;
             let post_id = post.post_id;
@@ -122,17 +130,37 @@ fn HNButtonOverlay(
             let identity = cans.identity();
             let sender = identity.sender().unwrap();
             let sig = sign_vote_request(identity, req.clone());
-            async move {
+            let post_mix = post.clone();
+            send_wrap(async move {
                 let sig = sig.ok()?;
                 let res = vote_with_cents_on_post(sender, req, sig).await;
                 match res {
-                    Ok(_) => Some(()),
+                    Ok(_) => {
+                        let user = Some(UserCanisterAndPrincipal {
+                            user_id: cans.user_canister().to_text(),
+                            canister_id: cans.user_canister().to_text(),
+                        });
+                        let is_hot_or_not = true;
+
+                        MixPanelEvent::track_hot_or_not_played(MixpanelHotOrNotPlayedProps {
+                            publisher_user_id: post_mix.poster_principal.to_text(),
+                            is_logged_in: user.is_some(),
+                            user_id: user.clone().map(|f| f.user_id),
+                            canister_id: user.map(|f| f.canister_id),
+                            video_id: post_mix.uid.clone(),
+                            is_nsfw: post_mix.is_nsfw,
+                            is_hotor_not: is_hot_or_not,
+                            view_count: post_mix.views,
+                            like_count: post_mix.likes,
+                        });
+                        Some(())
+                    }
                     Err(e) => {
                         log::error!("{e}");
                         None
                     }
                 }
-            }
+            })
         },
     );
     let place_bet_res = place_bet_action.value();

@@ -10,6 +10,12 @@ pub mod canisters;
 pub mod content_seed_client;
 pub mod local_storage;
 
+#[cfg(not(feature = "ssr"))]
+pub mod server {
+    #[derive(Clone)]
+    pub struct HonWorkerJwt(pub std::sync::Arc<String>);
+}
+
 #[cfg(feature = "ssr")]
 pub mod server {
 

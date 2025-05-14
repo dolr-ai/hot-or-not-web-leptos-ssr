@@ -12,6 +12,8 @@ use state::local_storage::LocalStorageSyncContext;
 use state::{auth::auth_state, local_storage::use_referrer_store};
 use utils::event_streaming::events::CentsAdded;
 use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, ProviderKind};
+use utils::mixpanel::mixpanel_events::MixPanelEvent;
+use utils::mixpanel::mixpanel_events::MixpanelLoginSuccessfulProps;
 use yral_canisters_common::Canisters;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
@@ -120,6 +122,14 @@ pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) 
             if let Err(e) = handle_user_login(canisters.clone(), referrer).await {
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
+
+            let profile_details = canisters.profile_details();
+
+            MixPanelEvent::track_login_successful(MixpanelLoginSuccessfulProps {
+                user_id: profile_details.principal(),
+                canister_id: Some(canisters.user_canister().to_text()),
+                referred_by: referrer.map(|f| f.to_text()),
+            });
 
             let _ = LoginSuccessful.send_event(canisters);
 
