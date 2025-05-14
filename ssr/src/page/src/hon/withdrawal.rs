@@ -60,11 +60,17 @@ async fn withdraw_sats_for_ckbtc(
     let user = cans.individual_user(receiver_canister).await;
     let profile_owner = user.get_profile_details_v_2().await?;
     if profile_owner.principal_id != req.receiver {
+        log::error!(
+            "Not allowed to withdraw due to principal mismatch: owner={} != receiver={}",
+            profile_owner.principal_id,
+            req.receiver
+        );
         return Err(ServerFnError::new("Not allowed to withdraw"));
     }
 
     let sess = user.get_session_type().await?;
     if !matches!(sess, Result9::Ok(SessionType::RegisteredSession)) {
+        log::error!("Not allowed to withdraw due to invalid session: {sess:?}");
         return Err(ServerFnError::new("Not allowed to withdraw"));
     }
 
@@ -170,7 +176,7 @@ pub fn HonWithdrawal() -> impl IntoView {
             handle_user_login(cans.clone(), None).await?;
 
             let req = hon_worker_common::WithdrawRequest {
-                receiver: cans.user_canister(),
+                receiver: cans.user_principal(),
                 amount: sats.get_untracked() as u128,
             };
             let sig = hon_worker_common::sign_withdraw_request(cans.identity(), req.clone())?;
