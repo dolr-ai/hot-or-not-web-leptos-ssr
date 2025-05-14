@@ -5,6 +5,7 @@ pub mod err;
 pub mod faq;
 #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
 pub mod google_redirect;
+pub mod hon;
 pub mod icpump;
 pub mod leaderboard;
 pub mod logout;
@@ -26,4 +27,3 @@ pub mod token;
 pub mod upload;
 pub mod view_profile_redirect;
 pub mod wallet;
-pub mod hon;

@@ -7,13 +7,15 @@ use component::{
     tooltip::Tooltip,
 };
 use futures::TryFutureExt;
-use hon_worker_common::SatsBalanceInfo;
+use hon_worker_common::{HoNGameWithdrawReq, SatsBalanceInfo};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
-use state::canisters::authenticated_canisters;
+use state::{canisters::authenticated_canisters, server::HonWorkerJwt};
 use utils::{send_wrap, try_or_redirect_opt};
+use yral_canisters_client::individual_user_template::{Result9, SessionType};
 use yral_canisters_common::{utils::token::balance::TokenBalance, Canisters};
+use yral_identity::Signature;
 
 pub mod result;
 
@@ -42,6 +44,52 @@ async fn load_withdrawal_details(user_canister: Principal) -> Result<Details, St
         .map_err(|_| "failed to read response body".to_string())?;
 
     Ok(balance_info)
+}
+
+#[server(input = server_fn::codec::Json)]
+async fn withdraw_sats_for_ckbtc(
+    receiver_canister: Principal,
+    req: hon_worker_common::WithdrawRequest,
+    sig: Signature,
+) -> Result<(), ServerFnError> {
+    use hon_worker_common::WORKER_URL;
+
+    // TODO: yral-auth-v2, we can do this verification with a JWT
+    let cans: Canisters<false> = expect_context();
+
+    let user = cans.individual_user(receiver_canister).await;
+    let profile_owner = user.get_profile_details_v_2().await?;
+    if profile_owner.principal_id != req.receiver {
+        return Err(ServerFnError::new("Not allowed to withdraw"));
+    }
+
+    let sess = user.get_session_type().await?;
+    if !matches!(sess, Result9::Ok(SessionType::RegisteredSession)) {
+        return Err(ServerFnError::new("Not allowed to withdraw"));
+    }
+
+    let worker_req = HoNGameWithdrawReq {
+        request: req,
+        signature: sig,
+    };
+    let req_url = format!("{WORKER_URL}withdraw");
+    let client = reqwest::Client::new();
+    let jwt = expect_context::<HonWorkerJwt>();
+    let res = client
+        .post(&req_url)
+        .json(&worker_req)
+        .header("Authorization", format!("Bearer {}", jwt.0))
+        .send()
+        .await?;
+
+    if res.status() != reqwest::StatusCode::OK {
+        return Err(ServerFnError::new(format!(
+            "worker error: {}",
+            res.text().await?
+        )));
+    }
+
+    Ok(())
 }
 
 #[component]
@@ -118,9 +166,16 @@ pub fn HonWithdrawal() -> impl IntoView {
             let cans = Canisters::from_wire(auth_wire.clone(), expect_context())
                 .map_err(ServerFnError::new)?;
 
+            // TODO: do we still need this?
             handle_user_login(cans.clone(), None).await?;
 
-            Err::<(), _>(ServerFnError::new("Not implmented yet"))
+            let req = hon_worker_common::WithdrawRequest {
+                receiver: cans.user_canister(),
+                amount: sats.get_untracked() as u128,
+            };
+            let sig = hon_worker_common::sign_withdraw_request(cans.identity(), req.clone())?;
+
+            withdraw_sats_for_ckbtc(cans.user_canister(), req, sig).await
         }
     });
     let is_claiming = send_claim.pending();
