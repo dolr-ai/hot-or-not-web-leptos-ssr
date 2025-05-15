@@ -1,5 +1,7 @@
 use crate::event_streaming::events::account_connected_reader;
+use candid::Principal;
 use codee::string::FromToStringCodec;
+use codee::string::JsonSerdeCodec;
 use consts::NSFW_TOGGLE_STORE;
 use leptos::prelude::*;
 use leptos_use::storage::use_local_storage;
@@ -92,6 +94,36 @@ impl MixpanelGlobalProps {
             is_logged_in,
             canister_id: cans.user_canister().to_text(),
             is_nsfw_enabled,
+        }
+    }
+
+    pub fn try_get_from_local_storage() -> Option<Self> {
+        let (canister_id, _, _) =
+            use_local_storage::<Option<Principal>, JsonSerdeCodec>(consts::USER_CANISTER_ID_STORE);
+        let (principal, _) =
+            leptos_use::use_cookie::<Principal, FromToStringCodec>(consts::USER_PRINCIPAL_STORE);
+        let (is_connected, _) = account_connected_reader();
+        let is_logged_in = is_connected.get_untracked();
+        let (is_nsfw_enabled, _, _) =
+            use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
+        let is_nsfw_enabled = is_nsfw_enabled.get_untracked();
+        match (canister_id.get_untracked(), principal.get_untracked()) {
+            (Some(canister_id), Some(principal)) => Some(Self {
+                user_id: if is_logged_in {
+                    Some(principal.to_text())
+                } else {
+                    None
+                },
+                visitor_id: if !is_logged_in {
+                    Some(principal.to_text())
+                } else {
+                    None
+                },
+                is_logged_in,
+                canister_id: canister_id.to_text(),
+                is_nsfw_enabled,
+            }),
+            _ => None,
         }
     }
 }

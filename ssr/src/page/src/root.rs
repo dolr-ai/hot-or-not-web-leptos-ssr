@@ -76,11 +76,6 @@ pub fn YralRootPage() -> impl IntoView {
 
     let target_post = Resource::new(params, move |params_map| async move {
         let nsfw_enabled = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
-        if let Some(cans) = auth_canisters_store().get_untracked() {
-            let mut global = MixpanelGlobalProps::try_get(&cans);
-            global.is_nsfw_enabled = nsfw_enabled;
-            MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps { global });
-        }
         if nsfw_enabled || show_nsfw_content() {
             get_top_post_id_global_nsfw_feed().await
         } else {
@@ -103,6 +98,13 @@ pub fn YralRootPage() -> impl IntoView {
                                 post_details_cache.post_details.update(|post_details| {
                                     post_details.insert((canister_id, post_id), post_item.clone());
                                 });
+
+                                if let Some(cans) = auth_canisters_store().get_untracked() {
+                                    let global = MixpanelGlobalProps::try_get(&cans);
+                                    MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps { global });
+                                } else if let Some(global) = MixpanelGlobalProps::try_get_from_local_storage() {
+                                    MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps { global });
+                                };
 
                                 format!("/hot-or-not/{canister_id}/{post_id}")
                             }

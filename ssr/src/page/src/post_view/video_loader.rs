@@ -93,34 +93,33 @@ pub fn VideoView(
     let uid = Memo::new(move |_| post_for_uid.with(|p| p.as_ref().map(|p| p.uid.clone())));
     let view_bg_url = move || uid().map(bg_url);
     let view_video_url = move || uid().map(mp4_url);
-    let mixpanel_video_muted = RwSignal::new(muted());
+    let mixpanel_video_muted = RwSignal::new(muted.get_untracked());
 
     let mixpanel_video_clicked_audio_state = Action::new(move |muted: &bool| {
-
         if *muted != mixpanel_video_muted.get_untracked() {
-        mixpanel_video_muted.set(*muted);
-        let post = post_for_mixpanel.get_untracked().unwrap();
-        let is_hot_or_not = expect_context::<IsHotOrNot>();
-        let is_game_enabled = is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
+            mixpanel_video_muted.set(*muted);
+            let post = post_for_mixpanel.get_untracked().unwrap();
+            let is_hot_or_not = expect_context::<IsHotOrNot>();
+            let is_game_enabled = is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
 
-        if let Some(cans) = auth_canisters_store().get_untracked() {
-            let global = MixpanelGlobalProps::try_get(&cans);
-            MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-                global,
-                publisher_user_id: post.poster_principal.to_text(),
-                like_count: post.likes,
-                view_count: post.views,
-                is_game_enabled,
-                video_id: post.uid,
-                game_type: MixpanelPostGameType::HotOrNot,
-                cta_type: if *muted {
-                    MixpanelVideoClickedCTAType::Mute
-                } else {
-                    MixpanelVideoClickedCTAType::Unmute
-                },
-            });
+            if let Some(cans) = auth_canisters_store().get_untracked() {
+                let global = MixpanelGlobalProps::try_get(&cans);
+                MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+                    global,
+                    publisher_user_id: post.poster_principal.to_text(),
+                    like_count: post.likes,
+                    view_count: post.views,
+                    is_game_enabled,
+                    video_id: post.uid,
+                    game_type: MixpanelPostGameType::HotOrNot,
+                    cta_type: if *muted {
+                        MixpanelVideoClickedCTAType::Mute
+                    } else {
+                        MixpanelVideoClickedCTAType::Unmute
+                    },
+                });
+            }
         }
-    }
         async {}
     });
 
