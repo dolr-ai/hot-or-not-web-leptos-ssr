@@ -28,7 +28,7 @@ pub mod server {
     use leptos_axum::AxumRouteListing;
     use yral_canisters_common::Canisters;
 
-    #[cfg(feature = "alloydb")]
+    // #[cfg(feature = "alloydb")]
     #[derive(Clone)]
     pub struct HonWorkerJwt(pub std::sync::Arc<String>);
 

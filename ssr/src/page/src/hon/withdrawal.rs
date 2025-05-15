@@ -1,10 +1,7 @@
 use candid::{Nat, Principal};
 use component::{
-    auth_providers::handle_user_login,
-    back_btn::BackButton,
-    icons::{information_icon::Information, notification_icon::NotificationIcon},
-    title::TitleText,
-    tooltip::Tooltip,
+    auth_providers::handle_user_login, back_btn::BackButton,
+    icons::notification_icon::NotificationIcon, title::TitleText,
 };
 use futures::TryFutureExt;
 use hon_worker_common::{HoNGameWithdrawReq, SatsBalanceInfo};
@@ -229,15 +226,14 @@ pub fn HonWithdrawal() -> impl IntoView {
                                 <div class="flex justify-between">
                                     <div class="flex gap-2 items-center">
                                         <span>You withdraw</span>
-                                        <Tooltip icon=Information title="Withdrawal Tokens" description="Only sats earned above your airdrop amount can be withdrawn." />
                                     </div>
-                                    <input disabled=is_claiming on:input=on_input type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-40 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg" />
+                                    <input disabled=is_claiming on:input=on_input type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-44 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg" />
                                 </div>
                                 <div class="flex justify-between">
                                     <div class="flex gap-2 items-center">
                                         <span>You get</span>
                                     </div>
-                                    <input disabled type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-40 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg text-neutral-400" value=formated_dolrs />
+                                    <input disabled type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-44 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg text-neutral-400" value=formated_dolrs />
                                 </div>
                             </div>
                             <Suspense fallback=|| view! {
