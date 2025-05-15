@@ -246,10 +246,14 @@ fn WinBadge() -> impl IntoView {
 #[component]
 fn LostBadge() -> impl IntoView {
     view! {
-        <button class="py-2 px-4 w-full text-sm font-bold text-black bg-white rounded-sm">
-            <Icon attr:class="fill-white" style="" icon=icondata::RiTrophyFinanceFill />
+        <button class="py-2 px-4 w-full text-sm font-bold bg-white rounded-sm text-primary-600">
 
-            "You Lost"
+            <div class="flex justify-center items-center">
+                <span class="">
+                    <Icon attr:class="fill-white" style="" icon=icondata::LuThumbsDown />
+                </span>
+                <span class="ml-2">"You Lost"</span>
+            </div>
         </button>
     }
 }
@@ -257,13 +261,15 @@ fn LostBadge() -> impl IntoView {
 #[component]
 fn HNWonLost(game_result: GameResult, vote_amount: u64) -> impl IntoView {
     let won = matches!(game_result, GameResult::Win { .. });
+    let creator_reward = (vote_amount * 2) / 10;
     let message = match game_result {
         GameResult::Win { win_amt } => format!(
-            "You received {} Cents.",
-            TokenBalance::new(win_amt.into(), 0).humanize()
+            "You received {} SATS, {} SATS went to the creator.",
+            TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
+            creator_reward
         ),
         GameResult::Loss { lose_amt } => format!(
-            "You lost {} Cents.",
+            "You lost {} SATS.",
             TokenBalance::new(lose_amt.into(), 0).humanize()
         ),
     };
