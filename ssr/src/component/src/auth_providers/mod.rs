@@ -248,7 +248,7 @@ mod server_fn_impl {
             referee_principal_id: Principal,
         ) -> Result<(), ServerFnError> {
             use state::admin_canisters::admin_canisters;
-            use yral_canisters_client::user_index::Result_;
+            use yral_canisters_client::user_index::Result2;
 
             let admin_cans = admin_canisters();
             let user_idx = admin_cans.user_index_with(user_index).await;
@@ -259,7 +259,7 @@ mod server_fn_impl {
                     referee_principal_id,
                 )
                 .await?;
-            if let Result_::Err(e) = res {
+            if let Result2::Err(e) = res {
                 return Err(ServerFnError::new(format!(
                     "failed to issue referral reward {e}"
                 )));
