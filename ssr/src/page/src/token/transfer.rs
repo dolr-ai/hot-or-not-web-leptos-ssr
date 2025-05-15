@@ -259,6 +259,11 @@ fn TokenTransferInner(
     };
 
     let is_btc = info.name.to_lowercase() == "btc";
+    let placeholder = if is_btc {
+        "Enter OISY wallet principal"
+    } else {
+        "Enter destination principal"
+    };
     let formatted_balance = balance.humanize_float_truncate_to_dp(if is_btc { 5 } else { 2 });
 
     Either::Right(view! {
@@ -279,10 +284,10 @@ fn TokenTransferInner(
                     </div>
                 </div>
                 <div class="flex flex-col w-full gap-1">
-                    <div class="flex space-between">
+                    <div class="flex justify-between">
                         <span class="text-neutral-400 text-sm md:text-base">Destination</span>
                         {is_btc.then_some(view! {
-                            <a href="text-blue-200 text-sm font-medium md:text-base">Open OISY Wallet</a>
+                            <a target="_blank" href="https://oisy.com" class="text-blue-500 text-sm font-medium md:text-base">Open OISY Wallet</a>
                         })}
                     </div>
                     <div
@@ -293,6 +298,7 @@ fn TokenTransferInner(
                         <input
                             node_ref=destination_ref
                             class="text-white bg-transparent w-full text-base md:text-lg placeholder-white/40 focus:outline-none"
+                            placeholder=placeholder
                         />
                         <button on:click=move |_| {paste_destination.dispatch(());}>
                             <Icon
