@@ -109,6 +109,8 @@ trait WithdrawImpl {
 
     /// the url to redirect to when user wishes to withdraw
     fn withdraw_url(&self) -> String;
+
+    fn withdraw_cta(&self) -> String;
 }
 
 // TODO: use enum_dispatch instead
@@ -134,6 +136,10 @@ impl WithdrawImpl for WithdrawCents {
     fn withdraw_url(&self) -> String {
         "/pnd/withdraw".into()
     }
+
+    fn withdraw_cta(&self) -> String {
+        "Withdraw".into()
+    }
 }
 
 impl WithdrawImpl for WithdrawSats {
@@ -154,6 +160,10 @@ impl WithdrawImpl for WithdrawSats {
 
     fn withdraw_url(&self) -> String {
         "/hot-or-not/withdraw".into()
+    }
+
+    fn withdraw_cta(&self) -> String {
+        "Withdraw to BTC".into()
     }
 }
 
@@ -224,8 +234,8 @@ pub fn WalletCard(
     let buffer_signal = RwSignal::new(false);
     let claimed = RwSignal::new(is_airdrop_claimed);
     let (is_withdrawable, withdraw_message, withdrawable_balance) =
-        match (token_metadata.withdrawable_state, withdrawer) {
-            (Some(ref state), Some(ref w)) => match w.details(state.clone()) {
+        match (token_metadata.withdrawable_state, withdrawer.as_ref()) {
+            (Some(ref state), Some(w)) => match w.details(state.clone()) {
                 WithdrawDetails::CanWithdraw { amount, message } => {
                     (true, Some(message), Some(amount))
                 }
@@ -233,6 +243,19 @@ pub fn WalletCard(
             },
             _ => Default::default(),
         };
+    let withdraw_cta = withdrawer.as_ref().map(|w| w.withdraw_cta());
+
+    // overrides
+    let (name, logo) = match token_metadata.name.to_lowercase().as_str() {
+        "btc" => (
+            "Bitcoin".to_string(),
+            "/img/hotornot/bitcoin.webp".to_string(),
+        ),
+        _ => (
+            token_metadata.name.to_owned(),
+            token_metadata.logo_b64.to_owned(),
+        ),
+    };
 
     view! {
         <div node_ref=_ref class="flex flex-col gap-4 bg-neutral-900/90 rounded-lg w-full font-kumbh text-white p-4">
@@ -240,11 +263,11 @@ pub fn WalletCard(
                 <div class="w-full flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <img
-                            src=token_metadata.logo_b64.clone()
-                            alt=token_metadata.name.clone()
+                            src=logo.clone()
+                            alt=name.clone()
                             class="w-8 h-8 rounded-full object-cover"
                         />
-                        <div class="text-sm font-medium uppercase truncate">{token_metadata.name.clone()}</div>
+                        <div class="text-sm font-medium uppercase truncate">{name.clone()}</div>
                     </div>
                     <div class="flex flex-col items-end">
                         {
@@ -271,7 +294,7 @@ pub fn WalletCard(
                             class=(["text-neutral-50", "bg-brand-gradient"], is_withdrawable)
                             on:click=withdraw_handle
                         >
-                            Withdraw
+                            {withdraw_cta}
                         </button>
                     </div>
 
