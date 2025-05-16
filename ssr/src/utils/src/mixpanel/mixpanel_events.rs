@@ -12,28 +12,26 @@ use yral_canisters_common::Canisters;
 
 #[wasm_bindgen]
 extern "C" {
-    // mixpanel.track(event, properties)
-    #[wasm_bindgen(js_namespace = mixpanel)]
-    fn track(event_name: &str, properties: JsValue);
+    #[wasm_bindgen(js_namespace = mixpanel, catch)]
+    fn track(event_name: &str, properties: JsValue) -> Result<(), JsValue>;
 
-    // mixpanel.identify(user_id)
-    #[wasm_bindgen(js_namespace = mixpanel)]
-    fn identify(user_id: &str);
+    /// mixpanel.identify(user_id)
+    #[wasm_bindgen(js_namespace = mixpanel, catch)]
+    fn identify(user_id: &str) -> Result<(), JsValue>;
 }
 
-/// Call this once you know the logged‑in user's id (e.g. after login)
+/// Call once you know the logged-in user's ID
 pub fn identify_user(user_id: &str) {
-    identify(user_id);
+    let _ = identify(user_id);
 }
 
-/// Generic helper — anything that implements `Serialize` can be sent as props
+/// Generic helper: serializes `props` and calls Mixpanel.track
 pub fn track_event<T>(event_name: &str, props: T)
 where
     T: Serialize,
 {
-    // turn your Rust `props` into a JS object
     let js_props = to_value(&props).expect("failed to serialize Mixpanel props");
-    track(event_name, js_props);
+    let _ = track(event_name, js_props);
 }
 
 #[derive(Serialize, Clone)]
