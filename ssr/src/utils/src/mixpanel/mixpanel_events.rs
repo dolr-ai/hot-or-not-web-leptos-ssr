@@ -15,13 +15,17 @@ use yral_canisters_common::Canisters;
 
 #[wasm_bindgen]
 extern "C" {
-    /// mixpanel.track(event, properties)
-    #[wasm_bindgen(js_namespace = mixpanel)]
-    fn track(event_name: &str, properties: JsValue);
+    #[wasm_bindgen(js_namespace = mixpanel, catch)]
+    fn track(event_name: &str, properties: JsValue) -> Result<(), JsValue>;
 
     /// mixpanel.identify(user_id)
-    #[wasm_bindgen(js_namespace = mixpanel)]
-    fn identify(user_id: &str);
+    #[wasm_bindgen(js_namespace = mixpanel, catch)]
+    fn identify(user_id: &str) -> Result<(), JsValue>;
+}
+
+/// Call once you know the logged-in user's ID
+pub fn identify_user(user_id: &str) {
+    let _ = identify(user_id);
 }
 
 /// Generic helper: serializes `props` and calls Mixpanel.track
@@ -30,7 +34,7 @@ where
     T: Serialize,
 {
     let js_props = to_value(&props).expect("failed to serialize Mixpanel props");
-    track(event_name, js_props);
+    let _ = track(event_name, js_props);
 }
 
 #[derive(Clone)]
