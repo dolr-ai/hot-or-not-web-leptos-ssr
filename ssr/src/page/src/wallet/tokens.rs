@@ -245,29 +245,17 @@ pub fn WalletCard(
         };
     let withdraw_cta = withdrawer.as_ref().map(|w| w.withdraw_cta());
 
-    // overrides
-    let (name, logo) = match token_metadata.name.to_lowercase().as_str() {
-        "btc" => (
-            "Bitcoin".to_string(),
-            "/img/hotornot/bitcoin.webp".to_string(),
-        ),
-        _ => (
-            token_metadata.name.to_owned(),
-            token_metadata.logo_b64.to_owned(),
-        ),
-    };
-
     view! {
         <div node_ref=_ref class="flex flex-col gap-4 bg-neutral-900/90 rounded-lg w-full font-kumbh text-white p-4">
             <div class="flex flex-col gap-4 p-3 rounded-sm bg-neutral-800/70">
                 <div class="w-full flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <img
-                            src=logo.clone()
-                            alt=name.clone()
+                            src=token_metadata.logo_b64.clone()
+                            alt=token_metadata.name.clone()
                             class="w-8 h-8 rounded-full object-cover"
                         />
-                        <div class="text-sm font-medium uppercase truncate">{name.clone()}</div>
+                        <div class="text-sm font-medium uppercase truncate">{token_metadata.name.clone()}</div>
                     </div>
                     <div class="flex flex-col items-end">
                         {

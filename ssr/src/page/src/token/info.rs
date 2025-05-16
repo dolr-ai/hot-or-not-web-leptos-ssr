@@ -158,7 +158,7 @@ fn TokenInfoInner(
                                         .map(|balance| {
                                             view! {
                                                 <span class="font-bold">
-                                                    {format!("{} ", balance.humanize_float_truncate_to_dp(2))}
+                                                    {format!("{} ", balance.humanize_float_truncate_to_dp(8))}
                                                 </span>
                                                 <span>{meta_c1.symbol.clone()}</span>
                                     }
