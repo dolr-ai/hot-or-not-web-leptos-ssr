@@ -106,8 +106,6 @@ fn HNButtonOverlay(
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
 ) -> impl IntoView {
-    let is_hot_or_not = expect_context::<IsHotOrNot>();
-    is_hot_or_not.set((post.canister_id.to_text(), post.post_id), true);
     let place_bet_action = Action::new(
         move |(canisters, bet_direction, bet_amount): &(Canisters<true>, VoteKind, u64)| {
             let post_canister = post.canister_id;

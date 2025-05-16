@@ -67,8 +67,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
                 likes.update(|l| *l += 1);
                 LikeVideo.send_event(post_details.clone(), likes, canister_store);
                 let global = MixpanelGlobalProps::try_get(&canisters);
-                let is_hot_or_not = expect_context::<IsHotOrNot>();
-                let is_hot_or_not = is_hot_or_not.get((post.canister_id.to_text(), post_id));
+                let is_hot_or_not = true;
                 MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
                     user_id: global.user_id,
                     visitor_id: global.visitor_id,
@@ -179,8 +178,7 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
         ShareVideo.send_event(post_details, canisters);
         if let Some(cans) = canisters.get() {
             let global = MixpanelGlobalProps::try_get(&cans);
-            let is_hot_or_not = expect_context::<IsHotOrNot>();
-            let is_hot_or_not = is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
+            let is_hot_or_not = true;
             MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
                 user_id: global.user_id,
                 visitor_id: global.visitor_id,
@@ -203,8 +201,7 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
         let video_id = report_video_id.clone();
         if let Some(cans) = canisters.get() {
             let global = MixpanelGlobalProps::try_get(&cans);
-            let is_hot_or_not = expect_context::<IsHotOrNot>();
-            let is_hot_or_not = is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
+            let is_hot_or_not = true;
             MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
                 user_id: global.user_id,
                 visitor_id: global.visitor_id,
@@ -261,8 +258,7 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
 
         if let Some(cans) = canisters.get() {
             let global = MixpanelGlobalProps::try_get(&cans);
-            let is_hot_or_not = expect_context::<IsHotOrNot>();
-            let is_hot_or_not = is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
+            let is_hot_or_not = true;
             MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
                 user_id: global.user_id,
                 visitor_id: global.visitor_id,
@@ -309,9 +305,7 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                     show_nsfw_permission.set(false);
                     if let Some(cans) = canisters.get() {
                         let global = MixpanelGlobalProps::try_get(&cans);
-                        let is_hot_or_not = expect_context::<IsHotOrNot>();
-                        let is_hot_or_not =
-                            is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
+                        let is_hot_or_not = true;
                         MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
                             user_id: global.user_id,
                             visitor_id: global.visitor_id,
@@ -333,9 +327,7 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                     set_nsfw_enabled(!nsfw_enabled());
                     if let Some(cans) = canisters.get() {
                         let global = MixpanelGlobalProps::try_get(&cans);
-                        let is_hot_or_not = expect_context::<IsHotOrNot>();
-                        let is_hot_or_not =
-                            is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
+                        let is_hot_or_not = true;
                         MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
                             user_id: global.user_id,
                             visitor_id: global.visitor_id,
@@ -366,8 +358,7 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
         let video_id = profile_click_video_id.clone();
         if let Some(cans) = canisters.get() {
             let global = MixpanelGlobalProps::try_get(&cans);
-            let is_hot_or_not = expect_context::<IsHotOrNot>();
-            let is_hot_or_not = is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
+            let is_hot_or_not = true;
             MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
                 user_id: global.user_id,
                 visitor_id: global.visitor_id,

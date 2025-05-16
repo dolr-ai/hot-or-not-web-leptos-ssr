@@ -7,7 +7,6 @@ use leptos::prelude::*;
 use leptos_use::storage::use_local_storage;
 use serde::Serialize;
 use serde_wasm_bindgen::to_value;
-use std::collections::BTreeMap;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 use yral_canisters_common::utils::vote::VoteKind;
@@ -35,29 +34,6 @@ where
 {
     let js_props = to_value(&props).expect("failed to serialize Mixpanel props");
     let _ = track(event_name, js_props);
-}
-
-#[derive(Clone)]
-pub struct IsHotOrNot {
-    post: RwSignal<BTreeMap<(String, u64), bool>>,
-}
-
-impl IsHotOrNot {
-    pub fn register() {
-        provide_context(IsHotOrNot {
-            post: RwSignal::new(BTreeMap::new()),
-        });
-    }
-
-    pub fn set(&self, post_key: (String, u64), is_hot_or_not: bool) {
-        self.post.update(|m| {
-            m.insert(post_key, is_hot_or_not);
-        });
-    }
-
-    pub fn get(&self, post_key: (String, u64)) -> bool {
-        *self.post.get_untracked().get(&post_key).unwrap_or(&false)
-    }
 }
 
 /// Global properties for Mixpanel events

@@ -99,9 +99,7 @@ pub fn VideoView(
         if *muted != mixpanel_video_muted.get_untracked() {
             mixpanel_video_muted.set(*muted);
             let post = post_for_mixpanel.get_untracked().unwrap();
-            let is_hot_or_not = expect_context::<IsHotOrNot>();
-            let is_game_enabled = is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
-
+            let is_game_enabled = true;
             if let Some(cans) = auth_canisters_store().get_untracked() {
                 let global = MixpanelGlobalProps::try_get(&cans);
                 MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
@@ -205,8 +203,7 @@ pub fn VideoView(
             if let Some(cans) = canisters.get_untracked() {
                 let post = post_for_view.get_untracked().unwrap();
                 let global = MixpanelGlobalProps::try_get(&cans);
-                let is_hot_or_not = expect_context::<IsHotOrNot>();
-                let is_game_enabled = is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
+                let is_game_enabled = true;
                 MixPanelEvent::track_video_viewed(MixpanelVideoViewedProps {
                     publisher_user_id: post.poster_principal.to_text(),
                     user_id: global.user_id,
