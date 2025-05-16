@@ -42,32 +42,6 @@ export async function getToken() {
   }
 }
 
-export async function getDeviceFingerprint() {
-  // Collect basic device info
-  const userAgent = navigator.userAgent;
-  const screenResolution = `${screen.width}x${screen.height}`;
-  const language = navigator.language;
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  // Generate a unique string
-  let fingerprintString = `${userAgent}|${screenResolution}|${language}|${timezone}`;
-
-  // Hash the string (using SHA-256 for example)
-  const hash = await sha256(fingerprintString);
-  return hash;
-}
-
-async function sha256(message) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(message);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer)); // Convert buffer to byte array
-  const hashHex = hashArray
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-  return hashHex;
-}
-
 export async function getNotificationPermission() {
   const permission = await Notification.requestPermission();
   return permission === "granted";

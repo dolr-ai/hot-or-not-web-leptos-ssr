@@ -30,7 +30,7 @@ lto = true
 
 
 [workspace.dependencies]
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0.219", features = ["derive"] }
 candid = "0.10.3"
 serde_bytes = "0.11.14"
 web-time = "1.0.0"
@@ -142,8 +142,8 @@ yral-canisters-common = { git = "https://github.com/yral-dapp/yral-common.git", 
 pulldown-cmark = "0.12.1"
 ic-certification = "2.6.0"
 ciborium = "0.2.2"
-yral-metadata-client = { git = "https://github.com/yral-dapp/yral-metadata", rev = "a641efec208088d940df2eafec11a23595217694" }
-yral-metadata-types = { git = "https://github.com/yral-dapp/yral-metadata", rev = "a641efec208088d940df2eafec11a23595217694" }
+yral-metadata-client = { git = "https://github.com/yral-dapp/yral-metadata", rev = "756abdf2ca2200735cf038780604ed2ac19da3c8" }
+yral-metadata-types = { git = "https://github.com/yral-dapp/yral-metadata", rev = "756abdf2ca2200735cf038780604ed2ac19da3c8" }
 yral-pump-n-dump-common = { git = "https://github.com/yral-dapp/yral-common", features = [
     "client",
 ], branch = "master", version = "0.1.0" }

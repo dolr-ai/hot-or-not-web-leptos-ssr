@@ -1,3 +1,4 @@
+use auth::delegate_identity;
 use codee::string::FromToStringCodec;
 use consts::NOTIFICATIONS_ENABLED_STORE;
 use leptos::prelude::*;
@@ -34,7 +35,7 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
             let token = get_device_registeration_token().await.unwrap();
 
             metaclient
-                .register_device(cans.identity(), token)
+                .register_device(delegate_identity(cans.identity()), token)
                 .await
                 .unwrap();
 

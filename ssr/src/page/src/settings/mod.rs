@@ -1,3 +1,4 @@
+use auth::delegate_identity;
 use codee::string::FromToStringCodec;
 use component::back_btn::BackButton;
 use component::canisters_prov::AuthCansProvider;
@@ -130,7 +131,9 @@ fn EnableNotifications() -> impl IntoView {
     let auth_cans = authenticated_canisters();
 
     let on_token_click: Action<(), (), LocalStorage> = Action::new_unsync(move |()| async move {
-        let metaclient: MetadataClient<false> = MetadataClient::default();
+        let metaclient: MetadataClient<false> = MetadataClient::with_base_url(
+            reqwest::Url::parse("https://pr-19-dolr-ai-yral-metadata.fly.dev/").unwrap(),
+        );
 
         let cans = Canisters::from_wire(auth_cans.await.unwrap(), expect_context()).unwrap();
 
@@ -138,13 +141,13 @@ fn EnableNotifications() -> impl IntoView {
 
         if notifs_enabled.get_untracked() {
             metaclient
-                .unregister_device(cans.identity(), token)
+                .unregister_device(delegate_identity(cans.identity()), token)
                 .await
                 .unwrap();
             set_notifs_enabled(false)
         } else {
             metaclient
-                .register_device(cans.identity(), token)
+                .register_device(delegate_identity(cans.identity()), token)
                 .await
                 .unwrap();
             set_notifs_enabled(true)

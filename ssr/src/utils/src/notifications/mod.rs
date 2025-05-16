@@ -9,9 +9,6 @@ extern "C" {
     #[wasm_bindgen(catch, js_name = getToken)]
     async fn get_token() -> Result<JsValue, JsValue>;
 
-    #[wasm_bindgen(catch, js_name = getDeviceFingerprint)]
-    async fn get_device_fingerprint() -> Result<JsValue, JsValue>;
-
     #[wasm_bindgen(catch, js_name = getNotificationPermission)]
     async fn get_notification_permission() -> Result<JsValue, JsValue>;
 }
@@ -28,20 +25,11 @@ pub async fn get_device_registeration_token() -> Result<DeviceRegistrationToken,
         return Err(ServerFnError::new("Notification permission not granted"));
     }
 
-    let device_fingerprint = get_device_fingerprint()
-        .await
-        .map_err(|e| ServerFnError::new(format!("{:?}", e)))?
-        .as_string()
-        .ok_or(ServerFnError::new("Failed to get device fingerprint"))?;
-
     let token = get_token()
         .await
         .map_err(|e| ServerFnError::new(format!("{:?}", e)))?
         .as_string()
         .ok_or(ServerFnError::new("Failed to get token"))?;
 
-    Ok(DeviceRegistrationToken {
-        token,
-        device_fingerprint,
-    })
+    Ok(DeviceRegistrationToken { token })
 }
