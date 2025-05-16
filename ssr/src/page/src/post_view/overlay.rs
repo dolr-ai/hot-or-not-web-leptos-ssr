@@ -70,7 +70,12 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
                 let is_hot_or_not = expect_context::<IsHotOrNot>();
                 let is_hot_or_not = is_hot_or_not.get((post.canister_id.to_text(), post_id));
                 MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-                    global,
+                    user_id: global.user_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
+                    is_nsfw: post.is_nsfw,
                     is_game_enabled: is_hot_or_not,
                     publisher_user_id: post.poster_principal.to_text(),
                     game_type: MixpanelPostGameType::HotOrNot,
@@ -158,6 +163,7 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
     let canisters = auth_canisters_store();
     let canisters_copy = canisters;
     let share_video_id = post.uid.clone();
+    let report_video_id = post.uid.clone();
 
     let share = move || {
         let video_id = share_video_id.clone();
@@ -173,11 +179,40 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
             let is_hot_or_not = expect_context::<IsHotOrNot>();
             let is_hot_or_not = is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
             MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-                global,
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                is_nsfw: post.is_nsfw,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
                 is_game_enabled: is_hot_or_not,
                 publisher_user_id: post.poster_principal.to_text(),
                 game_type: MixpanelPostGameType::HotOrNot,
                 cta_type: MixpanelVideoClickedCTAType::Share,
+                video_id,
+                view_count: post.views,
+                like_count: post.likes,
+            });
+        }
+    };
+
+    let mixpanel_track_refer = move || {
+        let video_id = report_video_id.clone();
+        if let Some(cans) = canisters.get() {
+            let global = MixpanelGlobalProps::try_get(&cans);
+            let is_hot_or_not = expect_context::<IsHotOrNot>();
+            let is_hot_or_not = is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
+            MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                is_nsfw: post.is_nsfw,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                is_game_enabled: is_hot_or_not,
+                publisher_user_id: post.poster_principal.to_text(),
+                game_type: MixpanelPostGameType::HotOrNot,
+                cta_type: MixpanelVideoClickedCTAType::ReferAndEarn,
                 video_id,
                 view_count: post.views,
                 like_count: post.likes,
@@ -196,6 +231,7 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
 
     let post_details_report = post.clone();
     let report_video_id = post.uid.clone();
+    let profile_click_video_id = post.uid.clone();
     let click_report = Action::new(move |()| {
         let video_id = report_video_id.clone();
         #[cfg(feature = "ga4")]
@@ -225,7 +261,13 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
             let is_hot_or_not = expect_context::<IsHotOrNot>();
             let is_hot_or_not = is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
             MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-                global,
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw: post.is_nsfw,
+
+                is_nsfw_enabled: global.is_nsfw_enabled,
                 is_game_enabled: is_hot_or_not,
                 publisher_user_id: post.poster_principal.to_text(),
                 game_type: MixpanelPostGameType::HotOrNot,
@@ -268,7 +310,12 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                         let is_hot_or_not =
                             is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
                         MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-                            global,
+                            user_id: global.user_id,
+                            visitor_id: global.visitor_id,
+                            is_logged_in: global.is_logged_in,
+                            canister_id: global.canister_id,
+                            is_nsfw: post.is_nsfw,
+                            is_nsfw_enabled: global.is_nsfw_enabled,
                             is_game_enabled: is_hot_or_not,
                             publisher_user_id: post.poster_principal.to_text(),
                             game_type: MixpanelPostGameType::HotOrNot,
@@ -287,7 +334,12 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                         let is_hot_or_not =
                             is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
                         MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-                            global,
+                            user_id: global.user_id,
+                            visitor_id: global.visitor_id,
+                            is_logged_in: global.is_logged_in,
+                            is_nsfw: post.is_nsfw,
+                            canister_id: global.canister_id,
+                            is_nsfw_enabled: global.is_nsfw_enabled,
                             is_game_enabled: is_hot_or_not,
                             publisher_user_id: post.poster_principal.to_text(),
                             game_type: MixpanelPostGameType::HotOrNot,
@@ -307,6 +359,30 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
         }
     });
 
+    let mixpanel_track_profile_click = move || {
+        let video_id = profile_click_video_id.clone();
+        if let Some(cans) = canisters.get() {
+            let global = MixpanelGlobalProps::try_get(&cans);
+            let is_hot_or_not = expect_context::<IsHotOrNot>();
+            let is_hot_or_not = is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
+            MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                is_nsfw: post.is_nsfw,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                is_game_enabled: is_hot_or_not,
+                publisher_user_id: post.poster_principal.to_text(),
+                game_type: MixpanelPostGameType::HotOrNot,
+                cta_type: MixpanelVideoClickedCTAType::CreatorProfile,
+                video_id,
+                view_count: post.views,
+                like_count: post.likes,
+            });
+        }
+    };
+
     view! {
         <div class="flex flex-col pointer-events-none flex-nowrap h-full justify-between pt-5 pb-20 px-[16px] md:px-[16px] w-full text-white absolute bottom-0 left-0 bg-transparent z-[4]">
             <div class="flex pointer-events-auto flex-row justify-between w-full items-center">
@@ -322,7 +398,7 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                     <div class="flex flex-col justify-center min-w-0">
                         <div class="flex flex-row text-xs md:text-sm lg:text-base gap-1 items-center">
                             <span class="font-semibold truncate">
-                                <a href=profile_url>{post.display_name}</a>
+                                <a on:click=move|_| mixpanel_track_profile_click() href=profile_url>{post.display_name}</a>
                             </span>
                             <span class="font-semibold">"|"</span>
                             <span class="flex flex-row gap-1 items-center">
@@ -358,7 +434,7 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                     <button on:click=move |_| show_report.set(true)>
                         <Icon attr:class="drop-shadow-lg" icon=icondata::TbMessageReport />
                     </button>
-                    <a href="/refer-earn">
+                    <a on:click=move|_| mixpanel_track_refer()  href="/refer-earn">
                         <Icon attr:class="drop-shadow-lg" icon=icondata::AiGiftFilled />
                     </a>
                     <LikeAndAuthCanLoader post=post_c.clone() />

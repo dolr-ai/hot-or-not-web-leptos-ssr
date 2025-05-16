@@ -51,15 +51,26 @@ pub async fn handle_user_login(
         CentsAdded.send_event("signup".to_string(), NEW_USER_SIGNUP_REWARD);
         let global = MixpanelGlobalProps::try_get(&canisters);
         MixPanelEvent::track_signup_success(MixpanelSignupSuccessProps {
-            global,
+            user_id: global.user_id,
+            visitor_id: global.visitor_id,
+            is_logged_in: global.is_logged_in,
+            canister_id: global.canister_id,
+            is_nsfw_enabled: global.is_nsfw_enabled,
             is_referral: referrer.is_some(),
             referrer_user_id: referrer.map(|f| f.to_text()),
         });
     } else {
+        let global = MixpanelGlobalProps::try_get(&canisters);
         MixPanelEvent::track_login_success(MixpanelLoginSuccessProps {
-            global: MixpanelGlobalProps::try_get(&canisters),
+            user_id: global.user_id,
+            visitor_id: global.visitor_id,
+            is_logged_in: global.is_logged_in,
+            canister_id: global.canister_id,
+            is_nsfw_enabled: global.is_nsfw_enabled,
         });
     }
+
+    MixPanelEvent::identify_user(user_principal.to_text().as_str());
 
     match referrer {
         Some(_referee_principal) if first_time_login => {

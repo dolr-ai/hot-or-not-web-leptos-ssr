@@ -303,7 +303,11 @@ pub fn VideoUploader(
                         let global = MixpanelGlobalProps::try_get(&canisters);
                         MixPanelEvent::track_video_upload_success(
                             MixpanelVideoUploadSuccessProps {
-                                global,
+                                user_id: global.user_id,
+                                visitor_id: global.visitor_id,
+                                is_logged_in: global.is_logged_in,
+                                canister_id: global.canister_id,
+                                is_nsfw_enabled: global.is_nsfw_enabled,
                                 video_id: uid.clone(),
                                 is_game_enabled: true,
                                 game_type: MixpanelPostGameType::HotOrNot,

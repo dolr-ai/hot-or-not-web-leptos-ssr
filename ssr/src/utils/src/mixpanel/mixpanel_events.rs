@@ -24,11 +24,6 @@ extern "C" {
     fn identify(user_id: &str);
 }
 
-/// Call once you know the logged-in user's ID
-pub fn identify_user(user_id: &str) {
-    identify(user_id);
-}
-
 /// Generic helper: serializes `props` and calls Mixpanel.track
 pub fn track_event<T>(event_name: &str, props: T)
 where
@@ -130,25 +125,43 @@ impl MixpanelGlobalProps {
 
 #[derive(Serialize)]
 pub struct MixpanelHomePageViewedProps {
-    pub global: MixpanelGlobalProps,
-    // pub publisher_user_id: String,
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
 }
 
 #[derive(Serialize)]
 pub struct MixpanelSignupSuccessProps {
-    pub global: MixpanelGlobalProps,
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
     pub is_referral: bool,
     pub referrer_user_id: Option<String>,
 }
 
 #[derive(Serialize)]
 pub struct MixpanelLoginSuccessProps {
-    pub global: MixpanelGlobalProps,
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
 }
 
 #[derive(Serialize)]
 pub struct MixpanelSatsToBtcConvertedProps {
-    pub global: MixpanelGlobalProps,
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
     pub sats_converted: f64,
     pub updated_sats_wallet_balance: f64,
     pub updated_token_wallet_balance: f64,
@@ -157,14 +170,24 @@ pub struct MixpanelSatsToBtcConvertedProps {
 
 #[derive(Serialize)]
 pub struct MixpanelNsfwToggleProps {
-    pub global: MixpanelGlobalProps,
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
     pub publisher_user_id: String,
     pub video_id: String,
 }
 
 #[derive(Serialize)]
 pub struct MixpanelVideoClickedProps {
-    pub global: MixpanelGlobalProps,
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
     pub publisher_user_id: String,
     pub like_count: u64,
     pub view_count: u64,
@@ -172,15 +195,22 @@ pub struct MixpanelVideoClickedProps {
     pub video_id: String,
     pub game_type: MixpanelPostGameType,
     pub cta_type: MixpanelVideoClickedCTAType,
+    pub is_nsfw: bool,
 }
 
 #[derive(Serialize)]
 pub struct MixpanelReferAndEarnProps {
-    pub global: MixpanelGlobalProps,
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
     pub refer_link: String,
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum MixpanelPostGameType {
     HotOrNot,
 }
@@ -196,22 +226,34 @@ pub enum MixpanelVideoClickedCTAType {
     NsfwFalse,
     Mute,
     Unmute,
+    CreatorProfile,
 }
 
 #[derive(Serialize)]
 pub struct MixpanelVideoViewedProps {
-    pub global: MixpanelGlobalProps,
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
     pub video_id: String,
     pub publisher_user_id: String,
     pub game_type: MixpanelPostGameType,
     pub like_count: u64,
     pub view_count: u64,
+    pub is_nsfw: bool,
     pub is_game_enabled: bool,
 }
 
 #[derive(Serialize)]
 pub struct MixpanelGamePlayedProps {
-    pub global: MixpanelGlobalProps,
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
     pub video_id: String,
     pub publisher_user_id: String,
     pub game_type: MixpanelPostGameType,
@@ -226,6 +268,7 @@ pub struct MixpanelGamePlayedProps {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum GameConclusion {
     Pending,
     Win,
@@ -233,6 +276,7 @@ pub enum GameConclusion {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum StakeType {
     SATs,
     Cents,
@@ -240,7 +284,12 @@ pub enum StakeType {
 
 #[derive(Serialize)]
 pub struct MixpanelVideoUploadSuccessProps {
-    pub global: MixpanelGlobalProps,
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
     pub video_id: String,
     // pub publisher_user_id: String,
     pub is_game_enabled: bool,
@@ -249,7 +298,12 @@ pub struct MixpanelVideoUploadSuccessProps {
 
 #[derive(Serialize)]
 pub struct MixpanelCentsToDolrProps {
-    pub global: MixpanelGlobalProps,
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
     pub cents_converted: f64,
     pub updated_cents_wallet_balance: f64,
     pub conversion_ratio: f64,
@@ -257,7 +311,12 @@ pub struct MixpanelCentsToDolrProps {
 
 #[derive(Serialize)]
 pub struct MixpanelThirdPartyWalletTransferredProps {
-    pub global: MixpanelGlobalProps,
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
     pub token_transferred: f64,
     // pub updated_token_wallet_balance: f64,
     pub transferred_to: String,
@@ -267,6 +326,10 @@ pub struct MixpanelThirdPartyWalletTransferredProps {
 
 pub struct MixPanelEvent;
 impl MixPanelEvent {
+    /// Call once you know the logged-in user's ID
+    pub fn identify_user(user_id: &str) {
+        identify(user_id);
+    }
     pub fn track_home_page_viewed(p: MixpanelHomePageViewedProps) {
         track_event("home_page_viewed", p);
     }

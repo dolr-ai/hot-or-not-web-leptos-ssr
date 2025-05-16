@@ -105,12 +105,18 @@ pub fn VideoView(
             if let Some(cans) = auth_canisters_store().get_untracked() {
                 let global = MixpanelGlobalProps::try_get(&cans);
                 MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-                    global,
+                    user_id: global.user_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
                     publisher_user_id: post.poster_principal.to_text(),
                     like_count: post.likes,
                     view_count: post.views,
                     is_game_enabled,
                     video_id: post.uid,
+                    is_nsfw: post.is_nsfw,
+
                     game_type: MixpanelPostGameType::HotOrNot,
                     cta_type: if *muted {
                         MixpanelVideoClickedCTAType::Mute
@@ -203,10 +209,15 @@ pub fn VideoView(
                 let is_game_enabled = is_hot_or_not.get((post.canister_id.to_text(), post.post_id));
                 MixPanelEvent::track_video_viewed(MixpanelVideoViewedProps {
                     publisher_user_id: post.poster_principal.to_text(),
-                    global,
+                    user_id: global.user_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
                     video_id: post.uid,
                     view_count: post.views,
                     like_count: post.likes,
+                    is_nsfw: post.is_nsfw,
                     game_type: MixpanelPostGameType::HotOrNot,
                     is_game_enabled,
                 });
