@@ -121,7 +121,7 @@ fn BalanceDisplay(#[prop(into)] balance: Nat) -> impl IntoView {
         <div id="total-balance" class="self-center flex flex-col items-center gap-1">
             <span class="text-neutral-400 text-sm">Total Sats balance</span>
             <div class="flex items-center gap-3 min-h-14 py-0.5">
-                <img class="size-9 rounded-full" src="/img/hotornot/sats.webp" alt="sats icon" />
+                <img class="size-9 rounded-full" src="/img/hotornot/sats.svg" alt="sats icon" />
                 <span class="font-bold text-4xl">{format_sats!(balance)}</span>
             </div>
         </div>
