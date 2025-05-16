@@ -11,10 +11,7 @@ use leptos_icons::*;
 use server_impl::vote_with_cents_on_post;
 use state::canisters::authenticated_canisters;
 use utils::try_or_redirect_opt;
-use utils::{
-    mixpanel::mixpanel_events::*,
-    send_wrap,
-};
+use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::{
     utils::{posts::PostDetails, token::balance::TokenBalance, vote::VoteKind},
     Canisters,
