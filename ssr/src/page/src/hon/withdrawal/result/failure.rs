@@ -1,4 +1,3 @@
-use candid::Nat;
 use leptos::{component, prelude::*, view, IntoView, Params};
 use leptos_router::{hooks::use_query, params::Params};
 use utils::try_or_redirect_opt;
@@ -6,14 +5,14 @@ use yral_canisters_common::utils::token::balance::TokenBalance;
 
 #[derive(Debug, PartialEq, Eq, Clone, Params)]
 struct FailureParams {
-    cents: Nat,
+    sats: u128,
 }
 
 #[component]
 pub fn Failure() -> impl IntoView {
     let params = use_query::<FailureParams>();
-    let FailureParams { cents } = try_or_redirect_opt!(params.get_untracked());
-    let formatted_cents = TokenBalance::new(cents.clone(), 6).humanize_float_truncate_to_dp(4);
+    let FailureParams { sats } = try_or_redirect_opt!(params.get_untracked());
+    let formatted_sats = TokenBalance::new(sats.into(), 0).humanize_float_truncate_to_dp(0);
     Some(view! {
         <div
             style:background-image="url('/img/pumpdump/onboarding-bg-grayscale.webp')"
@@ -27,9 +26,9 @@ pub fn Failure() -> impl IntoView {
                         <div class="flex flex-col gap-8 w-full px-5">
                             <div class="flex flex-col gap-2 items-center">
                                 <span class="font-bold text-lg">OOPS!</span>
-                                <span class="text-neutral-300">Failed to claim {formatted_cents} Cents!</span>
+                                <span class="text-neutral-300">Failed to withdraw {formatted_sats} Sats!</span>
                             </div>
-                            <a class="rounded-lg px-5 py-2 text-center font-bold bg-brand-gradient text-white" href="/pnd/withdraw">
+                            <a class="rounded-lg px-5 py-2 text-center font-bold bg-brand-gradient text-white" href="/hot-or-not/withdraw">
                                 Try Again
                             </a>
                         </div>

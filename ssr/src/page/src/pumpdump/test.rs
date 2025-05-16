@@ -6,7 +6,7 @@ use leptos_router::hooks::use_params_map;
 use leptos_use::{use_websocket, UseWebSocketReturn};
 use state::canisters::authenticated_canisters;
 use std::sync::Arc;
-use utils::{send_wrap, token::icpump::IcpumpTokenInfo};
+use utils::token::icpump::IcpumpTokenInfo;
 use yral_canisters_common::{
     utils::token::{RootType, TokenOwner},
     Canisters,
@@ -149,9 +149,9 @@ pub fn PndTest() -> impl IntoView {
     let round = RwSignal::new(0u64);
 
     let cans_wire = authenticated_canisters();
-    let fetch_test_data = Action::new(move |&()| {
+    let fetch_test_data = Action::new_local(move |&()| {
         let cans_wire = cans_wire;
-        send_wrap(async move {
+        async move {
             let cans_wire = cans_wire.await.expect("cans_wire to be there");
             let cans = Canisters::from_wire(cans_wire.clone(), expect_context())
                 .expect("get auth canisters from the wire");
@@ -180,14 +180,14 @@ pub fn PndTest() -> impl IntoView {
                 .await
                 .unwrap(),
             }));
-        })
+        }
     });
 
     let websocket = RwSignal::new(None);
     let cans_wire = authenticated_canisters();
-    let create_websocket_connection = Action::new(move |&()| {
+    let create_websocket_connection = Action::new_local(move |&()| {
         let cans_wire = cans_wire;
-        send_wrap(async move {
+        async move {
             let mut ws_url = PUMP_AND_DUMP_WORKER_URL.clone();
             ws_url.set_scheme("ws").expect("schema to valid");
             let cans_wire = cans_wire.await.expect("cans_wire to be there");
@@ -226,7 +226,7 @@ pub fn PndTest() -> impl IntoView {
             };
 
             websocket.set(Some(context));
-        })
+        }
     });
     Effect::new(move |_| {
         if websocket.get().is_none() {

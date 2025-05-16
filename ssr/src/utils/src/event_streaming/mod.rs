@@ -47,7 +47,7 @@ pub async fn send_event_ssr(event_name: String, params: String) -> Result<(), Se
     use super::host::get_host;
 
     let params = serde_json::from_str::<serde_json::Value>(&params).map_err(|e| {
-        log::error!("Error parsing params: {:?}", e);
+        log::error!("Error parsing params: {e:?}");
         ServerFnError::new(e.to_string())
     })?;
 
@@ -68,7 +68,7 @@ pub async fn send_event_ssr(event_name: String, params: String) -> Result<(), Se
     let res = send_event_ga4(user_id, &event_name, &params).await;
 
     if let Err(e) = res {
-        log::error!("Error sending event to GA4: {:?}", e);
+        log::error!("Error sending event to GA4: {e:?}");
     }
 
     Ok(())
@@ -79,16 +79,16 @@ pub fn send_event_ssr_spawn(event_name: String, params: String) -> Result<(), Se
     use leptos::task::spawn_local;
 
     let mut params = serde_json::from_str::<serde_json::Value>(&params).map_err(|e| {
-        log::error!("Error parsing params: {:?}", e);
+        log::error!("Error parsing params: {e:?}");
         ServerFnError::new(e.to_string())
     })?;
     params["page_location"] = json!(window().location().href().map_err(|e| {
-        let error_msg = format!("Error getting page location: {:?}", e);
-        log::error!("{}", error_msg);
+        let error_msg = format!("Error getting page location: {e:?}");
+        log::error!("{error_msg}");
         ServerFnError::new(error_msg)
     })?);
     let params = serde_json::to_string(&params).map_err(|e| {
-        log::error!("Error serializing params: {:?}", e);
+        log::error!("Error serializing params: {e:?}");
         ServerFnError::new(e.to_string())
     })?;
 
@@ -110,7 +110,7 @@ pub fn send_user_id(user_id: String) -> Result<(), ServerFnError> {
             "user_id": user_id,
         }))
         .map_err(|e| {
-            log::error!("Error serializing params: {:?}", e);
+            log::error!("Error serializing params: {e:?}");
             ServerFnError::new(e.to_string())
         })?,
     );
@@ -133,7 +133,7 @@ pub async fn send_event_warehouse(event_name: &str, params: &serde_json::Value) 
 
     let res = stream_to_offchain_agent(event_name, &params).await;
     if let Err(e) = res {
-        log::error!("Error sending event to warehouse: {:?}", e);
+        log::error!("Error sending event to warehouse: {e:?}");
     }
 }
 
@@ -144,7 +144,7 @@ pub async fn send_event_warehouse_ssr(
     params: String,
 ) -> Result<(), ServerFnError> {
     let params = serde_json::from_str::<serde_json::Value>(&params).map_err(|e| {
-        log::error!("Error parsing params: {:?}", e);
+        log::error!("Error parsing params: {e:?}");
         ServerFnError::new(e.to_string())
     })?;
     send_event_warehouse(&event_name, &params).await;
@@ -177,7 +177,7 @@ pub async fn stream_to_offchain_agent(
     // removing whitespaces and new lines for proper parsing
     off_chain_agent_grpc_auth_token.retain(|c| !c.is_whitespace());
 
-    let token: MetadataValue<_> = format!("Bearer {}", off_chain_agent_grpc_auth_token).parse()?;
+    let token: MetadataValue<_> = format!("Bearer {off_chain_agent_grpc_auth_token}").parse()?;
 
     let mut client =
         warehouse_events::warehouse_events_client::WarehouseEventsClient::with_interceptor(
@@ -231,8 +231,7 @@ pub async fn send_event_ga4(
 
     let client = Client::new();
     let url = format!(
-        "https://www.google-analytics.com/mp/collect?measurement_id={}&api_secret={}",
-        measurement_id, api_secret
+        "https://www.google-analytics.com/mp/collect?measurement_id={measurement_id}&api_secret={api_secret}"
     );
 
     let params = convert_leaf_values_to_string(params.clone());

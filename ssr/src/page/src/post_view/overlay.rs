@@ -45,12 +45,12 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
     let initial_liked = (post.liked_by_user, post.likes);
     let canisters = auth_canisters_store();
 
-    let like_toggle = Action::new(move |&()| {
+    let like_toggle = Action::new_local(move |&()| {
         let post_details = post.clone();
         let canister_store = canisters;
         let video_id = post.uid.clone();
 
-        send_wrap(async move {
+        async move {
             let Some(canisters) = canisters.get_untracked() else {
                 log::warn!("Trying to toggle like without auth");
                 return;
@@ -88,15 +88,18 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
                 likes.update(|l| *l -= 1);
             }
 
-            let individual = send_wrap(canisters.individual_user(post_canister)).await;
-            match send_wrap(individual.update_post_toggle_like_status_by_caller(post_id)).await {
+            let individual = canisters.individual_user(post_canister).await;
+            match individual
+                .update_post_toggle_like_status_by_caller(post_id)
+                .await
+            {
                 Ok(_) => (),
                 Err(e) => {
-                    log::warn!("Error toggling like status: {:?}", e);
+                    log::warn!("Error toggling like status: {e:?}");
                     liked.update(|l| _ = l.as_mut().map(|l| *l = !*l));
                 }
             }
-        })
+        }
     });
 
     let liked_fetch = with_cans(move |cans: Canisters<true>| {

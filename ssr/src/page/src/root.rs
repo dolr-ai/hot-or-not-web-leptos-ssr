@@ -23,7 +23,7 @@ async fn get_top_post_id_global_clean_feed() -> Result<Option<PostItem>, ServerF
     let posts = get_ml_feed_coldstart_clean(Principal::anonymous(), 1, vec![])
         .await
         .map_err(|e| {
-            log::error!("Error getting top post id global clean feed: {:?}", e);
+            log::error!("Error getting top post id global clean feed: {e:?}");
             ServerFnError::new(e.to_string())
         })?;
     if !posts.is_empty() {
@@ -38,7 +38,7 @@ async fn get_top_post_id_global_nsfw_feed() -> Result<Option<PostItem>, ServerFn
     let posts = get_ml_feed_coldstart_nsfw(Principal::anonymous(), 1, vec![])
         .await
         .map_err(|e| {
-            log::error!("Error getting top post id global nsfw feed: {:?}", e);
+            log::error!("Error getting top post id global nsfw feed: {e:?}");
             ServerFnError::new(e.to_string())
         })?;
     if !posts.is_empty() {

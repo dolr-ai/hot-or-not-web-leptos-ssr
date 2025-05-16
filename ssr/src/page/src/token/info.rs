@@ -64,7 +64,7 @@ fn TokenDetails(meta: TokenMetadata) -> impl IntoView {
 }
 
 pub fn generate_share_link(root: &RootType, key_principal: Principal) -> String {
-    format!("/token/info/{}/{key_principal}?airdrop_amt=100", root)
+    format!("/token/info/{root}/{key_principal}?airdrop_amt=100")
 }
 
 #[component]
@@ -158,7 +158,7 @@ fn TokenInfoInner(
                                         .map(|balance| {
                                             view! {
                                                 <span class="font-bold">
-                                                    {format!("{} ", balance.humanize_float_truncate_to_dp(2))}
+                                                    {format!("{} ", balance.humanize_float_truncate_to_dp(8))}
                                                 </span>
                                                 <span>{meta_c1.symbol.clone()}</span>
                                     }

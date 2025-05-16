@@ -88,6 +88,8 @@ regex = { workspace = true, optional = true }
 tonic-build = { workspace = true }
 anyhow = { workspace = true }
 send_wrapper = { workspace = true }
+
+# local deps
 consts.workspace = true
 auth.workspace = true
 state.workspace = true

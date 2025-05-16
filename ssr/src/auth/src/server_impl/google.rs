@@ -88,7 +88,7 @@ fn no_op_nonce_verifier(_: Option<&Nonce>) -> Result<(), String> {
 }
 
 fn principal_lookup_key(sub_id: &str) -> String {
-    format!("google-login-{}", sub_id)
+    format!("google-login-{sub_id}")
 }
 
 async fn try_extract_identity_from_google_sub(

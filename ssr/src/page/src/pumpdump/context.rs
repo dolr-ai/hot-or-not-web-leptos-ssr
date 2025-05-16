@@ -115,7 +115,7 @@ pub(super) struct WsResponse {
 #[derive(Clone)]
 pub(super) struct RunningGameCtx {
     sendfn: SendFn,
-    pub reload_running_data: Action<(), ()>,
+    pub reload_running_data: Action<(), (), LocalStorage>,
     player_data: PlayerDataRes,
     running_data: RwSignal<Option<GameRunningData>>,
     current_round: StoredValue<Option<u64>>,
@@ -170,21 +170,19 @@ impl RunningGameCtx {
         let current_round = StoredValue::new(None);
 
         let token_owner_canister = token.token_owner.as_ref().map(|o| o.canister_id).unwrap();
-        let reload_running_data = Action::new(move |_| {
-            send_wrap(async move {
-                let data = GameRunningData::load(token_owner_canister, token.root, user_canister)
-                    .await
-                    .inspect_err(|err| {
-                        log::error!("couldn't load running data: {err}");
-                    })
-                    .ok();
+        let reload_running_data = Action::new_local(move |_| async move {
+            let data = GameRunningData::load(token_owner_canister, token.root, user_canister)
+                .await
+                .inspect_err(|err| {
+                    log::error!("couldn't load running data: {err}");
+                })
+                .ok();
 
-                if data.is_some() {
-                    game_state.set(Some(GameState::Playing));
-                }
+            if data.is_some() {
+                game_state.set(Some(GameState::Playing));
+            }
 
-                running_data.set(data);
-            })
+            running_data.set(data);
         });
 
         Effect::new(move |_| {

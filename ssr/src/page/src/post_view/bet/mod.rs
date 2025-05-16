@@ -1,20 +1,22 @@
+mod server_impl;
+
 use crate::post_view::BetEligiblePostCtx;
 use component::{
     bullet_loader::BulletLoader, canisters_prov::AuthCansProvider, hn_icons::*, spinner::SpinnerFit,
 };
-use consts::{CENTS_IN_E6S, PUMP_AND_DUMP_WORKER_URL};
+use hon_worker_common::{sign_vote_request, GameInfo, GameResult, WORKER_URL};
+use ic_agent::Identity;
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
-use leptos_use::use_interval_fn;
-use state::canisters::{authenticated_canisters, unauth_canisters};
-use utils::{mixpanel::mixpanel_events::*, send_wrap, time::to_hh_mm_ss, try_or_redirect_opt};
-use web_time::Duration;
-use yral_canisters_client::individual_user_template::{BettingStatus, PlacedBetDetail};
+use server_impl::vote_with_cents_on_post;
+use state::canisters::authenticated_canisters;
+use utils::try_or_redirect_opt;
+use utils::{
+    mixpanel::mixpanel_events::*,
+    send_wrap,
+};
 use yral_canisters_common::{
-    utils::{
-        posts::PostDetails,
-        vote::{VoteDetails, VoteKind, VoteOutcome},
-    },
+    utils::{posts::PostDetails, token::balance::TokenBalance, vote::VoteKind},
     Canisters,
 };
 
@@ -111,23 +113,26 @@ fn HNButtonOverlay(
     is_hot_or_not.set((post.canister_id.to_text(), post.post_id), true);
     let place_bet_action = Action::new(
         move |(canisters, bet_direction, bet_amount): &(Canisters<true>, VoteKind, u64)| {
-            let post_can_id = post.canister_id;
+            let post_canister = post.canister_id;
             let post_id = post.post_id;
             let cans = canisters.clone();
             let bet_amount = *bet_amount;
             let bet_direction = *bet_direction;
+            let req = hon_worker_common::VoteRequest {
+                post_canister,
+                post_id,
+                vote_amount: bet_amount as u128,
+                direction: bet_direction.into(),
+            };
+
+            let identity = cans.identity();
+            let sender = identity.sender().unwrap();
+            let sig = sign_vote_request(identity, req.clone());
             let post_mix = post.clone();
             send_wrap(async move {
-                match cans
-                    .vote_with_cents_on_post_via_cloudflare(
-                        PUMP_AND_DUMP_WORKER_URL.clone(),
-                        bet_amount,
-                        bet_direction,
-                        post_id,
-                        post_can_id,
-                    )
-                    .await
-                {
+                let sig = sig.ok()?;
+                let res = vote_with_cents_on_post(sender, req, sig).await;
+                match res {
                     Ok(_) => {
                         let global = MixpanelGlobalProps::try_get(&cans);
 
@@ -242,18 +247,34 @@ fn WinBadge() -> impl IntoView {
 #[component]
 fn LostBadge() -> impl IntoView {
     view! {
-        <button class="py-2 px-4 w-full text-sm font-bold text-black bg-white rounded-sm">
-            <Icon attr:class="fill-white" style="" icon=icondata::RiTrophyFinanceFill />
+        <button class="py-2 px-4 w-full text-sm font-bold bg-white rounded-sm text-primary-600">
 
-            "You Lost"
+            <div class="flex justify-center items-center">
+                <span class="">
+                    <Icon attr:class="fill-white" style="" icon=icondata::LuThumbsDown />
+                </span>
+                <span class="ml-2">"You Lost"</span>
+            </div>
         </button>
     }
 }
 
 #[component]
-fn HNWonLost(participation: VoteDetails) -> impl IntoView {
-    let won = matches!(participation.outcome, VoteOutcome::Won(_));
-    let bet_amount = participation.vote_amount;
+fn HNWonLost(game_result: GameResult, vote_amount: u64) -> impl IntoView {
+    let won = matches!(game_result, GameResult::Win { .. });
+    let creator_reward = (vote_amount * 2) / 10;
+    let message = match game_result {
+        GameResult::Win { win_amt } => format!(
+            "You received {} SATS, {} SATS went to the creator.",
+            TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
+            creator_reward
+        ),
+        GameResult::Loss { lose_amt } => format!(
+            "You lost {} SATS.",
+            TokenBalance::new(lose_amt.into(), 0).humanize()
+        ),
+    };
+    let bet_amount = vote_amount;
     let coin = match bet_amount {
         50 => CoinState::C50,
         100 => CoinState::C100,
@@ -263,28 +284,19 @@ fn HNWonLost(participation: VoteDetails) -> impl IntoView {
             CoinState::C50
         }
     };
-    let is_hot = matches!(participation.vote_kind, VoteKind::Hot);
-    let hn_icon = if is_hot { HotIcon } else { NotIcon };
 
     view! {
         <div class="flex gap-6 justify-center items-center p-4 w-full bg-transparent rounded-xl shadow-sm">
             <div class="relative flex-shrink-0 drop-shadow-lg">
                 <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin />
-                <Icon attr:class="absolute -bottom-0.5 -right-3 w-7 h-7 md:w-9 md:h-9" icon=hn_icon />
-
             </div>
 
             // <!-- Text and Badge Column -->
             <div class="flex flex-col gap-2 w-full md:w-1/2 lg:w-1/3">
                 // <!-- Result Text -->
                 <div class="p-1 text-sm leading-snug text-white rounded-full">
-                    <p>You staked {bet_amount} Cents on {if is_hot { "Hot" } else { "Not" }}.</p>
                     <p>
-                        {if let Some(reward) = participation.reward() {
-                            format!("You received {} Cents.", reward / CENTS_IN_E6S)
-                        } else {
-                            format!("You lost {bet_amount} Cents.")
-                        }}
+                        {message}
                     </p>
 
                 </div>
@@ -301,162 +313,28 @@ fn HNWonLost(participation: VoteDetails) -> impl IntoView {
 }
 
 #[component]
-fn BetTimer(post: PostDetails, participation: VoteDetails, refetch_bet: Trigger) -> impl IntoView {
-    let bet_duration = participation.vote_duration().as_secs();
-    let time_remaining = RwSignal::new(participation.time_remaining(post.created_at));
-    _ = use_interval_fn(
-        move || {
-            time_remaining.try_update(|t| *t = t.saturating_sub(Duration::from_secs(1)));
-            _ = refetch_bet;
-            // if time_remaining.try_get_untracked() == Some(Duration::ZERO) {
-            //     refetch_bet.notify();
-            // }
-        },
-        1000,
-    );
-
-    let percentage = Memo::new(move |_| {
-        let remaining_secs = time_remaining().as_secs();
-        100 - ((remaining_secs * 100) / bet_duration).min(100)
-    });
-    let gradient = move || {
-        let perc = percentage();
-        format!("background: linear-gradient(to right, rgb(var(--color-primary-600)) {perc}%, #00000020 0 {}%);", 100 - perc)
-    };
-
-    view! {
-        <div
-            class="flex flex-row gap-1 justify-end items-center py-px w-full text-base text-white rounded-full md:text-lg pe-4"
-            style=gradient
-        >
-
-            <Icon icon=icondata::AiClockCircleFilled />
-            <span>{move || to_hh_mm_ss(time_remaining())}</span>
-        </div>
-    }
-}
-
-#[component]
-fn HNAwaitingResults(
-    post: PostDetails,
-    participation: VoteDetails,
-    refetch_bet: Trigger,
-) -> impl IntoView {
-    let is_hot = matches!(participation.vote_kind, VoteKind::Hot);
-    let bet_direction_text = if is_hot { "Hot" } else { "Not" };
-    let hn_icon = if is_hot { HotIcon } else { NotIcon };
-
-    let bet_amount = participation.vote_amount;
-    let coin = match bet_amount {
-        50 => CoinState::C50,
-        100 => CoinState::C100,
-        200 => CoinState::C200,
-        amt => {
-            log::warn!("Invalid bet amount: {amt}, using fallback");
-            CoinState::C50
-        }
-    };
-
-    view! {
-        <div class="flex flex-col gap-1 items-center p-4 w-full shadow-sm">
-            <div class="flex flex-row gap-4 justify-center items-end w-full">
-                <div class="relative flex-shrink-0 drop-shadow-lg">
-                    <Icon attr:class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16" icon=hn_icon />
-                    <CoinStateView
-                        class="absolute bottom-0 -right-3 w-7 h-7 md:w-9 md:h-9 lg:w-11 lg:h-11"
-                        coin
-                    />
-
-                </div>
-                <div class="w-1/2 md:w-1/3 lg:w-1/4">
-                    <BetTimer post refetch_bet participation />
-                </div>
-            </div>
-            <p class="p-1 text-center text-white rounded-full bg-black/15 ps-2">
-                You staked {bet_amount} Cents on {bet_direction_text}.
-                Result is still pending.
-
-            </p>
-        </div>
-    }
-}
-
-#[component]
 pub fn HNUserParticipation(
     post: PostDetails,
-    participation: VoteDetails,
+    participation: GameInfo,
     refetch_bet: Trigger,
 ) -> impl IntoView {
+    let (_, _) = (post, refetch_bet); // not sure if i will need these later
+    let (vote_amount, game_result) = match participation {
+        GameInfo::CreatorReward(..) => unreachable!(
+            "When a game result is accessed, backend should never return creator reward"
+        ),
+        GameInfo::Vote {
+            vote_amount,
+            game_result,
+        } => (vote_amount, game_result),
+    };
+    let vote_amount: u64 = vote_amount
+        .try_into()
+        .expect("We only allow voting with 200 max, so this is alright");
     view! {
-        {match participation.outcome {
-            VoteOutcome::AwaitingResult => {
-                view! { <HNAwaitingResults post refetch_bet participation /> }.into_any()
-            }
-            VoteOutcome::Won(_) => {
-                view! { <HNWonLost participation /> }.into_any()
-            }
-            VoteOutcome::Draw(_) => {
-                view! { "Draw" }.into_any()
-            }
-            VoteOutcome::Lost => {
-                view! { <HNWonLost participation /> }.into_any()
-            }
-        }
-            .into_view()}
+        <HNWonLost game_result vote_amount />
         <ShadowBg />
     }
-}
-
-#[component]
-fn MaybeHNButtons(
-    post: PostDetails,
-    bet_direction: RwSignal<Option<VoteKind>>,
-    coin: RwSignal<CoinState>,
-    refetch_bet: Trigger,
-) -> impl IntoView {
-    let post = StoredValue::new(post);
-    let is_betting_enabled: Resource<Option<bool>> = Resource::new(
-        move || (),
-        move |_| {
-            let post = post.get_value();
-            send_wrap(async move {
-                let canisters = unauth_canisters();
-                let user = canisters.individual_user(post.canister_id).await;
-                let res = user
-                    .get_hot_or_not_bet_details_for_this_post_v_1(post.post_id)
-                    .await
-                    .ok()?;
-                Some(matches!(res, BettingStatus::BettingOpen { .. }))
-            })
-        },
-    );
-    let BetEligiblePostCtx { can_place_bet } = expect_context();
-
-    view! {
-        <Suspense fallback=LoaderWithShadowBg>
-            {move || {
-                is_betting_enabled.get()
-                    .and_then(|enabled| {
-                        if !enabled.unwrap_or_default() {
-                            can_place_bet.set(false);
-                            return None;
-                        }
-                        Some(
-                            view! {
-                                <HNButtonOverlay
-                                    post=post.get_value()
-                                    bet_direction
-                                    coin
-                                    refetch_bet
-                                />
-                            },
-                        )
-                    })
-            }}
-
-        </Suspense>
-    }
-    .into_any()
 }
 
 #[component]
@@ -508,7 +386,7 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
     //     )
     // };
 
-    let create_bet_participation_outcome = Resource::new(
+    let create_game_info = Resource::new(
         move || (),
         move |_| {
             refetch_bet.track();
@@ -516,19 +394,13 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
                 let cans = authenticated_canisters().await?;
                 let cans = Canisters::from_wire(cans, expect_context())?;
                 let post = post.get_value();
-                let user = send_wrap(cans.authenticated_user()).await;
-                let bet_participation = send_wrap(
-                    user.get_individual_hot_or_not_bet_placed_by_this_profile_v_1(
-                        post.canister_id,
-                        post.post_id,
-                    ),
-                )
-                .await?
-                .map(|details| PlacedBetDetail {
-                    amount_bet: details.amount_bet / CENTS_IN_E6S,
-                    ..details
-                });
-                Ok::<_, ServerFnError>(bet_participation.map(VoteDetails::from))
+                let game_info = cans
+                    .fetch_game_with_sats_info(
+                        reqwest::Url::parse(WORKER_URL).unwrap(),
+                        (post.canister_id, post.post_id).into(),
+                    )
+                    .await?;
+                Ok::<_, ServerFnError>(game_info)
             })
         },
     );
@@ -537,7 +409,7 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
 
             {
                 move || {
-                    create_bet_participation_outcome.get()
+                    create_game_info.get()
                     .and_then(|res| {
                         let participation = try_or_redirect_opt!(res.as_ref());
                         let post = post.get_value();
@@ -548,7 +420,12 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
                                 }.into_any()
                             } else {
                                 view! {
-                                    <MaybeHNButtons post bet_direction coin refetch_bet />
+                                    <HNButtonOverlay
+                                        post
+                                        bet_direction
+                                        coin
+                                        refetch_bet
+                                    />
                                 }.into_any()
                             },
                         )
