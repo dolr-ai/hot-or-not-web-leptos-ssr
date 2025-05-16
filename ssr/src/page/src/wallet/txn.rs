@@ -35,7 +35,7 @@ pub fn TxnView(
             TxnDirection::Deducted => "-",
             TxnDirection::Transaction => "",
         },
-        info.amount.humanize_float_truncate_to_dp(2)
+        info.amount.humanize_float_truncate_to_dp(8)
     );
 
     view! {

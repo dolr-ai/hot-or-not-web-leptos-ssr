@@ -14,6 +14,7 @@ use utils::event_streaming::events::CentsAdded;
 use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, ProviderKind};
 use utils::mixpanel::mixpanel_events::MixPanelEvent;
 use utils::mixpanel::mixpanel_events::MixpanelLoginSuccessfulProps;
+use utils::send_wrap;
 use yral_canisters_common::Canisters;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
@@ -109,7 +110,7 @@ pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) 
     let processing = RwSignal::new(None);
     let (referrer_store, _, _) = use_referrer_store();
 
-    let login_action = Action::new_local(move |id: &DelegatedIdentityWire| {
+    let login_action = Action::new(move |id: &DelegatedIdentityWire| {
         // Clone the necessary parts
         let id = id.clone();
         // Capture the context signal setter
@@ -117,9 +118,10 @@ pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) 
             let referrer = referrer_store.get_untracked();
 
             // This is some redundant work, but saves us 100+ lines of resource handling
-            let canisters = Canisters::authenticate_with_network(id.clone(), referrer).await?;
+            let canisters =
+                send_wrap(Canisters::authenticate_with_network(id.clone(), referrer)).await?;
 
-            if let Err(e) = handle_user_login(canisters.clone(), referrer).await {
+            if let Err(e) = send_wrap(handle_user_login(canisters.clone(), referrer)).await {
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
 

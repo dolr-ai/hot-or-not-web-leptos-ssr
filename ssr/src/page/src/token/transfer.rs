@@ -83,10 +83,6 @@ fn TokenTransferInner(
     info: TokenMetadata,
     source_addr: Principal,
 ) -> impl IntoView {
-    // let copy_source = move || {
-    //     let _ = copy_to_clipboard(&source_addr.to_string());
-    // };
-
     let destination_ref = NodeRef::<html::Input>::new();
     let paste_destination: Action<_, _, LocalStorage> = Action::new_unsync(move |&()| async move {
         let input = destination_ref.get()?;

@@ -181,7 +181,7 @@ pub fn ActionTrackerPopup<
     });
     let modal_s = StoredValue::new(modal);
     let loading_msg_s = StoredValue::new(loading_message);
-    let (classes, _) = signal(classes);
+    let classes = StoredValue::new(classes);
 
     view! {
         <ShadowOverlay show=show_popup>
@@ -191,7 +191,7 @@ pub fn ActionTrackerPopup<
                     view! { <ActionRunningOverlay message=loading_msg_s.get_value() /> }
                 }
             >
-                <div class=format!("px-4 pt-4 pb-12 mx-6 w-full lg:w-1/2 max-h-[65%] rounded-xl {}", classes())>
+                <div class=format!("px-4 pt-4 pb-12 mx-6 w-full lg:w-1/2 max-h-[65%] rounded-xl {}", classes.read_value())>
                     {move || (modal_s.get_value())(res().unwrap())}
                 </div>
             </Show>
