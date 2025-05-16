@@ -332,7 +332,7 @@ pub struct MixPanelEvent;
 impl MixPanelEvent {
     /// Call once you know the logged-in user's ID
     pub fn identify_user(user_id: &str) {
-        identify(user_id);
+        let _ = identify(user_id);
     }
     pub fn track_home_page_viewed(p: MixpanelHomePageViewedProps) {
         track_event("home_page_viewed", p);
