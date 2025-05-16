@@ -10,9 +10,7 @@ use leptos_router::components::Redirect;
 use leptos_router::hooks::use_params;
 use server_fn::codec::Json;
 use state::canisters::authenticated_canisters;
-use utils::mixpanel::mixpanel_events::{
-    MixPanelEvent, MixpanelDolrTo3rdPartyWalletProps, UserCanisterAndPrincipal,
-};
+use utils::mixpanel::mixpanel_events::*;
 use utils::send_wrap;
 use utils::token::icpump::IcpumpTokenInfo;
 use utils::{
@@ -237,16 +235,22 @@ fn TokenTransferInner(
                 RootType::CENTS => return Err(ServerFnError::new("Cents cannot be transferred")),
             }
             TokensTransferred.send_event(amt.e8s.to_string(), destination, cans.clone());
-            let user_id = UserCanisterAndPrincipal::try_get(&cans).map(|f| f.user_id);
+            let global = MixpanelGlobalProps::try_get(&cans);
             let fees = fees.humanize_float().parse::<f64>().unwrap_or_default();
             let amount_transferred = amt.humanize_float().parse::<f64>().unwrap_or_default();
-            MixPanelEvent::track_yral_to_3rd_party_wallet(MixpanelDolrTo3rdPartyWalletProps {
-                user_id,
-                token_transferred: amount_transferred,
-                transferred_wallet: destination.to_string(),
-                gas_fee: fees,
-                token_name,
-            });
+            MixPanelEvent::track_third_party_wallet_transferred(
+                MixpanelThirdPartyWalletTransferredProps {
+                    user_id: global.user_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
+                    token_transferred: amount_transferred,
+                    transferred_to: destination.to_string(),
+                    gas_fee: fees,
+                    token_name,
+                },
+            );
 
             Ok::<_, ServerFnError>(amt)
         })

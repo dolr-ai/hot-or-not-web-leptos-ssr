@@ -13,7 +13,9 @@ use state::{auth::auth_state, local_storage::use_referrer_store};
 use utils::event_streaming::events::CentsAdded;
 use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, ProviderKind};
 use utils::mixpanel::mixpanel_events::MixPanelEvent;
-use utils::mixpanel::mixpanel_events::MixpanelLoginSuccessfulProps;
+use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
+use utils::mixpanel::mixpanel_events::MixpanelLoginSuccessProps;
+use utils::mixpanel::mixpanel_events::MixpanelSignupSuccessProps;
 use utils::send_wrap;
 use yral_canisters_common::Canisters;
 use yral_types::delegated_identity::DelegatedIdentityWire;
@@ -47,7 +49,28 @@ pub async fn handle_user_login(
 
     if first_time_login {
         CentsAdded.send_event("signup".to_string(), NEW_USER_SIGNUP_REWARD);
+        let global = MixpanelGlobalProps::try_get(&canisters);
+        MixPanelEvent::track_signup_success(MixpanelSignupSuccessProps {
+            user_id: global.user_id,
+            visitor_id: global.visitor_id,
+            is_logged_in: global.is_logged_in,
+            canister_id: global.canister_id,
+            is_nsfw_enabled: global.is_nsfw_enabled,
+            is_referral: referrer.is_some(),
+            referrer_user_id: referrer.map(|f| f.to_text()),
+        });
+    } else {
+        let global = MixpanelGlobalProps::try_get(&canisters);
+        MixPanelEvent::track_login_success(MixpanelLoginSuccessProps {
+            user_id: global.user_id,
+            visitor_id: global.visitor_id,
+            is_logged_in: global.is_logged_in,
+            canister_id: global.canister_id,
+            is_nsfw_enabled: global.is_nsfw_enabled,
+        });
     }
+
+    MixPanelEvent::identify_user(user_principal.to_text().as_str());
 
     match referrer {
         Some(_referee_principal) if first_time_login => {
@@ -124,14 +147,6 @@ pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) 
             if let Err(e) = send_wrap(handle_user_login(canisters.clone(), referrer)).await {
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
-
-            let profile_details = canisters.profile_details();
-
-            MixPanelEvent::track_login_successful(MixpanelLoginSuccessfulProps {
-                user_id: profile_details.principal(),
-                canister_id: Some(canisters.user_canister().to_text()),
-                referred_by: referrer.map(|f| f.to_text()),
-            });
 
             let _ = LoginSuccessful.send_event(canisters);
 
