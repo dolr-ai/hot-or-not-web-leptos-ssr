@@ -78,7 +78,8 @@ impl MixpanelGlobalProps {
             use_local_storage::<Option<Principal>, JsonSerdeCodec>(consts::USER_CANISTER_ID_STORE);
         let (principal, _) =
             leptos_use::use_cookie::<Principal, FromToStringCodec>(consts::USER_PRINCIPAL_STORE);
-        let (is_connected, _) = account_connected_reader();
+        let (is_connected, _, _) =
+            use_local_storage::<bool, FromToStringCodec>(ACCOUNT_CONNECTED_STORE);
         let is_logged_in = is_connected.get_untracked();
         let (is_nsfw_enabled, _, _) =
             use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
