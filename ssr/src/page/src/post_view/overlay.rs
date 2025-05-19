@@ -164,6 +164,9 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
             .unwrap_or_default()
     };
 
+    let (is_connected, _, _) =
+        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
+
     let post_details_share = post.clone();
     let canisters = auth_canisters_store();
     let canisters_copy = canisters;
@@ -180,8 +183,6 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
         show_share.set(true);
         ShareVideo.send_event(post_details, canisters);
         if let Some(cans) = canisters.get() {
-            let (is_connected, _, _) =
-                use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
             let is_logged_in = is_connected.get_untracked();
             let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
             let is_hot_or_not = true;
@@ -206,8 +207,6 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
     let mixpanel_track_refer = move || {
         let video_id = report_video_id.clone();
         if let Some(cans) = canisters.get() {
-            let (is_connected, _, _) =
-                use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
             let is_logged_in = is_connected.get_untracked();
             let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
             let is_hot_or_not = true;
@@ -266,8 +265,6 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
         }
 
         if let Some(cans) = canisters.get() {
-            let (is_connected, _, _) =
-                use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
             let is_logged_in = is_connected.get_untracked();
             let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
             let is_hot_or_not = true;
@@ -316,9 +313,6 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                 if !nsfw_enabled() && show_nsfw_permission() {
                     show_nsfw_permission.set(false);
                     if let Some(cans) = canisters.get() {
-                        let (is_connected, _, _) = use_local_storage::<bool, FromToStringCodec>(
-                            consts::ACCOUNT_CONNECTED_STORE,
-                        );
                         let is_logged_in = is_connected.get_untracked();
                         let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
                         let is_hot_or_not = true;
@@ -342,9 +336,6 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                 } else {
                     set_nsfw_enabled(!nsfw_enabled());
                     if let Some(cans) = canisters.get() {
-                        let (is_connected, _, _) = use_local_storage::<bool, FromToStringCodec>(
-                            consts::ACCOUNT_CONNECTED_STORE,
-                        );
                         let is_logged_in = is_connected.get_untracked();
                         let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
                         let is_hot_or_not = true;
@@ -377,8 +368,6 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
     let mixpanel_track_profile_click = move || {
         let video_id = profile_click_video_id.clone();
         if let Some(cans) = canisters.get() {
-            let (is_connected, _, _) =
-                use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
             let is_logged_in = is_connected.get_untracked();
             let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
             let is_hot_or_not = true;
