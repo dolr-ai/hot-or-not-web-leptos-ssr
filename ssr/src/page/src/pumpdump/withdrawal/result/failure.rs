@@ -23,7 +23,7 @@ pub fn Failure() -> impl IntoView {
             <div class="w-full">
                 <div class="max-w-md w-full mx-auto px-4 mt-4 pb-6 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                     <div class="w-full flex flex-col gap-12 items-center">
-                        <img class="max-w-44" src="/img/pumpdump/cross-3d-grayscale.webp" />
+                        <img class="max-w-44" src="/img/pumpdump/cross-3d.webp" />
                         <div class="flex flex-col gap-8 w-full px-5">
                             <div class="flex flex-col gap-2 items-center">
                                 <span class="font-bold text-lg">OOPS!</span>

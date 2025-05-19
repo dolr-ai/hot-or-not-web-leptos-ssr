@@ -60,16 +60,14 @@ fn SocialShare(share_link: String, message: String) -> impl IntoView {
     // let encoded_link = urlencoding::encode(&profile_link);
 
     // Facebook share URL using Dialog API
-    let fb_url = format!(
-        "http://www.facebook.com/share.php?u={}&quote={}",
-        share_link, encoded_message
-    );
+    let fb_url =
+        format!("http://www.facebook.com/share.php?u={share_link}&quote={encoded_message}");
 
     // WhatsApp share URL
-    let whatsapp_url = format!("https://wa.me/?text={}", encoded_message);
+    let whatsapp_url = format!("https://wa.me/?text={encoded_message}");
 
     // Twitter share URL
-    let twitter_url = format!("https://twitter.com/intent/tweet?text={}", encoded_message);
+    let twitter_url = format!("https://twitter.com/intent/tweet?text={encoded_message}");
 
     let telegram_url = format!("https://telegram.me/share/url?url={}", &share_link);
 

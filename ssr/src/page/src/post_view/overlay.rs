@@ -20,7 +20,10 @@ use utils::{
     user::UserDetails,
     web::{copy_to_clipboard, share_url},
 };
+
 use yral_canisters_common::{utils::posts::PostDetails, Canisters};
+
+use utils::mixpanel::mixpanel_events::*;
 
 use super::bet::HNGameOverlay;
 
@@ -42,11 +45,12 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
     let initial_liked = (post.liked_by_user, post.likes);
     let canisters = auth_canisters_store();
 
-    let like_toggle = Action::new(move |&()| {
+    let like_toggle = Action::new_local(move |&()| {
         let post_details = post.clone();
         let canister_store = canisters;
+        let video_id = post.uid.clone();
 
-        send_wrap(async move {
+        async move {
             let Some(canisters) = canisters.get_untracked() else {
                 log::warn!("Trying to toggle like without auth");
                 return;
@@ -61,20 +65,40 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
 
             if should_like {
                 likes.update(|l| *l += 1);
-                LikeVideo.send_event(post_details, likes, canister_store);
+                LikeVideo.send_event(post_details.clone(), likes, canister_store);
+                let global = MixpanelGlobalProps::try_get(&canisters);
+                let is_hot_or_not = true;
+                MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+                    user_id: global.user_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
+                    is_nsfw: post.is_nsfw,
+                    is_game_enabled: is_hot_or_not,
+                    publisher_user_id: post.poster_principal.to_text(),
+                    game_type: MixpanelPostGameType::HotOrNot,
+                    cta_type: MixpanelVideoClickedCTAType::Like,
+                    video_id,
+                    view_count: post.views,
+                    like_count: post.likes,
+                });
             } else {
                 likes.update(|l| *l -= 1);
             }
 
-            let individual = send_wrap(canisters.individual_user(post_canister)).await;
-            match send_wrap(individual.update_post_toggle_like_status_by_caller(post_id)).await {
+            let individual = canisters.individual_user(post_canister).await;
+            match individual
+                .update_post_toggle_like_status_by_caller(post_id)
+                .await
+            {
                 Ok(_) => (),
                 Err(e) => {
-                    log::warn!("Error toggling like status: {:?}", e);
+                    log::warn!("Error toggling like status: {e:?}");
                     liked.update(|l| _ = l.as_mut().map(|l| *l = !*l));
                 }
             }
-        })
+        }
     });
 
     let liked_fetch = with_cans(move |cans: Canisters<true>| {
@@ -96,9 +120,9 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
 
     view! {
         <div class="flex flex-col gap-1 items-center">
-            <button
-                on:click=move |_| {like_toggle.dispatch(());}
-            >
+            <button on:click=move |_| {
+                like_toggle.dispatch(());
+            }>
                 <img src=icon_name style="width: 1em; height: 1em;" />
             </button>
             <span class="text-xs md:text-sm">{likes}</span>
@@ -108,7 +132,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
                         Ok(res) => {
                             likes.set(res.1);
                             liked.set(Some(res.0))
-                        },
+                        }
                         Err(e) => {
                             log::warn!("failed to fetch like status {e}");
                         }
@@ -140,8 +164,11 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
     let post_details_share = post.clone();
     let canisters = auth_canisters_store();
     let canisters_copy = canisters;
+    let share_video_id = post.uid.clone();
+    let report_video_id = post.uid.clone();
 
     let share = move || {
+        let video_id = share_video_id.clone();
         let post_details = post_details_share.clone();
         let url = video_url();
         if share_url(&url).is_some() {
@@ -149,6 +176,48 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
         }
         show_share.set(true);
         ShareVideo.send_event(post_details, canisters);
+        if let Some(cans) = canisters.get() {
+            let global = MixpanelGlobalProps::try_get(&cans);
+            let is_hot_or_not = true;
+            MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                is_nsfw: post.is_nsfw,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                is_game_enabled: is_hot_or_not,
+                publisher_user_id: post.poster_principal.to_text(),
+                game_type: MixpanelPostGameType::HotOrNot,
+                cta_type: MixpanelVideoClickedCTAType::Share,
+                video_id,
+                view_count: post.views,
+                like_count: post.likes,
+            });
+        }
+    };
+
+    let mixpanel_track_refer = move || {
+        let video_id = report_video_id.clone();
+        if let Some(cans) = canisters.get() {
+            let global = MixpanelGlobalProps::try_get(&cans);
+            let is_hot_or_not = true;
+            MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                is_nsfw: post.is_nsfw,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                is_game_enabled: is_hot_or_not,
+                publisher_user_id: post.poster_principal.to_text(),
+                game_type: MixpanelPostGameType::HotOrNot,
+                cta_type: MixpanelVideoClickedCTAType::ReferAndEarn,
+                video_id,
+                view_count: post.views,
+                like_count: post.likes,
+            });
+        }
     };
 
     let profile_url = format!("/profile/{}/tokens", post.poster_principal.to_text());
@@ -161,7 +230,10 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
     };
 
     let post_details_report = post.clone();
+    let report_video_id = post.uid.clone();
+    let profile_click_video_id = post.uid.clone();
     let click_report = Action::new(move |()| {
+        let video_id = report_video_id.clone();
         #[cfg(feature = "ga4")]
         {
             use utils::report::send_report_offchain;
@@ -184,6 +256,27 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
             });
         }
 
+        if let Some(cans) = canisters.get() {
+            let global = MixpanelGlobalProps::try_get(&cans);
+            let is_hot_or_not = true;
+            MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw: post.is_nsfw,
+
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                is_game_enabled: is_hot_or_not,
+                publisher_user_id: post.poster_principal.to_text(),
+                game_type: MixpanelPostGameType::HotOrNot,
+                cta_type: MixpanelVideoClickedCTAType::Report,
+                video_id,
+                view_count: post.views,
+                like_count: post.likes,
+            });
+        }
+
         async move {
             show_report.set(false);
         }
@@ -198,28 +291,91 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
             nsfw_enabled()
         }
     });
-    let click_nsfw = Action::new(move |()| async move {
-        if show_nsfw_content() {
-            return;
-        }
-
-        if !nsfw_enabled() && !show_nsfw_permission() {
-            show_nsfw_permission.set(true);
-        } else {
-            if !nsfw_enabled() && show_nsfw_permission() {
-                show_nsfw_permission.set(false);
-                set_nsfw_enabled(!nsfw_enabled());
-            } else {
-                set_nsfw_enabled(!nsfw_enabled());
+    let click_nsfw = Action::new(move |()| {
+        let video_id = post.uid.clone();
+        async move {
+            if show_nsfw_content() {
+                return;
             }
 
-            // using set_href to hard reload the page
-            let window = window();
-            let _ = window
-                .location()
-                .set_href(&format!("/?nsfw={}", nsfw_enabled()));
+            if !nsfw_enabled() && !show_nsfw_permission() {
+                show_nsfw_permission.set(true);
+            } else {
+                if !nsfw_enabled() && show_nsfw_permission() {
+                    show_nsfw_permission.set(false);
+                    if let Some(cans) = canisters.get() {
+                        let global = MixpanelGlobalProps::try_get(&cans);
+                        let is_hot_or_not = true;
+                        MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+                            user_id: global.user_id,
+                            visitor_id: global.visitor_id,
+                            is_logged_in: global.is_logged_in,
+                            canister_id: global.canister_id,
+                            is_nsfw: post.is_nsfw,
+                            is_nsfw_enabled: global.is_nsfw_enabled,
+                            is_game_enabled: is_hot_or_not,
+                            publisher_user_id: post.poster_principal.to_text(),
+                            game_type: MixpanelPostGameType::HotOrNot,
+                            cta_type: MixpanelVideoClickedCTAType::NsfwTrue,
+                            video_id,
+                            view_count: post.views,
+                            like_count: post.likes,
+                        });
+                    }
+                    set_nsfw_enabled(!nsfw_enabled());
+                } else {
+                    set_nsfw_enabled(!nsfw_enabled());
+                    if let Some(cans) = canisters.get() {
+                        let global = MixpanelGlobalProps::try_get(&cans);
+                        let is_hot_or_not = true;
+                        MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+                            user_id: global.user_id,
+                            visitor_id: global.visitor_id,
+                            is_logged_in: global.is_logged_in,
+                            is_nsfw: post.is_nsfw,
+                            canister_id: global.canister_id,
+                            is_nsfw_enabled: global.is_nsfw_enabled,
+                            is_game_enabled: is_hot_or_not,
+                            publisher_user_id: post.poster_principal.to_text(),
+                            game_type: MixpanelPostGameType::HotOrNot,
+                            cta_type: MixpanelVideoClickedCTAType::NsfwFalse,
+                            video_id,
+                            view_count: post.views,
+                            like_count: post.likes,
+                        });
+                    }
+                }
+                // using set_href to hard reload the page
+                let window = window();
+                let _ = window
+                    .location()
+                    .set_href(&format!("/?nsfw={}", nsfw_enabled()));
+            }
         }
     });
+
+    let mixpanel_track_profile_click = move || {
+        let video_id = profile_click_video_id.clone();
+        if let Some(cans) = canisters.get() {
+            let global = MixpanelGlobalProps::try_get(&cans);
+            let is_hot_or_not = true;
+            MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                is_nsfw: post.is_nsfw,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                is_game_enabled: is_hot_or_not,
+                publisher_user_id: post.poster_principal.to_text(),
+                game_type: MixpanelPostGameType::HotOrNot,
+                cta_type: MixpanelVideoClickedCTAType::CreatorProfile,
+                video_id,
+                view_count: post.views,
+                like_count: post.likes,
+            });
+        }
+    };
 
     view! {
         <div class="flex flex-col pointer-events-none flex-nowrap h-full justify-between pt-5 pb-20 px-[16px] md:px-[16px] w-full text-white absolute bottom-0 left-0 bg-transparent z-[4]">
@@ -236,26 +392,34 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                     <div class="flex flex-col justify-center min-w-0">
                         <div class="flex flex-row text-xs md:text-sm lg:text-base gap-1 items-center">
                             <span class="font-semibold truncate">
-                                <a href=profile_url>{post.display_name}</a>
+                                <a on:click=move|_| mixpanel_track_profile_click() href=profile_url>{post.display_name}</a>
                             </span>
                             <span class="font-semibold">"|"</span>
                             <span class="flex flex-row gap-1 items-center">
                                 <Icon
-                                attr:class="text-sm md:text-base lg:text-lg"
+                                    attr:class="text-sm md:text-base lg:text-lg"
                                     icon=icondata::AiEyeOutlined
                                 />
                                 {post.views}
                             </span>
                         </div>
-                        <ExpandableText description=post.description />
+                        <ExpandableText clone:post description=post.description />
                     </div>
                 </div>
                 <button class="pointer-events-auto py-2">
                     <img
-                    on:click=move |_| { let _ = click_nsfw.dispatch(()); }
-                    src=move || if nsfw_enabled_with_host() { "/img/yral/nsfw/nsfw-toggle-on.webp" } else { "/img/yral/nsfw/nsfw-toggle-off.webp" }
-                    class="w-[76px] h-[36px] object-contain"
-                    alt="NSFW Toggle"
+                        on:click=move |_| {
+                            let _ = click_nsfw.dispatch(());
+                        }
+                        src=move || {
+                            if nsfw_enabled_with_host() {
+                                "/img/yral/nsfw/nsfw-toggle-on.webp"
+                            } else {
+                                "/img/yral/nsfw/nsfw-toggle-off.webp"
+                            }
+                        }
+                        class="w-[76px] h-[36px] object-contain"
+                        alt="NSFW Toggle"
                     />
                 </button>
             </div>
@@ -264,7 +428,7 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                     <button on:click=move |_| show_report.set(true)>
                         <Icon attr:class="drop-shadow-lg" icon=icondata::TbMessageReport />
                     </button>
-                    <a href="/refer-earn">
+                    <a on:click=move|_| mixpanel_track_refer()  href="/refer-earn">
                         <Icon attr:class="drop-shadow-lg" icon=icondata::AiGiftFilled />
                     </a>
                     <LikeAndAuthCanLoader post=post_c.clone() />
@@ -333,7 +497,9 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                         />
                     </select>
                 </div>
-                <button on:click=move |_| {click_report.dispatch(());}>
+                <button on:click=move |_| {
+                    click_report.dispatch(());
+                }>
                     <div class="rounded-lg bg-pink-500 p-1">Submit</div>
                 </button>
             </div>
@@ -342,17 +508,26 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
             <div class="flex flex-col justify-center items-center gap-4 text-white">
                 <img class="h-32 w-32 object-contain" src="/img/yral/nsfw/nsfw-modal-logo.svg" />
                 <h1 class="text-xl font-bold font-kumbh">Enable NSFW Content?</h1>
-                <span class="text-sm w-50 md:w-80 text-center font-kumbh font-thin">By enabling NSFW content, you confirm that you are 18 years or older and consent to viewing content that may include explicit, sensitive, or mature material. This content is intended for adult audiences only and may not be suitable for all viewers. Viewer discretion is advised.</span>
+                <span class="text-sm w-50 md:w-80 text-center font-kumbh font-thin">
+                    By enabling NSFW content, you confirm that you are 18 years or older and consent to viewing content that may include explicit, sensitive, or mature material. This content is intended for adult audiences only and may not be suitable for all viewers. Viewer discretion is advised.
+                </span>
                 <div class="flex flex-col w-full gap-4 items-center">
-                    <a class="text-[#E2017B] font-bold text-sm text-center font-kumbh" href="/terms-of-service">View NSFW Content Policy</a>
+                    <a
+                        class="text-[#E2017B] font-bold text-sm text-center font-kumbh"
+                        href="/terms-of-service"
+                    >
+                        View NSFW Content Policy
+                    </a>
                 </div>
                 <HighlightedButton
                     classes="w-full mt-4".to_string()
                     alt_style=false
                     disabled=false
-                    on_click=move || {click_nsfw.dispatch(());}
-                    >
-                        I Agree
+                    on_click=move || {
+                        click_nsfw.dispatch(());
+                    }
+                >
+                    I Agree
                 </HighlightedButton>
             </div>
         </Modal>

@@ -9,7 +9,9 @@ use leptos_meta::*;
 use leptos_router::components::Redirect;
 use leptos_router::hooks::use_query_map;
 use leptos_use::storage::use_local_storage;
+use utils::event_streaming::events::auth_canisters_store;
 use utils::host::show_nsfw_content;
+use utils::mixpanel::mixpanel_events::*;
 use utils::{
     host::{show_cdao_page, show_pnd_page},
     ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw},
@@ -21,7 +23,7 @@ async fn get_top_post_id_global_clean_feed() -> Result<Option<PostItem>, ServerF
     let posts = get_ml_feed_coldstart_clean(Principal::anonymous(), 1, vec![])
         .await
         .map_err(|e| {
-            log::error!("Error getting top post id global clean feed: {:?}", e);
+            log::error!("Error getting top post id global clean feed: {e:?}");
             ServerFnError::new(e.to_string())
         })?;
     if !posts.is_empty() {
@@ -36,7 +38,7 @@ async fn get_top_post_id_global_nsfw_feed() -> Result<Option<PostItem>, ServerFn
     let posts = get_ml_feed_coldstart_nsfw(Principal::anonymous(), 1, vec![])
         .await
         .map_err(|e| {
-            log::error!("Error getting top post id global nsfw feed: {:?}", e);
+            log::error!("Error getting top post id global nsfw feed: {e:?}");
             ServerFnError::new(e.to_string())
         })?;
     if !posts.is_empty() {
@@ -96,6 +98,13 @@ pub fn YralRootPage() -> impl IntoView {
                                 post_details_cache.post_details.update(|post_details| {
                                     post_details.insert((canister_id, post_id), post_item.clone());
                                 });
+
+                                if let Some(cans) = auth_canisters_store().get_untracked() {
+                                    let global = MixpanelGlobalProps::try_get(&cans);
+                                    MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps { user_id:  global.user_id, visitor_id: global.visitor_id, is_logged_in: global.is_logged_in, canister_id: global.canister_id, is_nsfw_enabled: global.is_nsfw_enabled });
+                                } else if let Some(global) = MixpanelGlobalProps::try_get_from_local_storage() {
+                                    MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps {  user_id:  global.user_id, visitor_id: global.visitor_id, is_logged_in: global.is_logged_in, canister_id: global.canister_id, is_nsfw_enabled: global.is_nsfw_enabled });
+                                };
 
                                 format!("/hot-or-not/{canister_id}/{post_id}")
                             }

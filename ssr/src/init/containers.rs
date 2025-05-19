@@ -36,7 +36,7 @@ impl TestContainers {
             .with_mapped_port(port.as_u16(), port)
             .start()
             .await
-            .map_err(|e| format!("Failed to start container: {}", e))
+            .map_err(|e| format!("Failed to start container: {e}"))
             .unwrap()
     }
     pub async fn start_redis(&mut self) {

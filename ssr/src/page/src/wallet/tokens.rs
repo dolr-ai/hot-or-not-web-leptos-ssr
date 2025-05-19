@@ -22,13 +22,12 @@ use state::canisters::unauth_canisters;
 use utils::event_streaming::events::account_connected_reader;
 use utils::event_streaming::events::CentsAdded;
 use utils::host::get_host;
-use utils::send_wrap;
 use utils::token::icpump::IcpumpTokenInfo;
 use yral_canisters_common::cursored_data::token_roots::{TokenListResponse, TokenRootList};
 use yral_canisters_common::utils::token::balance::TokenBalance;
 use yral_canisters_common::utils::token::{RootType, TokenMetadata, TokenOwner};
-use yral_canisters_common::Canisters;
 use yral_canisters_common::CENT_TOKEN_NAME;
+use yral_canisters_common::{Canisters, SATS_TOKEN_NAME};
 use yral_pump_n_dump_common::WithdrawalState;
 
 use super::ShowLoginSignal;
@@ -69,7 +68,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
                             fetch_count=5
                             children=move |TokenListResponse{token_metadata, airdrop_claimed, root}, _ref| {
                                 view! {
-                                    <WalletCard user_principal token_metadata=token_metadata is_airdrop_claimed=airdrop_claimed _ref=_ref.unwrap_or_default() is_utility_token=matches!(root, RootType::COYNS | RootType::CENTS)/>
+                                    <WalletCard user_principal token_metadata=token_metadata is_airdrop_claimed=airdrop_claimed _ref=_ref.unwrap_or_default() is_utility_token=matches!(root, RootType::COYNS | RootType::CENTS | RootType::SATS)/>
                                 }
                             }
                         />
@@ -89,6 +88,85 @@ struct WalletCardOptionsContext {
     user_principal: Principal,
 }
 
+enum WithdrawDetails {
+    CanWithdraw {
+        /// most sensibly formatted amount
+        amount: String,
+        // an indicator message
+        message: String,
+    },
+    CannotWithdraw {
+        /// A reason or a suggestion message
+        message: String,
+    },
+}
+
+struct WithdrawSats;
+struct WithdrawCents;
+
+trait WithdrawImpl {
+    fn details(&self, state: WithdrawalState) -> WithdrawDetails;
+
+    /// the url to redirect to when user wishes to withdraw
+    fn withdraw_url(&self) -> String;
+
+    fn withdraw_cta(&self) -> String;
+}
+
+// TODO: use enum_dispatch instead
+// when i try adding enum_dispatch, the linker kills itself with a SIGBUS
+type Withdrawer = Box<dyn WithdrawImpl>;
+
+impl WithdrawImpl for WithdrawCents {
+    fn details(&self, state: WithdrawalState) -> WithdrawDetails {
+        match state {
+            WithdrawalState::Value(bal) => WithdrawDetails::CanWithdraw {
+                amount: TokenBalance::new(bal * 100usize, 8).humanize_float_truncate_to_dp(2),
+                message: "Cents you can withdraw".to_string(),
+            },
+            WithdrawalState::NeedMoreEarnings(more) => WithdrawDetails::CannotWithdraw {
+                message: format!(
+                    "Earn {} Cents more to unlock",
+                    TokenBalance::new(more * 100usize, 8).humanize_float_truncate_to_dp(2)
+                ),
+            },
+        }
+    }
+
+    fn withdraw_url(&self) -> String {
+        "/pnd/withdraw".into()
+    }
+
+    fn withdraw_cta(&self) -> String {
+        "Withdraw".into()
+    }
+}
+
+impl WithdrawImpl for WithdrawSats {
+    fn details(&self, state: WithdrawalState) -> WithdrawDetails {
+        match state {
+            WithdrawalState::Value(bal) => WithdrawDetails::CanWithdraw {
+                amount: TokenBalance::new(bal, 0).humanize_float_truncate_to_dp(0),
+                message: "Sats you can withdraw".to_string(),
+            },
+            WithdrawalState::NeedMoreEarnings(more) => WithdrawDetails::CannotWithdraw {
+                message: format!(
+                    "Earn {} Sats more to unlock",
+                    TokenBalance::new(more, 0).humanize_float_truncate_to_dp(0)
+                ),
+            },
+        }
+    }
+
+    fn withdraw_url(&self) -> String {
+        "/hot-or-not/withdraw".into()
+    }
+
+    fn withdraw_cta(&self) -> String {
+        "Withdraw to BTC".into()
+    }
+}
+
 #[component]
 pub fn WalletCard(
     user_principal: Principal,
@@ -103,6 +181,14 @@ pub fn WalletCard(
         .unwrap_or(token_metadata.name.to_lowercase());
 
     let is_cents = token_metadata.name == CENT_TOKEN_NAME;
+    let show_withdraw_button = token_metadata.withdrawable_state.is_some();
+    let withdrawer = show_withdraw_button.then(|| match token_metadata.name.as_str() {
+        s if s == SATS_TOKEN_NAME => Box::new(WithdrawSats) as Withdrawer,
+        s if s == CENT_TOKEN_NAME => Box::new(WithdrawCents),
+        _ => unimplemented!("Withdrawing is not implemented for a token"),
+    });
+
+    let withdraw_url = withdrawer.as_ref().map(|w| w.withdraw_url());
 
     let share_link = RwSignal::new("".to_string());
 
@@ -133,36 +219,39 @@ pub fn WalletCard(
         .unwrap_or_else(|| RwSignal::new(false));
     let nav = use_navigate();
     let withdraw_handle = move |_| {
+        let Some(ref withdraw_url) = withdraw_url else {
+            return;
+        };
         if !is_connected() {
             show_login.set(true);
             return;
         }
 
-        nav("/pnd/withdraw", Default::default());
+        nav(withdraw_url, Default::default());
     };
 
     let airdrop_popup = RwSignal::new(false);
     let buffer_signal = RwSignal::new(false);
     let claimed = RwSignal::new(is_airdrop_claimed);
-    let (is_withdrawable, withdraw_message, withdrawable_balance) = token_metadata
-        .withdrawable_state
-        .as_ref()
-        .map(|state| match state {
-            WithdrawalState::Value(bal) => (
-                true,
-                Some("Cents you can withdraw".to_string()),
-                Some(TokenBalance::new(bal.clone() * 100usize, 8).humanize_float_truncate_to_dp(2)),
-            ),
-            WithdrawalState::NeedMoreEarnings(more) => (
-                false,
-                Some(format!(
-                    "Earn {} Cents more to unlock",
-                    TokenBalance::new(more.clone() * 100usize, 8).humanize_float_truncate_to_dp(2)
-                )),
-                None,
-            ),
-        })
-        .unwrap_or_default();
+    let (is_withdrawable, withdraw_message, withdrawable_balance) =
+        match (token_metadata.withdrawable_state, withdrawer.as_ref()) {
+            (Some(ref state), Some(w)) => match w.details(state.clone()) {
+                WithdrawDetails::CanWithdraw { amount, message } => {
+                    (true, Some(message), Some(amount))
+                }
+                WithdrawDetails::CannotWithdraw { message } => (false, Some(message), None),
+            },
+            _ => Default::default(),
+        };
+    let withdraw_cta = withdrawer.as_ref().map(|w| w.withdraw_cta());
+
+    // overrides
+    let name = match token_metadata.name.to_lowercase().as_str() {
+        "btc" => "Bitcoin".to_string(),
+
+        _ => token_metadata.name.to_owned(),
+    };
+
     view! {
         <div node_ref=_ref class="flex flex-col gap-4 bg-neutral-900/90 rounded-lg w-full font-kumbh text-white p-4">
             <div class="flex flex-col gap-4 p-3 rounded-sm bg-neutral-800/70">
@@ -170,35 +259,37 @@ pub fn WalletCard(
                     <div class="flex items-center gap-2">
                         <img
                             src=token_metadata.logo_b64.clone()
-                            alt=token_metadata.name.clone()
+                            alt=name.clone()
                             class="w-8 h-8 rounded-full object-cover"
                         />
-                        <div class="text-sm font-medium uppercase truncate">{token_metadata.name.clone()}</div>
+                        <div class="text-sm font-medium uppercase truncate">{name.clone()}</div>
                     </div>
                     <div class="flex flex-col items-end">
                         {
                             token_metadata.balance.map(|b| view! {
-                                <div class="text-lg font-medium">{b.humanize_float_truncate_to_dp(2)}</div>
+                                <div class="text-lg font-medium">{b.humanize_float_truncate_to_dp(8)}</div>
                             })
                         }
                         <div class="text-xs">{symbol}</div>
                     </div>
                 </div>
-                {is_cents.then_some(view! {
+                {show_withdraw_button.then_some(view! {
                     <div class="border-t border-neutral-700 flex flex-col pt-4 gap-2">
-                        <div class="flex items-center">
-                            <Icon attr:class="text-neutral-300" icon=if is_withdrawable { PadlockOpen } else { PadlockClose } />
-                            <span class="text-neutral-400 text-xs mx-2">{withdraw_message}</span>
-                            <Tooltip icon=Information title="Withdrawal Tokens" description="Only Cents earned above your airdrop amount can be withdrawn." />
-                            <span class="ml-auto">{withdrawable_balance}</span>
-                        </div>
+                        {is_cents.then_some(view! {
+                            <div class="flex items-center">
+                                <Icon attr:class="text-neutral-300" icon=if is_withdrawable { PadlockOpen } else { PadlockClose } />
+                                <span class="text-neutral-400 text-xs mx-2">{withdraw_message}</span>
+                                <Tooltip icon=Information title="Withdrawal Tokens" description="Only Cents earned above your airdrop amount can be withdrawn." />
+                                <span class="ml-auto">{withdrawable_balance}</span>
+                            </div>
+                        })}
                         <button
                             class="rounded-lg px-5 py-2 text-sm text-center font-bold"
                             class=(["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled"], !is_withdrawable)
                             class=(["text-neutral-50", "bg-brand-gradient"], is_withdrawable)
                             on:click=withdraw_handle
                         >
-                            Withdraw
+                            {withdraw_cta}
                         </button>
                     </div>
 
@@ -245,13 +336,13 @@ fn WalletCardOptions(
         let token_owner_c = token_owner.clone();
         let root_c = root.clone();
         let cans_res = authenticated_canisters();
-        let airdrop_action = Action::new(move |&()| {
+        let airdrop_action = Action::new_local(move |&()| {
             let cans_res = cans_res;
             let token_owner_cans_id = token_owner_c.clone().unwrap().canister_id;
             airdrop_popup.set(true);
             let root = Principal::from_text(root_c.clone()).unwrap();
 
-            send_wrap(async move {
+            async move {
                 if claimed.get() && !buffer_signal.get() {
                     return Ok(());
                 }
@@ -277,7 +368,7 @@ fn WalletCardOptions(
                 buffer_signal.set(false);
                 claimed.set(true);
                 Ok::<_, ServerFnError>(())
-            })
+            }
         });
 
         let airdrop_disabled = Signal::derive(move || token_owner.is_some() && claimed.get() || token_owner.is_none());

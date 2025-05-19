@@ -116,7 +116,7 @@ pub fn ShadowOverlay(#[prop(into)] show: ShowOverlay, children: ChildrenFn) -> i
                         #[cfg(not(feature = "hydrate"))] { |_| () }
                     }
 
-                    class="flex cursor-pointer modal-bg w-dvw h-dvh fixed left-0 top-0 bg-black/60 z-[99] justify-center items-center overflow-hidden"
+                    class="flex cursor-pointer modal-bg w-dvw h-dvh fixed left-0 top-0 bg-black/60 z-[99] justify-center items-center overflow-hidden backdrop-blur-sm"
                 >
                     {(children_s.get_value())()}
                 </div>
@@ -154,14 +154,16 @@ pub fn PopupOverlay(#[prop(into)] show: ShowOverlay, children: ChildrenFn) -> im
 /// close -> Set this signal to true to close the modal (automatically reset upon closing)
 #[component]
 pub fn ActionTrackerPopup<
+    AStorage: Storage<ArcAction<S, R>>,
     S: 'static + Send + Sync,
     R: 'static + Clone + Send + Sync,
     V: IntoView + 'static,
     IV: Fn(R) -> V + Clone + 'static + Send + Sync,
 >(
-    action: Action<S, R>,
+    action: Action<S, R, AStorage>,
     #[prop(into)] loading_message: String,
     modal: IV,
+    #[prop(default = "bg-white".to_string(), into)] classes: String,
     #[prop(optional, into)] close: RwSignal<bool>,
 ) -> impl IntoView {
     let pending = action.pending();
@@ -179,6 +181,7 @@ pub fn ActionTrackerPopup<
     });
     let modal_s = StoredValue::new(modal);
     let loading_msg_s = StoredValue::new(loading_message);
+    let classes = StoredValue::new(classes);
 
     view! {
         <ShadowOverlay show=show_popup>
@@ -188,7 +191,7 @@ pub fn ActionTrackerPopup<
                     view! { <ActionRunningOverlay message=loading_msg_s.get_value() /> }
                 }
             >
-                <div class="px-4 pt-4 pb-12 mx-6 w-full lg:w-1/2 max-h-[65%] rounded-xl bg-white">
+                <div class=format!("px-4 pt-4 pb-12 mx-6 w-full lg:w-1/2 max-h-[65%] rounded-xl {}", classes.read_value())>
                     {move || (modal_s.get_value())(res().unwrap())}
                 </div>
             </Show>

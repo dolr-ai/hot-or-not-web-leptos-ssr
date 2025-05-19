@@ -1,5 +1,6 @@
 use crate::token::RootType;
 use candid::Principal;
+use component::buttons::GradientButton;
 use component::{back_btn::BackButton, spinner::FullScreenSpinner, title::TitleText};
 use leptos::either::Either;
 use leptos::html;
@@ -10,12 +11,10 @@ use leptos_router::components::Redirect;
 use leptos_router::hooks::use_params;
 use server_fn::codec::Json;
 use state::canisters::authenticated_canisters;
+use utils::mixpanel::mixpanel_events::*;
 use utils::send_wrap;
 use utils::token::icpump::IcpumpTokenInfo;
-use utils::{
-    event_streaming::events::TokensTransferred,
-    web::{copy_to_clipboard, paste_from_clipboard},
-};
+use utils::{event_streaming::events::TokensTransferred, web::paste_from_clipboard};
 
 use leptos_use::use_event_listener;
 use yral_canisters_client::sns_root::ListSnsCanistersArg;
@@ -82,10 +81,6 @@ fn TokenTransferInner(
     info: TokenMetadata,
     source_addr: Principal,
 ) -> impl IntoView {
-    let copy_source = move || {
-        let _ = copy_to_clipboard(&source_addr.to_string());
-    };
-
     let destination_ref = NodeRef::<html::Input>::new();
     let paste_destination: Action<_, _, LocalStorage> = Action::new_unsync(move |&()| async move {
         let input = destination_ref.get()?;
@@ -164,14 +159,19 @@ fn TokenTransferInner(
 
     let auth_cans_wire = authenticated_canisters();
 
+    let mix_fees = info.fees.clone();
+    let token_name = info.symbol.clone();
+
     let send_action = Action::new(move |&()| {
         let root = root.clone();
         let auth_cans_wire = auth_cans_wire;
+        let fees = mix_fees.clone();
+        let token_name = token_name.clone();
+
         send_wrap(async move {
             let auth_cans_wire = auth_cans_wire.await?;
             let cans = Canisters::from_wire(auth_cans_wire.clone(), expect_context())?;
             let destination = destination_res.get_untracked().unwrap().unwrap();
-
             // let amt = amt_res.get_untracked().unwrap().unwrap();
 
             // let user = cans.authenticated_user().await;
@@ -190,13 +190,13 @@ fn TokenTransferInner(
             match root {
                 RootType::Other(root) => {
                     let root_canister = cans.sns_root(root).await;
-                    println!("{}", root);
+                    println!("{root}");
                     let sns_cans = root_canister
                         .list_sns_canisters(ListSnsCanistersArg {})
                         .await
                         .unwrap();
                     let ledger_canister = sns_cans.ledger.unwrap();
-                    log::debug!("ledger_canister: {:?}", ledger_canister);
+                    log::debug!("ledger_canister: {ledger_canister:?}");
 
                     transfer_token_to_user_principal(
                         auth_cans_wire.clone(),
@@ -227,8 +227,25 @@ fn TokenTransferInner(
                 }
                 RootType::COYNS => return Err(ServerFnError::new("Coyns cannot be transferred")),
                 RootType::CENTS => return Err(ServerFnError::new("Cents cannot be transferred")),
+                RootType::SATS => return Err(ServerFnError::new("Satoshis cannot be transferred")),
             }
             TokensTransferred.send_event(amt.e8s.to_string(), destination, cans.clone());
+            let global = MixpanelGlobalProps::try_get(&cans);
+            let fees = fees.humanize_float().parse::<f64>().unwrap_or_default();
+            let amount_transferred = amt.humanize_float().parse::<f64>().unwrap_or_default();
+            MixPanelEvent::track_third_party_wallet_transferred(
+                MixpanelThirdPartyWalletTransferredProps {
+                    user_id: global.user_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
+                    token_transferred: amount_transferred,
+                    transferred_to: destination.to_string(),
+                    gas_fee: fees,
+                    token_name,
+                },
+            );
 
             Ok::<_, ServerFnError>(amt)
         })
@@ -241,8 +258,16 @@ fn TokenTransferInner(
             && !sending()
     };
 
+    let is_btc = info.name.to_lowercase() == "btc";
+    let placeholder = if is_btc {
+        "Enter OISY wallet principal"
+    } else {
+        "Enter destination principal"
+    };
+    let formatted_balance = balance.humanize_float_truncate_to_dp(if is_btc { 5 } else { 2 });
+
     Either::Right(view! {
-        <div class="w-dvw min-h-dvh bg-neutral-800 flex flex-col gap-4">
+        <div class="w-dvw min-h-dvh bg-neutral-950 flex flex-col gap-4">
             <TitleText justify_center=false>
                 <div class="grid grid-cols-3 justify-start w-full">
                     <BackButton fallback="/wallet" />
@@ -251,22 +276,20 @@ fn TokenTransferInner(
             </TitleText>
             <div class="flex flex-col w-full gap-4 md:gap-6 items-center p-4">
                 <div class="flex flex-col w-full gap-2 items-center">
-                    <div class="flex flex-row justify-between w-full text-sm md:text-base text-white">
-                        <span>Source:</span>
-                        <span>{format!("{} {}", balance.humanize_float(), info.symbol)}</span>
+                    <div class="flex flex-row justify-between w-full text-sm md:text-base text-neutral-400 font-medium">
+                        <span>Source</span>
                     </div>
                     <div class="flex flex-row gap-2 w-full items-center">
                         <p class="text-sm md:text-md text-white/80">{source_addr.to_string()}</p>
-                        <button on:click=move |_| copy_source()>
-                            <Icon
-                            attr:class="text-white text-lg md:text-xl"
-                                icon=icondata::FaCopyRegular
-                            />
-                        </button>
                     </div>
                 </div>
                 <div class="flex flex-col w-full gap-1">
-                    <span class="text-white text-sm md:text-base">Destination</span>
+                    <div class="flex justify-between">
+                        <span class="text-neutral-400 text-sm md:text-base">Destination</span>
+                        {is_btc.then_some(view! {
+                            <a target="_blank" href="https://oisy.com" class="text-blue-500 text-sm font-medium md:text-base">Open OISY Wallet</a>
+                        })}
+                    </div>
                     <div
                         class=("border-white/15", move || destination_res.with(|r| r.is_ok()))
                         class=("border-red", move || destination_res.with(|r| r.is_err()))
@@ -275,6 +298,7 @@ fn TokenTransferInner(
                         <input
                             node_ref=destination_ref
                             class="text-white bg-transparent w-full text-base md:text-lg placeholder-white/40 focus:outline-none"
+                            placeholder=placeholder
                         />
                         <button on:click=move |_| {paste_destination.dispatch(());}>
                             <Icon
@@ -285,16 +309,22 @@ fn TokenTransferInner(
                     </div>
                     <FormError res=destination_res />
                 </div>
-                <div class="flex flex-col w-full gap-1">
-                    <div class="flex flex-row justify-between w-full text-sm md:text-base text-white">
+                <div class="flex flex-col w-full gap-1 items-center">
+                    <div class="flex flex-row justify-between w-full text-sm md:text-base text-neutral-400">
                         <span>Amount</span>
-                        <button
-                            class="flex flex-row gap-1 items-center"
-                            on:click=move |_| _ = set_max_amt()
-                        >
-                            <Icon icon=icondata::AiEnterOutlined />
-                            " Max"
-                        </button>
+                        <div class="flex gap-1 items-center">
+                            <span class="text-neutral-400 text-xs font-medium">
+                                Balance: {formatted_balance}
+                            </span>
+                            <button
+                                class="flex justify-center items-center gap-2.5 border border-neutral-600 bg-neutral-700 px-4 py-1.5 rounded-full border-solid text-"
+                                on:click=move |_| _ = set_max_amt()
+                            >
+                                <span class="text-neutral text-xs font-medium">
+                                    Max
+                                </span>
+                            </button>
+                        </div>
                     </div>
                     <input
                         node_ref=amount_ref
@@ -308,13 +338,13 @@ fn TokenTransferInner(
                     <span>Transaction Fee (billed to source)</span>
                     <span>{format!("{} {}", info.fees.humanize_float(), info.symbol)}</span>
                 </div>
-                <button
-                    on:click=move |_| {send_action.dispatch(());}
-                    disabled=move || !valid()
-                    class="flex flex-row justify-center text-white md:text-lg w-full md:w-1/2 rounded-full p-3 bg-primary-600 disabled:opacity-50"
+                <GradientButton
+                    classes="w-full md:w-1/2"
+                    on_click=move || {send_action.dispatch(());}
+                    disabled=Signal::derive(move || !valid())
                 >
                     Send
-                </button>
+                </GradientButton>
             </div>
             <TokenTransferPopup token_name=info.symbol transfer_action=send_action />
         </div>
@@ -354,7 +384,7 @@ pub fn TokenTransfer() -> impl IntoView {
                 token_metadata_fetch.get().map(|res|{
                     match res{
                         Err(e) => {
-                            println!("Error: {:?}", e);
+                            println!("Error: {e:?}");
                             view! { <Redirect path=format!("/error?err={e}") /> }.into_any()
                         },
                         Ok(None) => view! { <Redirect path="/" /> }.into_any(),

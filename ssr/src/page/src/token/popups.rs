@@ -1,4 +1,4 @@
-use component::{overlay::ActionTrackerPopup, token_confetti_symbol::TokenConfettiSymbol};
+use component::{buttons::GradientLinkButton, overlay::ActionTrackerPopup};
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use yral_canisters_common::utils::token::balance::TokenBalance;
@@ -14,13 +14,10 @@ fn SuccessPopup<ImgIV: IntoView, Img: Fn() -> ImgIV, TxtIV: IntoView, Txt: Fn() 
 ) -> impl IntoView {
     view! {
         <div class="flex flex-col items-center w-full h-full gap-6">
-            {img()} <span class="text-2xl md:text-3xl font-bold text-center">{text()}</span>
-            <a
-                href=previous_link
-                class="w-3/4 py-4 text-lg text-center text-white bg-primary-600 rounded-full"
-            >
+            {img()} <span class="text-base text-center text-neutral-400">{text()}</span>
+            <GradientLinkButton href=previous_link() classes="w-3/4">
                 {previous_text}
-            </a>
+            </GradientLinkButton>
         </div>
     }
 }
@@ -167,8 +164,8 @@ fn TokenTransferSuccessPopup(
     let amount_str = amount.humanize_float();
     view! {
         <SuccessPopup
-            img=|| view! { <TokenConfettiSymbol class="w-8/12" /> }
-            text=move || { format!("{amount_str} {token_name} Successfully sent") }
+            img=|| view! { <img src="/img/hotornot/tick.webp" class="max-w-44" /> }
+            text=move || { format!("You’ve successfully sent {amount_str} {token_name} to your wallet.") }
 
             previous_link="/wallet"
             previous_text="Back to wallet"
@@ -211,6 +208,7 @@ pub fn TokenTransferPopup(
         <ActionTrackerPopup
             action=transfer_action
             loading_message="Token transfer in progress"
+            classes="bg-neutral-900"
             modal=move |res| match res {
                 Ok(amount) => {
                     Either::Left(view! {

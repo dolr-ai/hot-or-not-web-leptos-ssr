@@ -16,6 +16,7 @@ use leptos_use::use_event_listener;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use state::canisters::authenticated_canisters;
+use utils::mixpanel::mixpanel_events::*;
 use utils::{
     event_streaming::events::{
         auth_canisters_store, VideoUploadSuccessful, VideoUploadUnsuccessful,
@@ -206,7 +207,7 @@ async fn upload_video_part(
     form_field_name: &str,
     file_blob: &Blob,
 ) -> Result<Message, ServerFnError> {
-    let get_url_endpoint = format!("{}/get_upload_url", upload_base_url);
+    let get_url_endpoint = format!("{upload_base_url}/get_upload_url");
     let response = Request::get(&get_url_endpoint).send().await?;
     if !response.ok() {
         return Err(ServerFnError::new(format!(
@@ -216,7 +217,7 @@ async fn upload_video_part(
     }
     let response_text = response.text().await?;
     let upload_message: Message = serde_json::from_str(&response_text)
-        .map_err(|e| ServerFnError::new(format!("Failed to parse upload URL response: {}", e)))?;
+        .map_err(|e| ServerFnError::new(format!("Failed to parse upload URL response: {e}")))?;
 
     let upload_url = upload_message
         .data
@@ -225,11 +226,11 @@ async fn upload_video_part(
         .ok_or_else(|| ServerFnError::new("Upload URL not found in response".to_string()))?;
 
     let form = FormData::new().map_err(|js_value| {
-        ServerFnError::new(format!("Failed to create FormData: {:?}", js_value))
+        ServerFnError::new(format!("Failed to create FormData: {js_value:?}"))
     })?;
     form.append_with_blob(form_field_name, file_blob)
         .map_err(|js_value| {
-            ServerFnError::new(format!("Failed to append blob to FormData: {:?}", js_value))
+            ServerFnError::new(format!("Failed to append blob to FormData: {js_value:?}"))
         })?;
 
     let upload_response = Request::post(&upload_url).body(form)?.send().await?;
@@ -275,7 +276,7 @@ pub fn VideoUploader(
                     let client = reqwest::Client::new();
                     notification_nudge.set(true);
                     let req = client
-                        .post(format!("{}/update_metadata", UPLOAD_URL))
+                        .post(format!("{UPLOAD_URL}/update_metadata"))
                         .json(&json!({
                             "video_uid": uid,
                             "delegated_identity_wire": delegated_identity,
@@ -299,7 +300,22 @@ pub fn VideoUploader(
                 };
 
                 match res {
-                    Ok(_) => published.set(true),
+                    Ok(_) => {
+                        let global = MixpanelGlobalProps::try_get(&canisters);
+                        MixPanelEvent::track_video_upload_success(
+                            MixpanelVideoUploadSuccessProps {
+                                user_id: global.user_id,
+                                visitor_id: global.visitor_id,
+                                is_logged_in: global.is_logged_in,
+                                canister_id: global.canister_id,
+                                is_nsfw_enabled: global.is_nsfw_enabled,
+                                video_id: uid.clone(),
+                                is_game_enabled: true,
+                                game_type: MixpanelPostGameType::HotOrNot,
+                            },
+                        );
+                        published.set(true)
+                    }
                     Err(_) => {
                         let e = res.as_ref().err().unwrap().to_string();
                         VideoUploadUnsuccessful.send_event(

@@ -3,6 +3,7 @@ use component::content_upload::AuthorizedUserToSeedContent;
 use consts::ACCOUNT_CONNECTED_STORE;
 use leptos_use::storage::use_local_storage;
 use page::about_us::AboutUs;
+use page::hon;
 use page::icpump::ai::ICPumpAi;
 use page::icpump::ICPumpLanding;
 use page::post_view::PostDetailsCacheCtx;
@@ -256,6 +257,15 @@ pub fn App() -> impl IntoView {
                     <GooglePreviewAuthRedirectHandlerRoute />
                     <ParentRoute path=path!("") view=BaseRoute>
                         <Route path=path!("/") view=RootPage />
+                        <Route path=path!("/hot-or-not/withdraw") view=hon::withdrawal::HonWithdrawal />
+                        <Route
+                            path=path!("/hot-or-not/withdraw/success")
+                            view=hon::withdrawal::result::Success
+                        />
+                        <Route
+                            path=path!("/hot-or-not/withdraw/failure")
+                            view=hon::withdrawal::result::Failure
+                        />
                         <Route path=path!("/hot-or-not/:canister_id/:post_id") view=PostView />
                         <Route path=path!("/post/:canister_id/:post_id") view=SinglePost />
                         <Route path=path!("/profile/:canister_id/post/:post_id") view=ProfilePost />

@@ -35,7 +35,7 @@ pub fn TxnView(
             TxnDirection::Deducted => "-",
             TxnDirection::Transaction => "",
         },
-        info.amount.humanize_float_truncate_to_dp(2)
+        info.amount.humanize_float_truncate_to_dp(8)
     );
 
     view! {
@@ -76,21 +76,21 @@ pub fn TxnView(
                                 TxnInfoType::Mint { to } => {
                                     match params.get(){
                                         Ok(_) => None,
-                                        Err(_) => Some(view! {<div class="text-sm md:text-md text-white/50">{format!("To: {}", to)}</div>}.into_any())
+                                        Err(_) => Some(view! {<div class="text-sm md:text-md text-white/50">{format!("To: {to}")}</div>}.into_any())
                                     }
                                 },
                                 TxnInfoType::Burn { from } => {
                                     match params.get(){
                                         Ok(_) => None,
-                                        Err(_) => Some(view! {<div class="text-sm md:text-md text-white/50">{format!("From: {}", from)}</div>}.into_any())
+                                        Err(_) => Some(view! {<div class="text-sm md:text-md text-white/50">{format!("From: {from}")}</div>}.into_any())
                                     }
                                 },
-                                TxnInfoType::Received { from } => Some(view! {<div class="text-sm md:text-md text-white/50">{format!("From: {}", from)}</div>}.into_any()),
-                                TxnInfoType::Sent { to } => Some(view! {<div class="text-sm md:text-md text-white/50">{format!("To: {}", to)}</div>}.into_any()),
+                                TxnInfoType::Received { from } => Some(view! {<div class="text-sm md:text-md text-white/50">{format!("From: {from}")}</div>}.into_any()),
+                                TxnInfoType::Sent { to } => Some(view! {<div class="text-sm md:text-md text-white/50">{format!("To: {to}")}</div>}.into_any()),
                                 TxnInfoType::Transfer { from, to } => Some(view! {
                                     <div class="flex flex-col space-y-1">
-                                    <div class="text-sm md:text-md text-white/50">{format!("From: {}", from)}</div>
-                                    <div class="text-sm md:text-md text-white/50">{format!("To: {}", to)}</div>
+                                    <div class="text-sm md:text-md text-white/50">{format!("From: {from}")}</div>
+                                    <div class="text-sm md:text-md text-white/50">{format!("To: {to}")}</div>
                                     </div>
                                 }.into_any())
                             }
@@ -104,7 +104,7 @@ pub fn TxnView(
                     TxnDirection::Added => "text-green-600 font-semibold",
                     _ => "text-white font-semibold",
                 }
-            }>{format!("{} {}", bal_res, symbol)}</span>
+            }>{format!("{bal_res} {symbol}")}</span>
             <span class="text-sm md:text-md text-white/50">
                 {parse_ns_to_datetime(info.timestamp).ok()}
             </span>

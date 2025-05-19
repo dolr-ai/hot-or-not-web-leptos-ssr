@@ -12,6 +12,10 @@ use state::local_storage::LocalStorageSyncContext;
 use state::{auth::auth_state, local_storage::use_referrer_store};
 use utils::event_streaming::events::CentsAdded;
 use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, ProviderKind};
+use utils::mixpanel::mixpanel_events::MixPanelEvent;
+use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
+use utils::mixpanel::mixpanel_events::MixpanelLoginSuccessProps;
+use utils::mixpanel::mixpanel_events::MixpanelSignupSuccessProps;
 use utils::send_wrap;
 use yral_canisters_common::Canisters;
 use yral_types::delegated_identity::DelegatedIdentityWire;
@@ -45,7 +49,28 @@ pub async fn handle_user_login(
 
     if first_time_login {
         CentsAdded.send_event("signup".to_string(), NEW_USER_SIGNUP_REWARD);
+        let global = MixpanelGlobalProps::try_get(&canisters);
+        MixPanelEvent::track_signup_success(MixpanelSignupSuccessProps {
+            user_id: global.user_id,
+            visitor_id: global.visitor_id,
+            is_logged_in: global.is_logged_in,
+            canister_id: global.canister_id,
+            is_nsfw_enabled: global.is_nsfw_enabled,
+            is_referral: referrer.is_some(),
+            referrer_user_id: referrer.map(|f| f.to_text()),
+        });
+    } else {
+        let global = MixpanelGlobalProps::try_get(&canisters);
+        MixPanelEvent::track_login_success(MixpanelLoginSuccessProps {
+            user_id: global.user_id,
+            visitor_id: global.visitor_id,
+            is_logged_in: global.is_logged_in,
+            canister_id: global.canister_id,
+            is_nsfw_enabled: global.is_nsfw_enabled,
+        });
     }
+
+    MixPanelEvent::identify_user(user_principal.to_text().as_str());
 
     match referrer {
         Some(_referee_principal) if first_time_login => {
@@ -240,7 +265,7 @@ mod server_fn_impl {
             referee_principal_id: Principal,
         ) -> Result<(), ServerFnError> {
             use state::admin_canisters::admin_canisters;
-            use yral_canisters_client::user_index::Result_;
+            use yral_canisters_client::user_index::Result2;
 
             let admin_cans = admin_canisters();
             let user_idx = admin_cans.user_index_with(user_index).await;
@@ -251,7 +276,7 @@ mod server_fn_impl {
                     referee_principal_id,
                 )
                 .await?;
-            if let Result_::Err(e) = res {
+            if let Result2::Err(e) = res {
                 return Err(ServerFnError::new(format!(
                     "failed to issue referral reward {e}"
                 )));

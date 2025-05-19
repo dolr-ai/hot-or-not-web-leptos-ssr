@@ -121,3 +121,46 @@ pub fn SecondaryHighlightedButton(
         </button>
     }
 }
+
+#[component]
+pub fn GradientButton(
+    children: Children,
+    disabled: Signal<bool>,
+    #[prop(into)] classes: String,
+    on_click: impl Fn() + 'static,
+) -> impl IntoView {
+    let on_click = move |_| on_click();
+    Effect::new(move || {
+        log::info!("disabled: {}", disabled());
+    });
+
+    view! {
+        <button
+            class=(["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled", "cursor-disabled"], move || disabled())
+            class=(["text-neutral-50", "bg-brand-gradient"], move || !disabled())
+            class=format!("rounded-lg px-5 py-2 text-sm text-center font-bold {}", classes)
+            on:click=on_click
+        >
+            {children()}
+        </button>
+    }
+}
+
+#[component]
+pub fn GradientLinkButton(
+    children: Children,
+    #[prop(into)] href: String,
+    #[prop(optional, into)] classes: String,
+    #[prop(optional)] disabled: bool,
+) -> impl IntoView {
+    view! {
+        <a
+            class=(["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled", "cursor-disabled"], disabled)
+            class=(["text-neutral-50", "bg-brand-gradient"], !disabled)
+            class=format!("rounded-lg px-5 py-2 text-sm text-center font-bold {}", classes)
+            href=href
+        >
+            {children()}
+        </a>
+    }
+}
