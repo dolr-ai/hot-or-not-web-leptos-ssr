@@ -189,9 +189,6 @@ yral-canisters-client = { git = "https://github.com/yral-dapp/yral-common.git", 
     "full",
 ] }
 yral-canisters-common = { git = "https://github.com/yral-dapp/yral-common.git", branch = "master" }
-yral-pump-n-dump-common = { git = "https://github.com/yral-dapp/yral-common", features = [
-    "client",
-], branch = "master", version = "0.1.0" }
 hon-worker-common = { git = "https://github.com/yral-dapp/yral-common", features = [
     "client",
 ], branch = "master", version = "0.1.0" }
