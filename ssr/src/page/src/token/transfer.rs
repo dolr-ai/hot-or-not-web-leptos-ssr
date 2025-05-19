@@ -160,6 +160,8 @@ fn TokenTransferInner(
     });
 
     let auth_cans_wire = authenticated_canisters();
+    let (is_connected, _, _) =
+        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
 
     let mix_fees = info.fees.clone();
     let token_name = info.symbol.clone();
@@ -232,9 +234,6 @@ fn TokenTransferInner(
                 RootType::SATS => return Err(ServerFnError::new("Satoshis cannot be transferred")),
             }
             TokensTransferred.send_event(amt.e8s.to_string(), destination, cans.clone());
-            let (is_connected, _, _) =
-                use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
-
             let is_logged_in = is_connected.get_untracked();
 
             let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);

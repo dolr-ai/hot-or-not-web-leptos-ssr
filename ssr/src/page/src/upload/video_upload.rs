@@ -262,7 +262,8 @@ pub fn VideoUploader(
     let is_nsfw = params.is_nsfw;
     let enable_hot_or_not = params.enable_hot_or_not;
     let canister_store = auth_canisters_store();
-
+    let (is_connected, _, _) =
+        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
     let publish_action: Action<_, _, LocalStorage> =
         Action::new_unsync(move |canisters: &Canisters<true>| {
             let canisters = canisters.clone();
@@ -302,9 +303,6 @@ pub fn VideoUploader(
 
                 match res {
                     Ok(_) => {
-                        let (is_connected, _, _) = use_local_storage::<bool, FromToStringCodec>(
-                            consts::ACCOUNT_CONNECTED_STORE,
-                        );
                         let is_logged_in = is_connected.get_untracked();
                         let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
                         MixPanelEvent::track_video_upload_success(

@@ -108,6 +108,8 @@ fn HNButtonOverlay(
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
 ) -> impl IntoView {
+    let (is_connected, _, _) =
+        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
     let place_bet_action = Action::new(
         move |(canisters, bet_direction, bet_amount): &(Canisters<true>, VoteKind, u64)| {
             let post_canister = post.canister_id;
@@ -125,15 +127,13 @@ fn HNButtonOverlay(
             let identity = cans.identity();
             let sender = identity.sender().unwrap();
             let sig = sign_vote_request(identity, req.clone());
+
             let post_mix = post.clone();
             send_wrap(async move {
                 let sig = sig.ok()?;
                 let res = vote_with_cents_on_post(sender, req, sig).await;
                 match res {
                     Ok(_) => {
-                        let (is_connected, _, _) = use_local_storage::<bool, FromToStringCodec>(
-                            consts::ACCOUNT_CONNECTED_STORE,
-                        );
                         let is_logged_in = is_connected.get_untracked();
                         let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
 

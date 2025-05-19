@@ -44,6 +44,8 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
     let post_id = post.post_id;
     let initial_liked = (post.liked_by_user, post.likes);
     let canisters = auth_canisters_store();
+    let (is_connected, _, _) =
+        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
 
     let like_toggle = Action::new_local(move |&()| {
         let post_details = post.clone();
@@ -66,8 +68,6 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
             if should_like {
                 likes.update(|l| *l += 1);
                 LikeVideo.send_event(post_details.clone(), likes, canister_store);
-                let (is_connected, _, _) =
-                    use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
                 let is_logged_in = is_connected.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
                 let is_hot_or_not = true;
