@@ -5,13 +5,13 @@ use consts::USER_PRINCIPAL_STORE;
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_router::hooks::use_location;
-use leptos_use::storage::use_local_storage;
+// use leptos_use::storage::use_local_storage;
 use leptos_use::use_cookie;
 use state::app_type::AppType;
-use utils::{
-    event_streaming::events::auth_canisters_store,
-    mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, MixpanelHomePageViewedProps},
-};
+// use utils::{
+//     event_streaming::events::auth_canisters_store,
+//     mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, MixpanelHomePageViewedProps},
+// };
 
 #[derive(Clone)]
 struct NavItem {
@@ -235,19 +235,19 @@ fn NavIcon(
     let mixpanel_home_tab_event = move || {
         let href = href.get_untracked();
         if href.as_str() == "/" || href.contains("/hot-or-not") {
-            if let Some(cans) = auth_canisters_store().get_untracked() {
-                let (is_connected, _, _) =
-                    use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
-                let is_logged_in = is_connected.get_untracked();
-                let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-                MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps {
-                    user_id: global.user_id,
-                    visitor_id: global.visitor_id,
-                    is_logged_in: global.is_logged_in,
-                    canister_id: global.canister_id,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                });
-            }
+            // if let Some(cans) = auth_canisters_store().get_untracked() {
+            //     let (is_connected, _, _) =
+            //         use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
+            //     let is_logged_in = is_connected.get_untracked();
+            //     let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
+            //     MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps {
+            //         user_id: global.user_id,
+            //         visitor_id: global.visitor_id,
+            //         is_logged_in: global.is_logged_in,
+            //         canister_id: global.canister_id,
+            //         is_nsfw_enabled: global.is_nsfw_enabled,
+            //     });
+            // }
         }
     };
 
