@@ -101,7 +101,10 @@ pub fn VideoView(
             let post = post_for_mixpanel.get_untracked().unwrap();
             let is_game_enabled = true;
             if let Some(cans) = auth_canisters_store().get_untracked() {
-                let global = MixpanelGlobalProps::try_get(&cans);
+                let (is_connected, _, _) =
+                    use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
+                let is_logged_in = is_connected.get_untracked();
+                let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
                 MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
                     user_id: global.user_id,
                     visitor_id: global.visitor_id,
@@ -202,8 +205,12 @@ pub fn VideoView(
         send_wrap(async move {
             if let Some(cans) = canisters.get_untracked() {
                 let post = post_for_view.get_untracked().unwrap();
-                let global = MixpanelGlobalProps::try_get(&cans);
+                let (is_connected, _, _) =
+                    use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
+                let is_logged_in = is_connected.get_untracked();
+                let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
                 let is_game_enabled = true;
+
                 MixPanelEvent::track_video_viewed(MixpanelVideoViewedProps {
                     publisher_user_id: post.poster_principal.to_text(),
                     user_id: global.user_id,

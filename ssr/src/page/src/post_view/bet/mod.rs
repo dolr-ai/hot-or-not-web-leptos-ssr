@@ -1,6 +1,7 @@
 mod server_impl;
 
 use crate::post_view::BetEligiblePostCtx;
+use codee::string::FromToStringCodec;
 use component::{
     bullet_loader::BulletLoader, canisters_prov::AuthCansProvider, hn_icons::*, spinner::SpinnerFit,
 };
@@ -8,6 +9,7 @@ use hon_worker_common::{sign_vote_request, GameInfo, GameResult, WORKER_URL};
 use ic_agent::Identity;
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
+use leptos_use::storage::use_local_storage;
 use server_impl::vote_with_cents_on_post;
 use state::canisters::authenticated_canisters;
 use utils::try_or_redirect_opt;
@@ -129,7 +131,11 @@ fn HNButtonOverlay(
                 let res = vote_with_cents_on_post(sender, req, sig).await;
                 match res {
                     Ok(_) => {
-                        let global = MixpanelGlobalProps::try_get(&cans);
+                        let (is_connected, _, _) = use_local_storage::<bool, FromToStringCodec>(
+                            consts::ACCOUNT_CONNECTED_STORE,
+                        );
+                        let is_logged_in = is_connected.get_untracked();
+                        let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
 
                         MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
                             user_id: global.user_id,

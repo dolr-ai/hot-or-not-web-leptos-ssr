@@ -49,7 +49,7 @@ pub async fn handle_user_login(
 
     if first_time_login {
         CentsAdded.send_event("signup".to_string(), NEW_USER_SIGNUP_REWARD);
-        let global = MixpanelGlobalProps::try_get(&canisters);
+        let global = MixpanelGlobalProps::try_get(&canisters, true);
         MixPanelEvent::track_signup_success(MixpanelSignupSuccessProps {
             user_id: global.user_id,
             visitor_id: global.visitor_id,
@@ -60,7 +60,7 @@ pub async fn handle_user_login(
             referrer_user_id: referrer.map(|f| f.to_text()),
         });
     } else {
-        let global = MixpanelGlobalProps::try_get(&canisters);
+        let global = MixpanelGlobalProps::try_get(&canisters, true);
         MixPanelEvent::track_login_success(MixpanelLoginSuccessProps {
             user_id: global.user_id,
             visitor_id: global.visitor_id,
@@ -173,7 +173,7 @@ pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) 
     provide_context(ctx);
 
     view! {
-        <div class="flex flex-col py-12 px-16 items-center gap-2 bg-neutral-900 text-white cursor-auto">
+        <div class="flex fle-col py-12 px-16 items-center gap-2 bg-neutral-900 text-white cursor-auto">
         <h1 class="text-xl">Login to Yral</h1>
         <img class="h-32 w-32 object-contain my-8" src="/img/yral/logo.webp" />
         <span class="text-md">Continue with</span>
