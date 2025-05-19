@@ -1,7 +1,7 @@
-use crate::event_streaming::events::account_connected_reader;
 use candid::Principal;
 use codee::string::FromToStringCodec;
 use codee::string::JsonSerdeCodec;
+use consts::ACCOUNT_CONNECTED_STORE;
 use consts::NSFW_TOGGLE_STORE;
 use leptos::prelude::*;
 use leptos_use::storage::use_local_storage;
@@ -49,7 +49,8 @@ pub struct MixpanelGlobalProps {
 impl MixpanelGlobalProps {
     /// Load global state (login, principal, NSFW toggle)
     pub fn try_get(cans: &Canisters<true>) -> Self {
-        let (is_connected, _) = account_connected_reader();
+        let (is_connected, _, _) =
+            use_local_storage::<bool, FromToStringCodec>(ACCOUNT_CONNECTED_STORE);
         let is_logged_in = is_connected.get_untracked();
         let (is_nsfw_enabled, _, _) =
             use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
