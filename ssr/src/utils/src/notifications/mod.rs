@@ -16,7 +16,7 @@ extern "C" {
 pub async fn get_device_registeration_token() -> Result<DeviceRegistrationToken, ServerFnError> {
     let permission = get_notification_permission()
         .await
-        .map_err(|e| ServerFnError::new(format!("{:?}", e)))?
+        .map_err(|e| ServerFnError::new(format!("{e:?}")))?
         .as_bool()
         .ok_or(ServerFnError::new("Failed to get notification permission"))?;
     if !permission {
@@ -27,7 +27,7 @@ pub async fn get_device_registeration_token() -> Result<DeviceRegistrationToken,
 
     let token = get_token()
         .await
-        .map_err(|e| ServerFnError::new(format!("{:?}", e)))?
+        .map_err(|e| ServerFnError::new(format!("{e:?}")))?
         .as_string()
         .ok_or(ServerFnError::new("Failed to get token"))?;
 
