@@ -173,7 +173,7 @@ pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) 
     provide_context(ctx);
 
     view! {
-        <div class="flex fle-col py-12 px-16 items-center gap-2 bg-neutral-900 text-white cursor-auto">
+        <div class="flex flex-col py-12 px-16 items-center gap-2 bg-neutral-900 text-white cursor-auto">
         <h1 class="text-xl">Login to Yral</h1>
         <img class="h-32 w-32 object-contain my-8" src="/img/yral/logo.webp" />
         <span class="text-md">Continue with</span>
