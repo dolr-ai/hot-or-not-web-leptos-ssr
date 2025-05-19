@@ -120,7 +120,7 @@ fn CtxProvider(children: ChildrenFn) -> impl IntoView {
         move |event: CustomEvent| {
             let payload = event.detail();
             notification.0.set(payload.as_string().and_then(|s| {
-                log::info!("Payload: {}", s);
+                log::info!("Payload: {s}");
                 serde_json::from_str(&s).ok()
             }));
         },
