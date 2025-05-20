@@ -37,6 +37,7 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
                 .unwrap();
 
             set_notifs_enabled(true);
+            pop_up.set(false);
         });
     view! {
         <ShadowOverlay show=popup_signal >
