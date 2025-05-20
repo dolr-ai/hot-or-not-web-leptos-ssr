@@ -36,11 +36,12 @@ if (messaging && typeof messaging.onBackgroundMessage === 'function') {
   messaging.onBackgroundMessage((payload) => {
     console.log("[firebase-messaging-sw.js] Received background message ", payload);
 
-    const notificationTitle = payload.notification?.title || "New Message";
+    const data = payload.data || {}; // Ensure data object exists
+    const notificationTitle = data.title || "New Message"; // Prefer data.title, fallback to generic
     const notificationOptions = {
-      body: payload.notification?.body || payload.notification?.message || "You have a new message.",
-      icon: payload.notification?.image || "/default-icon.png", // TODO: Replace icon
-      data: payload.data 
+      body: data.message || "You have a new message.", // Prefer data.message, fallback to generic
+      icon: data.image || "/default-icon.png", // Prefer data.image, fallback to default icon
+      data: payload.data // Pass along the original data for click actions etc.
     };
     // Important: Return the promise from showNotification
     return self.registration.showNotification(notificationTitle, notificationOptions);

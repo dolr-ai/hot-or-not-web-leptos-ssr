@@ -56,15 +56,17 @@ onMessage(messaging, (payload) => {
   window.dispatchEvent(event);
 
   // Optionally, still show a default browser notification from JS
-  // You might want to remove this if Leptos handles the UI exclusively.
-  const { notification: notificationData } = payload;
-  if (notificationData) {
-    const { title, body, image } = notificationData;
+  const data = payload.data;
+  if (data) { 
+    const title = data.title || "New Message"; 
+    const body = data.message || "You have a new message."; 
+    const image = data.image; 
+
     const notificationOptions = {
       body: body,
-      icon: image,
+      icon: image, // Will be undefined if data.image is not present, which is fine
     };
-    const notification = new Notification(title || "New Message", notificationOptions);
+    const notification = new Notification(title, notificationOptions);
     notification.onerror = (err) => {
       console.error("Error displaying JS notification:", err);
     };

@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crate::canister_ids::USER_INDEX_ID;
-use consts::{METADATA_API_BASE, YRAL_BACKEND_CONTAINER_TAG, YRAL_METADATA_CONTAINER_TAG};
+use consts::{YRAL_BACKEND_CONTAINER_TAG, YRAL_METADATA_CONTAINER_TAG};
 use ic_agent::{identity::Secp256k1Identity, AgentError, Identity};
 use k256::SecretKey;
 use state::admin_canisters::AdminCanisters;
@@ -52,8 +52,7 @@ impl TestContainers {
 
         // Setup User Principal -> User Canister ID
         // for the admin canister
-        let metadata_client: MetadataClient<false> =
-            MetadataClient::with_base_url(METADATA_API_BASE.clone());
+        let metadata_client: MetadataClient<false> = MetadataClient::default();
         let sk = SecretKey::from_bytes(&ADMIN_SECP_BYTES.into()).unwrap();
         let id = Secp256k1Identity::from_private_key(sk);
         let cans = AdminCanisters::new(id.clone());
