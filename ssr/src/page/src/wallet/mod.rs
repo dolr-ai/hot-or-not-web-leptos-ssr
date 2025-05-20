@@ -3,7 +3,6 @@ pub mod tokens;
 pub mod transactions;
 pub mod txn;
 
-use auth::delegate_identity;
 use candid::Principal;
 use codee::string::FromToStringCodec;
 use component::icons::notification_icon::NotificationIcon;
@@ -299,14 +298,14 @@ pub fn NotificationWalletImpl() -> impl IntoView {
         log::info!("Notif enabled:{}", notifs_enabled.get_untracked());
         if notifs_enabled.get_untracked() {
             metaclient
-                .unregister_device(delegate_identity(cans.identity()), token)
+                .unregister_device(cans.identity(), token)
                 .await
                 .unwrap();
             log::info!("Device unregistered successfully");
             set_notifs_enabled(false)
         } else {
             metaclient
-                .register_device(delegate_identity(cans.identity()), token)
+                .register_device(cans.identity(), token)
                 .await
                 .unwrap();
             log::info!("Device registered sucessfully");

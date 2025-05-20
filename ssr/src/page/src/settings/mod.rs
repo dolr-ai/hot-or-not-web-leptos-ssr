@@ -1,4 +1,3 @@
-use auth::delegate_identity;
 use codee::string::FromToStringCodec;
 use component::back_btn::BackButton;
 use component::canisters_prov::AuthCansProvider;
@@ -141,13 +140,13 @@ fn EnableNotifications() -> impl IntoView {
 
         if notifs_enabled.get_untracked() {
             metaclient
-                .unregister_device(delegate_identity(cans.identity()), token)
+                .unregister_device(cans.identity(), token)
                 .await
                 .unwrap();
             set_notifs_enabled(false)
         } else {
             metaclient
-                .register_device(delegate_identity(cans.identity()), token)
+                .register_device(cans.identity(), token)
                 .await
                 .unwrap();
             set_notifs_enabled(true)

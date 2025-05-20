@@ -1,4 +1,3 @@
-use auth::delegate_identity;
 use component::canisters_prov::AuthCansProvider;
 use leptos::prelude::*;
 use state::canisters::authenticated_canisters;
@@ -24,7 +23,7 @@ fn NotifInnerComponent(details: ProfileDetails) -> impl IntoView {
 
         let token = get_device_registeration_token().await.unwrap();
         metaclient
-            .register_device(delegate_identity(cans.identity()), token)
+            .register_device(cans.identity(), token)
             .await
             .unwrap();
     });
