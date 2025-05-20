@@ -1,5 +1,6 @@
 use super::UploadParams;
 use auth::delegate_short_lived_identity;
+use codee::string::FromToStringCodec;
 use component::buttons::HighlightedLinkButton;
 use component::modal::Modal;
 use component::notification_nudge::NotificationNudge;
@@ -12,6 +13,7 @@ use leptos::{
     prelude::*,
 };
 use leptos_icons::*;
+use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -262,6 +264,8 @@ pub fn VideoUploader(
     let enable_hot_or_not = params.enable_hot_or_not;
     let canister_store = auth_canisters_store();
     let notification_nudge = RwSignal::new(false);
+    let (is_connected, _, _) =
+        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
     let publish_action: Action<_, _, LocalStorage> =
         Action::new_unsync(move |canisters: &Canisters<true>| {
             let canisters = canisters.clone();
@@ -301,7 +305,8 @@ pub fn VideoUploader(
 
                 match res {
                     Ok(_) => {
-                        let global = MixpanelGlobalProps::try_get(&canisters);
+                        let is_logged_in = is_connected.get_untracked();
+                        let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
                         MixPanelEvent::track_video_upload_success(
                             MixpanelVideoUploadSuccessProps {
                                 user_id: global.user_id,

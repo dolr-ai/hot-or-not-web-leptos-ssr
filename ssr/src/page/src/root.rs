@@ -83,6 +83,8 @@ pub fn YralRootPage() -> impl IntoView {
         }
     });
     let post_details_cache: PostDetailsCacheCtx = expect_context();
+    let (is_connected, _, _) =
+        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
 
     view! {
         <Title text="YRAL - Home" />
@@ -100,11 +102,10 @@ pub fn YralRootPage() -> impl IntoView {
                                 });
 
                                 if let Some(cans) = auth_canisters_store().get_untracked() {
-                                    let global = MixpanelGlobalProps::try_get(&cans);
+                                    let is_logged_in = is_connected.get_untracked();
+                                    let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
                                     MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps { user_id:  global.user_id, visitor_id: global.visitor_id, is_logged_in: global.is_logged_in, canister_id: global.canister_id, is_nsfw_enabled: global.is_nsfw_enabled });
-                                } else if let Some(global) = MixpanelGlobalProps::try_get_from_local_storage() {
-                                    MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps {  user_id:  global.user_id, visitor_id: global.visitor_id, is_logged_in: global.is_logged_in, canister_id: global.canister_id, is_nsfw_enabled: global.is_nsfw_enabled });
-                                };
+                                }
 
                                 format!("/hot-or-not/{canister_id}/{post_id}")
                             }

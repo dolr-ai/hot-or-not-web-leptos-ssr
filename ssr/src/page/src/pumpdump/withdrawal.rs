@@ -1,5 +1,6 @@
 use crate::format_cents;
 use candid::{Nat, Principal};
+use codee::string::FromToStringCodec;
 use component::{
     auth_providers::handle_user_login,
     back_btn::BackButton,
@@ -12,6 +13,7 @@ use futures::TryFutureExt;
 use http::StatusCode;
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
+use leptos_use::storage::use_local_storage;
 use log;
 use state::canisters::authenticated_canisters;
 use utils::{mixpanel::mixpanel_events::*, send_wrap, try_or_redirect_opt};
@@ -137,6 +139,8 @@ pub fn PndWithdrawal() -> impl IntoView {
 
         cents.set(value);
     };
+    let (is_connected, _, _) =
+        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
 
     let auth_wire = authenticated_canisters();
     let send_claim = Action::new_local(move |&()| {
@@ -170,7 +174,8 @@ pub fn PndWithdrawal() -> impl IntoView {
                 .parse::<u64>()
                 .unwrap_or(0);
             let cents_value = mix_formatted_cents as f64;
-            let global = MixpanelGlobalProps::try_get(&cans);
+            let is_logged_in = is_connected.get_untracked();
+            let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
             let balance_info = balance_info_signal.get();
             let updated_cents_wallet_balance = format_cents!(balance_info.unwrap().balance)
                 .parse::<f64>()

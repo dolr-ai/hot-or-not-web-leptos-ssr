@@ -49,7 +49,7 @@ pub async fn handle_user_login(
 
     if first_time_login {
         CentsAdded.send_event("signup".to_string(), NEW_USER_SIGNUP_REWARD);
-        let global = MixpanelGlobalProps::try_get(&canisters);
+        let global = MixpanelGlobalProps::try_get(&canisters, true);
         MixPanelEvent::track_signup_success(MixpanelSignupSuccessProps {
             user_id: global.user_id,
             visitor_id: global.visitor_id,
@@ -60,7 +60,7 @@ pub async fn handle_user_login(
             referrer_user_id: referrer.map(|f| f.to_text()),
         });
     } else {
-        let global = MixpanelGlobalProps::try_get(&canisters);
+        let global = MixpanelGlobalProps::try_get(&canisters, true);
         MixPanelEvent::track_login_success(MixpanelLoginSuccessProps {
             user_id: global.user_id,
             visitor_id: global.visitor_id,
