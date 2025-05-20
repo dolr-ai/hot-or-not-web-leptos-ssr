@@ -7,6 +7,7 @@ use component::{
 };
 use hon_worker_common::{sign_vote_request, GameInfo, GameResult, WORKER_URL};
 use ic_agent::Identity;
+use leptos::html::{self, Audio};
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
