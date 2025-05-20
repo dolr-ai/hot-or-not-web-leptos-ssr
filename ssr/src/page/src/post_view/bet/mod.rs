@@ -332,7 +332,49 @@ pub fn HNUserParticipation(
     let vote_amount: u64 = vote_amount
         .try_into()
         .expect("We only allow voting with 200 max, so this is alright");
+    let won = matches!(game_result, GameResult::Win { .. });
+    let audio_ref: NodeRef<_> = NodeRef::<html::Audio>::new();
+
+    fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>) {
+        #[cfg(not(feature = "hydrate"))]
+        {
+            _ = audio_ref;
+        }
+        #[cfg(feature = "hydrate")]
+        {
+            use wasm_bindgen::JsValue;
+            use web_sys::js_sys::Reflect;
+    
+            let window = window();
+            let nav = window.navigator();
+            if Reflect::has(&nav, &JsValue::from_str("vibrate")).unwrap_or_default() {
+                nav.vibrate_with_duration(5);
+            } else {
+                log::debug!("browser does not support vibrate");
+            }
+            let Some(audio) = audio_ref.get() else {
+                return;
+            };
+            audio.set_current_time(0.);
+            audio.set_volume(0.5);
+            _ = audio.play();
+        }
+    }
+    
+
+    Effect::new(move |_| {
+        if won {
+            play_win_sound_and_vibrate(audio_ref);
+        }
+    });
+    
+    
     view! {
+        if won {
+            view! {
+                <audio node_ref=audio_ref preload="auto" src="/img/hotornot/chaching.m4a"/>
+            }
+        }
         <HNWonLost game_result vote_amount />
         <ShadowBg />
     }
