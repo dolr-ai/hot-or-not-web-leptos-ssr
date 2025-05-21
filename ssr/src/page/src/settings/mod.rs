@@ -5,6 +5,7 @@ use component::title::TitleText;
 use component::{social::*, toggle::Toggle};
 use consts::NOTIFICATIONS_ENABLED_STORE;
 use leptos::html::Input;
+use leptos::web_sys::{Notification, NotificationPermission};
 use leptos::{ev, prelude::*};
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
@@ -13,7 +14,6 @@ use state::canisters::authenticated_canisters;
 use utils::event_streaming::events::account_connected_reader;
 use utils::host::{show_cdao_page, show_pnd_page};
 use utils::notifications::get_device_registeration_token;
-use leptos::web_sys::{Notification, NotificationPermission};
 use yral_canisters_common::utils::profile::ProfileDetails;
 use yral_canisters_common::Canisters;
 use yral_metadata_client::MetadataClient;
@@ -126,9 +126,10 @@ fn EnableNotifications() -> impl IntoView {
 
     let (notifs_enabled, set_notifs_enabled, _) =
         use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
-    
+
     let notifs_enabled_der = Signal::derive(move || {
-        notifs_enabled.get() && matches!(Notification::permission(), NotificationPermission::Granted)
+        notifs_enabled.get()
+            && matches!(Notification::permission(), NotificationPermission::Granted)
     });
 
     let toggle_ref = NodeRef::<Input>::new();
@@ -136,8 +137,9 @@ fn EnableNotifications() -> impl IntoView {
     let auth_cans = authenticated_canisters();
 
     let on_token_click: Action<(), (), LocalStorage> = Action::new_unsync(move |()| async move {
-
-        if !matches!(Notification::permission(), NotificationPermission::Granted) && notifs_enabled.get_untracked() {
+        if !matches!(Notification::permission(), NotificationPermission::Granted)
+            && notifs_enabled.get_untracked()
+        {
             let _ = get_device_registeration_token().await.unwrap();
             return;
         }

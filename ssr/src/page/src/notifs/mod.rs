@@ -4,7 +4,6 @@ use state::canisters::authenticated_canisters;
 use utils::event_streaming::events::account_connected_reader;
 use utils::notifications::{get_device_registeration_token, get_notification_permission};
 
-use leptos::web_sys::{Notification, NotificationPermission};
 use yral_canisters_common::utils::profile::ProfileDetails;
 use yral_canisters_common::Canisters;
 use yral_metadata_client::MetadataClient;

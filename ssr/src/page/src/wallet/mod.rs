@@ -11,6 +11,7 @@ use component::toggle::Toggle;
 use component::{canisters_prov::AuthCansProvider, connect::ConnectLogin};
 use consts::NOTIFICATIONS_ENABLED_STORE;
 use leptos::html::Input;
+use leptos::web_sys::{Notification, NotificationPermission};
 use leptos::{ev, prelude::*};
 use leptos_meta::*;
 use leptos_router::components::Redirect;
@@ -25,7 +26,6 @@ use utils::event_streaming::events::account_connected_reader;
 use utils::notifications::get_device_registeration_token;
 use utils::send_wrap;
 use utils::try_or_redirect_opt;
-use leptos::web_sys::{Notification, NotificationPermission};
 use yral_canisters_common::utils::profile::ProfileDetails;
 use yral_canisters_common::Canisters;
 use yral_metadata_client::MetadataClient;
@@ -290,12 +290,14 @@ pub fn NotificationWalletImpl() -> impl IntoView {
         use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
 
     let notifs_enabled_der = Signal::derive(move || {
-        notifs_enabled.get() && matches!(Notification::permission(), NotificationPermission::Granted)
+        notifs_enabled.get()
+            && matches!(Notification::permission(), NotificationPermission::Granted)
     });
 
     let on_token_click: Action<(), (), LocalStorage> = Action::new_unsync(move |()| async move {
-
-        if !matches!(Notification::permission(), NotificationPermission::Granted) && notifs_enabled.get() {
+        if !matches!(Notification::permission(), NotificationPermission::Granted)
+            && notifs_enabled.get()
+        {
             let _ = get_device_registeration_token().await.unwrap();
             return;
         }

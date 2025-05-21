@@ -1,11 +1,11 @@
 use codee::string::FromToStringCodec;
 use consts::NOTIFICATIONS_ENABLED_STORE;
 use leptos::prelude::*;
+use leptos::web_sys::{Notification, NotificationPermission};
 use leptos_icons::Icon;
 use leptos_use::storage::use_local_storage;
 use state::canisters::authenticated_canisters;
 use utils::notifications::{get_device_registeration_token, get_notification_permission};
-use leptos::web_sys::{Notification, NotificationPermission};
 use yral_canisters_common::Canisters;
 use yral_metadata_client::MetadataClient;
 
@@ -21,16 +21,22 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
     let (notifs_enabled, set_notifs_enabled, _) =
         use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
 
-    let popup_signal = Signal::derive(move || !(notifs_enabled.get() && matches!(Notification::permission(), NotificationPermission::Granted)) && pop_up.get());
+    let popup_signal = Signal::derive(move || {
+        !(notifs_enabled.get()
+            && matches!(Notification::permission(), NotificationPermission::Granted))
+            && pop_up.get()
+    });
 
     let notification_action: Action<(), (), LocalStorage> =
         Action::new_unsync(move |()| async move {
-            if !matches!(Notification::permission(), NotificationPermission::Granted) && notifs_enabled.get_untracked() {
-               let perm =  get_notification_permission().await.unwrap();
-               if perm.as_string().unwrap() == "granted" || perm.as_string().unwrap() == "denied" {
-                pop_up.set(false);
-               }
-               return;
+            if !matches!(Notification::permission(), NotificationPermission::Granted)
+                && notifs_enabled.get_untracked()
+            {
+                let perm = get_notification_permission().await.unwrap();
+                if perm.as_string().unwrap() == "granted" || perm.as_string().unwrap() == "denied" {
+                    pop_up.set(false);
+                }
+                return;
             }
 
             let metaclient: MetadataClient<false> = MetadataClient::default();
