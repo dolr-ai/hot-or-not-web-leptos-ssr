@@ -7,10 +7,10 @@ pub mod device_id;
 #[wasm_bindgen(module = "/src/notifications/setup-firebase-messaging-inline.js")]
 extern "C" {
     #[wasm_bindgen(catch, js_name = getToken)]
-    async fn get_token() -> Result<JsValue, JsValue>;
+    pub async fn get_token() -> Result<JsValue, JsValue>;
 
     #[wasm_bindgen(catch, js_name = getNotificationPermission)]
-    async fn get_notification_permission() -> Result<JsValue, JsValue>;
+    pub async fn get_notification_permission() -> Result<JsValue, JsValue>;
 }
 
 pub async fn get_device_registeration_token() -> Result<DeviceRegistrationToken, ServerFnError> {

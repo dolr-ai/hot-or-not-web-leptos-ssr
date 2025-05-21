@@ -13,6 +13,7 @@ use state::canisters::authenticated_canisters;
 use utils::event_streaming::events::account_connected_reader;
 use utils::host::{show_cdao_page, show_pnd_page};
 use utils::notifications::get_device_registeration_token;
+use leptos::web_sys::{Notification, NotificationPermission};
 use yral_canisters_common::utils::profile::ProfileDetails;
 use yral_canisters_common::Canisters;
 use yral_metadata_client::MetadataClient;
@@ -125,11 +126,22 @@ fn EnableNotifications() -> impl IntoView {
 
     let (notifs_enabled, set_notifs_enabled, _) =
         use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
+    
+    let notifs_enabled_der = Signal::derive(move || {
+        notifs_enabled.get() && matches!(Notification::permission(), NotificationPermission::Granted)
+    });
+
     let toggle_ref = NodeRef::<Input>::new();
 
     let auth_cans = authenticated_canisters();
 
     let on_token_click: Action<(), (), LocalStorage> = Action::new_unsync(move |()| async move {
+
+        if !matches!(Notification::permission(), NotificationPermission::Granted) && notifs_enabled.get_untracked() {
+            let _ = get_device_registeration_token().await.unwrap();
+            return;
+        }
+
         let metaclient: MetadataClient<false> = MetadataClient::default();
 
         let cans = Canisters::from_wire(auth_cans.await.unwrap(), expect_context()).unwrap();
@@ -141,12 +153,14 @@ fn EnableNotifications() -> impl IntoView {
                 .unregister_device(cans.identity(), token)
                 .await
                 .unwrap();
+            log::info!("Device unregistered sucessfully");
             set_notifs_enabled(false)
         } else {
             metaclient
                 .register_device(cans.identity(), token)
                 .await
                 .unwrap();
+            log::info!("Device registered sucessfully");
             set_notifs_enabled(true)
         }
     });
@@ -162,7 +176,7 @@ fn EnableNotifications() -> impl IntoView {
                 <span>Enable Notifications</span>
             </div>
             <div class="justify-self-end">
-                <Toggle checked=notifs_enabled node_ref=toggle_ref />
+                <Toggle checked=notifs_enabled_der node_ref=toggle_ref />
             </div>
         </div>
     }
