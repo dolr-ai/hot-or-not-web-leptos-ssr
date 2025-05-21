@@ -333,10 +333,10 @@ pub fn HNUserParticipation(
     let vote_amount: u64 = vote_amount
         .try_into()
         .expect("We only allow voting with 200 max, so this is alright");
-    let won = matches!(game_result, GameResult::Win { .. });
     let audio_ref: NodeRef<_> = NodeRef::<html::Audio>::new();
+    let won = matches!(game_result, GameResult::Win { .. });
 
-    fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>) {
+    fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
         #[cfg(not(feature = "hydrate"))]
         {
             _ = audio_ref;
@@ -349,24 +349,24 @@ pub fn HNUserParticipation(
             let window = window();
             let nav = window.navigator();
             if Reflect::has(&nav, &JsValue::from_str("vibrate")).unwrap_or_default() {
-                nav.vibrate_with_duration(5);
+                nav.vibrate_with_duration(200);
             } else {
                 log::debug!("browser does not support vibrate");
             }
             let Some(audio) = audio_ref.get() else {
                 return;
             };
-            audio.set_current_time(0.);
-            audio.set_volume(0.5);
-            _ = audio.play();
+            if won {
+                audio.set_current_time(0.);
+                audio.set_volume(0.5);
+                _ = audio.play();
+            }
         }
     }
     
 
     Effect::new(move |_| {
-        if won {
-            play_win_sound_and_vibrate(audio_ref);
-        }
+        play_win_sound_and_vibrate(audio_ref, won);
     });
     
     
