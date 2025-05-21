@@ -3,6 +3,7 @@ use std::cmp::Ordering;
 use codee::string::FromToStringCodec;
 use indexmap::IndexSet;
 use leptos::ev;
+use leptos::html::Audio;
 use leptos::{html::Video, prelude::*};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
@@ -44,6 +45,8 @@ pub fn BgView(
     let (is_onboarded, set_onboarded, _) =
         use_local_storage::<bool, FromToStringCodec>(USER_ONBOARDING_STORE);
 
+    let win_audio_ref = NodeRef::<Audio>::new();
+
     Effect::new(move |_| {
         if onboarding_eligible_post_context.can_place_bet.get() && (!is_onboarded.get()) {
             set_show_onboarding_popup.update(|show| *show = true);
@@ -59,6 +62,7 @@ pub fn BgView(
                 style:background-color="rgb(0, 0, 0)"
                 style:background-image=move || format!("url({})", bg_url(uid()))
             ></div>
+            <audio class="sr-only" node_ref=win_audio_ref preload="auto" src="/img/hotornot/chaching.m4a"/>
             <ShowAny when=move || {
                 referrer_store.get().is_some() && idx == 0 && !is_connected.get()
                     && show_refer_login_popup.get()
@@ -74,7 +78,7 @@ pub fn BgView(
             <ShowAny when=move || { show_onboarding_popup.get() }>
                 <OnboardingPopUp onboard_on_click=set_onboarded />
             </ShowAny>
-            {move || post().map(|post| view! { <VideoDetailsOverlay post /> })}
+            {move || post().map(|post| view! { <VideoDetailsOverlay post win_audio_ref /> })}
             {children()}
         </div>
     }

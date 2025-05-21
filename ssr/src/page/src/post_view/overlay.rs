@@ -6,6 +6,7 @@ use component::{
 
 use consts::NSFW_TOGGLE_STORE;
 use gloo::timers::callback::Timeout;
+use leptos::html::Audio;
 use leptos::{prelude::*, task::spawn_local};
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
@@ -147,7 +148,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
 }
 
 #[component]
-pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
+pub fn VideoDetailsOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> impl IntoView {
     let show_share = RwSignal::new(false);
     let show_report = RwSignal::new(false);
     let show_nsfw_permission = RwSignal::new(false);
@@ -449,7 +450,7 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                     </button>
                 </div>
                 <div class="w-full bg-transparent pointer-events-auto">
-                    <HNGameOverlay post=post_c />
+                    <HNGameOverlay post=post_c win_audio_ref />
                 </div>
             </div>
         </div>
