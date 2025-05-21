@@ -494,12 +494,12 @@ pub fn CreateToken() -> impl IntoView {
 #[component]
 fn CommingSoonBanner() -> impl IntoView {
     view! {
-        <div class="with-gradient relative bg-black rounded-md p-3 bg-no-repeat bg-cover bg-left" style="background-image: url('/img/gradient-backdrop.png')">
+        <div class="with-gradient relative bg-black rounded-md p-3 bg-no-repeat bg-cover bg-left" style="background-image: url('/img/common/gradient-backdrop.png')">
             <div class="flex flex-col gap-1">
                 <h2 class="text-white font-bold">Want to raise ICP?</h2>
                 <span class="text-font bg-clip-text text-transparent bg-gradient-to-r from-[#FFFFFF80] to-[#882B5E80]">Coming Soon...</span>
             </div>
-            <img src="/img/coming-soon-art.svg" class="absolute right-0 bottom-0" />
+            <img src="/img/common/coming-soon-art.svg" class="absolute right-0 bottom-0" />
         </div>
     }
 }

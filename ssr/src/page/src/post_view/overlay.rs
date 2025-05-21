@@ -34,9 +34,9 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
     let liked = RwSignal::new(None::<bool>);
     let icon_name = Signal::derive(move || {
         if liked().unwrap_or_default() {
-            "/img/heart-icon-liked.svg"
+            "/img/common/heart-icon-liked.svg"
         } else {
-            "/img/heart-icon-white.svg"
+            "/img/common/heart-icon-white.svg"
         }
     });
 
