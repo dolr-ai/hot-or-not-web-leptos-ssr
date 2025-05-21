@@ -34,14 +34,11 @@ const messaging = firebase.messaging();
 // Use onBackgroundMessage for the compat SDK v9+
 if (messaging && typeof messaging.onBackgroundMessage === 'function') {
   messaging.onBackgroundMessage((payload) => {
-    console.log("[firebase-messaging-sw.js] Received background message ", payload);
+    console.log("[firebase-messaging-sw.js] Received background message ", payload.notification);
 
-    const data = payload.data || {}; // Ensure data object exists
-    const notificationTitle = data.title || "New Message"; // Prefer data.title, fallback to generic
+    const notificationTitle = payload.notification.title || "New Message";
     const notificationOptions = {
-      body: data.message || "You have a new message.", // Prefer data.message, fallback to generic
-      icon: data.image || "/default-icon.png", // Prefer data.image, fallback to default icon
-      data: payload.data // Pass along the original data for click actions etc.
+      body: payload.notification.body || "You have a new message.",
     };
     // Important: Return the promise from showNotification
     return self.registration.showNotification(notificationTitle, notificationOptions);

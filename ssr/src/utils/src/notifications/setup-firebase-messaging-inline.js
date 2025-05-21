@@ -56,15 +56,13 @@ onMessage(messaging, (payload) => {
   window.dispatchEvent(event);
 
   // Optionally, still show a default browser notification from JS
-  const data = payload.data;
+  const data = payload.notification;
   if (data) { 
     const title = data.title || "New Message"; 
-    const body = data.message || "You have a new message."; 
-    const image = data.image; 
+    const body = data.body || "You have a new message."; 
 
     const notificationOptions = {
       body: body,
-      icon: image, // Will be undefined if data.image is not present, which is fine
     };
     const notification = new Notification(title, notificationOptions);
     notification.onerror = (err) => {
