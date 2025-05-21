@@ -20,7 +20,7 @@ pub fn Popup(#[prop(into)] show: RwSignal<bool>, children: ChildrenFn) -> impl I
                     }
                     #[cfg(not(feature = "hydrate"))] { |_| () }
                 }
-                class="flex cursor-pointer modal-bg inset-0 fixed bg-black/60 z-[999] justify-center items-center backdrop-blur-sm"
+                class="flex cursor-pointer modal-bg inset-0 fixed bg-black/80 z-[999] justify-center items-center"
             >
                 <div style="background: url('/img/common/gradient-backdrop.png'); background-size: cover; background-position: center;" class="mx-4 py-4 px-[20px] max-w-full max-h-full items-center cursor-auto flex-col flex justify-around bg-neutral-900 rounded-md">
                     <div class="flex w-full justify-end items-center">
