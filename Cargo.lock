@@ -3292,7 +3292,7 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
+source = "git+https://github.com/yral-dapp/yral-common?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
 dependencies = [
  "candid",
  "ic-agent",
@@ -3344,6 +3344,7 @@ dependencies = [
  "google-cloud-auth",
  "hex",
  "hmac",
+ "hon-worker-common",
  "http 1.3.1",
  "ic-agent",
  "ic-base-types",
@@ -5438,6 +5439,7 @@ dependencies = [
  "enum_dispatch",
  "firestore",
  "futures",
+ "getrandom 0.3.3",
  "gloo",
  "gloo-utils",
  "gob-cloudflare",
@@ -7410,7 +7412,7 @@ checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
+source = "git+https://github.com/yral-dapp/yral-common?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
 dependencies = [
  "candid",
  "humantime",
@@ -9271,7 +9273,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
+source = "git+https://github.com/yral-dapp/yral-common?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
 dependencies = [
  "anyhow",
  "candid",
@@ -9286,7 +9288,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
+source = "git+https://github.com/yral-dapp/yral-common?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
 dependencies = [
  "candid",
  "ciborium",
@@ -9319,7 +9321,7 @@ dependencies = [
 [[package]]
 name = "yral-grpc-traits"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
+source = "git+https://github.com/yral-dapp/yral-common?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
 dependencies = [
  "serde",
 ]
@@ -9374,7 +9376,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
+source = "git+https://github.com/yral-dapp/yral-common?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
 dependencies = [
  "candid",
  "ic-agent",
@@ -9389,7 +9391,7 @@ dependencies = [
 [[package]]
 name = "yral-qstash-types"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
+source = "git+https://github.com/yral-dapp/yral-common?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
 dependencies = [
  "candid",
  "serde",
@@ -9410,7 +9412,7 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
+source = "git+https://github.com/yral-dapp/yral-common?branch=feat%2Fsats-airdrop#1b4079c6cd871049b1d8da5e8791779ec717be37"
 dependencies = [
  "ic-agent",
  "k256",

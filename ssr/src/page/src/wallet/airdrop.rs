@@ -1,3 +1,5 @@
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
 use candid::{Nat, Principal};
 use component::{
     back_btn::BackButton,
@@ -5,7 +7,7 @@ use component::{
     spinner::{SpinnerCircle, SpinnerCircleStyled},
 };
 use consts::SATS_AIRDROP_LIMIT_RANGE;
-use hon_worker_common::{ClaimRequest, VerifiableClaimRequest};
+use hon_worker_common::{ClaimRequest, VerifiableClaimRequest, WORKER_URL};
 use leptos::prelude::*;
 use leptos_icons::Icon;
 use leptos_router::hooks::use_location;
@@ -21,13 +23,34 @@ use yral_canisters_common::{
 };
 use yral_identity::Signature;
 
-#[server(input = server_fn::codec::Json)]
-async fn is_airdrop_claimed(_user_principal: Principal) -> Result<Option<bool>, ServerFnError> {
-    Ok(None)
+pub async fn is_airdrop_claimed(user_principal: Principal) -> Result<bool, ServerFnError> {
+    let req_url: Url = WORKER_URL.parse().expect("url to be valid");
+    let req_url = req_url
+        .join(&format!("/last_airdrop_claimed_at/{user_principal}"))
+        .expect("url to be valid");
+
+    let response: Option<u64> = reqwest::get(req_url).await?.json().await?;
+
+    // user has never claimed airdrop before
+    let Some(last_airdrop_timestamp) = response else {
+        return Ok(false);
+    };
+    let last_airdrop_timestamp: u128 = last_airdrop_timestamp.into();
+
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
+
+    let duration_24h = Duration::from_secs(24 * 60 * 60).as_millis();
+
+    // user is blocked for 24h since last airdrop claim
+    let blocked_window = last_airdrop_timestamp..(last_airdrop_timestamp + duration_24h);
+    Ok(blocked_window.contains(&now))
 }
 
 #[server(input = server_fn::codec::Json)]
-async fn claim_sats_airdrop(
+pub async fn claim_sats_airdrop(
     user_canister: Principal,
     request: ClaimRequest,
     signature: Signature,
@@ -54,12 +77,16 @@ async fn claim_sats_airdrop(
         return Err(ServerFnError::new("Not allowed to claim"));
     }
 
-    // TODO: add the 24hr constraint
+    let is_airdrop_claimed = is_airdrop_claimed(user_principal).await?;
+
+    if is_airdrop_claimed {
+        log::error!("Not allowed to claim as user has already claimed airdrop");
+        return Err(ServerFnError::new("Not allowed to claim"));
+    }
 
     // small rng should be sufficient for this usecase
     let mut rng = SmallRng::from_os_rng();
     let amount = rng.random_range(SATS_AIRDROP_LIMIT_RANGE);
-
     let worker_req = VerifiableClaimRequest {
         sender: user_principal,
         amount,
