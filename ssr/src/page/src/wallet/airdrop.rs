@@ -4,16 +4,90 @@ use component::{
     buttons::{HighlightedButton, HighlightedLinkButton},
     spinner::{SpinnerCircle, SpinnerCircleStyled},
 };
+use hon_worker_common::{ClaimRequest, VerifiableClaimRequest};
 use leptos::prelude::*;
 use leptos_icons::Icon;
 use leptos_router::hooks::use_location;
-use state::canisters::authenticated_canisters;
+use reqwest::Url;
+use state::{canisters::authenticated_canisters, server::HonWorkerJwt};
 use utils::event_streaming::events::CentsAdded;
 use utils::host::get_host;
+use yral_canisters_client::individual_user_template::{Result9, SessionType};
 use yral_canisters_common::{
     utils::token::{TokenMetadata, TokenOwner},
     Canisters,
 };
+use yral_identity::Signature;
+
+#[server(input = server_fn::codec::Json)]
+async fn is_airdrop_claimed(_user_principal: Principal) -> Result<Option<bool>, ServerFnError> {
+    Ok(None)
+}
+
+#[server(input = server_fn::codec::Json)]
+async fn claim_sats_airdrop(
+    user_canister: Principal,
+    request: ClaimRequest,
+    signature: Signature,
+) -> Result<u64, ServerFnError> {
+    use hon_worker_common::WORKER_URL;
+
+    // TODO: yral-auth-v2, we can do this verification with a JWT
+    let cans: Canisters<false> = expect_context();
+    let user_principal = request.user_principal;
+
+    let user = cans.individual_user(user_canister).await;
+    let profile_owner = user.get_profile_details_v_2().await?;
+    if profile_owner.principal_id != user_principal {
+        log::error!(
+            "Not allowed to claim due to principal mismatch: owner={} != receiver={user_principal}",
+            profile_owner.principal_id,
+        );
+        return Err(ServerFnError::new("Not allowed to claim"));
+    }
+
+    let sess = user.get_session_type().await?;
+    if !matches!(sess, Result9::Ok(SessionType::RegisteredSession)) {
+        log::error!("Not allowed to claim due to invalid session: {sess:?}");
+        return Err(ServerFnError::new("Not allowed to claim"));
+    }
+
+    // TODO: add the 24hr constraint
+
+    // TODO: calculate amount using rand_chacha and `SATS_AIRDROP_LIMIT_RANGE`
+    let amount = 0;
+
+    let worker_req = VerifiableClaimRequest {
+        sender: user_principal,
+        amount,
+        request,
+        signature,
+    };
+
+    let req_url: Url = WORKER_URL.parse().expect("url to be valid");
+    let req_url = req_url
+        .join(&format!("/claim_airdrop/{user_principal}"))
+        .expect("url to be valid");
+    let client = reqwest::Client::new();
+    let jwt = expect_context::<HonWorkerJwt>();
+    let res = client
+        .post(req_url)
+        .json(&worker_req)
+        .header("Authorization", format!("Bearer {}", jwt.0))
+        .send()
+        .await?;
+
+    if !res.status().is_success() {
+        return Err(ServerFnError::new(format!(
+            "worker error[{}]: {}",
+            res.status().as_u16(),
+            res.text().await?
+        )));
+    }
+
+    Ok(amount)
+}
+
 #[component]
 pub fn AirdropPage(meta: TokenMetadata, airdrop_amount: u64) -> impl IntoView {
     let claimed = RwSignal::new(false);
