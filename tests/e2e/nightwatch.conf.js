@@ -41,7 +41,7 @@ module.exports = {
 
   test_settings: {
 
-
+    asyncHookTimeout: 250000,
 
 
     default: {

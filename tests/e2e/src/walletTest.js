@@ -16,8 +16,6 @@ describe("wallet page tests", function () {
   it("default wallet page contains 1000 SATS or 2000 CENTS", function (browser) {
     browser.waitForElementVisible("body", 25000);
 
-    browser.pause(10000);
-
     const centsIsPresent = browser.element
       .findByText("CENTS", { timeout: 10000 })
       .isPresent();
