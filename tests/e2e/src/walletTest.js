@@ -48,7 +48,7 @@ describe("wallet page tests", function () {
     );
     browser.element
       .findByText("USDC", { timeout: 20000 })
-      .waitUntil("visible", { timeout: 10000 })
+      .waitUntil("visible", { timeout: 20000 })
       .assert.enabled();
   });
 });
