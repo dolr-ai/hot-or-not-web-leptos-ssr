@@ -4,10 +4,12 @@ use component::{
     buttons::{HighlightedButton, HighlightedLinkButton},
     spinner::{SpinnerCircle, SpinnerCircleStyled},
 };
+use consts::SATS_AIRDROP_LIMIT_RANGE;
 use hon_worker_common::{ClaimRequest, VerifiableClaimRequest};
 use leptos::prelude::*;
 use leptos_icons::Icon;
 use leptos_router::hooks::use_location;
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use reqwest::Url;
 use state::{canisters::authenticated_canisters, server::HonWorkerJwt};
 use utils::event_streaming::events::CentsAdded;
@@ -54,8 +56,9 @@ async fn claim_sats_airdrop(
 
     // TODO: add the 24hr constraint
 
-    // TODO: calculate amount using rand_chacha and `SATS_AIRDROP_LIMIT_RANGE`
-    let amount = 0;
+    // small rng should be sufficient for this usecase
+    let mut rng = SmallRng::from_os_rng();
+    let amount = rng.random_range(SATS_AIRDROP_LIMIT_RANGE);
 
     let worker_req = VerifiableClaimRequest {
         sender: user_principal,
