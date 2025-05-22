@@ -239,6 +239,7 @@ release-bin = [
     "ga4",
     "firestore",
     "qstash",
+    "rand/os_rng",
     "consts/release-bin",
     "utils/release-bin",
     "component/release-bin",
