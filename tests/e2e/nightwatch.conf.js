@@ -34,12 +34,8 @@ module.exports = {
   globals_path: '',
 
   globals: {
-    disable_output_boxes: true,
     asyncHookTimeout: 30000,
-
   },
-
-
 
   webdriver: {},
   test_workers: {
@@ -47,12 +43,9 @@ module.exports = {
   },
 
   test_settings: {
-
-    disable_output_boxes: true,
-
-
     default: {
       disable_output_boxes: true,
+      disable_error_log: false,
       launch_url: '${PREVIEW_URL}',
 
       screenshots: {
