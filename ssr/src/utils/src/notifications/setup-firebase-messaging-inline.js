@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 // Import onMessage and getToken for client-side foreground message handling
-import { getMessaging, onMessage, getToken as firebaseGetToken } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js";
+import { getMessaging, onMessage, getToken as firebaseGetToken, deleteToken as firebaseDeleteToken } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js";
 
 const app = initializeApp({
 
@@ -39,6 +39,22 @@ export async function getToken() {
   } catch (err) {
     console.error('An error occurred while retrieving token. ', err);
     throw err; // Re-throw the error so wasm_bindgen can catch it
+  }
+}
+
+// Deletes the current FCM token for this device/browser
+export async function deleteFcmToken() {
+  try {
+    const deleted = await firebaseDeleteToken(messaging);
+    if (deleted) {
+      console.log("FCM token deleted successfully.");
+    } else {
+      console.warn("No FCM token found to delete.");
+    }
+    return deleted;
+  } catch (err) {
+    console.error("Failed to delete FCM token:", err);
+    throw err;
   }
 }
 

@@ -5,7 +5,9 @@ use leptos::web_sys::{Notification, NotificationPermission};
 use leptos_icons::Icon;
 use leptos_use::storage::use_local_storage;
 use state::canisters::authenticated_canisters;
-use utils::notifications::{get_device_registeration_token, get_notification_permission};
+use utils::notifications::{
+    get_device_registeration_token, get_fcm_token, notification_permission_granted,
+};
 use yral_canisters_common::Canisters;
 use yral_metadata_client::MetadataClient;
 
@@ -29,31 +31,49 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
 
     let notification_action: Action<(), (), LocalStorage> =
         Action::new_unsync(move |()| async move {
-            if !matches!(Notification::permission(), NotificationPermission::Granted)
-                && notifs_enabled.get_untracked()
-            {
-                let perm = get_notification_permission().await.unwrap();
-                if perm.as_string().unwrap() == "granted" || perm.as_string().unwrap() == "denied" {
-                    pop_up.set(false);
-                }
-                return;
-            }
-
-            let metaclient: MetadataClient<false> = MetadataClient::default();
+            let metaclient: MetadataClient<false> = MetadataClient::with_base_url(
+                reqwest::Url::parse("https://pr-27-dolr-ai-yral-metadata.fly.dev/").unwrap(),
+            );
 
             let cans = Canisters::from_wire(cans.await.unwrap(), expect_context()).unwrap();
 
-            // Removed send_wrap as get_device_registeration_token involves !Send JS futures
-            let token = get_device_registeration_token().await.unwrap();
+            let browser_permission = Notification::permission();
+            let notifs_enabled_val = notifs_enabled.get_untracked();
 
-            metaclient
-                .register_device(cans.identity(), token)
-                .await
-                .unwrap();
-            log::info!("Device registered sucessfully");
-
-            set_notifs_enabled(true);
-            pop_up.set(false);
+            if notifs_enabled_val && matches!(browser_permission, NotificationPermission::Default) {
+                match notification_permission_granted().await {
+                    Ok(true) => {
+                        let token = get_fcm_token().await.unwrap();
+                        metaclient
+                            .register_device(cans.identity(), token)
+                            .await
+                            .unwrap();
+                        log::info!("Device re-registered after ghost state");
+                        set_notifs_enabled(true);
+                    }
+                    Ok(false) => {
+                        log::warn!("User did not grant notification permission after prompt");
+                    }
+                    Err(e) => {
+                        log::error!("Failed to check notification permission: {e:?}");
+                    }
+                }
+            } else if !notifs_enabled_val {
+                let token = get_device_registeration_token().await.unwrap();
+                let register_result = metaclient
+                    .register_device(cans.identity(), token.clone())
+                    .await;
+                match register_result {
+                    Ok(_) => {
+                        log::info!("Device registered successfully");
+                        set_notifs_enabled(true);
+                    }
+                    Err(e) => {
+                        log::error!("Failed to register device: {e:?}");
+                        set_notifs_enabled(false);
+                    }
+                }
+            }
         });
     view! {
         <ShadowOverlay show=popup_signal >

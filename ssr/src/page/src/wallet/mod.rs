@@ -295,13 +295,6 @@ pub fn NotificationWalletImpl() -> impl IntoView {
     });
 
     let on_token_click: Action<(), (), LocalStorage> = Action::new_unsync(move |()| async move {
-        if !matches!(Notification::permission(), NotificationPermission::Granted)
-            && notifs_enabled.get()
-        {
-            let _ = get_device_registeration_token().await.unwrap();
-            return;
-        }
-
         let metaclient: MetadataClient<false> = MetadataClient::default();
 
         let cans = Canisters::from_wire(auth_cans.await.unwrap(), expect_context()).unwrap();

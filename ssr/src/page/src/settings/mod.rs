@@ -13,10 +13,13 @@ use leptos_use::use_event_listener;
 use state::canisters::authenticated_canisters;
 use utils::event_streaming::events::account_connected_reader;
 use utils::host::{show_cdao_page, show_pnd_page};
-use utils::notifications::get_device_registeration_token;
+use utils::notifications::{
+    get_device_registeration_token, get_fcm_token, notification_permission_granted,
+};
 use yral_canisters_common::utils::profile::ProfileDetails;
 use yral_canisters_common::Canisters;
 use yral_metadata_client::MetadataClient;
+use yral_metadata_types::error::ApiError;
 
 #[component]
 #[allow(dead_code)]
@@ -137,33 +140,64 @@ fn EnableNotifications() -> impl IntoView {
     let auth_cans = authenticated_canisters();
 
     let on_token_click: Action<(), (), LocalStorage> = Action::new_unsync(move |()| async move {
-        if !matches!(Notification::permission(), NotificationPermission::Granted)
-            && notifs_enabled.get_untracked()
-        {
-            let _ = get_device_registeration_token().await.unwrap();
-            return;
-        }
-
-        let metaclient: MetadataClient<false> = MetadataClient::default();
+        let metaclient: MetadataClient<false> = MetadataClient::with_base_url(
+            reqwest::Url::parse("https://pr-27-dolr-ai-yral-metadata.fly.dev/").unwrap(),
+        );
 
         let cans = Canisters::from_wire(auth_cans.await.unwrap(), expect_context()).unwrap();
 
-        let token = get_device_registeration_token().await.unwrap();
+        let browser_permission = Notification::permission();
+        let notifs_enabled_val = notifs_enabled.get_untracked();
 
-        if notifs_enabled.get_untracked() {
-            metaclient
-                .unregister_device(cans.identity(), token)
-                .await
-                .unwrap();
-            log::info!("Device unregistered sucessfully");
-            set_notifs_enabled(false)
+        if notifs_enabled_val && matches!(browser_permission, NotificationPermission::Default) {
+            match notification_permission_granted().await {
+                Ok(true) => {
+                    let token = get_fcm_token().await.unwrap();
+                    metaclient
+                        .register_device(cans.identity(), token)
+                        .await
+                        .unwrap();
+                    log::info!("Device re-registered after ghost state");
+                    set_notifs_enabled(true);
+                }
+                Ok(false) => {
+                    log::warn!("User did not grant notification permission after prompt");
+                }
+                Err(e) => {
+                    log::error!("Failed to check notification permission: {e:?}");
+                }
+            }
+        } else if notifs_enabled_val {
+            let token = get_device_registeration_token().await.unwrap();
+            match metaclient.unregister_device(cans.identity(), token).await {
+                Ok(_) => {
+                    log::info!("Device unregistered sucessfully");
+                    set_notifs_enabled(false)
+                }
+                Err(e) => {
+                    if let yral_metadata_client::Error::Api(ApiError::DeviceNotFound) = e {
+                        log::info!("Device not found, skipping unregister");
+                        set_notifs_enabled(false)
+                    } else {
+                        log::error!("Failed to unregister device: {e:?}");
+                    }
+                }
+            }
         } else {
-            metaclient
-                .register_device(cans.identity(), token)
-                .await
-                .unwrap();
-            log::info!("Device registered sucessfully");
-            set_notifs_enabled(true)
+            let token = get_device_registeration_token().await.unwrap();
+            let register_result = metaclient
+                .register_device(cans.identity(), token.clone())
+                .await;
+            match register_result {
+                Ok(_) => {
+                    log::info!("Device registered successfully");
+                    set_notifs_enabled(true);
+                }
+                Err(e) => {
+                    log::error!("Failed to register device: {e:?}");
+                    set_notifs_enabled(false);
+                }
+            }
         }
     });
 
