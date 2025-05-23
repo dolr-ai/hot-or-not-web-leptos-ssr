@@ -104,10 +104,10 @@ onMessage(messaging, (payload) => {
     const notificationOptions = {
       body: body,
     };
-    const notification = new Notification(title, notificationOptions);
-    notification.onerror = (err) => {
-      console.error("Error displaying JS notification:", err);
-    };
+    // const notification = new Notification(title, notificationOptions);
+    // notification.onerror = (err) => {
+    //   console.error("Error displaying JS notification:", err);
+    // };
   }
 });
 
