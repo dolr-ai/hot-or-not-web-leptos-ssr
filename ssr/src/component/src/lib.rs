@@ -4,7 +4,6 @@ pub mod back_btn;
 pub mod base_route;
 pub mod bullet_loader;
 pub mod buttons;
-pub mod canisters_prov;
 pub mod coming_soon;
 pub mod connect;
 pub mod content_upload;

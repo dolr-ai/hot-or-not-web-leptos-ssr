@@ -1,12 +1,12 @@
 use candid::Principal;
 use futures::{stream::FuturesOrdered, TryStreamExt};
 use leptos::prelude::*;
+use state::canisters::auth_state;
 use yral_canisters_client::individual_user_template::DeployedCdaoCanisters;
 use yral_canisters_client::individual_user_template::IndividualUserTemplate;
 
 use crate::wallet::tokens::WalletCard;
 use component::{bullet_loader::BulletLoader, token_confetti_symbol::TokenConfettiSymbol};
-use state::canisters::authenticated_canisters;
 use utils::send_wrap;
 use utils::token::icpump::IcpumpTokenInfo;
 use yral_canisters_common::{utils::token::TokenMetadata, Canisters, Error as CanistersError};
@@ -78,13 +78,11 @@ async fn process_profile_tokens(
 
 #[component]
 pub fn ProfileTokens(user_canister: Principal, user_principal: Principal) -> impl IntoView {
-    let auth_cans_res = authenticated_canisters();
-    let token_list_res = Resource::new(
+    let auth = auth_state();
+    let token_list_res = auth.derive_resource(
         || (),
-        move |_| {
+        move |cans, _| {
             send_wrap(async move {
-                let auth_cans = auth_cans_res.await?;
-                let cans = Canisters::from_wire(auth_cans, expect_context())?;
                 let user = cans.individual_user(user_canister).await;
 
                 let tokens = process_profile_tokens(user, cans.clone(), user_principal).await?;

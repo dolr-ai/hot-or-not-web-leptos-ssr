@@ -1,9 +1,12 @@
 use component::bullet_loader::BulletLoader;
-use component::canisters_prov::AuthCansProvider;
 use component::infinite_scroller::InfiniteScroller;
 use history_provider::*;
+use leptos::either::Either;
 use leptos::html;
 use leptos::prelude::*;
+use leptos_router::components::Redirect;
+use state::canisters::auth_state;
+use state::canisters::unauth_canisters;
 use utils::time::get_day_month;
 use yral_canisters_common::{
     cursored_data::ref_history::HistoryDetails, utils::profile::propic_from_principal, Canisters,
@@ -51,10 +54,22 @@ fn AuthenticatedHistory(canisters: Canisters<true>) -> impl IntoView {
 
 #[component]
 pub fn HistoryView() -> impl IntoView {
+    let auth = auth_state();
     view! {
-        <AuthCansProvider fallback=BulletLoader let:canisters>
-            <AuthenticatedHistory canisters />
-        </AuthCansProvider>
+        <Suspense fallback=BulletLoader>
+        {move || Suspend::new(async move {
+            let res = auth.auth_cans(unauth_canisters()).await;
+            match res {
+                Ok(cans) => Either::Left(view! {
+                    <AuthenticatedHistory canisters=cans />
+                }),
+                Err(e) => Either::Right(view! {
+                        <Redirect path=format!("/error?err={e}") />
+                    }
+                )
+            }
+        })}
+        </Suspense>
     }
 }
 

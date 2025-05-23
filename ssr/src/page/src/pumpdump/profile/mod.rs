@@ -9,7 +9,7 @@ use consts::PUMP_AND_DUMP_WORKER_URL;
 use futures::{stream::FuturesOrdered, StreamExt};
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
-use state::canisters::authenticated_canisters;
+use state::canisters::auth_state;
 use utils::send_wrap;
 use yral_canisters_client::{
     individual_user_template::IndividualUserTemplate, sns_ledger::MetadataValue,
@@ -340,21 +340,18 @@ fn GameplayHistoryCard(#[prop(into)] details: GameplayHistoryItem) -> impl IntoV
 }
 #[component]
 pub fn PndProfilePage() -> impl IntoView {
-    let auth_cans = authenticated_canisters();
-    let fetch_profile_data: Resource<std::result::Result<ProfileData, ServerFnError>> =
-        Resource::new(
-            move || (),
-            move |_| async move {
-                let cans_wire = authenticated_canisters().await?;
-                let user = cans_wire.profile_details.clone();
-                let canisters = Canisters::from_wire(cans_wire.clone(), expect_context())?;
-                let ind_user =
-                    send_wrap(canisters.individual_user(canisters.user_canister())).await;
-                send_wrap(ProfileData::load(user, ind_user))
-                    .await
-                    .map_err(|e| ServerFnError::new(e.to_string()))
-            },
-        );
+    let auth = auth_state();
+    let fetch_profile_data = auth.derive_resource(
+        || (),
+        move |cans, _| async move {
+            let user = cans.profile_details();
+            let ind_user = send_wrap(cans.individual_user(cans.user_canister())).await;
+            send_wrap(ProfileData::load(user, ind_user))
+                .await
+                .map_err(|e| ServerFnError::new(e.to_string()))
+        },
+    );
+
     view! {
         <div class="min-h-screen w-full flex flex-col text-white pt-2 pb-12 bg-black items-center">
             <div id="back-nav" class="flex flex-col items-center w-full gap-20 pb-16">
@@ -367,28 +364,19 @@ pub fn PndProfilePage() -> impl IntoView {
                 </TitleText>
             </div>
             <Suspense>
-            {
-                move || {
-                    let profile_data_res = fetch_profile_data.get();
-                    match profile_data_res {
-                        Some(Ok(profile_data)) => Some(view! {
-                            <ProfileDataSection profile_data=profile_data />
-                        }),
-                        _ => None
-                    }
-                }
-            }
+            {move || Suspend::new(async move {
+                let profile_data = fetch_profile_data.await.ok()?;
+                Some(view! {
+                    <ProfileDataSection profile_data />
+                })
+            })}
             </Suspense>
-
             <div class="w-11/12 flex justify-center">
                 <div class="flex flex-wrap gap-4 justify-center pt-8 pb-16">
                     <Suspense>
                         {
                             Suspend::new(async move {
-                                // cant use auth cans in the cursoreddata impl expect context fails
-                                let cans_wire = auth_cans.await;
-                                let cans_wire = cans_wire.unwrap();
-                                let canisters = Canisters::from_wire(cans_wire, expect_context()).unwrap();
+                                let canisters = auth.auth_cans(expect_context()).await.unwrap();
                                 let provider = GameplayHistoryProvider(canisters);
 
                                 view!{

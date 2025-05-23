@@ -4,7 +4,7 @@ use leptos::{html::Div, prelude::*};
 use leptos_router::hooks::use_query;
 use leptos_use::{use_cookie, use_infinite_scroll_with_options, UseInfiniteScrollOptions};
 use log;
-use state::canisters::{authenticated_canisters, unauth_canisters};
+use state::canisters::{auth_state, unauth_canisters};
 use utils::token::icpump::{get_paginated_token_list_with_limit, IcpumpTokenInfo, TokenListItem};
 use yral_canisters_common::{utils::token::RootType, Canisters};
 
@@ -74,8 +74,8 @@ pub fn PumpNDump() -> impl IntoView {
     provide_context(s);
     let card_query_fused = RwSignal::new(card_query.get_untracked().ok());
 
-    let auth_cans = authenticated_canisters();
-    provide_context(PlayerDataRes::derive(auth_cans));
+    let auth = auth_state();
+    provide_context(PlayerDataRes::derive(auth));
 
     let (should_show, set_should_show) = use_cookie::<bool, FromToStringCodec>("show_onboarding");
     let show_onboarding = ShowOnboarding(should_show, set_should_show);
@@ -85,12 +85,10 @@ pub fn PumpNDump() -> impl IntoView {
 
     let cans = unauth_canisters();
     let token_fetch_action = Action::new_local(move |page: &u32| {
-        let cans_wire_res = auth_cans;
         let cans = cans.clone();
         let page = *page;
         async move {
-            let cans_wire = cans_wire_res.await?;
-            let cans = Canisters::from_wire(cans_wire.clone(), cans)?;
+            let cans = auth.auth_cans(cans).await?;
 
             let selected_card = card_query_fused.get();
             card_query_fused.update(|item| *item = None);

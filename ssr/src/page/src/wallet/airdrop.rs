@@ -7,13 +7,10 @@ use component::{
 use leptos::prelude::*;
 use leptos_icons::Icon;
 use leptos_router::hooks::use_location;
-use state::canisters::authenticated_canisters;
+use state::canisters::{auth_state, unauth_canisters};
 use utils::event_streaming::events::CentsAdded;
 use utils::host::get_host;
-use yral_canisters_common::{
-    utils::token::{TokenMetadata, TokenOwner},
-    Canisters,
-};
+use yral_canisters_common::utils::token::{TokenMetadata, TokenOwner};
 #[component]
 pub fn AirdropPage(meta: TokenMetadata, airdrop_amount: u64) -> impl IntoView {
     let claimed = RwSignal::new(false);
@@ -58,20 +55,21 @@ fn AirdropButton(
     token_owner: Option<TokenOwner>,
     root: Option<Principal>,
 ) -> impl IntoView {
-    let cans_res = authenticated_canisters();
     let name_for_action = name.clone();
 
+    let auth = auth_state();
+    let base = unauth_canisters();
     let airdrop_action = Action::new_local(move |&()| {
-        let cans_res = cans_res;
         let token_owner_cans_id = token_owner.clone().unwrap().canister_id;
         let name_c = name_for_action.clone();
+        let base = base.clone();
+
         async move {
             if claimed.get() && !buffer_signal.get() {
                 return Ok(());
             }
             buffer_signal.set(true);
-            let cans_wire = cans_res.await?;
-            let cans = Canisters::from_wire(cans_wire, expect_context())?;
+            let cans = auth.auth_cans(base).await?;
             let token_owner = cans.individual_user(token_owner_cans_id).await;
 
             token_owner
@@ -87,7 +85,7 @@ fn AirdropButton(
             user.add_token(root.unwrap()).await?;
 
             if name_c == "COYNS" || name_c == "CENTS" {
-                CentsAdded.send_event("airdrop".to_string(), airdrop_amount);
+                CentsAdded.send_event(auth.event_ctx(), "airdrop".to_string(), airdrop_amount);
             }
 
             buffer_signal.set(false);

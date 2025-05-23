@@ -95,7 +95,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                             }
                         });
                         let show_video = Memo::new(move |_| {
-                            queue_idx.abs_diff(current_idx()) <= 20
+                            queue_idx.abs_diff(current_idx()) <= 6
                         });
                         view! {
                             <div node_ref=container_ref class="snap-always snap-end w-full h-full">

@@ -2,9 +2,11 @@ use candid::Nat;
 use component::{back_btn::BackButton, title::TitleText};
 use leptos::prelude::*;
 use leptos_router::{hooks::use_query, params::Params};
+use state::canisters::auth_state;
 use utils::event_streaming::events::CentsWithdrawn;
 use utils::try_or_redirect_opt;
 use yral_canisters_common::utils::token::balance::TokenBalance;
+
 #[derive(Debug, PartialEq, Eq, Clone, Params)]
 struct SuccessParams {
     cents: Nat,
@@ -19,9 +21,10 @@ pub fn Success() -> impl IntoView {
 
     // Track the withdrawal event
     let cents_value = formatted_cents.clone().parse::<f64>().unwrap_or(0.0);
+    let auth = auth_state();
 
     Effect::new(move |_| {
-        CentsWithdrawn.send_event(cents_value);
+        CentsWithdrawn.send_event(auth.event_ctx(), cents_value);
     });
 
     Some(view! {

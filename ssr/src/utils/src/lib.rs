@@ -14,10 +14,10 @@ pub mod profile;
 pub mod qstash;
 pub mod report;
 pub mod route;
+pub mod sentry;
 pub mod time;
 pub mod token;
 pub mod types;
-pub mod user;
 pub mod web;
 /// Wrapper for PartialEq that always returns false
 /// this is currently only used for resources

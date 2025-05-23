@@ -7,7 +7,7 @@ use leptos::html::Audio;
 use leptos::{html::Video, prelude::*};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
-use state::canisters::unauth_canisters;
+use state::canisters::{auth_state, unauth_canisters};
 use utils::mixpanel::mixpanel_events::*;
 use utils::send_wrap;
 use yral_canisters_client::individual_user_template::PostViewDetailsFromFrontend;
@@ -18,9 +18,8 @@ use component::{
     feed_popup::FeedPopUp, onboarding_flow::OnboardingPopUp, video_player::VideoPlayer,
 };
 use consts::USER_ONBOARDING_STORE;
-use state::local_storage::use_referrer_store;
-use utils::event_streaming::events::{auth_canisters_store, VideoWatched};
-use utils::{bg_url, event_streaming::events::account_connected_reader, mp4_url};
+use utils::event_streaming::events::VideoWatched;
+use utils::{bg_url, mp4_url};
 
 use super::{overlay::VideoDetailsOverlay, PostDetails};
 
@@ -33,10 +32,9 @@ pub fn BgView(
     let post = Memo::new(move |_| video_queue.with(|q| q.get_index(idx).cloned()));
     let uid = move || post().as_ref().map(|q| q.uid.clone()).unwrap_or_default();
 
-    let (is_connected, _) = account_connected_reader();
-
+    let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
     let (show_refer_login_popup, set_show_refer_login_popup) = signal(true);
-    let (referrer_store, _, _) = use_referrer_store();
 
     let onboarding_eligible_post_context = BetEligiblePostCtx::default();
     provide_context(onboarding_eligible_post_context.clone());
@@ -64,7 +62,7 @@ pub fn BgView(
             ></div>
             <audio class="sr-only" node_ref=win_audio_ref preload="auto" src="/img/hotornot/chaching.m4a"/>
             <ShowAny when=move || {
-                referrer_store.get().is_some() && idx == 0 && !is_connected.get()
+                auth.referrer_store.get().is_some() && idx == 0 && !is_connected.get()
                     && show_refer_login_popup.get()
             }>
                 <FeedPopUp
@@ -98,40 +96,45 @@ pub fn VideoView(
     let view_bg_url = move || uid().map(bg_url);
     let view_video_url = move || uid().map(mp4_url);
     let mixpanel_video_muted = RwSignal::new(muted.get_untracked());
-    let (is_connected, _, _) =
-        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
+
+    let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
 
     let mixpanel_video_clicked_audio_state = Action::new(move |muted: &bool| {
-        if *muted != mixpanel_video_muted.get_untracked() {
-            mixpanel_video_muted.set(*muted);
-            let post = post_for_mixpanel.get_untracked().unwrap();
-            let is_game_enabled = true;
-            if let Some(cans) = auth_canisters_store().get_untracked() {
-                let is_logged_in = is_connected.get_untracked();
-                let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-                MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-                    user_id: global.user_id,
-                    visitor_id: global.visitor_id,
-                    is_logged_in: global.is_logged_in,
-                    canister_id: global.canister_id,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                    publisher_user_id: post.poster_principal.to_text(),
-                    like_count: post.likes,
-                    view_count: post.views,
-                    is_game_enabled,
-                    video_id: post.uid,
-                    is_nsfw: post.is_nsfw,
-
-                    game_type: MixpanelPostGameType::HotOrNot,
-                    cta_type: if *muted {
-                        MixpanelVideoClickedCTAType::Mute
-                    } else {
-                        MixpanelVideoClickedCTAType::Unmute
-                    },
-                });
-            }
+        let ret = async {};
+        if *muted == mixpanel_video_muted.get_untracked() {
+            return ret;
         }
-        async {}
+        mixpanel_video_muted.set(*muted);
+
+        let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
+            return ret;
+        };
+
+        let post = post_for_mixpanel.get_untracked().unwrap();
+        let is_game_enabled = true;
+
+        MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+            user_id: global.user_id,
+            visitor_id: global.visitor_id,
+            is_logged_in: global.is_logged_in,
+            canister_id: global.canister_id,
+            is_nsfw_enabled: global.is_nsfw_enabled,
+            publisher_user_id: post.poster_principal.to_text(),
+            like_count: post.likes,
+            view_count: post.views,
+            is_game_enabled,
+            video_id: post.uid,
+            is_nsfw: post.is_nsfw,
+
+            game_type: MixpanelPostGameType::HotOrNot,
+            cta_type: if *muted {
+                MixpanelVideoClickedCTAType::Mute
+            } else {
+                MixpanelVideoClickedCTAType::Unmute
+            },
+        });
+        ret
     });
 
     // Handles mute/unmute
@@ -159,12 +162,12 @@ pub fn VideoView(
     // 2. When video is 95% done -> full view
     let post_for_view = post;
     let send_view_detail_action =
-        Action::new_local(move |(percentage_watched, watch_count): &(u8, u8)| {
+        Action::new(move |(percentage_watched, watch_count): &(u8, u8)| {
             let percentage_watched = *percentage_watched;
             let watch_count = *watch_count;
             let post_for_view = post_for_view;
 
-            async move {
+            send_wrap(async move {
                 let canisters = unauth_canisters();
 
                 let payload = match percentage_watched.cmp(&95) {
@@ -190,7 +193,7 @@ pub fn VideoView(
                     log::warn!("failed to send view details: {err:?}");
                 }
                 Some(())
-            }
+            })
         });
 
     let playing_started = RwSignal::new(false);
@@ -203,32 +206,30 @@ pub fn VideoView(
         send_view_detail_action.dispatch((100, 0_u8));
     });
 
-    let canisters = auth_canisters_store();
-
     let mixpanel_send_view_event = Action::new(move |_| {
         send_wrap(async move {
-            if let Some(cans) = canisters.get_untracked() {
-                let post = post_for_view.get_untracked().unwrap();
-                let is_logged_in = is_connected.get_untracked();
-                let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-                let is_game_enabled = true;
+            let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
+                return;
+            };
+            let post = post_for_view.get_untracked().unwrap();
+            let is_logged_in = ev_ctx.is_connected();
+            let is_game_enabled = true;
 
-                MixPanelEvent::track_video_viewed(MixpanelVideoViewedProps {
-                    publisher_user_id: post.poster_principal.to_text(),
-                    user_id: global.user_id,
-                    visitor_id: global.visitor_id,
-                    is_logged_in: global.is_logged_in,
-                    canister_id: global.canister_id,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                    video_id: post.uid,
-                    view_count: post.views,
-                    like_count: post.likes,
-                    is_nsfw: post.is_nsfw,
-                    game_type: MixpanelPostGameType::HotOrNot,
-                    is_game_enabled,
-                });
-                playing_started.set(false);
-            }
+            MixPanelEvent::track_video_viewed(MixpanelVideoViewedProps {
+                publisher_user_id: post.poster_principal.to_text(),
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                video_id: post.uid,
+                view_count: post.views,
+                like_count: post.likes,
+                game_type: MixpanelPostGameType::HotOrNot,
+                is_nsfw: post.is_nsfw,
+                is_game_enabled,
+            });
+            playing_started.set(false);
         })
     });
 
@@ -244,7 +245,7 @@ pub fn VideoView(
         }
     });
 
-    VideoWatched.send_event(post, _ref);
+    VideoWatched.send_event(ev_ctx, post, _ref);
 
     view! {
         <VideoPlayer

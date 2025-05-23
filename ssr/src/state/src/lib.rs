@@ -5,10 +5,8 @@ pub mod alloydb;
 pub mod app_state;
 pub mod app_type;
 pub mod audio_state;
-pub mod auth;
 pub mod canisters;
 pub mod content_seed_client;
-pub mod local_storage;
 
 #[cfg(not(feature = "ssr"))]
 pub mod server {

@@ -1,16 +1,16 @@
 use codee::string::FromToStringCodec;
 use component::back_btn::BackButton;
-use component::canisters_prov::AuthCansProvider;
 use component::title::TitleText;
 use component::{social::*, toggle::Toggle};
 use consts::NOTIFICATIONS_ENABLED_STORE;
+use leptos::either::Either;
 use leptos::html::Input;
 use leptos::{ev, prelude::*};
 use leptos_icons::*;
+use leptos_router::components::Redirect;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
-use utils::event_streaming::events::account_connected_reader;
-use utils::host::{show_cdao_page, show_pnd_page};
+use state::canisters::auth_state;
 use utils::notifications::get_token_for_principal;
 use yral_canisters_common::utils::profile::ProfileDetails;
 
@@ -78,48 +78,7 @@ fn ProfileLoading() -> impl IntoView {
 }
 
 #[component]
-fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
-    let (is_connected, _) = account_connected_reader();
-    view! {
-        <div class="basis-4/12 aspect-square overflow-clip rounded-full">
-            <img class="h-full w-full object-cover" src=user_details.profile_pic_or_random() />
-        </div>
-        <div
-            class="flex flex-col basis-8/12"
-            class=("w-12/12", move || !is_connected())
-            class=("sm:w-5/12", move || !is_connected())
-        >
-            <span class="text-white text-ellipsis line-clamp-1 text-xl">
-                {user_details.display_name_or_fallback()}
-            </span>
-            <a class="text-primary-600 text-md" href={
-                if show_pnd_page(){
-                    "/pnd/profile".to_string()
-                } else if show_cdao_page(){
-                    "/profile/token".to_string()
-                }else{
-                    "/profile/posts".to_string()
-                }
-            }>
-                View Profile
-            </a>
-        </div>
-    }
-}
-
-#[component]
-fn ProfileInfo() -> impl IntoView {
-    view! {
-        <AuthCansProvider fallback=ProfileLoading let:canisters>
-            <ProfileLoaded user_details=canisters.profile_details() />
-        </AuthCansProvider>
-    }
-}
-
-#[component]
 fn EnableNotifications(user_details: ProfileDetails) -> impl IntoView {
-    let (_, _) = account_connected_reader();
-
     let (notifs_enabled, set_notifs_enabled, _) =
         use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
     let toggle_ref = NodeRef::<Input>::new();
@@ -148,6 +107,7 @@ fn EnableNotifications(user_details: ProfileDetails) -> impl IntoView {
 
 #[component]
 pub fn Settings() -> impl IntoView {
+    let auth = auth_state();
     view! {
         <div class="min-h-screen w-full flex flex-col text-white pt-2 pb-12 bg-black items-center divide-y divide-white/10">
             <div class="flex flex-col items-center w-full gap-20 pb-16">
@@ -160,9 +120,19 @@ pub fn Settings() -> impl IntoView {
                 </TitleText>
             </div>
             <div class="flex flex-col py-12 px-8 gap-8 w-full text-lg">
-                <AuthCansProvider let:canisters>
-                    <EnableNotifications user_details=canisters.profile_details() />
-                </AuthCansProvider>
+                <Suspense>
+                {move || Suspend::new(async move {
+                    let res = auth.cans_wire().await;
+                    match res {
+                        Ok(cans_wire) => Either::Left(view! {
+                            <EnableNotifications user_details=cans_wire.profile_details />
+                        }),
+                        Err(e) => Either::Right(view! {
+                            <Redirect path=format!("/error?err={e}") />
+                        })
+                    }
+                })}
+                </Suspense>
             </div>
             <MenuFooter />
         </div>
