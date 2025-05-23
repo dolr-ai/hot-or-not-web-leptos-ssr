@@ -32,34 +32,34 @@ if (!firebase.apps.length) {
 const messaging = firebase.messaging();
 
 // Use onBackgroundMessage for the compat SDK v9+
-if (messaging && typeof messaging.onBackgroundMessage === 'function') {
-  messaging.onBackgroundMessage((payload) => {
-    console.log("[firebase-messaging-sw.js] Received background message ", payload.notification);
+// if (messaging && typeof messaging.onBackgroundMessage === 'function') {
+//   // messaging.onBackgroundMessage((payload) => {
+//   //   // console.log("[firebase-messaging-sw.js] Received background message ", payload.notification);
 
-    const notificationTitle = payload.notification.title || "New Message";
-    const notificationOptions = {
-      body: payload.notification.body || "You have a new message.",
-    };
-    // Important: Return the promise from showNotification
-    return self.registration.showNotification(notificationTitle, notificationOptions);
-  });
-  console.log("[firebase-messaging-sw.js] onBackgroundMessage handler successfully set.");
-} else {
-  console.error("[firebase-messaging-sw.js] messaging.onBackgroundMessage is not a function.");
-  if (messaging) {
-      // Log available properties if the expected function isn't found
-      console.log("[firebase-messaging-sw.js] Available properties on messaging object:");
-      for (const prop in messaging) {
-            try {
-                console.log(`  messaging.${prop} (type: ${typeof messaging[prop]})`);
-            } catch (e) {
-                console.log(`  messaging.${prop} (error accessing)`);
-            }
-      }
-  } else {
-    console.error("[firebase-messaging-sw.js] firebase.messaging() did not return an object.");
-  }
-}
+//   //   // const notificationTitle = payload.notification.title || "New Message";
+//   //   // const notificationOptions = {
+//   //   //   body: payload.notification.body || "You have a new message.",
+//   //   // };
+//   //   // // Important: Return the promise from showNotification
+//   //   // return self.registration.showNotification(notificationTitle, notificationOptions);
+//   // });
+//   console.log("[firebase-messaging-sw.js] onBackgroundMessage handler successfully set.");
+// } else {
+//   console.error("[firebase-messaging-sw.js] messaging.onBackgroundMessage is not a function.");
+//   if (messaging) {
+//       // Log available properties if the expected function isn't found
+//       console.log("[firebase-messaging-sw.js] Available properties on messaging object:");
+//       for (const prop in messaging) {
+//             try {
+//                 console.log(`  messaging.${prop} (type: ${typeof messaging[prop]})`);
+//             } catch (e) {
+//                 console.log(`  messaging.${prop} (error accessing)`);
+//             }
+//       }
+//   } else {
+//     console.error("[firebase-messaging-sw.js] firebase.messaging() did not return an object.");
+//   }
+// }
 
 self.addEventListener('notificationclick', function(event) {
   console.log('[firebase-messaging-sw.js] Notification click Received.', event.notification.data);
