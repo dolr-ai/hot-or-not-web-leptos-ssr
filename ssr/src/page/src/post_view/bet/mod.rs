@@ -345,7 +345,7 @@ pub fn HNUserParticipation(
         {
             use wasm_bindgen::JsValue;
             use web_sys::js_sys::Reflect;
-    
+
             let window = window();
             let nav = window.navigator();
             if Reflect::has(&nav, &JsValue::from_str("vibrate")).unwrap_or_default() {
@@ -363,15 +363,12 @@ pub fn HNUserParticipation(
             }
         }
     }
-    
 
     Effect::new(move |_| {
         play_win_sound_and_vibrate(audio_ref, won);
     });
-    
-    
-    view! {
 
+    view! {
         <HNWonLost game_result vote_amount />
         <ShadowBg />
     }
