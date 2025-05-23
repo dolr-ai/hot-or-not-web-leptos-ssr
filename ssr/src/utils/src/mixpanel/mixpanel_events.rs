@@ -66,6 +66,24 @@ impl MixpanelGlobalProps {
             is_nsfw_enabled,
         }
     }
+
+    pub fn try_get_with_nsfw_info(cans: &Canisters<true>, is_logged_in: bool, is_nsfw_enabled: bool) -> Self {
+        Self {
+            user_id: if is_logged_in {
+                Some(cans.user_principal().to_text())
+            } else {
+                None
+            },
+            visitor_id: if !is_logged_in {
+                Some(cans.user_principal().to_text())
+            } else {
+                None
+            },
+            is_logged_in,
+            canister_id: cans.user_canister().to_text(),
+            is_nsfw_enabled,
+        }
+    }
 }
 
 #[derive(Serialize)]
