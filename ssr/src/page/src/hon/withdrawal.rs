@@ -227,7 +227,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                                     <div class="flex gap-2 items-center">
                                         <span>You withdraw</span>
                                     </div>
-                                    <input disabled=is_claiming on:input=on_input type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-44 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg" />
+                                    <input placeholder="Min: 1500" disabled=is_claiming on:input=on_input type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-44 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg" />
                                 </div>
                                 <div class="flex justify-between">
                                     <div class="flex gap-2 items-center">
@@ -244,10 +244,10 @@ pub fn HonWithdrawal() -> impl IntoView {
                             }>
                             {move || {
                                 let can_withdraw = true; // all of the money can be withdrawn
-                                let no_input = sats() == 0usize;
+                                let invalid_input = sats() < 1500usize;
                                 let is_claiming = is_claiming();
-                                let message = if no_input {
-                                    "Enter Amount"
+                                let message = if invalid_input {
+                                    "Enter valid Amount"
                                 } else {
                                     match (can_withdraw, is_claiming) {
                                         (false, _) => "Not enough winnings",
@@ -257,7 +257,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                                 };
                                 Some(view! {
                                     <button
-                                        disabled=no_input || !can_withdraw
+                                        disabled=invalid_input || !can_withdraw
                                         class=("pointer-events-none", is_claiming)
                                         class="rounded-lg px-5 py-2 text-sm text-center font-bold bg-brand-gradient disabled:bg-brand-gradient-disabled"
                                         on:click=move |_ev| {send_claim.dispatch(());}

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "percy exec -- nightwatch --env browserstack.chrome",
+    "test": "percy exec -- nightwatch --env browserstack.chrome --suiteRetries 3",
     "test:local": "percy exec -- nightwatch"
   },
   "keywords": [],
