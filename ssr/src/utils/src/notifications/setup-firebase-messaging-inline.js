@@ -2,32 +2,41 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/fireba
 // Import onMessage and getToken for client-side foreground message handling
 import { getMessaging, onMessage, getToken as firebaseGetToken, deleteToken as firebaseDeleteToken } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js";
 
-const app = initializeApp({
-
-  apiKey: "AIzaSyCc_3-30sOgNhpPprV-YDMSTebf4EAPNIo",
-
-  authDomain: "client-device-notification.firebaseapp.com",
-
-  projectId: "client-device-notification",
-
-  storageBucket: "client-device-notification.firebasestorage.app",
-
-  messagingSenderId: "257800168511",
-
-  appId: "1:257800168511:web:ce7840178c24f97e09048a",
-
-  measurementId: "G-WLPMS55C10"
-
-});
-
-const messaging = getMessaging(app);
+// Track initialization state
+let isInitialized = false;
+let app = null;
+let messaging = null;
 
 const vapidKey =
   "BHVXxI5mw_QCsR148ZO4CwxYrsi0EwqJ691arpO4zxa-EMxmrO7odRdX43vpoVQgRcalWVr7Y7sKH_DlWZbpcEI";
 
+// Initialize Firebase and Messaging services
+function initializeFirebase() {
+  if (!isInitialized) {
+    app = initializeApp({
+      apiKey: "AIzaSyCc_3-30sOgNhpPprV-YDMSTebf4EAPNIo",
+      authDomain: "client-device-notification.firebaseapp.com",
+      projectId: "client-device-notification",
+      storageBucket: "client-device-notification.firebasestorage.app",
+      messagingSenderId: "257800168511",
+      appId: "1:257800168511:web:ce7840178c24f97e09048a",
+      measurementId: "G-WLPMS55C10"
+    });
+    messaging = getMessaging(app);
+    isInitialized = true;
+    console.log("Firebase initialized successfully");
+  }
+  return { app, messaging };
+}
+
 // Renamed the imported getToken to avoid conflict if there was a local getToken variable elsewhere
 export async function getToken() {
   try {
+    // Ensure Firebase is initialized
+    if (!isInitialized) {
+      initializeFirebase();
+    }
+    
     console.log("Requesting FCM token...");
     const currentToken = await firebaseGetToken(messaging, { vapidKey: vapidKey });
     if (currentToken) {
@@ -45,6 +54,11 @@ export async function getToken() {
 // Deletes the current FCM token for this device/browser
 export async function deleteFcmToken() {
   try {
+    // Ensure Firebase is initialized
+    if (!isInitialized) {
+      initializeFirebase();
+    }
+    
     const deleted = await firebaseDeleteToken(messaging);
     if (deleted) {
       console.log("FCM token deleted successfully.");
@@ -59,9 +73,19 @@ export async function deleteFcmToken() {
 }
 
 export async function getNotificationPermission() {
-  const permission = await Notification.requestPermission();
-  return permission === "granted";
+  try {
+    const permission = await Notification.requestPermission();
+    const granted = (permission === "granted");
+    console.log(`Notification permission ${granted ? 'granted' : 'denied'}`);
+    return granted;
+  } catch (err) {
+    console.error("Error requesting notification permission:", err);
+    return false;
+  }
 }
+
+// Initialize Firebase at module load time
+initializeFirebase();
 
 // Handles messages when the web app is in the foreground
 onMessage(messaging, (payload) => {
