@@ -314,7 +314,8 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                     show_nsfw_permission.set(false);
                     if let Some(cans) = canisters.get() {
                         let is_logged_in = is_connected.get_untracked();
-                        let global = MixpanelGlobalProps::try_get_with_nsfw_info(&cans, is_logged_in, false);
+                        let global =
+                            MixpanelGlobalProps::try_get_with_nsfw_info(&cans, is_logged_in, false);
                         let is_hot_or_not = true;
                         MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
                             user_id: global.user_id,
@@ -337,7 +338,8 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                     set_nsfw_enabled(false);
                     if let Some(cans) = canisters.get() {
                         let is_logged_in = is_connected.get_untracked();
-                        let global = MixpanelGlobalProps::try_get_with_nsfw_info(&cans, is_logged_in, false);
+                        let global =
+                            MixpanelGlobalProps::try_get_with_nsfw_info(&cans, is_logged_in, false);
                         let is_hot_or_not = true;
                         MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
                             user_id: global.user_id,

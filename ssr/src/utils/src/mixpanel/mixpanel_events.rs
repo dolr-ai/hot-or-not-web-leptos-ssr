@@ -67,7 +67,11 @@ impl MixpanelGlobalProps {
         }
     }
 
-    pub fn try_get_with_nsfw_info(cans: &Canisters<true>, is_logged_in: bool, is_nsfw_enabled: bool) -> Self {
+    pub fn try_get_with_nsfw_info(
+        cans: &Canisters<true>,
+        is_logged_in: bool,
+        is_nsfw_enabled: bool,
+    ) -> Self {
         Self {
             user_id: if is_logged_in {
                 Some(cans.user_principal().to_text())
