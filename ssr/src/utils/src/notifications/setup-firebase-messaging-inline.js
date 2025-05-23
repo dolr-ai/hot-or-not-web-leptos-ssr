@@ -35,6 +35,7 @@ export async function getToken() {
     // Ensure Firebase is initialized
     if (!isInitialized) {
       initializeFirebase();
+      await new Promise(resolve => setTimeout(resolve, 100)); // weird hack to avoid race condition
     }
     
     console.log("Requesting FCM token...");
