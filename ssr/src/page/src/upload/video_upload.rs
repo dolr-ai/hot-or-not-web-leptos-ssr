@@ -73,17 +73,16 @@ pub fn PreVideoUpload(
     let canister_store = auth_canisters_store();
 
     let upload_action: Action<(), _, LocalStorage> = Action::new_local(move |_| async move {
-        let message = try_or_redirect_opt!(upload_video_part(
+        try_or_redirect_opt!(upload_video_part(
             UPLOAD_URL,
             "file",
             file_blob.get_untracked().unwrap().file.as_ref(),
+            uid
         )
         .await
         .inspect_err(|e| {
             VideoUploadUnsuccessful.send_event(e.to_string(), 0, false, true, canister_store);
         }));
-
-        uid.set(message.data.and_then(|m| m.uid));
 
         Some(())
     });
@@ -113,45 +112,46 @@ pub fn PreVideoUpload(
     });
 
     view! {
-            <label
-                for="dropzone-file"
-                class="w-[358px] h-[300px] sm:w-full sm:h-auto sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] bg-neutral-950 rounded-2xl border-2 border-dashed border-neutral-600 flex flex-col items-center justify-center cursor-pointer select-none p-0"
-            >
-                <Show when=move || { file.with(| file | file.is_none()) }>
-                    <div class="flex flex-1 flex-col items-center justify-center w-full h-full gap-6">
-                        <div class="text-white text-[16px] font-semibold leading-tight text-center">Upload a video to share with the world!</div>
-                        <div class="text-neutral-400 text-[13px] leading-tight text-center">Drag & Drop or select video file ( Max 60s )</div>
-                        <span class="inline-block px-6 py-2 border border-pink-300 text-pink-300 rounded-lg font-medium text-[15px] bg-transparent transition-colors duration-150 cursor-pointer select-none">Select File</span>
-                    </div>
-                </Show>
+        <label
+            for="dropzone-file"
+            class="w-[358px] h-[300px] sm:w-full sm:h-auto sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] bg-neutral-950 rounded-2xl border-2 border-dashed border-neutral-600 flex flex-col items-center justify-center cursor-pointer select-none p-0"
+        >
+            <Show when=move || { file.with(| file | file.is_none()) }>
+                <div class="flex flex-1 flex-col items-center justify-center w-full h-full gap-6">
+                    <div class="text-white text-[16px] font-semibold leading-tight text-center">Upload a video to share with the world!</div>
+                    <div class="text-neutral-400 text-[13px] leading-tight text-center">Drag & Drop or select video file ( Max 60s )</div>
+                    <span class="inline-block px-6 py-2 border border-pink-300 text-pink-300 rounded-lg font-medium text-[15px] bg-transparent transition-colors duration-150 cursor-pointer select-none">Select File</span>
+                </div>
+            </Show>
+            <Show when=move || { file.with(| file | file.is_some()) }>
                 <video
-        node_ref=video_ref
-        class="w-full h-full object-contain rounded-xl bg-black p-2"
-        playsinline
-        muted
-        autoplay
-        loop
-        oncanplay="this.muted=true"
-        src=move || file.with(| file | file.as_ref().map(| f | f.url.to_string()))
-        style:display=move || {
-            file.with(| file | file.as_ref().map(| _ | "block").unwrap_or("none"))
-        }
-    ></video>
-                <input
-                    on:click=move |_| modal_show.set(true)
-                    id="dropzone-file"
-                    node_ref=file_ref
-                    type="file"
-                    accept="video/*"
-                    class="hidden w-0 h-0"
-                />
-            </label>
-            <Modal show=modal_show>
-                <span class="text-lg md:text-xl text-white h-full items-center py-10 text-center w-full flex flex-col justify-center">
-                    Please ensure that the video is shorter than 60 seconds
-                </span>
-            </Modal>
-        }
+                    node_ref=video_ref
+                    class="w-full h-full object-contain rounded-xl bg-black p-2"
+                    playsinline
+                    muted
+                    autoplay
+                    loop
+                    oncanplay="this.muted=true"
+                    src=move || file.with(| file | file.as_ref().map(| f | f.url.to_string()))
+                    style:display=move || {
+                        file.with(| file | file.as_ref().map(| _ | "block").unwrap_or("none"))
+                    }
+                ></video>
+            </Show>
+            <input
+                id="dropzone-file"
+                node_ref=file_ref
+                type="file"
+                accept="video/*"
+                class="hidden w-0 h-0"
+            />
+        </label>
+        <Modal show=modal_show>
+            <span class="text-lg md:text-xl text-white h-full items-center py-10 text-center w-full flex flex-col justify-center">
+                Please ensure that the video is shorter than 60 seconds
+            </span>
+        </Modal>
+    }
 }
 
 #[allow(dead_code)]
@@ -207,7 +207,9 @@ async fn upload_video_part(
     upload_base_url: &str,
     form_field_name: &str,
     file_blob: &Blob,
-) -> Result<Message, ServerFnError> {
+    uid: RwSignal<Option<String>, LocalStorage>,
+) -> Result<(), ServerFnError> {
+    uid.set(None);
     let get_url_endpoint = format!("{upload_base_url}/get_upload_url");
     let response = Request::get(&get_url_endpoint).send().await?;
     if !response.ok() {
@@ -219,7 +221,6 @@ async fn upload_video_part(
     let response_text = response.text().await?;
     let upload_message: Message = serde_json::from_str(&response_text)
         .map_err(|e| ServerFnError::new(format!("Failed to parse upload URL response: {e}")))?;
-
     let upload_url = upload_message
         .data
         .clone()
@@ -243,14 +244,16 @@ async fn upload_video_part(
             upload_response.status_text()
         )));
     }
+    uid.set(upload_message.data.as_ref().and_then(|s| s.uid.clone()));
 
-    Ok(upload_message)
+    Ok(())
 }
 
 #[component]
 pub fn VideoUploader(
     params: UploadParams,
     uid: RwSignal<Option<String>, LocalStorage>,
+    publish_clicked: RwSignal<bool, LocalStorage>,
 ) -> impl IntoView {
     let file_blob = params.file_blob;
     let hashtags = params.hashtags;
@@ -265,7 +268,7 @@ pub fn VideoUploader(
     let (is_connected, _, _) =
         use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
     let publish_action: Action<_, _, LocalStorage> =
-        Action::new_unsync(move |canisters: &Canisters<true>| {
+        Action::new_local(move |canisters: &Canisters<true>| {
             let canisters = canisters.clone();
             let hashtags = hashtags.clone();
             let hashtags_len = hashtags.len();
@@ -276,7 +279,6 @@ pub fn VideoUploader(
                 let delegated_identity = delegate_short_lived_identity(id);
                 let res: std::result::Result<reqwest::Response, ServerFnError> = {
                     let client = reqwest::Client::new();
-
                     let req = client
                         .post(format!("{UPLOAD_URL}/update_metadata"))
                         .json(&json!({
@@ -346,6 +348,23 @@ pub fn VideoUploader(
         });
     let cans_res = authenticated_canisters();
 
+    Effect::new(move |prev_uid: Option<Option<String>>| {
+        let current_uid = uid.get();
+        let publish_now = publish_clicked.get();
+
+        if publish_now && current_uid.is_some() && prev_uid.map_or(true, |puid| puid.is_none()) {
+            log::info!("Dispatching publish action");
+            publish_clicked.set(false);
+
+            if let Some(Ok(cans_wire)) = cans_res.get() {
+                if let Ok(canisters) = Canisters::from_wire(cans_wire, expect_context()) {
+                    publish_action.dispatch(canisters);
+                }
+            }
+        }
+        current_uid
+    });
+
     view! {
         <div class="flex flex-col-reverse lg:flex-row w-full gap-4 lg:gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
             <div class="flex flex-col items-center justify-center w-full h-auto min-h-[200px] max-h-[60vh] sm:min-h-[300px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] lg:min-h-[600px] lg:max-h-[600px] rounded-2xl text-center px-4 mt-0 mb-0 sm:mt-0 sm:mb-0 sm:px-6 lg:px-0 lg:overflow-y-auto">
@@ -373,6 +392,8 @@ pub fn VideoUploader(
                             if published.get() {
                                 "100%"
                             } else if publish_action.pending().get() {
+                                "90%"
+                            } else if uid.get().is_some() {
                                 "50%"
                             } else {
                                 "0%"
@@ -393,18 +414,6 @@ pub fn VideoUploader(
                 </p>
             </div>
         </div>
-
-            <Suspense>
-                {move || {
-                    let cans_wire = cans_res.get()?.ok()?;
-                    let canisters = Canisters::from_wire(cans_wire, expect_context()).ok()?;
-                    // Dispatching the action starts the process
-                     if !publish_action.pending().get() && !published.get() { // Avoid re-dispatching
-                          publish_action.dispatch(canisters);
-                     }
-                    Some(())
-                }}
-            </Suspense>
 
             <Show when=published>
                 <PostUploadScreen />
