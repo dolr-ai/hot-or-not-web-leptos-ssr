@@ -1,7 +1,7 @@
 use auth::logout_identity;
 use codee::string::FromToStringCodec;
 use component::loading::Loading;
-use consts::ACCOUNT_CONNECTED_STORE;
+use consts::{ACCOUNT_CONNECTED_STORE, NOTIFICATIONS_ENABLED_STORE};
 use leptos::prelude::*;
 use leptos_router::components::Redirect;
 use leptos_use::storage::use_local_storage;
@@ -17,7 +17,8 @@ pub fn Logout() -> impl IntoView {
 
     LogoutClicked.send_event(canister_store);
     let auth = auth_state();
-
+    let (_, set_notifs_enabled, _) =
+        use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
     let auth_res = Resource::new_blocking(
         || (),
         move |_| async move {
@@ -28,6 +29,7 @@ pub fn Logout() -> impl IntoView {
             let (_, write_account_connected, _) =
                 use_local_storage::<bool, FromToStringCodec>(ACCOUNT_CONNECTED_STORE);
             write_account_connected(false);
+            set_notifs_enabled(false);
             Some(id)
         },
     );

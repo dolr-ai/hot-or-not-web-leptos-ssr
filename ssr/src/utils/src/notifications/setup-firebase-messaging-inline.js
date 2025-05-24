@@ -1,39 +1,116 @@
-import "https://www.gstatic.com/firebasejs/9.2.0/firebase-app-compat.js";
-import "https://www.gstatic.com/firebasejs/9.2.0/firebase-messaging-compat.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+// Import onMessage and getToken for client-side foreground message handling
+import { getMessaging, onMessage, getToken as firebaseGetToken, deleteToken as firebaseDeleteToken } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js";
 
-let initialized = false;
-
-function init_firebase() {
-  if (initialized) {
-    return;
-  }
-
-  firebase.initializeApp({
-    apiKey: "AIzaSyCwo0EWTJz_w-J1lUf9w9NcEBdLNmGUaIo",
-    authDomain: "hot-or-not-feed-intelligence.firebaseapp.com",
-    projectId: "hot-or-not-feed-intelligence",
-    storageBucket: "hot-or-not-feed-intelligence.appspot.com",
-    messagingSenderId: "82502260393",
-    appId: "1:82502260393:web:390e9d4e588cba65237bb8",
-  });
-  initialized = true;
-}
+// Track initialization state
+let isInitialized = false;
+let app = null;
+let messaging = null;
 
 const vapidKey =
-  "BOmsEya6dANYUoElzlUWv3Jekmw08_nqDEUFu06aTak-HQGd-G_Lsk8y4Bs9B4kcEjBM8FXF0IQ_oOpJDmU3zMs";
+  "BHVXxI5mw_QCsR148ZO4CwxYrsi0EwqJ691arpO4zxa-EMxmrO7odRdX43vpoVQgRcalWVr7Y7sKH_DlWZbpcEI";
 
-export default function get_token() {
-  init_firebase();
-  return new Promise((resolve, reject) => {
-    const messaging = firebase.messaging();
-    messaging
-      .getToken({ vapidKey: vapidKey })
-      .then((currentToken) => {
-        resolve(currentToken);
-      })
-      .catch((err) => {
-        console.log("An error occurred while retrieving token. ", err);
-        return reject("An error occurred while retrieving token.");
-      });
-  });
+// Initialize Firebase and Messaging services
+function initializeFirebase() {
+  if (!isInitialized) {
+    app = initializeApp({
+      apiKey: "AIzaSyCc_3-30sOgNhpPprV-YDMSTebf4EAPNIo",
+      authDomain: "client-device-notification.firebaseapp.com",
+      projectId: "client-device-notification",
+      storageBucket: "client-device-notification.firebasestorage.app",
+      messagingSenderId: "257800168511",
+      appId: "1:257800168511:web:ce7840178c24f97e09048a",
+      measurementId: "G-WLPMS55C10"
+    });
+    messaging = getMessaging(app);
+    isInitialized = true;
+    console.log("Firebase initialized successfully");
+  }
+  return { app, messaging };
 }
+
+// Renamed the imported getToken to avoid conflict if there was a local getToken variable elsewhere
+export async function getToken() {
+  try {
+    // Ensure Firebase is initialized
+    if (!isInitialized) {
+      initializeFirebase();
+      await new Promise(resolve => setTimeout(resolve, 100)); // weird hack to avoid race condition
+    }
+    
+    console.log("Requesting FCM token...");
+    const currentToken = await firebaseGetToken(messaging, { vapidKey: vapidKey });
+    if (currentToken) {
+      console.log("FCM Token received: ", currentToken);
+    } else {
+      console.log('No registration token available. Request permission to generate one.');
+    }
+    return currentToken;
+  } catch (err) {
+    console.error('An error occurred while retrieving token. ', err);
+    throw err; // Re-throw the error so wasm_bindgen can catch it
+  }
+}
+
+// Deletes the current FCM token for this device/browser
+export async function deleteFcmToken() {
+  try {
+    // Ensure Firebase is initialized
+    if (!isInitialized) {
+      initializeFirebase();
+    }
+    
+    const deleted = await firebaseDeleteToken(messaging);
+    if (deleted) {
+      console.log("FCM token deleted successfully.");
+    } else {
+      console.warn("No FCM token found to delete.");
+    }
+    return deleted;
+  } catch (err) {
+    console.error("Failed to delete FCM token:", err);
+    throw err;
+  }
+}
+
+export async function getNotificationPermission() {
+  try {
+    const permission = await Notification.requestPermission();
+    const granted = (permission === "granted");
+    console.log(`Notification permission ${granted ? 'granted' : 'denied'}`);
+    return granted;
+  } catch (err) {
+    console.error("Error requesting notification permission:", err);
+    return false;
+  }
+}
+
+// Initialize Firebase at module load time
+initializeFirebase();
+
+// Handles messages when the web app is in the foreground
+onMessage(messaging, (payload) => {
+  console.log("Message received in JS (foreground), dispatching event.", payload);
+
+  // Dispatch a custom event for Leptos to handle
+  const event = new CustomEvent("firebaseForegroundMessage", { detail: payload });
+  window.dispatchEvent(event);
+
+  // Optionally, still show a default browser notification from JS
+  const data = payload.notification;
+  if (data) { 
+    const title = data.title || "New Message"; 
+    const body = data.body || "You have a new message."; 
+
+    const notificationOptions = {
+      body: body,
+    };
+    // const notification = new Notification(title, notificationOptions);
+    // notification.onerror = (err) => {
+    //   console.error("Error displaying JS notification:", err);
+    // };
+  }
+});
+
+// onBackgroundMessage logic should NOT be in this file.
+// It belongs in your firebase-messaging-sw.js (service worker).

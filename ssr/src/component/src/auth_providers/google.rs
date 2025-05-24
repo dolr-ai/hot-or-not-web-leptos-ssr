@@ -1,6 +1,8 @@
+use codee::string::FromToStringCodec;
+use consts::NOTIFICATIONS_ENABLED_STORE;
 use leptos::{ev, prelude::*};
 use leptos_icons::*;
-use leptos_use::{use_event_listener, use_interval_fn, use_window};
+use leptos_use::{storage::use_local_storage, use_event_listener, use_interval_fn, use_window};
 use utils::{host::show_preview_component, icon_gen};
 use yral_types::delegated_identity::DelegatedIdentityWire;
 pub type GoogleAuthMessage = Result<DelegatedIdentityWire, String>;
@@ -27,6 +29,8 @@ pub fn GoogleAuthProvider() -> impl IntoView {
     let close_popup_store = StoredValue::new(None::<Callback<()>>);
     let close_popup =
         move || _ = close_popup_store.with_value(|cb| cb.as_ref().map(|close_cb| close_cb.run(())));
+    let (_, set_notifs_enabled, _) =
+        use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
 
     let on_click = move || {
         let window = window();
@@ -79,6 +83,7 @@ pub fn GoogleAuthProvider() -> impl IntoView {
             (pause.pause)();
             _ = target_c.close();
             ctx.set_processing.set(None);
+            set_notifs_enabled.set(false);
             ctx.login_complete.set(res);
         });
     };
