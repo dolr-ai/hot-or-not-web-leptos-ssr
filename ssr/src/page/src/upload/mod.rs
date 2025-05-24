@@ -32,6 +32,7 @@ struct UploadParams {
 fn PreUploadView(
     trigger_upload: WriteSignal<Option<UploadParams>, LocalStorage>,
     uid: RwSignal<Option<String>, LocalStorage>,
+    publish_clicked: WriteSignal<bool, LocalStorage>,
 ) -> impl IntoView {
     let description_err = RwSignal::new(String::new());
     let desc_err_memo = Memo::new(move |_| description_err());
@@ -81,6 +82,7 @@ fn PreUploadView(
                 .map(|v| v.checked())
                 .unwrap_or_default(),
         }));
+        publish_clicked.set(true);
     };
 
     let hashtag_on_input = move |hts| match hashtags_validator(hts) {
@@ -171,6 +173,7 @@ pub fn CreatorDaoCreatePage() -> impl IntoView {
 pub fn YralUploadPostPage() -> impl IntoView {
     let trigger_upload = RwSignal::new_local(None::<UploadParams>);
     let uid = RwSignal::new_local(None);
+    let publish_clicked = RwSignal::new_local(false);
 
     view! {
         <Title text="YRAL - Upload" />
@@ -179,11 +182,11 @@ pub fn YralUploadPostPage() -> impl IntoView {
                 <Show
                     when=move || { trigger_upload.with(| trigger_upload | trigger_upload.is_some()) }
                     fallback=move || {
-                        view! { <PreUploadView trigger_upload=trigger_upload.write_only() uid=uid /> }
+                        view! { <PreUploadView trigger_upload=trigger_upload.write_only() uid=uid publish_clicked=publish_clicked.write_only()/> }
                     }
                 >
 
-                    <VideoUploader params=trigger_upload.get_untracked().unwrap() uid=uid />
+                    <VideoUploader params=trigger_upload.get_untracked().unwrap() uid=uid publish_clicked=publish_clicked/>
                 </Show>
             </div>
         </div>
