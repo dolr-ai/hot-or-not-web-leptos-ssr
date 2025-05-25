@@ -352,7 +352,7 @@ pub fn VideoUploader(
         let current_uid = uid.get();
         let publish_now = publish_clicked.get();
 
-        if publish_now && current_uid.is_some() && prev_uid.map_or(true, |puid| puid.is_none()) {
+        if publish_now && current_uid.is_some() && prev_uid.is_none_or(|puid| puid.is_none()) {
             log::info!("Dispatching publish action");
             publish_clicked.set(false);
 
