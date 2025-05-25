@@ -17,16 +17,16 @@ use yral_canisters_common::utils::profile::ProfileDetails;
 #[component]
 #[allow(dead_code)]
 fn MenuItem(
-    #[prop(into)] text: String,
-    #[prop(into)] href: String,
-    #[prop(into)] icon: icondata::Icon,
-    #[prop(into, optional)] target: String,
+    #[prop(into)] _text: String,
+    #[prop(into)] _href: String,
+    #[prop(into)] _icon: icondata::Icon,
+    #[prop(into, optional)] _target: String,
 ) -> impl IntoView {
     view! {
-        <a href=href class="grid grid-cols-3 items-center w-full" target=target>
+        <a href=_href class="grid grid-cols-3 items-center w-full" target=_target>
             <div class="flex flex-row gap-4 items-center col-span-2">
-                <Icon attr:class="text-2xl" icon=icon />
-                <span class="text-wrap">{text}</span>
+                <Icon attr:class="text-2xl" icon=_icon />
+                <span class="text-wrap">{_text}</span>
             </div>
             <Icon attr:class="text-2xl justify-self-end" icon=icondata::AiRightOutlined />
         </a>

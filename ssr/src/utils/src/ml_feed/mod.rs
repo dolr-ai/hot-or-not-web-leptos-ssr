@@ -1,6 +1,5 @@
 use candid::Principal;
 use consts::ML_FEED_URL;
-use leptos::prelude::*;
 use yral_canisters_common::utils::posts::PostDetails;
 use yral_types::post::FeedRequest;
 use yral_types::post::FeedResponse;

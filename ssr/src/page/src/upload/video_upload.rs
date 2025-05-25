@@ -264,86 +264,83 @@ pub fn VideoUploader(
     let canister_store = auth_canisters_store();
     let (is_connected, _, _) =
         use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
-    let publish_action: Action<_, _> =
-        Action::new_unsync(move |canisters: &Canisters<true>| {
-            let canisters = canisters.clone();
-            let hashtags = hashtags.clone();
-            let hashtags_len = hashtags.len();
-            let description = description.clone();
-            let uid = uid.get_untracked().unwrap();
-            async move {
-                let id = canisters.identity();
-                let delegated_identity = delegate_short_lived_identity(id);
-                let res: std::result::Result<reqwest::Response, ServerFnError> = {
-                    let client = reqwest::Client::new();
+    let publish_action: Action<_, _> = Action::new_unsync(move |canisters: &Canisters<true>| {
+        let canisters = canisters.clone();
+        let hashtags = hashtags.clone();
+        let hashtags_len = hashtags.len();
+        let description = description.clone();
+        let uid = uid.get_untracked().unwrap();
+        async move {
+            let id = canisters.identity();
+            let delegated_identity = delegate_short_lived_identity(id);
+            let res: std::result::Result<reqwest::Response, ServerFnError> = {
+                let client = reqwest::Client::new();
 
-                    let req = client
-                        .post(format!("{UPLOAD_URL}/update_metadata"))
-                        .json(&json!({
-                            "video_uid": uid,
-                            "delegated_identity_wire": delegated_identity,
-                            "meta": VideoMetadata{
-                                title: description.clone(),
-                                description: description.clone(),
-                                tags: hashtags.join(",")
-                            },
-                            "post_details": SerializablePostDetailsFromFrontend{
-                                is_nsfw,
-                                hashtags,
-                                description,
-                                video_uid: uid.clone(),
-                                creator_consent_for_inclusion_in_hot_or_not: enable_hot_or_not,
-                            }
-                        }));
-
-                    req.send()
-                        .await
-                        .map_err(|e| ServerFnError::new(e.to_string()))
-                };
-
-                match res {
-                    Ok(_) => {
-                        let is_logged_in = is_connected.get_untracked();
-                        let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
-                        MixPanelEvent::track_video_upload_success(
-                            MixpanelVideoUploadSuccessProps {
-                                user_id: global.user_id,
-                                visitor_id: global.visitor_id,
-                                is_logged_in: global.is_logged_in,
-                                canister_id: global.canister_id,
-                                is_nsfw_enabled: global.is_nsfw_enabled,
-                                video_id: uid.clone(),
-                                is_game_enabled: true,
-                                game_type: MixpanelPostGameType::HotOrNot,
-                            },
-                        );
-                        published.set(true)
-                    }
-                    Err(_) => {
-                        let e = res.as_ref().err().unwrap().to_string();
-                        VideoUploadUnsuccessful.send_event(
-                            e,
-                            hashtags_len,
+                let req = client
+                    .post(format!("{UPLOAD_URL}/update_metadata"))
+                    .json(&json!({
+                        "video_uid": uid,
+                        "delegated_identity_wire": delegated_identity,
+                        "meta": VideoMetadata{
+                            title: description.clone(),
+                            description: description.clone(),
+                            tags: hashtags.join(",")
+                        },
+                        "post_details": SerializablePostDetailsFromFrontend{
                             is_nsfw,
-                            enable_hot_or_not,
-                            canister_store,
-                        );
-                    }
+                            hashtags,
+                            description,
+                            video_uid: uid.clone(),
+                            creator_consent_for_inclusion_in_hot_or_not: enable_hot_or_not,
+                        }
+                    }));
+
+                req.send()
+                    .await
+                    .map_err(|e| ServerFnError::new(e.to_string()))
+            };
+
+            match res {
+                Ok(_) => {
+                    let is_logged_in = is_connected.get_untracked();
+                    let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
+                    MixPanelEvent::track_video_upload_success(MixpanelVideoUploadSuccessProps {
+                        user_id: global.user_id,
+                        visitor_id: global.visitor_id,
+                        is_logged_in: global.is_logged_in,
+                        canister_id: global.canister_id,
+                        is_nsfw_enabled: global.is_nsfw_enabled,
+                        video_id: uid.clone(),
+                        is_game_enabled: true,
+                        game_type: MixpanelPostGameType::HotOrNot,
+                    });
+                    published.set(true)
                 }
-                try_or_redirect_opt!(res);
-
-                VideoUploadSuccessful.send_event(
-                    uid,
-                    hashtags_len,
-                    is_nsfw,
-                    enable_hot_or_not,
-                    0,
-                    canister_store,
-                );
-
-                Some(())
+                Err(_) => {
+                    let e = res.as_ref().err().unwrap().to_string();
+                    VideoUploadUnsuccessful.send_event(
+                        e,
+                        hashtags_len,
+                        is_nsfw,
+                        enable_hot_or_not,
+                        canister_store,
+                    );
+                }
             }
-        });
+            try_or_redirect_opt!(res);
+
+            VideoUploadSuccessful.send_event(
+                uid,
+                hashtags_len,
+                is_nsfw,
+                enable_hot_or_not,
+                0,
+                canister_store,
+            );
+
+            Some(())
+        }
+    });
     let cans_res = authenticated_canisters();
 
     view! {
