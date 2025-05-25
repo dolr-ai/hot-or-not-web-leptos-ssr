@@ -140,7 +140,9 @@ fn EnableNotifications() -> impl IntoView {
     let auth_cans = authenticated_canisters();
 
     let on_token_click: Action<(), (), LocalStorage> = Action::new_unsync(move |()| async move {
-        let metaclient: MetadataClient<false> = MetadataClient::with_base_url(reqwest::Url::parse("https://pr-31-dolr-ai-yral-metadata.fly.dev/").unwrap());
+        let metaclient: MetadataClient<false> = MetadataClient::with_base_url(
+            reqwest::Url::parse("https://pr-31-dolr-ai-yral-metadata.fly.dev/").unwrap(),
+        );
 
         let cans = Canisters::from_wire(auth_cans.await.unwrap(), expect_context()).unwrap();
 
