@@ -124,7 +124,7 @@ fn EnableNotifications(user_details: ProfileDetails) -> impl IntoView {
         use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
     let toggle_ref = NodeRef::<Input>::new();
 
-    let on_token_click: Action<(), (), LocalStorage> = Action::new_unsync(move |()| async move {
+    let on_token_click: Action<(), ()> = Action::new_unsync(move |()| async move {
         get_token_for_principal(user_details.principal.to_string()).await;
     });
 

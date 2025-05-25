@@ -61,9 +61,9 @@ pub struct PostDetailsCacheCtx {
 }
 
 #[component]
-pub fn CommonPostViewWithUpdates<S: Storage<ArcAction<(), ()>>>(
+pub fn CommonPostViewWithUpdates(
     initial_post: Option<PostDetails>,
-    fetch_video_action: Action<(), (), S>,
+    fetch_video_action: Action<(), ()>,
     threshold_trigger_fetch: usize,
 ) -> impl IntoView {
     let PostViewCtx {

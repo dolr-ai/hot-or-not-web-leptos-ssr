@@ -200,7 +200,7 @@ pub fn PndWithdrawal() -> impl IntoView {
     let claim_res = send_claim.value();
 
     Effect::new(move |_| {
-        if let Some(res) = claim_res() {
+        if let Some(res) = claim_res.get() {
             let nav = use_navigate();
             match res {
                 Ok(_) => {

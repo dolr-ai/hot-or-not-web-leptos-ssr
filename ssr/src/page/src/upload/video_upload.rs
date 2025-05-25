@@ -72,7 +72,7 @@ pub fn PreVideoUpload(
 
     let canister_store = auth_canisters_store();
 
-    let upload_action: Action<(), _, LocalStorage> = Action::new_local(move |_| async move {
+    let upload_action: Action<(), _> = Action::new_local(move |_| async move {
         let message = try_or_redirect_opt!(upload_video_part(
             UPLOAD_URL,
             "file",
@@ -264,7 +264,7 @@ pub fn VideoUploader(
     let canister_store = auth_canisters_store();
     let (is_connected, _, _) =
         use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
-    let publish_action: Action<_, _, LocalStorage> =
+    let publish_action: Action<_, _> =
         Action::new_unsync(move |canisters: &Canisters<true>| {
             let canisters = canisters.clone();
             let hashtags = hashtags.clone();

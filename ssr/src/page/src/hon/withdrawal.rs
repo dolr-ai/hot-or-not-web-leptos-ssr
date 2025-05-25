@@ -188,7 +188,7 @@ pub fn HonWithdrawal() -> impl IntoView {
     let is_claiming = send_claim.pending();
     let claim_res = send_claim.value();
     Effect::new(move |_| {
-        if let Some(res) = claim_res() {
+        if let Some(res) = claim_res.get() {
             let nav = use_navigate();
             match res {
                 Ok(_) => {
