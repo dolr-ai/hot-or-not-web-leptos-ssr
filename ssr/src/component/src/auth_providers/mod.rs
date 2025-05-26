@@ -5,6 +5,7 @@ pub mod local_storage;
 use candid::Principal;
 use consts::NEW_USER_SIGNUP_REWARD;
 use consts::REFERRAL_REWARD;
+use hon_worker_common::sign_referral_request;
 use ic_agent::Identity;
 use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
@@ -19,11 +20,12 @@ use utils::mixpanel::mixpanel_events::MixpanelSignupSuccessProps;
 use utils::send_wrap;
 use yral_canisters_common::Canisters;
 use yral_types::delegated_identity::DelegatedIdentityWire;
+use hon_worker_common::ReferralReqWithSignature;
 
 #[server]
-async fn issue_referral_rewards(referee_canister: Principal) -> Result<(), ServerFnError> {
+async fn issue_referral_rewards(worker_req: ReferralReqWithSignature) -> Result<(), ServerFnError> {
     use self::server_fn_impl::issue_referral_rewards_impl;
-    issue_referral_rewards_impl(referee_canister).await
+    issue_referral_rewards_impl(worker_req).await
 }
 
 #[server]
@@ -73,8 +75,13 @@ pub async fn handle_user_login(
     MixPanelEvent::identify_user(user_principal.to_text().as_str());
 
     match referrer {
-        Some(_referee_principal) if first_time_login => {
-            issue_referral_rewards(canisters.user_canister()).await?;
+        Some(referrer_principal) if first_time_login => {
+            let req = hon_worker_common::ReferralReq {
+            referrer: referrer_principal,
+            referee: user_principal,
+        };
+        let sig = sign_referral_request(canisters.identity(), req.clone())?;
+        issue_referral_rewards(ReferralReqWithSignature { request: req, signature: sig}).await?;
             CentsAdded.send_event("referral".to_string(), REFERRAL_REWARD);
             Ok(())
         }
@@ -207,80 +214,35 @@ mod server_fn_impl {
     #[cfg(feature = "backend-admin")]
     mod backend_admin {
         use candid::Principal;
+        use hon_worker_common::WORKER_URL;
         use leptos::prelude::*;
-
-        use state::canisters::unauth_canisters;
+        use state::server::HonWorkerJwt;
+        use hon_worker_common::ReferralReqWithSignature;
         use yral_canisters_client::individual_user_template::{
-            KnownPrincipalType, Result22, Result9,
+            Result22, Result9,
         };
 
         pub async fn issue_referral_rewards_impl(
-            referee_canister: Principal,
+            worker_req: ReferralReqWithSignature,
         ) -> Result<(), ServerFnError> {
-            let canisters = unauth_canisters();
-            let user = canisters.individual_user(referee_canister).await;
-            let referrer_details = user
-                .get_profile_details()
-                .await?
-                .referrer_details
-                .ok_or(ServerFnError::new("Referrer details not found"))?;
-
-            let referrer = canisters
-                .individual_user(referrer_details.user_canister_id)
-                .await;
-
-            let user_details = user.get_profile_details().await?;
-
-            let referrer_index_principal = referrer
-                .get_well_known_principal_value(KnownPrincipalType::CanisterIdUserIndex)
-                .await?
-                .ok_or_else(|| ServerFnError::new("User index not present in referrer"))?;
-            let user_index_principal = user
-                .get_well_known_principal_value(KnownPrincipalType::CanisterIdUserIndex)
-                .await?
-                .ok_or_else(|| ServerFnError::new("User index not present in referee"))?;
-
-            issue_referral_reward_for(
-                user_index_principal,
-                referee_canister,
-                referrer_details.profile_owner,
-                user_details.principal_id,
-            )
-            .await?;
-            issue_referral_reward_for(
-                referrer_index_principal,
-                referrer_details.user_canister_id,
-                referrer_details.profile_owner,
-                user_details.principal_id,
-            )
-            .await?;
-
-            Ok(())
-        }
-
-        async fn issue_referral_reward_for(
-            user_index: Principal,
-            user_canister_id: Principal,
-            referrer_principal_id: Principal,
-            referee_principal_id: Principal,
-        ) -> Result<(), ServerFnError> {
-            use state::admin_canisters::admin_canisters;
-            use yral_canisters_client::user_index::Result2;
-
-            let admin_cans = admin_canisters();
-            let user_idx = admin_cans.user_index_with(user_index).await;
-            let res = user_idx
-                .issue_rewards_for_referral(
-                    user_canister_id,
-                    referrer_principal_id,
-                    referee_principal_id,
-                )
+            
+            let req_url = format!("{WORKER_URL}referral_reward");
+            let client = reqwest::Client::new();
+            let jwt = expect_context::<HonWorkerJwt>();
+            let res = client
+                .post(&req_url)
+                .json(&worker_req)
+                .header("Authorization", format!("Bearer {}", jwt.0))
+                .send()
                 .await?;
-            if let Result2::Err(e) = res {
+
+            if res.status() != reqwest::StatusCode::OK {
                 return Err(ServerFnError::new(format!(
-                    "failed to issue referral reward {e}"
+                    "worker error: {}",
+                    res.text().await?
                 )));
             }
+
             Ok(())
         }
 
