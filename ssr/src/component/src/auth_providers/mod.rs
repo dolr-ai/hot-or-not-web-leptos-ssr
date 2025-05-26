@@ -214,7 +214,7 @@ mod server_fn_impl {
     #[cfg(feature = "backend-admin")]
     mod backend_admin {
         use candid::Principal;
-        use hon_worker_common::WORKER_URL;
+        // use hon_worker_common::WORKER_URL;
         use leptos::prelude::*;
         use state::server::HonWorkerJwt;
         use hon_worker_common::ReferralReqWithSignature;
@@ -226,7 +226,7 @@ mod server_fn_impl {
             worker_req: ReferralReqWithSignature,
         ) -> Result<(), ServerFnError> {
             
-            let req_url = format!("{WORKER_URL}referral_reward");
+            let req_url = format!("https://yral-hot-or-not-staging.go-bazzinga.workers.dev/referral_reward");
             let client = reqwest::Client::new();
             let jwt = expect_context::<HonWorkerJwt>();
             let res = client
