@@ -21,9 +21,9 @@ use utils::web::{copy_to_clipboard, share_url};
 #[component]
 fn WorkButton(#[prop(into)] text: String, #[prop(into)] head: String) -> impl IntoView {
     view! {
-        <div class="flex flex-col items-center gap-3">
-            <div class="grid place-items-center rounded-sm font-semibold">{head}</div>
-            <span class="text-xs md:text-sm whitespace-pre-line">{text}</span>
+        <div class="flex flex-col items-center gap-3 bg-neutral-900 rounded-md px-2 py-4">
+            <div class="grid place-items-center rounded-sm text-xs md:text-sm font-semibold">{head}</div>
+            <span class="text-xs md:text-sm">{text}</span>
         </div>
     }
 }
@@ -103,17 +103,25 @@ fn ReferView() -> impl IntoView {
 
     view! {
         <div class="flex flex-col w-full h-full items-center text-white gap-10">
-            <img class="shrink-0 h-40 select-none" src="/img/common/coins-stash.webp" />
-            <div class="flex flex-col w-full items-center gap-4 text-center">
-                <span class="font-bold text-2xl">Invite & Win upto <br />500 Cents</span>
+            <div class="absolute inset-x-0 top-0 z-0 w-full max-w-md mx-auto" style="filter: blur(1.5px);">
+                <img src="/img/common/refer-bg.webp" class="w-full object-cover" />
             </div>
-            <div class="flex flex-col w-full gap-2 px-4 text-white items-center">
-                <span class="uppercase text-sm md:text-md">Referral Link</span>
+            <div style="height: 19rem;" class="flex z-1 relative justify-center w-full items-center gap-4 overflow-visible">
+                <img class="shrink-0 h-40 select-none" src="/img/common/wallet.webp" />
+                <div style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%)" class="absolute z-0 inset-0"></div>
+                <img src="/img/common/bitcoin-logo.svg" class="absolute top-8 left-8 size-6" style="filter: blur(2px); transform: rotate(5deg);" />
+                <img src="/img/common/bitcoin-logo.svg" class="absolute top-16 right-8 size-6" style="filter: blur(2px); transform: rotate(3deg);" />
+                <img src="/img/common/bitcoin-logo.svg" class="absolute bottom-8 left-8 size-10" style="filter: blur(2px); transform: rotate(-5deg);" />
+            </div>
+            <div class="flex flex-col w-full z-1 items-center gap-4 text-center">
+                <span class="font-bold text-2xl">Invite & get Bitcoin <span style="color: #A3A3A3">(500 SATS)</span></span>
+            </div>
+            <div class="flex flex-col w-full z-1 gap-2 px-4 text-white items-center">
                 <Show when=logged_in fallback=|| view! { <ConnectLogin cta_location="refer" /> }>
                     <ReferCode />
                 </Show>
             </div>
-            <div class="flex flex-col w-full items-center gap-8 mt-4">
+            <div class="flex flex-col w-full z-1 items-center gap-8 mt-4">
                 <span class="font-xl font-semibold">HOW IT WORKS?</span>
                 <div class="flex flex-row gap-8 text-center">
                     <WorkButton
@@ -123,13 +131,12 @@ fn ReferView() -> impl IntoView {
                     />
                     <WorkButton
                         text="Your friend uses
-                        the shared link
-                        to login"
+                        logs in from the link"
                         head="STEP 2"
                     />
                     <WorkButton
-                        text="You both win
-                        500 Cents each"
+                        text="You both earn 
+                        Bitcoin (500 SATS)"
                         head="STEP 3"
                     />
                 </div>
