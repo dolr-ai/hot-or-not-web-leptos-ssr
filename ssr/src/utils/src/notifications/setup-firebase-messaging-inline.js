@@ -25,6 +25,24 @@ function initializeFirebase() {
     messaging = getMessaging(app);
     isInitialized = true;
     console.log("Firebase initialized successfully");
+
+    // Register the service worker
+    if ('serviceWorker' in navigator) {
+      if (navigator.serviceWorker.controller) {
+        console.log('Service Worker already registered and controlling the page.');
+      } else {
+        console.log("Registering service worker");
+        navigator.serviceWorker.register('/firebase-messaging-sw.js') // Adjusted path
+          .then((registration) => {
+            console.log('Service Worker registered with scope:', registration.scope);
+            // You can optionally set the service worker for messaging here if needed
+            // firebase.messaging().useServiceWorker(registration);
+          })
+          .catch((error) => {
+            console.error('Service Worker registration failed:', error);
+          });
+      }
+    }
   }
   return { app, messaging };
 }
