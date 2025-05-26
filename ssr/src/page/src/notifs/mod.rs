@@ -11,10 +11,9 @@ use yral_metadata_client::MetadataClient;
 #[component]
 fn NotifInnerComponent(details: ProfileDetails) -> impl IntoView {
     let (_, _) = account_connected_reader();
-
     let auth_cans = authenticated_canisters();
 
-    let on_token_click: Action<(), (), LocalStorage> = Action::new_unsync(move |()| async move {
+    let on_token_click: Action<(), ()> = Action::new_unsync(move |()| async move {
         let metaclient: MetadataClient<false> = MetadataClient::default();
 
         let cans = Canisters::from_wire(auth_cans.await.unwrap(), expect_context()).unwrap();

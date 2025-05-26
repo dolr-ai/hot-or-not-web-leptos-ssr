@@ -161,7 +161,7 @@ async fn main_impl() {
     // build our application with a route
     let app = Router::new()
         .route(
-            "/api/*fn_name",
+            "/api/{*fn_name}",
             get(server_fn_handler).post(server_fn_handler),
         )
         .layer(

@@ -115,7 +115,7 @@ pub(super) struct WsResponse {
 #[derive(Clone)]
 pub(super) struct RunningGameCtx {
     sendfn: SendFn,
-    pub reload_running_data: Action<(), (), LocalStorage>,
+    pub reload_running_data: Action<(), ()>,
     player_data: PlayerDataRes,
     running_data: RwSignal<Option<GameRunningData>>,
     current_round: StoredValue<Option<u64>>,

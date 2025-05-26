@@ -44,7 +44,7 @@ pub fn DumpButton(audio_ref: NodeRef<Audio>) -> impl IntoView {
             .is_some_and(|d| d.is_ok_and(|d| d.get().wallet_balance == 0))
     };
     let counter = move || {
-        let Some(Ok(ctx)) = game_res.get().map(|res| res.take()) else {
+        let Some(Ok(ctx)) = game_res.get() else {
             return "-".to_string();
         };
         ctx.with_running_data(|v| v.dumps.to_string())
@@ -80,7 +80,7 @@ pub fn DumpButton(audio_ref: NodeRef<Audio>) -> impl IntoView {
     let onclick = move |_| {
         non_visual_feedback(audio_ref);
         spawn_bubbles.update(|b| *b += 1);
-        let Some(Ok(ctx)) = game_res.get().map(|res| res.take()) else {
+        let Some(Ok(ctx)) = game_res.get() else {
             return;
         };
         ctx.send_bet(GameDirection::Dump);
@@ -162,7 +162,7 @@ pub fn PumpButton(audio_ref: NodeRef<Audio>) -> impl IntoView {
             .is_some_and(|d| d.is_ok_and(|d| d.get().wallet_balance == 0))
     };
     let counter = move || {
-        let Some(Ok(ctx)) = game_res.get().map(|res| res.take()) else {
+        let Some(Ok(ctx)) = game_res.get() else {
             return "-".to_string();
         };
         ctx.with_running_data(|v| v.pumps.to_string())
@@ -197,7 +197,7 @@ pub fn PumpButton(audio_ref: NodeRef<Audio>) -> impl IntoView {
     let onclick = move |_| {
         non_visual_feedback(audio_ref);
         spawn_bubbles.update(|b| *b += 1);
-        let Some(Ok(ctx)) = game_res.get().map(|res| res.take()) else {
+        let Some(Ok(ctx)) = game_res.get() else {
             return;
         };
         ctx.send_bet(GameDirection::Pump);
