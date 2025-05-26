@@ -40,50 +40,49 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
             && is_new_session.get()
     });
 
-    let notification_action: Action<(), (), LocalStorage> =
-        Action::new_unsync(move |()| async move {
-            let metaclient: MetadataClient<false> = MetadataClient::default();
+    let notification_action: Action<(), ()> = Action::new_unsync(move |()| async move {
+        let metaclient: MetadataClient<false> = MetadataClient::default();
 
-            let cans = Canisters::from_wire(cans.await.unwrap(), expect_context()).unwrap();
+        let cans = Canisters::from_wire(cans.await.unwrap(), expect_context()).unwrap();
 
-            let browser_permission = Notification::permission();
-            let notifs_enabled_val = notifs_enabled.get_untracked();
+        let browser_permission = Notification::permission();
+        let notifs_enabled_val = notifs_enabled.get_untracked();
 
-            if notifs_enabled_val && matches!(browser_permission, NotificationPermission::Default) {
-                match notification_permission_granted().await {
-                    Ok(true) => {
-                        let token = get_fcm_token().await.unwrap();
-                        metaclient
-                            .register_device(cans.identity(), token)
-                            .await
-                            .unwrap();
-                        log::info!("Device re-registered after ghost state");
-                        set_notifs_enabled(true);
-                    }
-                    Ok(false) => {
-                        log::warn!("User did not grant notification permission after prompt");
-                    }
-                    Err(e) => {
-                        log::error!("Failed to check notification permission: {e:?}");
-                    }
+        if notifs_enabled_val && matches!(browser_permission, NotificationPermission::Default) {
+            match notification_permission_granted().await {
+                Ok(true) => {
+                    let token = get_fcm_token().await.unwrap();
+                    metaclient
+                        .register_device(cans.identity(), token)
+                        .await
+                        .unwrap();
+                    log::info!("Device re-registered after ghost state");
+                    set_notifs_enabled(true);
                 }
-            } else if !notifs_enabled_val {
-                let token = get_device_registeration_token().await.unwrap();
-                let register_result = metaclient
-                    .register_device(cans.identity(), token.clone())
-                    .await;
-                match register_result {
-                    Ok(_) => {
-                        log::info!("Device registered successfully");
-                        set_notifs_enabled(true);
-                    }
-                    Err(e) => {
-                        log::error!("Failed to register device: {e:?}");
-                        set_notifs_enabled(false);
-                    }
+                Ok(false) => {
+                    log::warn!("User did not grant notification permission after prompt");
+                }
+                Err(e) => {
+                    log::error!("Failed to check notification permission: {e:?}");
                 }
             }
-        });
+        } else if !notifs_enabled_val {
+            let token = get_device_registeration_token().await.unwrap();
+            let register_result = metaclient
+                .register_device(cans.identity(), token.clone())
+                .await;
+            match register_result {
+                Ok(_) => {
+                    log::info!("Device registered successfully");
+                    set_notifs_enabled(true);
+                }
+                Err(e) => {
+                    log::error!("Failed to register device: {e:?}");
+                    set_notifs_enabled(false);
+                }
+            }
+        }
+    });
 
     view! {
         <ShadowOverlay show=popup_signal >
