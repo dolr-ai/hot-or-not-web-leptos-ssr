@@ -109,9 +109,9 @@ fn ReferView() -> impl IntoView {
             <div style="height: 19rem;" class="flex z-1 relative justify-center w-full items-center gap-4 overflow-visible">
                 <img class="shrink-0 h-40 select-none" src="/img/common/wallet.webp" />
                 <div style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%)" class="absolute z-0 inset-0"></div>
-                <img src="/img/common/bitcoin-logo.svg" class="absolute top-8 left-8 size-6" style="filter: blur(2px); transform: rotate(5deg);" />
-                <img src="/img/common/bitcoin-logo.svg" class="absolute top-16 right-8 size-6" style="filter: blur(2px); transform: rotate(3deg);" />
-                <img src="/img/common/bitcoin-logo.svg" class="absolute bottom-8 left-8 size-10" style="filter: blur(2px); transform: rotate(-5deg);" />
+                <img src="/img/common/bitcoin-logo.svg" class="absolute top-8 left-5 size-6" style="filter: blur(1px); transform: rotate(30deg);" />
+                <img src="/img/common/bitcoin-logo.svg" class="absolute top-16 right-3 size-6" style="filter: blur(1px); transform: rotate(40deg);" />
+                <img src="/img/common/bitcoin-logo.svg" class="absolute bottom-4 left-6 size-9" style="filter: blur(1px); transform: rotate(-60deg);" />
             </div>
             <div class="flex flex-col w-full z-1 items-center gap-4 text-center">
                 <span class="font-bold text-2xl">Invite & get Bitcoin <span style="color: #A3A3A3">(500 SATS)</span></span>
