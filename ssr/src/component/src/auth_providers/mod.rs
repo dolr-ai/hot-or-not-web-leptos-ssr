@@ -6,6 +6,7 @@ use candid::Principal;
 use consts::NEW_USER_SIGNUP_REWARD;
 use consts::REFERRAL_REWARD;
 use hon_worker_common::sign_referral_request;
+use hon_worker_common::ReferralReqWithSignature;
 use ic_agent::Identity;
 use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
@@ -20,7 +21,6 @@ use utils::mixpanel::mixpanel_events::MixpanelSignupSuccessProps;
 use utils::send_wrap;
 use yral_canisters_common::Canisters;
 use yral_types::delegated_identity::DelegatedIdentityWire;
-use hon_worker_common::ReferralReqWithSignature;
 
 #[server]
 async fn issue_referral_rewards(worker_req: ReferralReqWithSignature) -> Result<(), ServerFnError> {
@@ -77,11 +77,15 @@ pub async fn handle_user_login(
     match referrer {
         Some(referrer_principal) if first_time_login => {
             let req = hon_worker_common::ReferralReq {
-            referrer: referrer_principal,
-            referee: user_principal,
-        };
-        let sig = sign_referral_request(canisters.identity(), req.clone())?;
-        issue_referral_rewards(ReferralReqWithSignature { request: req, signature: sig}).await?;
+                referrer: referrer_principal,
+                referee: user_principal,
+            };
+            let sig = sign_referral_request(canisters.identity(), req.clone())?;
+            issue_referral_rewards(ReferralReqWithSignature {
+                request: req,
+                signature: sig,
+            })
+            .await?;
             CentsAdded.send_event("referral".to_string(), REFERRAL_REWARD);
             Ok(())
         }
@@ -215,18 +219,16 @@ mod server_fn_impl {
     mod backend_admin {
         use candid::Principal;
         // use hon_worker_common::WORKER_URL;
+        use hon_worker_common::ReferralReqWithSignature;
         use leptos::prelude::*;
         use state::server::HonWorkerJwt;
-        use hon_worker_common::ReferralReqWithSignature;
-        use yral_canisters_client::individual_user_template::{
-            Result22, Result9,
-        };
+        use yral_canisters_client::individual_user_template::{Result22, Result9};
 
         pub async fn issue_referral_rewards_impl(
             worker_req: ReferralReqWithSignature,
         ) -> Result<(), ServerFnError> {
-            
-            let req_url = format!("https://yral-hot-or-not-staging.go-bazzinga.workers.dev/referral_reward");
+            let req_url =
+                format!("https://yral-hot-or-not-staging.go-bazzinga.workers.dev/referral_reward");
             let client = reqwest::Client::new();
             let jwt = expect_context::<HonWorkerJwt>();
             let res = client

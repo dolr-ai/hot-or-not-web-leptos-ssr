@@ -135,7 +135,7 @@ fn ReferView() -> impl IntoView {
                         head="STEP 2"
                     />
                     <WorkButton
-                        text="You both earn 
+                        text="You both earn
                         Bitcoin (500 SATS)"
                         head="STEP 3"
                     />
