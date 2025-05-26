@@ -1,6 +1,6 @@
 {}:
 let
-  rev = "efc8686dfc086e7cde15504bcae3e4951303486a";
+  rev = "21808d22b1cda1898b71cf1a1beb524a97add2c4";
   nixpkgs = fetchTarball "https://github.com/NixOS/nixpkgs/archive/${rev}.tar.gz";
   # nixpkgs = fetchTarball "https://github.com/NixOS/nixpkgs/archive/master.tar.gz";
   pkgs = import nixpkgs { };
@@ -15,7 +15,7 @@ pkgs.mkShell {
     rustup
     openssl
     git
-    mold
+    cargo-leptos
     protobuf_21
     mold
   ] ++ (if pkgs.stdenv.isDarwin then [
