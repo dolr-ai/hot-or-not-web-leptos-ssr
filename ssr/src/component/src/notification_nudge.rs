@@ -1,7 +1,7 @@
 use codee::string::FromToStringCodec;
 use consts::{LAST_INTERACTION_STORE, NOTIFICATIONS_ENABLED_STORE, SESSION_TIMEOUT_MS};
-use leptos::web_sys::{Notification, NotificationPermission};
 use leptos::prelude::*;
+use leptos::web_sys::{Notification, NotificationPermission};
 use leptos_icons::Icon;
 use leptos_use::storage::use_local_storage;
 use state::canisters::authenticated_canisters;
