@@ -43,7 +43,7 @@ pub fn TokenViewFallback() -> impl IntoView {
 pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl IntoView {
     let app_type: AppType = AppType::select();
     let exclude = match app_type {
-        AppType::YRAL | AppType::Pumpdump => vec![RootType::COYNS],
+        AppType::YRAL | AppType::Pumpdump | AppType::HotOrNot => vec![RootType::COYNS],
         _ => vec![RootType::CENTS],
     };
     view! {

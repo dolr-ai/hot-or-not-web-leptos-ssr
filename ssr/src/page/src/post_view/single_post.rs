@@ -1,4 +1,5 @@
 use candid::Principal;
+use leptos::html::Audio;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -31,6 +32,7 @@ fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
         ..
     } = expect_context();
     let bg_url = bg_url(&post.uid);
+    let win_audio_ref = NodeRef::<Audio>::new();
 
     view! {
         <div class="w-dvw h-dvh">
@@ -40,7 +42,8 @@ fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
                     style:background-color="rgb(0, 0, 0)"
                     style:background-image=format!("url({bg_url})")
                 ></div>
-                <VideoDetailsOverlay post=post.clone() />
+                <audio class="sr-only" node_ref=win_audio_ref preload="auto" src="/img/hotornot/chaching.m4a"/>
+                <VideoDetailsOverlay post=post.clone() win_audio_ref />
                 <VideoView post=Some(post) muted autoplay_at_render=true />
             </div>
             <MuteIconOverlay show_mute_icon />

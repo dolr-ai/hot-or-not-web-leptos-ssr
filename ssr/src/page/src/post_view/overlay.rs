@@ -6,6 +6,7 @@ use component::{
 
 use consts::NSFW_TOGGLE_STORE;
 use gloo::timers::callback::Timeout;
+use leptos::html::Audio;
 use leptos::{prelude::*, task::spawn_local};
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
@@ -147,7 +148,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
 }
 
 #[component]
-pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
+pub fn VideoDetailsOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> impl IntoView {
     let show_share = RwSignal::new(false);
     let show_report = RwSignal::new(false);
     let show_nsfw_permission = RwSignal::new(false);
@@ -314,7 +315,8 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                     show_nsfw_permission.set(false);
                     if let Some(cans) = canisters.get() {
                         let is_logged_in = is_connected.get_untracked();
-                        let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
+                        let global =
+                            MixpanelGlobalProps::try_get_with_nsfw_info(&cans, is_logged_in, false);
                         let is_hot_or_not = true;
                         MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
                             user_id: global.user_id,
@@ -332,12 +334,13 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                             like_count: post.likes,
                         });
                     }
-                    set_nsfw_enabled(!nsfw_enabled());
+                    set_nsfw_enabled(true);
                 } else {
-                    set_nsfw_enabled(!nsfw_enabled());
+                    set_nsfw_enabled(false);
                     if let Some(cans) = canisters.get() {
                         let is_logged_in = is_connected.get_untracked();
-                        let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
+                        let global =
+                            MixpanelGlobalProps::try_get_with_nsfw_info(&cans, is_logged_in, false);
                         let is_hot_or_not = true;
                         MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
                             user_id: global.user_id,
@@ -449,7 +452,7 @@ pub fn VideoDetailsOverlay(post: PostDetails) -> impl IntoView {
                     </button>
                 </div>
                 <div class="w-full bg-transparent pointer-events-auto">
-                    <HNGameOverlay post=post_c />
+                    <HNGameOverlay post=post_c win_audio_ref />
                 </div>
             </div>
         </div>

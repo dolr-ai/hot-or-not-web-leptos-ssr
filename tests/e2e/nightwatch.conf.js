@@ -33,18 +33,18 @@ module.exports = {
   // See https://nightwatchjs.org/guide/concepts/test-globals.html
   globals_path: '',
 
-  webdriver: {},
+  globals: {
+    asyncHookTimeout: 30000,
+  },
 
+  webdriver: {},
   test_workers: {
     enabled: true
   },
 
   test_settings: {
-
-
-
-
     default: {
+      disable_output_boxes: true,
       disable_error_log: false,
       launch_url: '${PREVIEW_URL}',
 
