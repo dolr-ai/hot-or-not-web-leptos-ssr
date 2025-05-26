@@ -95,7 +95,7 @@ jobs:
           ALLOYDB_INSTANCE: ${{ secrets.HOT_OR_NOT_ALLOYDB_INSTANCE }}
           ALLOYDB_DB_PASSWORD: ${{ secrets.HOT_OR_NOT_ALLOYDB_DB_PASSWORD }}
           ALLOYDB_SERVICE_ACCOUNT_JSON: ${{ secrets.HOT_OR_NOT_ALLOYDB_SERVICE_ACCOUNT }}
-          HON_WORKER_JWT: ${{ secrets.HOT_OR_NOT_WORKER_JWT }}
+          HON_WORKER_JWT: ${{ secrets.HOT_OR_NOT_WORKER_STAGING_JWT }}
 
   e2e-tests:
     needs: preview
