@@ -21,7 +21,7 @@ use utils::web::{copy_to_clipboard, share_url};
 #[component]
 fn WorkButton(#[prop(into)] text: String, #[prop(into)] head: String) -> impl IntoView {
     view! {
-        <div class="flex flex-col items-center gap-3 bg-neutral-900 rounded-md px-2 py-4">
+        <div class="flex flex-1 flex-col items-center gap-3 bg-neutral-900 rounded-md px-2 py-4">
             <div class="grid place-items-center rounded-sm text-xs md:text-sm font-semibold">{head}</div>
             <span class="text-xs md:text-sm">{text}</span>
         </div>
