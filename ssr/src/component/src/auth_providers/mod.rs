@@ -228,7 +228,7 @@ mod server_fn_impl {
             worker_req: ReferralReqWithSignature,
         ) -> Result<(), ServerFnError> {
             let req_url =
-                format!("https://yral-hot-or-not-staging.go-bazzinga.workers.dev/referral_reward");
+                "https://yral-hot-or-not-staging.go-bazzinga.workers.dev/referral_reward".to_string();
             let client = reqwest::Client::new();
             let jwt = expect_context::<HonWorkerJwt>();
             let res = client
