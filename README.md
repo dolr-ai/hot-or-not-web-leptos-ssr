@@ -6,6 +6,12 @@
 # Instructions
 - For older versions of cargo-leptos (< 0.2.33) you'll have to manually put in `RUSTFLAGS="--cfg=erase_components"`for development when running `cargo leptos serve` or `cargo leptos watch` 
 
+# Caution
+There is a deliberate mismatch between the nightly Rust compiler versions used in the GitHub workflows and the version specified in the project. This is due to a compatibility issue:
+
+- The `01-09` nightly release can successfully build the project for release but causes failures with `cargo leptos serve` and `cargo leptos watch`.
+- Conversely, the `05-09` nightly release (currently used in the `main` branch) works with `cargo leptos serve` and `cargo leptos watch` but fails to build the project for release.
+
 # Leptos Axum Starter Template
 
 This is a template for use with the [Leptos](https://github.com/leptos-rs/leptos) web framework and the [cargo-leptos](https://github.com/akesson/cargo-leptos) tool using [Axum](https://github.com/tokio-rs/axum).
