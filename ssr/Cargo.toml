@@ -95,8 +95,8 @@ tracing-subscriber = { workspace = true, optional = true }
 tracing-futures = { workspace = true, optional = true }
 sentry = { workspace = true, optional = true }
 sentry-tower = { workspace = true, optional = true }
-google-cloud-alloydb-v1 = { workspace = true, optional = true}
-google-cloud-auth = { version = "0.19.0", optional = true}
+google-cloud-alloydb-v1 = { workspace = true, optional = true }
+google-cloud-auth = { version = "0.19.0", optional = true }
 
 # local deps
 auth = { workspace = true }
@@ -263,7 +263,7 @@ alloydb = [
     "dep:google-cloud-alloydb-v1",
     "dep:google-cloud-auth",
     "state/alloydb",
-    "page/alloydb"
+    "page/alloydb",
 ]
 release-bin = [
     "ssr",
@@ -271,7 +271,7 @@ release-bin = [
     "gob-cloudflare/rustls-tls",
     "redis-kv",
     "backend-admin",
-    "oauth-ssr",
+    "local-auth",
     "ga4",
     "firestore",
     "qstash",
@@ -280,7 +280,7 @@ release-bin = [
     "state/release-bin",
     "component/release-bin",
     "page/release-bin",
-    "alloydb"
+    "alloydb",
 ]
 release-lib = [
     "hydrate",
@@ -288,7 +288,7 @@ release-lib = [
     "redis-kv",
     "backend-admin",
     "dep:openidconnect",
-    "oauth-hydrate",
+    "local-auth",
     "ga4",
     "consts/release-lib",
     "utils/release-lib",
