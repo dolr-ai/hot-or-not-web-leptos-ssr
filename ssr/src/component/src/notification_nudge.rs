@@ -1,5 +1,5 @@
 use codee::string::FromToStringCodec;
-use consts::{LAST_INTERACTION_STORE, NOTIFICATIONS_ENABLED_STORE, SESSION_TIMEOUT_MS};
+use consts::NOTIFICATIONS_ENABLED_STORE;
 use leptos::prelude::*;
 use leptos::web_sys::{Notification, NotificationPermission};
 use leptos_icons::Icon;
@@ -23,21 +23,10 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
     let (notifs_enabled, set_notifs_enabled, _) =
         use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
 
-    let (last_interaction, set_last_interaction, _) =
-        use_local_storage::<u64, FromToStringCodec>(LAST_INTERACTION_STORE);
-
-    // Check if we're in a new session
-    let is_new_session = Signal::derive(move || {
-        let current_time = js_sys::Date::now() as u64;
-        let last_time = last_interaction.get();
-        current_time - last_time >= SESSION_TIMEOUT_MS
-    });
-
     let popup_signal = Signal::derive(move || {
         !(notifs_enabled.get()
             && matches!(Notification::permission(), NotificationPermission::Granted))
             && pop_up.get()
-            && is_new_session.get()
     });
 
     let notification_action: Action<(), ()> = Action::new_unsync(move |()| async move {
@@ -90,7 +79,6 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
                 <button
                     on:click=move |_| {
                         pop_up.set(false);
-                        set_last_interaction(js_sys::Date::now() as u64);
                     }
                     class="absolute top-3 right-3 p-1 bg-neutral-800 rounded-full text-neutral-300 hover:text-white transition-colors">
                     <Icon icon=icondata::IoClose attr:class="w-6 h-6" />

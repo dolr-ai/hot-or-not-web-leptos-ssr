@@ -88,6 +88,3 @@ pub mod google {
 }
 
 pub const UPLOAD_URL: &str = "https://yral-upload-video.go-bazzinga.workers.dev";
-pub const LAST_INTERACTION_STORE: &str = "last-interaction-time";
-pub const NUDGE_DISMISSED_STORE: &str = "nudge-dismissed-session";
-pub const SESSION_TIMEOUT_MS: u64 = 30 * 60 * 1000; // 30 minutes in milliseconds
