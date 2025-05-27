@@ -49,7 +49,7 @@ async fn withdraw_sats_for_ckbtc(
     req: hon_worker_common::WithdrawRequest,
     sig: Signature,
 ) -> Result<(), ServerFnError> {
-    use hon_worker_common::WORKER_URL;
+    use consts::WORKER_URL;
 
     // TODO: yral-auth-v2, we can do this verification with a JWT
     let cans: Canisters<false> = expect_context();

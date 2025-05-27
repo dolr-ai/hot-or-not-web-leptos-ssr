@@ -11,7 +11,9 @@ use leptos_use::use_window;
 
 use component::canisters_prov::AuthCansProvider;
 use component::connect::ConnectLogin;
-use component::{back_btn::BackButton, dashbox::DashboxLoading, title::TitleText, buttons::HighlightedButton};
+use component::{
+    back_btn::BackButton, buttons::HighlightedButton, dashbox::DashboxLoading, title::TitleText,
+};
 use history::HistoryView;
 use state::app_state::AppState;
 use utils::event_streaming::events::{account_connected_reader, auth_canisters_store};
@@ -61,18 +63,18 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
     });
     let refer_link_share = refer_link.clone();
     let handle_share = move || {
-        let url = refer_link_share;
-        if share_url(&url).is_some() {
+        let url = &refer_link_share;
+        if share_url(url).is_some() {
             return;
         }
-        click_copy.dispatch(url);
+        click_copy.dispatch(url.clone());
     };
 
     view! {
         <div class="flex w-full justify-between">
             <div class="flex flex-1 items-center w-full rounded-md border-dashed border-2 p-3 gap-2 border-neutral-700 bg-neutral-900">
                 <span class="text-md lg:text-lg text-ellipsis line-clamp-1">{refer_link.clone()}</span>
-                <button on:click=move |_| { click_copy.dispatch(refer_link); }>
+                <button on:click=move |_| { click_copy.dispatch(refer_link.clone()); }>
                     <Icon attr:class="text-xl text-primary-500" icon=icondata::IoCopyOutline />
                 </button>
             </div>
