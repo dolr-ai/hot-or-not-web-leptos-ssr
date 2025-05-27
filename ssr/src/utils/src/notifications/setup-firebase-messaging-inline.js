@@ -29,33 +29,29 @@ function initializeFirebase() {
   return { app, messaging };
 }
 
-// Renamed the imported getToken to avoid conflict if there was a local getToken variable elsewhere
 export async function getToken() {
   try {
-    // Ensure Firebase is initialized
     if (!isInitialized) {
       initializeFirebase();
-      await new Promise(resolve => setTimeout(resolve, 100)); // weird hack to avoid race condition
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
     
     console.log("Requesting FCM token...");
     const currentToken = await firebaseGetToken(messaging, { vapidKey: vapidKey });
     if (currentToken) {
-      console.log("FCM Token received: ", currentToken);
+      console.log("FCM Token received");
     } else {
       console.log('No registration token available. Request permission to generate one.');
     }
     return currentToken;
   } catch (err) {
     console.error('An error occurred while retrieving token. ', err);
-    throw err; // Re-throw the error so wasm_bindgen can catch it
+    throw err;
   }
 }
 
-// Deletes the current FCM token for this device/browser
 export async function deleteFcmToken() {
   try {
-    // Ensure Firebase is initialized
     if (!isInitialized) {
       initializeFirebase();
     }
@@ -85,14 +81,11 @@ export async function getNotificationPermission() {
   }
 }
 
-// Initialize Firebase at module load time
 initializeFirebase();
 
-// Handles messages when the web app is in the foreground
 onMessage(messaging, (payload) => {
   console.log("Message received in JS (foreground), dispatching event.", payload);
 
-  // Dispatch a custom event for Leptos to handle
   const event = new CustomEvent("firebaseForegroundMessage", { detail: payload });
   window.dispatchEvent(event);
 
@@ -105,12 +98,5 @@ onMessage(messaging, (payload) => {
     const notificationOptions = {
       body: body,
     };
-    // const notification = new Notification(title, notificationOptions);
-    // notification.onerror = (err) => {
-    //   console.error("Error displaying JS notification:", err);
-    // };
   }
 });
-
-// onBackgroundMessage logic should NOT be in this file.
-// It belongs in your firebase-messaging-sw.js (service worker).
