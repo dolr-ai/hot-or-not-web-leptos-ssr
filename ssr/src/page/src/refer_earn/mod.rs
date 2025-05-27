@@ -11,7 +11,7 @@ use leptos_use::use_window;
 
 use component::canisters_prov::AuthCansProvider;
 use component::connect::ConnectLogin;
-use component::{back_btn::BackButton, dashbox::DashboxLoading, title::TitleText};
+use component::{back_btn::BackButton, dashbox::DashboxLoading, title::TitleText, buttons::HighlightedButton};
 use history::HistoryView;
 use state::app_state::AppState;
 use utils::event_streaming::events::{account_connected_reader, auth_canisters_store};
@@ -30,7 +30,6 @@ fn WorkButton(#[prop(into)] text: String, #[prop(into)] head: String) -> impl In
 
 #[component]
 fn ReferLoaded(user_principal: Principal) -> impl IntoView {
-    let refer_code = user_principal.to_text();
     let window = use_window();
     let refer_link = window
         .as_ref()
@@ -60,9 +59,9 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
             Timeout::new(1200, move || show_copied_popup.set(false)).forget();
         }
     });
-
+    let refer_link_share = refer_link.clone();
     let handle_share = move || {
-        let url = refer_link.clone();
+        let url = refer_link_share;
         if share_url(&url).is_some() {
             return;
         }
@@ -70,12 +69,21 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
     };
 
     view! {
-        <div class="flex items-center w-fit rounded-full border-dashed border-2 p-3 gap-2 border-primary-500">
-            <span class="text-md lg:text-lg text-ellipsis line-clamp-1">{refer_code}</span>
-            <button on:click=move |_| handle_share()>
-                <Icon attr:class="text-xl text-primary-500" icon=icondata::IoShareSocialSharp />
-            </button>
+        <div class="flex w-full justify-between">
+            <div class="flex flex-1 items-center w-full rounded-md border-dashed border-2 p-3 gap-2 border-neutral-700 bg-neutral-900">
+                <span class="text-md lg:text-lg text-ellipsis line-clamp-1">{refer_link.clone()}</span>
+                <button on:click=move |_| { click_copy.dispatch(refer_link); }>
+                    <Icon attr:class="text-xl text-primary-500" icon=icondata::IoCopyOutline />
+                </button>
+            </div>
+            <HighlightedButton
+            alt_style=false
+            disabled=false
+            on_click=move || { handle_share() }>
+                Share
+            </HighlightedButton>
         </div>
+
         <Show when=show_copied_popup>
             <div class="absolute flex flex-col justify-center items-center z-[4]">
                 <span class="absolute top-28 flex flex-row justify-center items-center bg-white/90 rounded-md h-10 w-28 text-center shadow-lg">
@@ -106,22 +114,22 @@ fn ReferView() -> impl IntoView {
             <div class="absolute inset-x-0 top-0 z-0 w-full max-w-md mx-auto" style="filter: blur(1.5px);">
                 <img src="/img/common/refer-bg.webp" class="w-full object-cover" />
             </div>
-            <div style="height: 19rem;" class="flex z-1 relative justify-center w-full items-center gap-4 overflow-visible">
+            <div style="height: 19rem;" class="flex z-[1] relative justify-center w-full items-center gap-4 overflow-visible">
                 <img class="shrink-0 h-40 select-none" src="/img/common/wallet.webp" />
                 <div style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%)" class="absolute z-0 inset-0"></div>
                 <img src="/img/common/bitcoin-logo.svg" class="absolute top-8 left-5 size-6" style="filter: blur(1px); transform: rotate(30deg);" />
                 <img src="/img/common/bitcoin-logo.svg" class="absolute top-16 right-3 size-6" style="filter: blur(1px); transform: rotate(40deg);" />
                 <img src="/img/common/bitcoin-logo.svg" class="absolute bottom-4 left-6 size-9" style="filter: blur(1px); transform: rotate(-60deg);" />
             </div>
-            <div class="flex flex-col w-full z-1 items-center gap-4 text-center">
+            <div class="flex flex-col w-full z-[1] items-center gap-4 text-center">
                 <span class="font-bold text-2xl">Invite & get Bitcoin <span style="color: #A3A3A3">(500 SATS)</span></span>
             </div>
-            <div class="flex flex-col w-full z-1 gap-2 px-4 text-white items-center">
+            <div class="flex flex-col w-full z-[1] gap-2 px-4 text-white items-center">
                 <Show when=logged_in fallback=|| view! { <ConnectLogin cta_location="refer" /> }>
                     <ReferCode />
                 </Show>
             </div>
-            <div class="flex flex-col w-full z-1 items-center gap-8 mt-4">
+            <div class="flex flex-col w-full z-[1] items-center gap-8 mt-4">
                 <span class="font-xl font-semibold">HOW IT WORKS?</span>
                 <div class="flex flex-row gap-8 text-center">
                     <WorkButton
