@@ -78,9 +78,6 @@ jobs:
           # cargo fmt --check
           cargo clippy --no-deps --all-features --release -- -Dwarnings
 
-      - name: Install wasm-bindgen-cli
-        run: cargo install wasm-bindgen-cli --version 0.2.100 --force
-
       - name: Build the Leptos project to output
         run: RUSTFLAGS="--cfg=erase_components" cargo leptos build --release --lib-features release-lib --bin-features release-bin
         env:
