@@ -33,8 +33,9 @@ jobs:
           targets: "wasm32-unknown-unknown"
           components: "clippy,rustfmt"
 
+      - uses: cargo-bins/cargo-binstall@main
       - name: cargo-leptos setup
-        run: cargo install cargo-leptos --version 0.2.35 --force
+        run: cargo binstall --no-confirm cargo-leptos --version 0.2.35
 
       - name: Cache rust dependencies and build output
         uses: Swatinem/rust-cache@v2
