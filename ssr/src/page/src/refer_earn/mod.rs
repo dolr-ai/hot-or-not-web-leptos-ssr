@@ -61,8 +61,8 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
     });
     let refer_link_share = refer_link.clone();
     let handle_share = move || {
-        let url = &refer_link_share;
-        if share_url(url).is_some() {
+        let url = format!("Join YRAL—the world's 1st social platform on BITCOIN\nGet FREE BITCOIN (1000 SATS) Instantly\nAdditional BITCOIN (500 SATS) when you log in using {}", refer_link_share);
+        if share_url(&url).is_some() {
             return;
         }
         click_copy.dispatch(url.clone());
@@ -123,7 +123,7 @@ fn ReferView() -> impl IntoView {
                 <img src="/img/common/bitcoin-logo.svg" class="absolute bottom-4 left-6 size-9" style="filter: blur(1px); transform: rotate(-60deg);" />
             </div>
             <div class="flex flex-col w-full z-[1] items-center gap-4 text-center">
-                <span class="font-bold text-2xl">Invite & get Bitcoin <span style="color: #A3A3A3">(500 SATS)</span></span>
+                <span class="font-bold text-xl md:text-2xl">Invite & get Bitcoin <span style="color: #A3A3A3">(500 SATS)</span></span>
             </div>
             <div class="flex flex-col w-full z-[1] gap-2 px-4 text-white items-center">
                 <Show when=logged_in fallback=|| view! { <ConnectLogin cta_location="refer" /> }>
@@ -139,8 +139,8 @@ fn ReferView() -> impl IntoView {
                         head="STEP 1"
                     />
                     <WorkButton
-                        text="Your friend uses
-                        logs in from the link"
+                        text="Your friend logs
+                        in from the link"
                         head="STEP 2"
                     />
                     <WorkButton
