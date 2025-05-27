@@ -27,6 +27,7 @@
 }
 
 /* Standard CSS Keyframes from ssr/tailwind.config.js go here */
+/*
 @keyframes blink-colors {
     "0%": { color: "red" },
     "25%": { color: "lime" },
@@ -121,6 +122,7 @@
         transform: 'translateY(0%)',
     },
 }
+*/
 
 /* Custom Animation Utilities using @utility */
 /* These correspond to the 'animation' theme extend in JS config */
