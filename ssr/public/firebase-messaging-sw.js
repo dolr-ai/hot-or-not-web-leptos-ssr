@@ -33,7 +33,7 @@ self.addEventListener('notificationclick', function(event) {
   console.log('[firebase-messaging-sw.js] Notification click Received.', event.notification.data);
   event.notification.close();
 
-  const FOCUSED_CLIENT_URL = "/"; // TODO: Change to your app's root URL
+  const FOCUSED_CLIENT_URL = "/";
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
       for (let i = 0; i < clientList.length; i++) {

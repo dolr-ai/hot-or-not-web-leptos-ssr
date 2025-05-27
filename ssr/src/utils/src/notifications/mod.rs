@@ -16,7 +16,6 @@ extern "C" {
     pub async fn delete_fcm_token_js() -> Result<JsValue, JsValue>;
 }
 
-/// Deletes the FCM token for this device/browser
 pub async fn delete_fcm_token() -> Result<bool, ServerFnError> {
     let deleted = delete_fcm_token_js()
         .await
@@ -26,7 +25,6 @@ pub async fn delete_fcm_token() -> Result<bool, ServerFnError> {
     ))
 }
 
-/// Checks if notification permission is granted.
 pub async fn notification_permission_granted() -> Result<bool, ServerFnError> {
     let permission = get_notification_permission()
         .await
@@ -36,7 +34,6 @@ pub async fn notification_permission_granted() -> Result<bool, ServerFnError> {
     Ok(permission)
 }
 
-/// Gets the FCM token, assumes permission is already granted.
 pub async fn get_fcm_token() -> Result<DeviceRegistrationToken, ServerFnError> {
     let token = get_token()
         .await
@@ -46,11 +43,9 @@ pub async fn get_fcm_token() -> Result<DeviceRegistrationToken, ServerFnError> {
     Ok(DeviceRegistrationToken { token })
 }
 
-/// Checks permission, then gets the FCM token if allowed.
 pub async fn get_device_registeration_token() -> Result<DeviceRegistrationToken, ServerFnError> {
     let permission = notification_permission_granted().await?;
     if !permission {
-        // TODO: show a notification to the user to allow notifications
         log::warn!("Notification permission not granted");
         return Err(ServerFnError::new("Notification permission not granted"));
     }

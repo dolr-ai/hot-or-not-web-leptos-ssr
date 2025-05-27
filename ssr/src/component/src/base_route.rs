@@ -109,7 +109,6 @@ fn CtxProvider(children: ChildrenFn) -> impl IntoView {
 
     let location = leptos_router::hooks::use_location();
 
-    // Setup Firebase foreground message listener using leptos-use
     let window_target = use_window();
 
     let notification = Notification(RwSignal::new(None));

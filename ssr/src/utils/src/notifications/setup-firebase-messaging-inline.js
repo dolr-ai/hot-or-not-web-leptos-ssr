@@ -1,8 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-// Import onMessage and getToken for client-side foreground message handling
 import { getMessaging, onMessage, getToken as firebaseGetToken, deleteToken as firebaseDeleteToken } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js";
 
-// Track initialization state
 let isInitialized = false;
 let app = null;
 let messaging = null;
@@ -10,7 +8,6 @@ let messaging = null;
 const vapidKey =
   "BHVXxI5mw_QCsR148ZO4CwxYrsi0EwqJ691arpO4zxa-EMxmrO7odRdX43vpoVQgRcalWVr7Y7sKH_DlWZbpcEI";
 
-// Initialize Firebase and Messaging services
 function initializeFirebase() {
   if (!isInitialized) {
     app = initializeApp({
@@ -89,7 +86,6 @@ onMessage(messaging, (payload) => {
   const event = new CustomEvent("firebaseForegroundMessage", { detail: payload });
   window.dispatchEvent(event);
 
-  // Optionally, still show a default browser notification from JS
   const data = payload.notification;
   if (data) { 
     const title = data.title || "New Message"; 
