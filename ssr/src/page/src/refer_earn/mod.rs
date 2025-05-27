@@ -21,9 +21,9 @@ use utils::web::{copy_to_clipboard, share_url};
 #[component]
 fn WorkButton(#[prop(into)] text: String, #[prop(into)] head: String) -> impl IntoView {
     view! {
-        <div class="flex flex-1 flex-col items-center gap-3 bg-neutral-900 rounded-md px-2 py-4">
-            <div class="grid place-items-center rounded-sm text-xs md:text-sm font-bold">{head}</div>
-            <span class="text-xs md:text-sm">{text}</span>
+        <div class="flex flex-1 flex-col lg:flex-row items-center justify-center text-xs lg:text-md gap-3 bg-neutral-900 rounded-md px-3 lg:px-4 lg:py-5 py-4">
+            <div class="font-bold text-neutral-50">{head}</div>
+            <span class="text-neutral-400">{text}</span>
         </div>
     }
 }
@@ -117,11 +117,12 @@ fn ReferView() -> impl IntoView {
             </div>
             <div style="height: 19rem;" class="flex z-[1] relative justify-center w-full items-center gap-4 overflow-visible">
                 <img class="shrink-0 h-40 select-none" src="/img/common/wallet.webp" />
-                <div style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%)" class="absolute z-0 inset-0"></div>
                 <img src="/img/common/bitcoin-logo.svg" class="absolute top-8 left-5 size-6" style="filter: blur(1px); transform: rotate(30deg);" />
                 <img src="/img/common/bitcoin-logo.svg" class="absolute top-16 right-3 size-6" style="filter: blur(1px); transform: rotate(40deg);" />
                 <img src="/img/common/bitcoin-logo.svg" class="absolute bottom-4 left-6 size-9" style="filter: blur(1px); transform: rotate(-60deg);" />
             </div>
+            <div style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%)" class="absolute z-0 inset-0 border"></div>
+
             <div class="flex flex-col w-full z-[1] items-center gap-4 text-center">
                 <span class="font-bold text-xl md:text-2xl">Invite & get Bitcoin <span style="color: #A3A3A3">(500 SATS)</span></span>
             </div>
@@ -131,8 +132,8 @@ fn ReferView() -> impl IntoView {
                 </Show>
             </div>
             <div class="flex flex-col w-full z-[1] items-center gap-8 mt-4">
-                <span class="font-xl font-semibold">HOW IT WORKS?</span>
-                <div class="flex flex-row gap-8 text-center">
+                <span class="font-xl font-semibold">How it works?</span>
+                <div class="flex flex-row gap-4 text-center">
                     <WorkButton
                         text="Share your link
                         with a friend"
