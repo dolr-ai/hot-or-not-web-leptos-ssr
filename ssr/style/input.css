@@ -13,8 +13,8 @@
     /* --color-primary-900: rgb(115, 2, 62); */
     /* --color-primary-950: rgb(80, 1, 43); */
 
-    --color-brand-gradient: linear-gradient(218.27deg, #FF78C1 9.83%, #E2017B 44.79%, #5F0938 78.48%);
-    --color-brand-gradient-disabled: linear-gradient(237.35deg, #DE98BE 19.96%, #C45D95 45.4%, #81546D 98.22%);
+    /* --color-brand-gradient: linear-gradient(218.27deg, #FF78C1 9.83%, #E2017B 44.79%, #5F0938 78.48%); */
+    /* --color-brand-gradient-disabled: linear-gradient(237.35deg, #DE98BE 19.96%, #C45D95 45.4%, #81546D 98.22%); */
 
     /* Tailwind v4 keyframes are defined directly in CSS or through @utility.
        The JS config's 'animation' and 'keyframes' are translated here.
@@ -22,8 +22,8 @@
        Custom animation utilities can be made with @utility if needed.
     */
     /* backgroundSize and backgroundImage for 'skeleton-shimmer' become CSS variables */
-    --background-image-skeleton-shimmer: linear-gradient(-45deg, currentColor 40%, var(--shimmer, #FFFFFF) 50%, currentColor 60%);
-    --background-size-skeleton-shimmer: 300%;
+    /* --background-image-skeleton-shimmer: linear-gradient(-45deg, currentColor 40%, var(--shimmer, #FFFFFF) 50%, currentColor 60%); */
+    /* --background-size-skeleton-shimmer: 300%; */
 }
 
 /* Standard CSS Keyframes from ssr/tailwind.config.js go here */
@@ -167,8 +167,8 @@
         /* --color-primary-900: 115 2 62; */
         /* --color-primary-950: 80 1 43; */
 
-        --color-brand-gradient: linear-gradient(218.27deg, #FF78C1 9.83%, #E2017B 44.79%, #5F0938 78.48%);
-        --color-brand-gradient-disabled: linear-gradient(237.35deg, #DE98BE 19.96%, #C45D95 45.4%, #81546D 98.22%);
+        /* --color-brand-gradient: linear-gradient(218.27deg, #FF78C1 9.83%, #E2017B 44.79%, #5F0938 78.48%); */
+        /* --color-brand-gradient-disabled: linear-gradient(237.35deg, #DE98BE 19.96%, #C45D95 45.4%, #81546D 98.22%); */
     }
 }
 
