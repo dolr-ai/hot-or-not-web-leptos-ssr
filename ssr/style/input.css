@@ -1,7 +1,158 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-@config "../tailwind.config.js";
+@import "tailwindcss";
+
+@theme {
+    --color-primary-50: 255 245 250;
+    --color-primary-100: 255 235 245;
+    --color-primary-200: 254 210 234;
+    --color-primary-300: 254 180 219;
+    --color-primary-400: 253 145 203;
+    --color-primary-500: 252 90 176;
+    --color-primary-600: 226 4 121;
+    --color-primary-700: 195 3 106;
+    --color-primary-800: 165 3 90;
+    --color-primary-900: 115 2 62;
+    --color-primary-950: 80 1 43;
+
+    --color-brand-gradient: linear-gradient(218.27deg, #FF78C1 9.83%, #E2017B 44.79%, #5F0938 78.48%);
+    --color-brand-gradient-disabled: linear-gradient(237.35deg, #DE98BE 19.96%, #C45D95 45.4%, #81546D 98.22%);
+
+    /* Tailwind v4 keyframes are defined directly in CSS or through @utility.
+       The JS config's 'animation' and 'keyframes' are translated here.
+       Keyframes themselves are standard CSS.
+       Custom animation utilities can be made with @utility if needed.
+    */
+    /* backgroundSize and backgroundImage for 'skeleton-shimmer' become CSS variables */
+    --background-image-skeleton-shimmer: linear-gradient(-45deg, currentColor 40%, var(--shimmer, #FFFFFF) 50%, currentColor 60%);
+    --background-size-skeleton-shimmer: 300%;
+}
+
+/* Standard CSS Keyframes from ssr/tailwind.config.js go here */
+@keyframes blink-colors {
+    "0%": { color: "red" },
+    "25%": { color: "lime" },
+    "50%": { color: "yellow" },
+    "75%": { color: "fuchsia" },
+    "100%": { color: "blue" },
+}
+@keyframes searching-a-1 {
+    "0%, 49%": { opacity: 1 },
+    "50%, 100%": { opacity: 0 },
+}
+@keyframes searching-a-2 {
+    "0%, 49%": { opacity: 0 },
+    "50%, 100%": { opacity: 1 },
+}
+@keyframes shake {
+    '0%, 50%, 100%': {
+        transform: 'translate(0)'
+    },
+    '25%' : {
+        transform: 'translate(-1px, -1px)'
+    },
+    '75%': {
+        transform: 'translate(-1px, 1px)'
+    },
+}
+@keyframes push-right {
+    '0%': {
+        transform: 'translate(0) rotate(8deg)',
+    },
+    '25%': {
+        transform: 'translate(4px)',
+    },
+    '50%': {
+        transform: 'translate(0)',
+    },
+    '75%': {
+        transform: 'translate(1px)',
+    },
+    to: {
+        transform: 'translate(0) rotate(0)'
+    }
+}
+@keyframes push-left {
+    '0%': {
+        transform: 'translate(0) rotate(-5deg)',
+    },
+    '25%': {
+        transform: 'translate(-4px)',
+    },
+    '50%': {
+        transform: 'translate(0)',
+    },
+    '75%': {
+        transform: 'translate(-1px)',
+    },
+    to: {
+        transform: 'translate(0) rotate(2deg)',
+    }
+}
+@keyframes shimmer {
+    '0%': { backgroundPositionX: '100%' },
+    '100%': { backgroundPositionX: '0%' },
+}
+@keyframes slide-up {
+    '0%': {
+        opacity: '1',
+        transform: 'translateY(0%)',
+    },
+    '10%': {
+        opacity: '1',
+        transform: 'translateY(-260%)',
+    },
+    '50%': {
+        opacity: '1',
+        transform: 'translateY(-260%)',
+    },
+    '55%': {
+        opacity: '1',
+        transform: 'translateY(-500%)',
+    },
+    '59%': {
+        opacity: '0',
+        transform: 'translateY(-500%)',
+    },
+    '60%': {
+        opacity: '0',
+        transform: 'translateY(0%)',
+    },
+    '100%': {
+        opacity: '0',
+        transform: 'translateY(0%)',
+    },
+}
+
+/* Custom Animation Utilities using @utility */
+/* These correspond to the 'animation' theme extend in JS config */
+@utility blink-colors {
+    animation: blink-colors 5s step-end infinite;
+}
+@utility searching-a-1 {
+    animation: searching-a-1 2s infinite;
+}
+@utility searching-a-2 {
+    animation: searching-a-2 2s infinite;
+}
+@utility shake {
+    animation: shake 0.2s cubic-bezier(.56, .14, 0, 1.48) forwards;
+}
+@utility push-right {
+    animation: push-right 0.2s cubic-bezier(.56, .14, 0, 1.48) forwards;
+}
+@utility push-left {
+    animation: push-left 0.2s cubic-bezier(.56, .14, 0, 1.48) forwards;
+}
+@utility skeleton-shimmer {
+    /* This utility will now use the CSS variables defined in @theme for background image and size */
+    animation: shimmer 1200ms linear infinite;
+    background-image: var(--background-image-skeleton-shimmer);
+    background-size: var(--background-size-skeleton-shimmer);
+}
+@utility slide-up {
+    animation: slide-up 10s ease-in-out var(--animation-delay, 0s) infinite;
+}
+
+
 @layer base {
     :root {
         --color-primary-50: 255 245 250;
@@ -272,4 +423,5 @@
 }
 .animate-bubble-3 {
     animation: bubbleRiseAndVibrate 1.15s cubic-bezier(0.45, 0, 0.55, 1) 0.7s;
+}
 }
