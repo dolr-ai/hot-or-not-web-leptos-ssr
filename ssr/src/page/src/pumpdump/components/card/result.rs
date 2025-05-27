@@ -20,7 +20,7 @@ pub fn PlayingCard() -> impl IntoView {
     let game_res: RunningGameRes = expect_context();
     // let running_data: RwSignal<Option<GameRunningData>> = expect_context();
     let winning_pot = move || {
-        let Some(Ok(ctx)) = game_res.get().map(|res| res.take()) else {
+        let Some(Ok(ctx)) = game_res.get() else {
             return "--".to_string();
         };
         ctx.with_running_data(|data| data.winning_pot)
@@ -32,7 +32,7 @@ pub fn PlayingCard() -> impl IntoView {
     let token_link = token.token_details.link.clone();
 
     let player_count = move || {
-        let Some(Ok(ctx)) = game_res.get().map(|res| res.take()) else {
+        let Some(Ok(ctx)) = game_res.get() else {
             return "--".to_string();
         };
         ctx.with_running_data(|data| data.player_count.to_string())
@@ -96,7 +96,7 @@ pub fn PlayingCard() -> impl IntoView {
 fn WonCard(win_amount: u128) -> impl IntoView {
     let game_res: RunningGameRes = expect_context();
     let loading_data = move || {
-        let Some(Ok(ctx)) = game_res.get().map(|res| res.take()) else {
+        let Some(Ok(ctx)) = game_res.get() else {
             return None;
         };
         Some(ctx.loading_data())
@@ -109,7 +109,7 @@ fn WonCard(win_amount: u128) -> impl IntoView {
     };
 
     let on_click = move |_| {
-        let Some(Ok(ctx)) = game_res.get().map(|res| res.take()) else {
+        let Some(Ok(ctx)) = game_res.get() else {
             return;
         };
 
@@ -154,7 +154,7 @@ fn WonCard(win_amount: u128) -> impl IntoView {
 fn LostCard() -> impl IntoView {
     let game_res: RunningGameRes = expect_context();
     let loading_data = move || {
-        let Some(Ok(ctx)) = game_res.get().map(|res| res.take()) else {
+        let Some(Ok(ctx)) = game_res.get() else {
             return None;
         };
         Some(ctx.loading_data())
@@ -167,7 +167,7 @@ fn LostCard() -> impl IntoView {
     };
 
     let on_click = move |_| {
-        let Some(Ok(ctx)) = game_res.get().map(|res| res.take()) else {
+        let Some(Ok(ctx)) = game_res.get() else {
             return;
         };
 

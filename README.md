@@ -3,6 +3,9 @@
     <img src="https://raw.githubusercontent.com/leptos-rs/leptos/main/docs/logos/Leptos_logo_RGB.svg" alt="Leptos Logo">
 </picture>
 
+# Instructions
+- For older versions of cargo-leptos (< 0.2.33) you'll have to manually put in `RUSTFLAGS="--cfg=erase_components"`for development when running `cargo leptos serve` or `cargo leptos watch` 
+
 # Leptos Axum Starter Template
 
 This is a template for use with the [Leptos](https://github.com/leptos-rs/leptos) web framework and the [cargo-leptos](https://github.com/akesson/cargo-leptos) tool using [Axum](https://github.com/tokio-rs/axum).

@@ -16,7 +16,7 @@ fn YoutubeUploadInner(#[prop(optional)] url: String) -> impl IntoView {
     };
 
     let authenticated_canisters = authenticated_canisters();
-    let on_submit: Action<(), String, LocalStorage> = Action::new_unsync(move |_| {
+    let on_submit: Action<(), String> = Action::new_unsync(move |_| {
         let authenticated_canisters = authenticated_canisters;
         async move {
             let canisters_copy = Canisters::from_wire(
@@ -68,7 +68,7 @@ fn YoutubeUploadInner(#[prop(optional)] url: String) -> impl IntoView {
                             Submit
                         </button>
                         <p class="text-base md:text-lg text-white">
-                            {move || submit_res().unwrap_or_default()}
+                            {move || submit_res.get().unwrap_or_default()}
                         </p>
                     </div>
                 </div>

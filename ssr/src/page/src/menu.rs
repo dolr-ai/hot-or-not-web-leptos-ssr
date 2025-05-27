@@ -157,11 +157,11 @@ fn NsfwToggle() -> impl IntoView {
 
 #[component]
 #[allow(dead_code)]
-fn EnableNotifications(user_details: ProfileDetails) -> impl IntoView {
+fn EnableNotifications(_user_details: ProfileDetails) -> impl IntoView {
     let (_, _) = account_connected_reader();
 
-    let on_token_click: Action<(), (), LocalStorage> = Action::new_unsync(move |()| async move {
-        get_token_for_principal(user_details.principal.to_string()).await;
+    let on_token_click: Action<(), ()> = Action::new_unsync(move |()| async move {
+        get_token_for_principal(_user_details.principal.to_string()).await;
     });
 
     view! {

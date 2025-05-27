@@ -169,7 +169,7 @@ fn HNButtonOverlay(
     );
     let place_bet_res = place_bet_action.value();
     Effect::new(move |_| {
-        if place_bet_res().flatten().is_some() {
+        if place_bet_res.get().flatten().is_some() {
             refetch_bet.notify();
         }
     });

@@ -208,24 +208,22 @@ macro_rules! input_element {
     };
 }
 
-#[allow(dead_code)]
-#[allow(unused_variables)]
 macro_rules! input_component {
-    ($name:ident, $input_element:ident, $input_type:ident, $attrs:expr) => {
-        #[component]
+    ($name:ident, $input_element:ident, $input_type:ident, $($rest:tt)*) => {
         #[allow(dead_code)]
         #[allow(unused_variables)]
+        #[component]
         fn $name<T: 'static, U: Fn(T) + 'static + Copy, V: Fn(String) -> Option<T> + 'static + Copy>(
-            #[prop(into)] heading: String,
-            #[prop(into)] placeholder: String,
-            #[prop(optional)] initial_value: Option<String>,
+            #[prop(into)] _heading: String,
+            #[prop(into)] _placeholder: String,
+            #[prop(optional)] _initial_value: Option<String>,
             #[prop(optional, into)] _input_type: Option<String>,
             #[prop(default = false)] _disabled: bool,
-            updater: U,
-            validator: V,
+            _updater: U,
+            _validator: V,
         ) -> impl IntoView {
             let ctx: CreateTokenCtx = expect_context();
-            let error = RwSignal::new(initial_value.is_none());
+            let error = RwSignal::new(_initial_value.is_none());
             let show_error = RwSignal::new(false);
             if error.get_untracked() {
                 ctx.invalid_cnt.update(|c| *c += 1);
@@ -236,13 +234,13 @@ macro_rules! input_component {
                     return;
                 };
                 let value = input.value();
-                match validator(value) {
+                match _validator(value) {
                     Some(v) => {
                         if error.get_untracked() {
                             ctx.invalid_cnt.update(|c| *c -= 1);
                         }
                         error.set(false);
-                        updater(v);
+                        _updater(v);
                     },
                     None => {
                         show_error.set(true);
@@ -276,13 +274,13 @@ macro_rules! input_component {
             };
             view! {
                 <div class="flex flex-col grow gap-y-1 text-sm md:text-base">
-                     <span class="text-white font-semibold">{heading.clone()}</span>
+                     <span class="text-white font-semibold">{_heading.clone()}</span>
                      {input_element! {
                         $input_element,
                         input_ref,
-                        initial_value,
+                        _initial_value,
                         on_input,
-                        placeholder,
+                        _placeholder,
                         input_class,
                         _input_type
                      }}
@@ -414,52 +412,52 @@ pub fn CreateToken() -> impl IntoView {
                 <div class="flex flex-row w-full gap-4  justify-between items-center">
                     <TokenImage />
                     <InputBox
-                        heading="Token name"
-                        placeholder="Add a name to your crypto currency"
-                        updater=set_token_name
-                        validator=non_empty_string_validator
-                        initial_value=ctx
+                        _heading="Token name"
+                        _placeholder="Add a name to your crypto currency"
+                        _updater=set_token_name
+                        _validator=non_empty_string_validator
+                        _initial_value=ctx
                             .form_state
                             .with_untracked(|f| f.name.clone())
                             .unwrap_or_default()
                     />
                 </div>
                 <InputArea
-                    heading="Description"
-                    placeholder="Fun & friendly internet currency inspired by the legendary Shiba Inu dog 'Kabosu'"
-                    updater=set_token_desc
-                    validator=non_empty_string_validator
-                    initial_value=ctx
+                    _heading="Description"
+                    _placeholder="Fun & friendly internet currency inspired by the legendary Shiba Inu dog 'Kabosu'"
+                    _updater=set_token_desc
+                    _validator=non_empty_string_validator
+                    _initial_value=ctx
                         .form_state
                         .with_untracked(|f| f.description.clone())
                         .unwrap_or_default()
                 />
 
                 <InputBox
-                    heading="Token Symbol"
-                    placeholder="Eg. DODGE"
-                    updater=set_token_symbol
-                    validator=non_empty_string_validator
-                    initial_value=ctx
+                    _heading="Token Symbol"
+                    _placeholder="Eg. DODGE"
+                    _updater=set_token_symbol
+                    _validator=non_empty_string_validator
+                    _initial_value=ctx
                         .form_state
                         .with_untracked(|f| f.symbol.clone())
                         .unwrap_or_default()
                 />
 
                 <InputBox
-                    heading="Distribution"
-                    placeholder="Distribution Tokens"
+                    _heading="Distribution"
+                    _placeholder="Distribution Tokens"
                     _input_type="number"
-                    updater=set_total_distribution
+                    _updater=set_total_distribution
                     // initial_value="100000000".into()
-                    initial_value=(ctx
+                    _initial_value=(ctx
                         .form_state
                         .with_untracked(|f| {
                             f.total_distrubution().e8s.unwrap_or_else(|| 1000000 * 1e8 as u64)
                                 / 1e8 as u64
                         }))
                         .to_string()
-                    validator=non_empty_string_validator_for_u64
+                    _validator=non_empty_string_validator_for_u64
                 />
 
                 <div class="w-full flex justify-center">

@@ -84,7 +84,7 @@ fn TokenTransferInner(
     source_addr: Principal,
 ) -> impl IntoView {
     let destination_ref = NodeRef::<html::Input>::new();
-    let paste_destination: Action<_, _, LocalStorage> = Action::new_unsync(move |&()| async move {
+    let paste_destination: Action<_, _> = Action::new_unsync(move |&()| async move {
         let input = destination_ref.get()?;
         let principal = paste_from_clipboard().await?;
         input.set_value(&principal);
