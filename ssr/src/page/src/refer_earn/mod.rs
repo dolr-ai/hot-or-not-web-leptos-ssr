@@ -11,7 +11,7 @@ use leptos_use::use_window;
 use component::canisters_prov::AuthCansProvider;
 use component::connect::ConnectLogin;
 use component::{
-    back_btn::BackButton, buttons::HighlightedButton, dashbox::DashboxLoading, title::TitleText,
+    back_btn::BackButton, buttons::HighlightedButton, title::TitleText,
 };
 use state::app_state::AppState;
 use utils::event_streaming::events::{account_connected_reader, auth_canisters_store};
@@ -61,7 +61,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
     });
     let refer_link_share = refer_link.clone();
     let handle_share = move || {
-        let url = format!("Join YRAL—the world's 1st social platform on BITCOIN\nGet FREE BITCOIN (1000 SATS) Instantly\nAdditional BITCOIN (500 SATS) when you log in using {}", refer_link_share);
+        let url = format!("Join YRAL—the world's 1st social platform on BITCOIN\nGet FREE BITCOIN (1000 SATS) Instantly\nAdditional BITCOIN (500 SATS) when you log in using {refer_link_share}");
         if share_url(&url).is_some() {
             return;
         }
