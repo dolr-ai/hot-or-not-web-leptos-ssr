@@ -279,8 +279,9 @@ mod server_fn_impl {
     mod mock {
         use candid::Principal;
         use leptos::prelude::ServerFnError;
+        use hon_worker_common::ReferralReqWithSignature;
         pub async fn issue_referral_rewards_impl(
-            _referee_canister: Principal,
+            _worker_req: ReferralReqWithSignature,
         ) -> Result<(), ServerFnError> {
             Ok(())
         }
