@@ -71,14 +71,15 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
     };
 
     view! {
-        <div class="flex w-full justify-between">
+        <div class="flex z-[1] w-full gap-2 justify-between">
             <div class="flex flex-1 items-center w-full rounded-md border-dashed border-2 p-3 gap-2 border-neutral-700 bg-neutral-900">
-                <span class="text-md lg:text-lg text-ellipsis line-clamp-1">{refer_link.clone()}</span>
-                <button on:click=move |_| { click_copy.dispatch(refer_link.clone()); }>
-                    <Icon attr:class="text-xl text-primary-500" icon=icondata::IoCopyOutline />
+                <span class="text-md lg:text-lg text-ellipsis line-clamp-1 text-neutral-500">{refer_link.clone()}</span>
+                <button style="filter: invert(1)" on:click=move |_| { click_copy.dispatch(refer_link.clone()); }>
+                    <Icon attr:class="text-xl" icon=icondata::IoCopyOutline />
                 </button>
             </div>
             <HighlightedButton
+            classes="!w-fit".to_string()
             alt_style=false
             disabled=false
             on_click=move || { handle_share() }>
@@ -87,7 +88,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
         </div>
 
         <Show when=show_copied_popup>
-            <div class="absolute flex flex-col justify-center items-center z-[4]">
+            <div class="absolute flex flex-col justify-center items-center z-[10]">
                 <span class="absolute top-28 flex flex-row justify-center items-center bg-white/90 rounded-md h-10 w-28 text-center shadow-lg">
                     <p class="text-black">Link Copied!</p>
                 </span>
