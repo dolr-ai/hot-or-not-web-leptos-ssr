@@ -22,7 +22,7 @@ use utils::web::{copy_to_clipboard, share_url};
 fn WorkButton(#[prop(into)] text: String, #[prop(into)] head: String) -> impl IntoView {
     view! {
         <div class="flex flex-1 flex-col lg:flex-row items-center justify-center text-xs lg:text-md gap-3 bg-neutral-900 rounded-md px-3 lg:px-4 lg:py-5 py-4">
-            <div class="font-bold text-neutral-50">{head}</div>
+            <div class="font-bold text-neutral-50 whitespace-nowrap">{head}</div>
             <span class="text-neutral-400">{text}</span>
         </div>
     }
@@ -96,9 +96,17 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
 }
 
 #[component]
+fn ReferLoading() -> impl IntoView {
+    view! {
+        <div class="flex flex-1 flex-col lg:flex-row items-center justify-center text-xs lg:text-md gap-3 bg-neutral-900 rounded-md px-3 lg:px-4 lg:py-5 py-4 animate-pulse">            
+        </div>
+    }
+}
+
+#[component]
 fn ReferCode() -> impl IntoView {
     view! {
-        <AuthCansProvider fallback=DashboxLoading let:cans>
+        <AuthCansProvider fallback=ReferLoading let:cans>
             <ReferLoaded user_principal=cans.identity().sender().unwrap() />
         </AuthCansProvider>
     }
@@ -116,12 +124,12 @@ fn ReferView() -> impl IntoView {
                 <img src="/img/common/refer-bg.webp" class="w-full object-cover" />
             </div>
             <div style="height: 19rem;" class="flex z-[1] relative justify-center w-full items-center gap-4 overflow-visible">
-                <img class="shrink-0 h-40 select-none" src="/img/common/wallet.webp" />
+                <img class="shrink-0 h-32 select-none" src="/img/common/wallet.webp" />
                 <img src="/img/common/bitcoin-logo.svg" class="absolute top-8 left-5 size-6" style="filter: blur(1px); transform: rotate(30deg);" />
                 <img src="/img/common/bitcoin-logo.svg" class="absolute top-16 right-3 size-6" style="filter: blur(1px); transform: rotate(40deg);" />
                 <img src="/img/common/bitcoin-logo.svg" class="absolute bottom-4 left-6 size-9" style="filter: blur(1px); transform: rotate(-60deg);" />
             </div>
-            <div style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%)" class="absolute z-0 inset-0 border"></div>
+            <div style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%); height:29rem" class="absolute z-0 inset-x-0 top-16"></div>
 
             <div class="flex flex-col w-full z-[1] items-center gap-4 text-center">
                 <span class="font-bold text-xl md:text-2xl">Invite & get Bitcoin <span style="color: #A3A3A3">(500 SATS)</span></span>
