@@ -393,9 +393,9 @@ pub fn VideoDetailsOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> 
     };
 
     view! {
-        <div class="flex flex-col pointer-events-none flex-nowrap h-full justify-between pt-5 pb-20 px-[16px] md:px-[16px] w-full text-white absolute bottom-0 left-0 bg-transparent z-[4]">
+        <div class="flex flex-col pointer-events-none flex-nowrap h-full justify-between pt-5 pb-20 px-[16px] md:px-[16px] w-full text-white absolute bottom-0 left-0 bg-transparent z-4">
             <div class="flex pointer-events-auto flex-row justify-between w-full items-center">
-                <div class="flex flex-row gap-2 w-9/12 rounded-s-full bg-gradient-to-r from-black/25 via-80% via-black/10 items-center p-2">
+                <div class="flex flex-row gap-2 w-9/12 rounded-s-full bg-linear-to-r from-black/25 via-80% via-black/10 items-center p-2">
                     <div class="w-fit flex">
                         <a
                             href=profile_url.clone()

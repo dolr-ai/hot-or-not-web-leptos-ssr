@@ -294,7 +294,7 @@ pub fn TokenCardFallback() -> impl IntoView {
     view! {
         <div class="flex flex-col gap-2 pt-3 pb-4 px-3 md:px-4 w-full text-xs rounded-lg bg-neutral-900/90 font-kumbh">
             <div class="flex gap-3 items-stretch">
-                <div class="w-[7rem] h-[7rem] rounded-[4px] shrink-0 bg-white/15 animate-pulse"></div>
+                <div class="w-28 h-28 rounded-[4px] shrink-0 bg-white/15 animate-pulse"></div>
                 <div class="flex flex-col justify-between overflow-hidden w-full gap-2">
                     <div class="flex flex-col gap-2">
                         <div class="flex gap-4 justify-between items-center w-full">
@@ -311,23 +311,23 @@ pub fn TokenCardFallback() -> impl IntoView {
             </div>
             <div class="flex gap-4 justify-between items-center p-2">
                 <div class="flex flex-col items-center gap-1">
-                    <div class="w-[1.875rem] h-[1.875rem] bg-white/15 animate-pulse rounded"></div>
+                    <div class="w-7.5 h-7.5 bg-white/15 animate-pulse rounded"></div>
                     <div class="w-10 h-3 bg-white/15 animate-pulse rounded"></div>
                 </div>
                 <div class="flex flex-col items-center gap-1">
-                    <div class="w-[1.875rem] h-[1.875rem] bg-white/15 animate-pulse rounded"></div>
+                    <div class="w-7.5 h-7.5 bg-white/15 animate-pulse rounded"></div>
                     <div class="w-14 h-3 bg-white/15 animate-pulse rounded"></div>
                 </div>
                 <div class="flex flex-col items-center gap-1">
-                    <div class="w-[1.875rem] h-[1.875rem] bg-white/15 animate-pulse rounded"></div>
+                    <div class="w-7.5 h-7.5 bg-white/15 animate-pulse rounded"></div>
                     <div class="w-12 h-3 bg-white/15 animate-pulse rounded"></div>
                 </div>
                 <div class="flex flex-col items-center gap-1">
-                    <div class="w-[1.875rem] h-[1.875rem] bg-white/15 animate-pulse rounded"></div>
+                    <div class="w-7.5 h-7.5 bg-white/15 animate-pulse rounded"></div>
                     <div class="w-10 h-3 bg-white/15 animate-pulse rounded"></div>
                 </div>
                 <div class="flex flex-col items-center gap-1">
-                    <div class="w-[1.875rem] h-[1.875rem] bg-white/15 animate-pulse rounded"></div>
+                    <div class="w-7.5 h-7.5 bg-white/15 animate-pulse rounded"></div>
                     <div class="w-12 h-3 bg-white/15 animate-pulse rounded"></div>
                 </div>
             </div>
@@ -408,17 +408,17 @@ pub fn TokenCard(
     view! {
         <div
             class:tada=is_new_token
-            class="flex flex-col gap-2 py-3 px-3 w-full text-xs rounded-lg transition-colors md:px-4 hover:bg-gradient-to-b group bg-neutral-900/90 font-kumbh hover:from-neutral-600 hover:to-neutral-800"
+            class="flex flex-col gap-2 py-3 px-3 w-full text-xs rounded-lg transition-colors md:px-4 hover:bg-linear-to-b group bg-neutral-900/90 font-kumbh hover:from-neutral-600 hover:to-neutral-800"
         >
             <div class="flex gap-3 items-stretch">
                 <div
                     style="box-shadow: 0px 0px 4px rgba(255, 255, 255, 0.16);"
-                    class="overflow-hidden relative w-[7rem] h-[7rem] rounded-[4px] shrink-0"
+                    class="overflow-hidden relative w-28 h-28 rounded-[4px] shrink-0"
                 >
                     <Show when=move || details.is_nsfw && !show_nsfw.get()>
                         <button
                             on:click=move |_| show_nsfw.set(!show_nsfw.get())
-                            class="flex absolute inset-0 justify-center items-center w-full h-full z-[2] backdrop-blur-[4px] bg-black/50 rounded-[4px]"
+                            class="flex absolute inset-0 justify-center items-center w-full h-full z-2 backdrop-blur-xs bg-black/50 rounded-[4px]"
                         >
                             <div class="flex flex-col gap-1 items-center text-xs">
                                 <EyeHiddenIcon classes="w-6 h-6".to_string() />
@@ -482,7 +482,7 @@ pub fn TokenCard(
             </PopupOverlay>
             <ShadowOverlay show=airdrop_popup >
                 <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-[560px] max-h-[634px] min-w-[343px] min-h-[480px] backdrop-blur-lg rounded-lg">
-                    <div class="rounded-lg z-[500]">
+                    <div class="rounded-lg z-500">
                         <AirdropPopup
                             name=details.name.clone()
                             logo=details.logo.clone()
@@ -524,12 +524,12 @@ pub fn TokenCardLoading() -> impl IntoView {
     view! {
         <div class="flex flex-col gap-2 py-3 px-3 w-full rounded-lg md:px-4 group bg-neutral-900/90">
             <div class="flex gap-3">
-                <div class="w-[7rem] h-[7rem] bg-loading rounded-[4px] relative shrink-0"></div>
+                <div class="w-28 h-28 bg-loading rounded-[4px] relative shrink-0"></div>
 
                 <div class="w-full bg-loading rounded-[4px]"></div>
             </div>
 
-            <div class="h-[4.125rem] bg-loading rounded-[4px]"></div>
+            <div class="h-16.5 bg-loading rounded-[4px]"></div>
         </div>
     }
 }
@@ -586,7 +586,7 @@ pub fn ActionButton(
                 )
             }
         >
-            <div class="w-[1.125rem] h-[1.125rem] flex items-center justify-center">
+            <div class="w-4.5 h-4.5 flex items-center justify-center">
                 {children()}
             </div>
 
@@ -606,7 +606,7 @@ pub fn ActionButtonLink(
             disabled=disabled
             class="flex flex-col gap-1 justify-center items-center text-xs transition-colors enabled:group-hover:text-white enabled:text-neutral-300 disabled:group-hover:cursor-default disabled:text-neutral-600"
         >
-            <div class="w-[1.125rem] h-[1.125rem] flex items-center justify-center">
+            <div class="w-4.5 h-4.5 flex items-center justify-center">
                 {children()}
             </div>
 

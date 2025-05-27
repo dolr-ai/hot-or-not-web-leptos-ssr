@@ -32,7 +32,7 @@ use yral_canisters_common::Canisters;
 #[component]
 pub fn DropBox() -> impl IntoView {
     view! {
-        <div class="flex flex-col items-center justify-self-center justify-center w-full border-2 border-dashed rounded-lg cursor-pointer border-gray-600 hover:bg-gray-600 aspect-[3/4] lg:aspect-[5/4]">
+        <div class="flex flex-col items-center justify-self-center justify-center w-full border-2 border-dashed rounded-lg cursor-pointer border-gray-600 hover:bg-gray-600 aspect-3/4 lg:aspect-5/4">
             <Icon attr:class="w-10 h-10 mb-4 text-gray-400" icon=icondata::BiCloudUploadRegular />
             <p class="text-center mb-2 mx-2 text-sm text-gray-400">
                 <span class="font-semibold">Click to upload</span>
@@ -368,7 +368,7 @@ pub fn VideoUploader(
                 </div>
                 <div class="w-full bg-neutral-800 rounded-full h-2.5 mt-2">
                     <div
-                        class="bg-gradient-to-r from-[#EC55A7] to-[#E2017B] h-2.5 rounded-full transition-width duration-500 ease-in-out"
+                        class="bg-linear-to-r from-[#EC55A7] to-[#E2017B] h-2.5 rounded-full transition-width duration-500 ease-in-out"
                         style:width=move || {
                             if published.get() {
                                 "100%"
@@ -423,10 +423,10 @@ fn PostUploadScreen() -> impl IntoView {
          <img
          alt="bg"
          src="/img/airdrop/bg.webp"
-         class="absolute inset-0 z-[25] fade-in w-full h-full object-cover"
+         class="absolute inset-0 z-25 fade-in w-full h-full object-cover"
      />
             <div class="z-50 flex flex-col items-center">
-            <img src="/img/common/coins/sucess-coin.png" width=170 class="z-[300] mb-6"/>
+            <img src="/img/common/coins/sucess-coin.png" width=170 class="z-300 mb-6"/>
 
                 <h1 class="font-semibold text-lg mb-2">Video uploaded sucessfully</h1>
 

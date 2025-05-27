@@ -1,7 +1,7 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
 @config "../tailwind.config.js";
+
 @layer base {
     :root {
         --color-primary-50: 255 245 250;

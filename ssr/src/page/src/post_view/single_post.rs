@@ -38,7 +38,7 @@ fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
         <div class="w-dvw h-dvh">
             <div class="bg-transparent w-full h-full relative overflow-hidden">
                 <div
-                    class="absolute top-0 left-0 bg-cover bg-center w-full h-full z-[1] blur-lg"
+                    class="absolute top-0 left-0 bg-cover bg-center w-full h-full z-1 blur-lg"
                     style:background-color="rgb(0, 0, 0)"
                     style:background-image=format!("url({bg_url})")
                 ></div>

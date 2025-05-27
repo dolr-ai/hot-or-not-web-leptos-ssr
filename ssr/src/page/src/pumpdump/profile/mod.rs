@@ -289,8 +289,8 @@ fn GameplayHistoryCard(#[prop(into)] details: GameplayHistoryItem) -> impl IntoV
     view! {
         <a href=href>
             <div class="rounded-md overflow-hidden relative max-w-32 max-h-40 w-32 h-40">
-                <div class="absolute z-1 inset-x-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent"></div>
-                <div class="absolute z-[2] flex top-2 items-center gap-1 px-2">
+                <div class="absolute z-1 inset-x-0 h-1/3 bg-linear-to-b from-black/50 to-transparent"></div>
+                <div class="absolute z-2 flex top-2 items-center gap-1 px-2">
                     <img
                         src=details.owner_pfp
                         alt="Profile name"

@@ -28,7 +28,7 @@ pub fn ExternalUser(user: Option<ProfileDetails>) -> impl IntoView {
 
     view! {
         <div class="flex flex-row items-center gap-1 w-full h-8 px-3 pt-3 text-ellipsis z-20">
-            <div class="w-5 h-5 flex-shrink-0 rounded-full border-2 border-white bg-white">
+            <div class="w-5 h-5 shrink-0 rounded-full border-2 border-white bg-white">
                 <img class="rounded-full object-cover object-center" src=propic />
             </div>
             <div class="max-w-full text-xs truncate font-semibold">{name}</div>
@@ -143,7 +143,7 @@ pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView 
         <div node_ref=_ref class="relative w-1/2 md:w-1/3 lg:w-1/4 px-1">
             <a
                 href=profile_post_url
-                class="relative flex flex-col justify-between aspect-[3/5] rounded-md text-white"
+                class="relative flex flex-col justify-between aspect-3/5 rounded-md text-white"
             >
                 <Suspense fallback=|| {
                     view! {

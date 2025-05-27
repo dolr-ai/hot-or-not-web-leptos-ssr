@@ -29,13 +29,13 @@ jobs:
       - name: Rust Setup
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "nightly-2025-05-09"
+          toolchain: "nightly-2025-01-09"
           targets: "wasm32-unknown-unknown"
           components: "clippy,rustfmt"
 
       - uses: cargo-bins/cargo-binstall@main
       - name: cargo-leptos setup
-        run: cargo binstall --no-confirm cargo-leptos --version 0.2.28
+        run: cargo binstall --no-confirm cargo-leptos --version 0.2.35
 
       - name: Cache rust dependencies and build output
         uses: Swatinem/rust-cache@v2
@@ -81,7 +81,7 @@ jobs:
         run: cargo leptos build --release --lib-features release-lib --bin-features release-bin
         env:
           LEPTOS_HASH_FILES: true
-          # LEPTOS_TAILWIND_VERSION: v3.4.17
+          LEPTOS_TAILWIND_VERSION: v4.1.7
       - name: Setup Sentry CLI
         uses: matbour/setup-sentry-cli@v2
         with:

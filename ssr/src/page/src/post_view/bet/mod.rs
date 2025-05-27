@@ -289,7 +289,7 @@ fn HNWonLost(game_result: GameResult, vote_amount: u64) -> impl IntoView {
 
     view! {
         <div class="flex gap-6 justify-center items-center p-4 w-full bg-transparent rounded-xl shadow-sm">
-            <div class="relative flex-shrink-0 drop-shadow-lg">
+            <div class="relative shrink-0 drop-shadow-lg">
                 <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin />
             </div>
 
@@ -386,7 +386,7 @@ fn LoaderWithShadowBg() -> impl IntoView {
 fn ShadowBg() -> impl IntoView {
     view! {
         <div
-            class="absolute bottom-0 left-0 h-2/5 w-dvw -z-[1]"
+            class="absolute bottom-0 left-0 h-2/5 w-dvw -z-1"
             style="background: linear-gradient(to bottom, #00000000 0%, #00000099 45%, #000000a8 100%, #000000cc 100%, #000000a8 100%);"
         ></div>
     }
