@@ -10,9 +10,7 @@ use leptos_use::use_window;
 
 use component::canisters_prov::AuthCansProvider;
 use component::connect::ConnectLogin;
-use component::{
-    back_btn::BackButton, buttons::HighlightedButton, title::TitleText,
-};
+use component::{back_btn::BackButton, buttons::HighlightedButton, title::TitleText};
 use state::app_state::AppState;
 use utils::event_streaming::events::{account_connected_reader, auth_canisters_store};
 use utils::event_streaming::events::{Refer, ReferShareLink};
@@ -98,7 +96,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
 #[component]
 fn ReferLoading() -> impl IntoView {
     view! {
-        <div class="flex flex-1 flex-col lg:flex-row items-center justify-center text-xs lg:text-md gap-3 bg-neutral-900 rounded-md px-3 lg:px-4 lg:py-5 py-4 animate-pulse">            
+        <div class="flex flex-1 flex-col lg:flex-row items-center justify-center text-xs lg:text-md gap-3 bg-neutral-900 rounded-md px-3 lg:px-4 lg:py-5 py-4 animate-pulse">
         </div>
     }
 }
