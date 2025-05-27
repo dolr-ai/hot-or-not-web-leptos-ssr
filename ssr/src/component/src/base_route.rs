@@ -1,9 +1,9 @@
 use candid::Principal;
 use ic_agent::identity::Secp256k1Identity;
-use leptos::prelude::*;
+use leptos::{ev, prelude::*};
 use leptos_router::components::Outlet;
 use leptos_router::hooks::use_query;
-use leptos_use::use_cookie;
+use leptos_use::{use_cookie, use_event_listener};
 
 use auth::delegate_identity;
 use auth::{
@@ -11,8 +11,11 @@ use auth::{
 };
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use consts::{ACCOUNT_CONNECTED_STORE, USER_CANISTER_ID_STORE, USER_PRINCIPAL_STORE};
+use leptos::web_sys::CustomEvent;
 use leptos_router::params::Params;
 use leptos_use::storage::use_local_storage;
+use leptos_use::use_window;
+use serde_json::Value;
 use state::{
     auth::AuthState,
     canisters::{do_canister_auth, AuthCansResource},
@@ -27,6 +30,9 @@ use yral_canisters_common::Canisters;
 struct Referrer {
     user_refer: String,
 }
+
+#[derive(Clone)]
+pub struct Notification(pub RwSignal<Option<Value>>);
 
 #[component]
 fn CtxProvider(children: ChildrenFn) -> impl IntoView {
@@ -103,6 +109,24 @@ fn CtxProvider(children: ChildrenFn) -> impl IntoView {
 
     let location = leptos_router::hooks::use_location();
 
+    let window_target = use_window();
+
+    let notification = Notification(RwSignal::new(None));
+
+    let _ = use_event_listener(
+        window_target,
+        ev::Custom::new("firebaseForegroundMessage"),
+        move |event: CustomEvent| {
+            let payload = event.detail();
+            notification.0.set(payload.as_string().and_then(|s| {
+                log::info!("Payload: {s}");
+                serde_json::from_str(&s).ok()
+            }));
+        },
+    );
+
+    provide_context(notification);
+
     view! {
         {children()}
         <Suspense>
@@ -144,17 +168,6 @@ fn CtxProvider(children: ChildrenFn) -> impl IntoView {
                         "#,
                     ));
                 });
-
-                // We need to perform this cleanup in case the user's cookie expired
-                // Cleanup doent work, it sets it but simulatanously removes it lols
-                // Effect::new(move |_| {
-                //     if temp_id.is_some() {
-                //         log::debug!("Removing user principal");
-                //         set_logged_in(false);
-                //         set_user_canister_id(None);
-                //         set_user_principal(None);
-                //     }
-                // });
 
                 canisters_store.set(Some(cans.clone()));
                 Effect::new(move |_| {
