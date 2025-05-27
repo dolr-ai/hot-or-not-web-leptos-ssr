@@ -1,9 +1,12 @@
 use codee::string::FromToStringCodec;
 use consts::NSFW_TOGGLE_STORE;
+use leptos::logging;
 use leptos::prelude::*;
+use leptos::task::spawn_local;
 use leptos_use::storage::use_local_storage;
+use reqwest::Client;
 use serde::Serialize;
-use serde_wasm_bindgen::to_value;
+use serde_json::Value;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 use yral_canisters_common::utils::vote::VoteKind;
@@ -24,13 +27,39 @@ pub fn identify_user(user_id: &str) {
     let _ = identify(user_id);
 }
 
+#[server]
+async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
+    let token = std::env::var("ANALYTICS_SERVER_TOKEN").expect("ANALYTICS_SERVER_TOKEN is not set");
+    Client::new()
+        .post("https://marketing-analytics-server.fly.dev/api/send_event")
+        .json(&props)
+        .bearer_auth(token)
+        .send()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Mixpanel track error: {e:?}")))?;
+    Ok(())
+}
+
 /// Generic helper: serializes `props` and calls Mixpanel.track
 pub fn track_event<T>(event_name: &str, props: T)
 where
     T: Serialize,
 {
-    let js_props = to_value(&props).expect("failed to serialize Mixpanel props");
-    let _ = track(event_name, js_props);
+    let mut props = serde_json::to_value(&props).unwrap();
+    props["event"] = event_name.into();
+    let user_id = props.get("user_id").and_then(Value::as_str);
+    props["principal"] = if user_id.is_some() {
+        user_id.into()
+    } else {
+        props.get("visitor_id").and_then(Value::as_str).into()
+    };
+    spawn_local(async {
+        let res = track_event_server_fn(props).await;
+        match res {
+            Ok(_) => {}
+            Err(e) => logging::error!("Error tracking Mixpanel event: {}", e),
+        }
+    });
 }
 
 /// Global properties for Mixpanel events
