@@ -35,7 +35,7 @@ jobs:
 
       - uses: cargo-bins/cargo-binstall@main
       - name: cargo-leptos setup
-        run: cargo binstall --no-confirm cargo-leptos --version 0.2.28
+        run: cargo binstall --no-confirm cargo-leptos --version 0.2.35
 
       - name: Cache rust dependencies and build output
         uses: Swatinem/rust-cache@v2
