@@ -46,6 +46,13 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
         AppType::YRAL | AppType::Pumpdump | AppType::HotOrNot => vec![RootType::COYNS],
         _ => vec![RootType::CENTS],
     };
+    // TODO:
+    // - make this list static to only load `SATS, ckBTC, CENTS, DOLR, ckUSDC`
+    // - load each token's metadata (excluding balance) as static data
+    // - load each token's balance in parallel
+    // - create new methods for loading just display information like `name`, `logo`, `symbol`
+    // - create new methods for loading just the balance, with similar interface as `get_token_metadata`
+    // - define trait `Airdroppable` that _may_ fetch airdrop status for a given token
     view! {
         <div class="flex flex-col w-full gap-2 mb-2 items-center">
            <Suspense>
