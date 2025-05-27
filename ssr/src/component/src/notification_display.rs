@@ -2,8 +2,6 @@ use leptos::web_sys::AnimationEvent;
 use leptos::{html::Div, prelude::*};
 use wasm_bindgen::prelude::{wasm_bindgen, Closure};
 
-// Assuming the Notification struct is accessible via crate::component::base_route::Notification
-// If it's moved or part of a shared module, this path might need adjustment.
 use crate::base_route::Notification;
 
 #[derive(serde::Deserialize, Debug, Clone)]
@@ -32,7 +30,7 @@ pub fn NotificationDisplay() -> impl IntoView {
             let payload = serde_json::from_value::<NotificationPayload>(value).ok();
             current_notification.set(payload);
             is_visible.set(true);
-            is_sliding_out.set(false); // Reset slide-out state
+            is_sliding_out.set(false);
 
             let closure = Closure::once(move || {
                 if is_visible.get_untracked() && !is_sliding_out.get_untracked() {
