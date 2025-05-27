@@ -220,8 +220,8 @@ mod server_fn_impl {
     #[cfg(feature = "backend-admin")]
     mod backend_admin {
         use candid::Principal;
-        use consts::WORKER_URL;
         use hon_worker_common::ReferralReqWithSignature;
+        use hon_worker_common::WORKER_URL;
         use leptos::prelude::*;
         use state::server::HonWorkerJwt;
         use yral_canisters_client::individual_user_template::{Result22, Result9};

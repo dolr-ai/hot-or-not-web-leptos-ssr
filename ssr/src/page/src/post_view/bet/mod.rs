@@ -5,7 +5,7 @@ use codee::string::FromToStringCodec;
 use component::{
     bullet_loader::BulletLoader, canisters_prov::AuthCansProvider, hn_icons::*, spinner::SpinnerFit,
 };
-use consts::WORKER_URL;
+use hon_worker_common::WORKER_URL;
 use hon_worker_common::{sign_vote_request, GameInfo, GameResult};
 use ic_agent::Identity;
 use leptos::html::Audio;

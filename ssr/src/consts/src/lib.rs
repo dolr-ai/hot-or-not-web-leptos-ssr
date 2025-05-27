@@ -58,8 +58,6 @@ pub const NSFW_SERVER_URL: &str = "https://prod-yral-nsfw-classification.fly.dev
 pub const CF_KV_ML_CACHE_NAMESPACE_ID: &str = "ea145fc839bd42f9bf2d34b950ddbda5";
 pub const CLOUDFLARE_ACCOUNT_ID: &str = "a209c523d2d9646cc56227dbe6ce3ede";
 
-pub const WORKER_URL: &str = "https://yral-hot-or-not-staging.go-bazzinga.workers.dev/"; // TODO: change to prod
-
 pub const NEW_USER_SIGNUP_REWARD: u64 = 1000;
 pub const REFERRAL_REWARD: u64 = 500;
 

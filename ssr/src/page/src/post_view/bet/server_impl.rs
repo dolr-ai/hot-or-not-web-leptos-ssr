@@ -20,7 +20,7 @@ pub async fn vote_with_cents_on_post(
 #[cfg(feature = "alloydb")]
 mod alloydb {
     use super::*;
-    use consts::WORKER_URL;
+    use hon_worker_common::WORKER_URL;
     use hon_worker_common::{HoNGameVoteReq, HotOrNot, VoteRequest, VoteRes};
 
     pub async fn vote_with_cents_on_post(
