@@ -29,98 +29,51 @@
 /* Standard CSS Keyframes from ssr/tailwind.config.js go here */
 
 @keyframes blink-colors {
-    "0%": { color: "red" },
-    "25%": { color: "lime" },
-    "50%": { color: "yellow" },
-    "75%": { color: "fuchsia" },
-    "100%": { color: "blue" },
+    "0%": { color: red; }
+    "25%": { color: lime; }
+    "50%": { color: yellow; }
+    "75%": { color: fuchsia; }
+    "100%": { color: blue; }
 }
 @keyframes searching-a-1 {
-    "0%, 49%": { opacity: 1 },
-    "50%, 100%": { opacity: 0 },
+    "0%, 49%": { opacity: 1; }
+    "50%, 100%": { opacity: 0; }
 }
 @keyframes searching-a-2 {
-    "0%, 49%": { opacity: 0 },
-    "50%, 100%": { opacity: 1 },
+    "0%, 49%": { opacity: 0; }
+    "50%, 100%": { opacity: 1; }
 }
 @keyframes shake {
-    '0%, 50%, 100%': {
-        transform: 'translate(0)'
-    },
-    '25%' : {
-        transform: 'translate(-1px, -1px)'
-    },
-    '75%': {
-        transform: 'translate(-1px, 1px)'
-    }
+    "0%, 50%, 100%": { transform: translate(0); }
+    "25%": { transform: translate(-1px, -1px); }
+    "75%": { transform: translate(-1px, 1px); }
 }
 @keyframes push-right {
-    '0%': {
-        transform: 'translate(0) rotate(8deg)'
-    },
-    '25%': {
-        transform: 'translate(4px)'
-    },
-    '50%': {
-        transform: 'translate(0)'
-    },
-    '75%': {
-        transform: 'translate(1px)'
-    },
-    to: {
-        transform: 'translate(0) rotate(0)'
-    }
+    "0%": { transform: translate(0) rotate(8deg); }
+    "25%": { transform: translate(4px); }
+    "50%": { transform: translate(0); }
+    "75%": { transform: translate(1px); }
+    "to": { transform: translate(0) rotate(0); }
 }
 @keyframes push-left {
-    '0%': {
-        transform: 'translate(0) rotate(-5deg)'
-    },
-    '25%': {
-        transform: 'translate(-4px)'
-    },
-    '50%': {
-        transform: 'translate(0)'
-    },
-    '75%': {
-        transform: 'translate(-1px)'
-    },
-    to: {
-        transform: 'translate(0) rotate(2deg)'
-    }
+    "0%": { transform: translate(0) rotate(-5deg); }
+    "25%": { transform: translate(-4px); }
+    "50%": { transform: translate(0); }
+    "75%": { transform: translate(-1px); }
+    "to": { transform: translate(0) rotate(2deg); }
 }
 @keyframes shimmer {
-    '0%': { backgroundPositionX: '100%' },
-    '100%': { backgroundPositionX: '0%' },
+    "0%": { backgroundPositionX: 100%; }
+    "100%": { backgroundPositionX: 0%; }
 }
 @keyframes slide-up {
-    '0%': {
-        opacity: 1;
-        transform: 'translateY(0%)'
-    },
-    '10%': {
-        opacity: 1;
-        transform: 'translateY(-260%)'
-    },
-    '50%': {
-        opacity: 1;
-        transform: 'translateY(-260%)'
-    },
-    '55%': {
-        opacity: 1;
-        transform: 'translateY(-500%)'
-    },
-    '59%': {
-        opacity: 0;
-        transform: 'translateY(-500%)'
-    },
-    '60%': {
-        opacity: 0;
-        transform: 'translateY(0%)'
-    },
-    '100%': {
-        opacity: 0;
-        transform: 'translateY(0%)'
-    }
+    "0%": { opacity: 1; transform: translateY(0%); }
+    "10%": { opacity: 1; transform: translateY(-260%); }
+    "50%": { opacity: 1; transform: translateY(-260%); }
+    "55%": { opacity: 1; transform: translateY(-500%); }
+    "59%": { opacity: 0; transform: translateY(-500%); }
+    "60%": { opacity: 0; transform: translateY(0%); }
+    "100%": { opacity: 0; transform: translateY(0%); }
 }
 
 
