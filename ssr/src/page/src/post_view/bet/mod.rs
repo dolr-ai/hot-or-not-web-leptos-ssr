@@ -134,10 +134,21 @@ fn HNButtonOverlay(
                 let sig = sig.ok()?;
                 let res = vote_with_cents_on_post(sender, req, sig).await;
                 match res {
-                    Ok(_) => {
+                    Ok(res) => {
                         let is_logged_in = is_connected.get_untracked();
                         let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-
+                        let game_conclusion = match res.game_result {
+                            GameResult::Win { .. } => GameConclusion::Win,
+                            GameResult::Loss { .. } => GameConclusion::Loss,
+                        };
+                        let win_loss_amount = match res.game_result.clone() {
+                            GameResult::Win { win_amt } => {
+                                TokenBalance::new((win_amt + bet_amount).into(), 0).humanize()
+                            }
+                            GameResult::Loss { lose_amt } => {
+                                TokenBalance::new((lose_amt + 0u64).into(), 0).humanize()
+                            }
+                        };
                         MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
                             user_id: global.user_id,
                             visitor_id: global.visitor_id,
@@ -152,9 +163,9 @@ fn HNButtonOverlay(
                             like_count: post_mix.likes,
                             stake_amount: bet_amount,
                             is_game_enabled: true,
-                            stake_type: StakeType::Cents,
-                            conclusion: GameConclusion::Pending,
-                            won_amount: None,
+                            stake_type: StakeType::SATs,
+                            conclusion: game_conclusion,
+                            won_loss_amount: win_loss_amount,
                         });
                         Some(())
                     }

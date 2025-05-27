@@ -260,7 +260,7 @@ pub struct MixpanelGamePlayedProps {
     pub view_count: u64,
     pub is_game_enabled: bool,
     pub conclusion: GameConclusion,
-    pub won_amount: Option<f64>,
+    pub won_loss_amount: String,
 }
 
 #[derive(Serialize)]
