@@ -3,10 +3,9 @@ mod history;
 use candid::Principal;
 use gloo::timers::callback::Timeout;
 use ic_agent::Identity;
-use leptos::{prelude::*, reactive::wrappers::write::SignalSetter};
+use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_meta::*;
-use leptos_router::hooks::query_signal;
 use leptos_use::use_window;
 
 use component::canisters_prov::AuthCansProvider;
@@ -14,7 +13,6 @@ use component::connect::ConnectLogin;
 use component::{
     back_btn::BackButton, buttons::HighlightedButton, dashbox::DashboxLoading, title::TitleText,
 };
-use history::HistoryView;
 use state::app_state::AppState;
 use utils::event_streaming::events::{account_connected_reader, auth_canisters_store};
 use utils::event_streaming::events::{Refer, ReferShareLink};
@@ -157,78 +155,7 @@ fn ReferView() -> impl IntoView {
 }
 
 #[component]
-fn TabSelector(
-    tab_idx: i32,
-    text: String,
-    tab_str: String,
-    current_tab: Memo<i32>,
-    set_cur_tab: SignalSetter<Option<String>>,
-) -> impl IntoView {
-    let button_class = move || {
-        if tab_idx == current_tab() {
-            "text-white font-bold"
-        } else {
-            "text-white/50 font-bold"
-        }
-    };
-    let selector_class = move || {
-        if tab_idx == current_tab() {
-            "bg-primary-500 w-2 h-2 rounded-full"
-        } else {
-            "bg-transparent w-2 h-2 rounded-full"
-        }
-    };
-
-    view! {
-        <div class="flex w-full flex-col items-center gap-y-2">
-            <button class=button_class on:click=move |_| set_cur_tab(Some(tab_str.clone()))>
-                {text}
-            </button>
-            <div class=selector_class></div>
-        </div>
-    }
-}
-
-#[component]
-fn ListSwitcher() -> impl IntoView {
-    let (cur_tab, set_cur_tab) = query_signal::<String>("tab");
-    let current_tab = Memo::new(move |_| {
-        cur_tab.with(|cur_tab| match cur_tab.as_deref() {
-            Some("how-to") => 0,
-            Some("history") => 1,
-            _ => 0,
-        })
-    });
-
-    view! {
-        <div class="flex flex-row w-full text-md md:text-lg lg:text-xl text-center">
-            <TabSelector
-                text="How to earn".into()
-                tab_idx=0
-                tab_str="how-to".to_string()
-                current_tab
-                set_cur_tab=set_cur_tab
-            />
-            <TabSelector
-                text="History".into()
-                tab_idx=1
-                tab_str="history".to_string()
-                current_tab
-                set_cur_tab=set_cur_tab
-            />
-        </div>
-        <div class="flex flex-row justify-center">
-            <Show when=move || current_tab() == 0 fallback=HistoryView>
-                <ReferView />
-            </Show>
-        </div>
-    }
-}
-
-#[component]
 pub fn ReferEarn() -> impl IntoView {
-    let (logged_in, _) = account_connected_reader();
-
     let app_state = use_context::<AppState>();
     let page_title = app_state.unwrap().name.to_owned() + " - Refer & Earn";
     view! {
@@ -242,9 +169,9 @@ pub fn ReferEarn() -> impl IntoView {
                 </div>
             </TitleText>
             <div class="px-8 w-full sm:w-7/12">
-                <Show when=logged_in fallback=ReferView>
-                    <ListSwitcher />
-                </Show>
+                <div class="flex flex-row justify-center">
+                    <ReferView />
+                </div>
             </div>
         </div>
     }
