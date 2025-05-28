@@ -4,7 +4,6 @@ use leptos::logging;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_use::storage::use_local_storage;
-use reqwest::Client;
 use serde::Serialize;
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
@@ -29,14 +28,16 @@ pub fn identify_user(user_id: &str) {
 
 #[server]
 async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
-    let token = std::env::var("ANALYTICS_SERVER_TOKEN").expect("ANALYTICS_SERVER_TOKEN is not set");
-    Client::new()
-        .post("https://marketing-analytics-server.fly.dev/api/send_event")
-        .json(&props)
-        .bearer_auth(token)
-        .send()
-        .await
-        .map_err(|e| ServerFnError::new(format!("Mixpanel track error: {e:?}")))?;
+    #[cfg(feature = "qstash")]
+    {
+        let qstash_client: crate::qstash::QStashClient = expect_context();
+        let token =
+            std::env::var("ANALYTICS_SERVER_TOKEN").expect("ANALYTICS_SERVER_TOKEN is not set");
+        qstash_client
+            .send_analytics_event_to_qstash(props, token)
+            .await
+            .map_err(|e| ServerFnError::new(format!("Mixpanel track error: {e:?}")))?;
+    }
     Ok(())
 }
 
