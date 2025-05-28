@@ -3,6 +3,7 @@ use auth::delegate_short_lived_identity;
 use codee::string::FromToStringCodec;
 use component::buttons::HighlightedLinkButton;
 use component::modal::Modal;
+use component::notification_nudge::NotificationNudge;
 use consts::UPLOAD_URL;
 use gloo::net::http::Request;
 use leptos::web_sys::{Blob, FormData};
@@ -262,6 +263,7 @@ pub fn VideoUploader(
     let is_nsfw = params.is_nsfw;
     let enable_hot_or_not = params.enable_hot_or_not;
     let canister_store = auth_canisters_store();
+    let notification_nudge = RwSignal::new(false);
     let (is_connected, _, _) =
         use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
     let publish_action: Action<_, _> = Action::new_unsync(move |canisters: &Canisters<true>| {
@@ -275,7 +277,7 @@ pub fn VideoUploader(
             let delegated_identity = delegate_short_lived_identity(id);
             let res: std::result::Result<reqwest::Response, ServerFnError> = {
                 let client = reqwest::Client::new();
-
+                notification_nudge.set(true);
                 let req = client
                     .post(format!("{UPLOAD_URL}/update_metadata"))
                     .json(&json!({
@@ -345,6 +347,7 @@ pub fn VideoUploader(
 
     view! {
         <div class="flex flex-col-reverse lg:flex-row w-full gap-4 lg:gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
+            <NotificationNudge pop_up=notification_nudge />
             <div class="flex flex-col items-center justify-center w-full h-auto min-h-[200px] max-h-[60vh] sm:min-h-[300px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] lg:min-h-[600px] lg:max-h-[600px] rounded-2xl text-center px-4 mt-0 mb-0 sm:mt-0 sm:mb-0 sm:px-6 lg:px-0 lg:overflow-y-auto">
                 <video
                     class="w-full h-full object-contain rounded-xl bg-black p-2"

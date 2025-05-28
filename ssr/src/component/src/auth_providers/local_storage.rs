@@ -1,4 +1,5 @@
-use codee::string::JsonSerdeCodec;
+use codee::string::{FromToStringCodec, JsonSerdeCodec};
+use consts::NOTIFICATIONS_ENABLED_STORE;
 use ic_agent::identity::Secp256k1Identity;
 use k256::elliptic_curve::JwkEcKey;
 use leptos::prelude::*;
@@ -42,11 +43,14 @@ pub fn LocalStorageProvider() -> impl IntoView {
         use_local_storage::<Option<JwkEcKey>, JsonSerdeCodec>(IDENTITY_JWK_STORE);
 
     let ctx: LoginProvCtx = expect_context();
+    let (_, set_notifs_enabled, _) =
+        use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
 
     let do_login_action = Action::new(move |()| async move {
         let secp256k1_key = jwk_identity.get_untracked();
         let (delegation, jwk) = perform_local_storage_auth(secp256k1_key).await?;
         set_jwk_identity(Some(jwk));
+        set_notifs_enabled(false);
         ctx.login_complete.set(delegation);
         Ok::<_, ServerFnError>(())
     });
