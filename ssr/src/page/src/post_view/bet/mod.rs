@@ -272,6 +272,7 @@ fn HNWonLost(game_result: GameResult, vote_amount: u64) -> impl IntoView {
     };
     let bet_amount = vote_amount;
     let coin = match bet_amount {
+        10 => CoinState::C10,
         50 => CoinState::C50,
         100 => CoinState::C100,
         200 => CoinState::C200,
