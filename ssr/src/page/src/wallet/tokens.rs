@@ -7,7 +7,6 @@ use component::icons::{
     airdrop_icon::AirdropIcon, arrow_left_right_icon::ArrowLeftRightIcon,
     chevron_right_icon::ChevronRightIcon, send_icon::SendIcon, share_icon::ShareIcon,
 };
-use component::infinite_scroller::InfiniteScroller;
 use component::overlay::PopupOverlay;
 use component::overlay::ShadowOverlay;
 use component::share_popup::ShareContent;
@@ -20,8 +19,7 @@ use state::app_type::AppType;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::event_streaming::events::CentsAdded;
 use utils::host::get_host;
-use utils::token::icpump::IcpumpTokenInfo;
-use yral_canisters_common::cursored_data::token_roots::{TokenListResponse, TokenRootList};
+use utils::send_wrap;
 use yral_canisters_common::utils::token::balance::TokenBalance;
 use yral_canisters_common::utils::token::{RootType, TokenMetadata, TokenOwner};
 use yral_canisters_common::CENT_TOKEN_NAME;
@@ -44,10 +42,11 @@ pub fn TokenList(
     user_canister: Principal,
 ) -> impl IntoView {
     let app_type: AppType = AppType::select();
-    let exclude = match app_type {
+    let _exclude = match app_type {
         AppType::YRAL | AppType::Pumpdump | AppType::HotOrNot => vec![RootType::COYNS],
         _ => vec![RootType::CENTS],
     };
+    let _ = logged_in_user;
     // TODO:
     // - make this list static to only load `SATS, ckBTC, CENTS, DOLR, ckUSDC`
     // - load each token's metadata (excluding balance) as static data
@@ -55,25 +54,70 @@ pub fn TokenList(
     // - create new methods for loading just display information like `name`, `logo`, `symbol`
     // - create new methods for loading just the balance, with similar interface as `get_token_metadata`
     // - define trait `Airdroppable` that _may_ fetch airdrop status for a given token
-    let provider = TokenRootList {
-        viewer_principal: logged_in_user,
-        canisters: unauth_canisters(),
-        user_canister,
-        user_principal,
-        nsfw_detector: IcpumpTokenInfo,
-        exclude,
+
+    // TODO: nuke this code patch, only needed as reference
+    // let provider = TokenRootList {
+    //     viewer_principal: logged_in_user,
+    //     canisters: unauth_canisters(),
+    //     user_canister,
+    //     user_principal,
+    //     nsfw_detector: IcpumpTokenInfo,
+    //     exclude,
+    // };
+    // view! {
+    //     <div class="flex flex-col w-full gap-2 mb-2 items-center">
+    //         <InfiniteScroller
+    //             provider
+    //             fetch_count=5
+    //             children=move |TokenListResponse{token_metadata, airdrop_claimed, root}, _ref| {
+    //                 view! {
+    //                     <WalletCard user_principal token_metadata=token_metadata is_airdrop_claimed=airdrop_claimed _ref=_ref.unwrap_or_default() is_utility_token=matches!(root, RootType::COYNS | RootType::CENTS | RootType::SATS)/>
+    //                 }
+    //             }
+    //         />
+    //     </div>
+    // }
+
+    let balance_1 = OnceResource::new(async {
+        send_wrap(
+            send_wrap(reqwest::get("https://yral.com"))
+                .await
+                .unwrap()
+                .text(),
+        )
+        .await
+        .unwrap();
+        TokenBalance::new(Nat::from(100usize), 0)
+    });
+
+    let display_info_1 = TokenDisplayInfo {
+        name: "Name".into(),
+        symbol: "sym".into(),
+        logo: "/img/hotornot/sats.svg".into(),
     };
+
+    let balance_0 = OnceResource::new(async {
+        send_wrap(
+            send_wrap(reqwest::get("https://yral.com"))
+                .await
+                .unwrap()
+                .text(),
+        )
+        .await
+        .unwrap();
+        TokenBalance::new(Nat::from(100usize), 0)
+    });
+
+    let display_info_0 = TokenDisplayInfo {
+        name: "Name1".into(),
+        symbol: "sym1".into(),
+        logo: "/img/hotornot/bitcoin.svg".into(),
+    };
+
     view! {
         <div class="flex flex-col w-full gap-2 mb-2 items-center">
-            <InfiniteScroller
-                provider
-                fetch_count=5
-                children=move |TokenListResponse{token_metadata, airdrop_claimed, root}, _ref| {
-                    view! {
-                        <WalletCard user_principal token_metadata=token_metadata is_airdrop_claimed=airdrop_claimed _ref=_ref.unwrap_or_default() is_utility_token=matches!(root, RootType::COYNS | RootType::CENTS | RootType::SATS)/>
-                    }
-                }
-            />
+            <FastWalletCard user_principal user_canister display_info=display_info_0 balance=balance_0 />
+            <FastWalletCard user_principal user_canister display_info=display_info_1 balance=balance_1 />
         </div>
     }
 }
@@ -163,6 +207,131 @@ impl WithdrawImpl for WithdrawSats {
     fn withdraw_cta(&self) -> String {
         "Withdraw to BTC".into()
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct TokenDisplayInfo {
+    pub name: String,
+    pub symbol: String,
+    pub logo: String,
+}
+
+#[component]
+pub fn FastWalletCard(
+    user_principal: Principal,
+    user_canister: Principal,
+    display_info: TokenDisplayInfo,
+    balance: OnceResource<TokenBalance>,
+    #[prop(optional)] is_utility_token: bool,
+    // TODO: check if we really need this now that we are not using infinite scroller
+    #[prop(optional)] _ref: NodeRef<html::Div>,
+) -> impl IntoView {
+    let _ = user_principal;
+    let _ = user_canister;
+    let TokenDisplayInfo { name, symbol, logo } = display_info;
+
+    let share_link = RwSignal::new("".to_string());
+
+    let share_message = {
+        let symbol = symbol.clone();
+        move || {
+            format!(
+            "Hey! Check out the token: {} I created on YRAL 👇 {}. I just minted my own token—come see and create yours! 🚀 #YRAL #TokenMinter",
+            symbol.clone(),
+            share_link.get(),
+        )
+        }
+    };
+    let pop_up = RwSignal::new(false);
+    let base_url = get_host();
+
+    provide_context(WalletCardOptionsContext {
+        is_utility_token,
+        root: name.clone(),
+        // with icpump gone, there shouldn't be any token owners. but lets keep it just in case and pray the compiler optimizes things away
+        token_owner: None,
+        user_principal,
+    });
+    let airdrop_popup = RwSignal::new(false);
+    let buffer_signal = RwSignal::new(false);
+    // TODO: load this as resouce
+    let claimed = RwSignal::new(true);
+
+    view! {
+        <div node_ref=_ref class="flex flex-col gap-4 bg-neutral-900/90 rounded-lg w-full font-kumbh text-white p-4">
+            <div class="flex flex-col gap-4 p-3 rounded-sm bg-neutral-800/70">
+                <div class="w-full flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <img
+                            src=logo.clone()
+                            alt=name.clone()
+                            class="w-8 h-8 rounded-full object-cover"
+                        />
+                        <div class="text-sm font-medium uppercase truncate">{name.clone()}</div>
+                    </div>
+                    <div class="flex flex-col items-end">
+                        <Suspense
+                            fallback=move || view! { <pre>---</pre> }
+                        >
+                            {move || Suspend::new(async move {
+                                let b = balance.await;
+                                view! {
+                                    <div class="text-lg font-medium">{b.humanize_float_truncate_to_dp(8)}</div>
+                                }
+                            })}
+                        </Suspense>
+                        <div class="text-xs">{symbol}</div>
+                    </div>
+                </div>
+                // TODO: add withdrawal logic
+                // {show_withdraw_button.then_some(view! {
+                //     <div class="border-t border-neutral-700 flex flex-col pt-4 gap-2">
+                //         {is_cents.then_some(view! {
+                //             <div class="flex items-center">
+                //                 <Icon attr:class="text-neutral-300" icon=if is_withdrawable { PadlockOpen } else { PadlockClose } />
+                //                 <span class="text-neutral-400 text-xs mx-2">{withdraw_message}</span>
+                //                 <Tooltip icon=Information title="Withdrawal Tokens" description="Only Cents earned above your airdrop amount can be withdrawn." />
+                //                 <span class="ml-auto">{withdrawable_balance}</span>
+                //             </div>
+                //         })}
+                //         <button
+                //             class="rounded-lg px-5 py-2 text-sm text-center font-bold"
+                //             class=(["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled"], !is_withdrawable)
+                //             class=(["text-neutral-50", "bg-brand-gradient"], is_withdrawable)
+                //             on:click=withdraw_handle
+                //         >
+                //             {withdraw_cta}
+                //         </button>
+                //     </div>
+
+                // })}
+            </div>
+
+            <WalletCardOptions pop_up=pop_up.write_only() share_link=share_link.write_only() airdrop_popup buffer_signal claimed/>
+
+            <PopupOverlay show=pop_up >
+                <ShareContent
+                    share_link=format!("{base_url}{}", share_link())
+                    message=share_message()
+                    show_popup=pop_up
+                />
+            </PopupOverlay>
+
+            <ShadowOverlay show=airdrop_popup >
+                <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-[560px] max-h-[634px] min-w-[343px] min-h-[480px] backdrop-blur-lg rounded-lg">
+                    <div class="rounded-lg z-[500]">
+                        <AirdropPopup
+                            name=name.clone()
+                            logo=logo.clone()
+                            buffer_signal
+                            claimed
+                            airdrop_popup
+                        />
+                    </div>
+                </div>
+            </ShadowOverlay>
+        </div>
+    }.into_any()
 }
 
 #[component]
