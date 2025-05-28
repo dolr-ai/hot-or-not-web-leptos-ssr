@@ -82,6 +82,7 @@ jobs:
         env:
           LEPTOS_HASH_FILES: true
           LEPTOS_TAILWIND_VERSION: v4.1.7
+          LEPTOS_WASM_OPT_VERSION: version_123
       - name: Setup Sentry CLI
         uses: matbour/setup-sentry-cli@v2
         with:
