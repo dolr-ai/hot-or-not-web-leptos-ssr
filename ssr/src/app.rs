@@ -19,6 +19,7 @@ use leptos_router::hooks::use_location;
 use leptos_router::{components::*, path, MatchNestedRoutes};
 use page::terms_android::TermsAndroid;
 use page::terms_ios::TermsIos;
+use page::terms_android::TermsAndroid;
 use page::{
     err::ServerErrorPage,
     leaderboard::Leaderboard,
