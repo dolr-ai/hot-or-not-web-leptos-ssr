@@ -27,12 +27,6 @@ fn bullet_list(items: Vec<&str>) -> impl IntoView + '_ {
     }
 }
 
-fn text_paragraph(content: &str) -> impl IntoView + use<'_> {
-    view! {
-        <p class={"mb-3 text-xs"}>{content}</p>
-    }
-}
-
 #[component]
 pub fn TermsAndroid() -> impl IntoView {
     let app_state = use_context::<AppState>();
