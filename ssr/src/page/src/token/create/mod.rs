@@ -5,7 +5,6 @@ use component::{
     token_logo_sanitize::TokenLogoSanitize,
 };
 use server_fn::codec::Json;
-use state::canisters::authenticated_canisters;
 
 use candid::Principal;
 use leptos::{
@@ -14,15 +13,14 @@ use leptos::{
     prelude::*,
 };
 use leptos_meta::*;
+use state::canisters::auth_state;
 use std::env;
 use utils::{
-    event_streaming::events::{
-        auth_canisters_store, TokenCreationCompleted, TokenCreationFailed, TokenCreationStarted,
-    },
+    event_streaming::events::{TokenCreationCompleted, TokenCreationFailed, TokenCreationStarted},
     token::{nsfw::NSFWInfo, DeployedCdaoCanisters},
     web::FileWithUrl,
 };
-use yral_canisters_common::{utils::profile::ProfileDetails, Canisters, CanistersAuthWire};
+use yral_canisters_common::{utils::profile::ProfileDetails, CanistersAuthWire};
 
 use leptos::html;
 use sns_validation::humanize::parse_tokens;
@@ -328,7 +326,7 @@ impl CreateTokenCtx {
 
 #[component]
 pub fn CreateToken() -> impl IntoView {
-    let auth_cans = auth_canisters_store();
+    let auth = auth_state();
 
     let ctx: CreateTokenCtx = expect_context();
 
@@ -349,11 +347,10 @@ pub fn CreateToken() -> impl IntoView {
         });
     };
 
-    let cans_wire_res = authenticated_canisters();
-
     let create_action = Action::new(move |&()| async move {
-        let cans_wire = cans_wire_res.await.map_err(|e| e.to_string())?;
-        let cans = Canisters::from_wire(cans_wire.clone(), use_context().unwrap_or_default())
+        let cans = auth
+            .auth_cans(use_context().unwrap_or_default())
+            .await
             .map_err(|_| "Unable to authenticate".to_string())?;
 
         let canister_id = cans.user_canister();
@@ -373,12 +370,16 @@ pub fn CreateToken() -> impl IntoView {
             return Err("Server is not available".to_string());
         }
 
-        TokenCreationStarted.send_event(create_sns.clone(), auth_cans);
+        TokenCreationStarted.send_event(auth.event_ctx(), create_sns.clone());
 
-        let _deployed_cans_response =
-            deploy_cdao_canisters(cans_wire, create_sns.clone(), profile_details, canister_id)
-                .await
-                .map_err(|e| e.to_string())?;
+        let _deployed_cans_response = deploy_cdao_canisters(
+            cans.into(),
+            create_sns.clone(),
+            profile_details,
+            canister_id,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
 
         Ok(())
     });
@@ -386,7 +387,6 @@ pub fn CreateToken() -> impl IntoView {
 
     let create_disabled = Memo::new(move |_| {
         creating()
-            || auth_cans.with(|c| c.is_none())
             || ctx.form_state.with(|f| f.logo_b64.is_none())
             || ctx.form_state.with(|f: &SnsFormState| f.name.is_none())
             || ctx

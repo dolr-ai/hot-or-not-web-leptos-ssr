@@ -1,6 +1,7 @@
 use component::{back_btn::BackButton, title::TitleText};
 use leptos::prelude::*;
 use leptos_router::{hooks::use_query, params::Params};
+use state::canisters::auth_state;
 // use utils::event_streaming::events::SatsWithdrawn;
 use utils::{event_streaming::events::SatsWithdrawn, try_or_redirect_opt};
 use yral_canisters_common::utils::token::balance::TokenBalance;
@@ -18,8 +19,10 @@ pub fn Success() -> impl IntoView {
 
     let sats_value = formatted_sats.clone().parse::<f64>().unwrap_or(0.0);
 
+    let auth = auth_state();
+
     Effect::new(move |_| {
-        SatsWithdrawn.send_event(sats_value);
+        SatsWithdrawn.send_event(auth.event_ctx(), sats_value);
     });
 
     Some(view! {

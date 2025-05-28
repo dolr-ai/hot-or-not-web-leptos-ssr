@@ -4,8 +4,10 @@ use crate::pumpdump::ProcessedTokenListResponse;
 use crate::pumpdump::{PlayerDataRes, RunningGameRes};
 use leptos::{html::Audio, prelude::*, tachys::dom::window};
 use particles::{FireBubbles, SkullBubbles};
+use state::canisters::auth_state;
 use utils::event_streaming::events::TokenPumpedDumped;
 use yral_pump_n_dump_common::GameDirection;
+
 fn non_visual_feedback(audio_ref: NodeRef<Audio>) {
     #[cfg(not(feature = "hydrate"))]
     {
@@ -55,6 +57,9 @@ pub fn DumpButton(audio_ref: NodeRef<Audio>) -> impl IntoView {
 
     let press_count = RwSignal::new(0u32);
 
+    let auth = auth_state();
+    let event_ctx = auth.event_ctx();
+
     let send_event = leptos_use::use_debounce_fn(
         move || {
             let count = press_count.get();
@@ -64,6 +69,7 @@ pub fn DumpButton(audio_ref: NodeRef<Audio>) -> impl IntoView {
                 let press_count_value = count;
 
                 TokenPumpedDumped.send_event(
+                    event_ctx,
                     token_details.token_name,
                     token_root,
                     "dump".to_string(),
@@ -172,6 +178,9 @@ pub fn PumpButton(audio_ref: NodeRef<Audio>) -> impl IntoView {
     let spawn_bubbles = RwSignal::new(0u32);
     let press_count = RwSignal::new(0u32);
 
+    let auth = auth_state();
+    let event_ctx = auth.event_ctx();
+
     let send_event = leptos_use::use_debounce_fn(
         move || {
             let count = press_count.get();
@@ -181,6 +190,7 @@ pub fn PumpButton(audio_ref: NodeRef<Audio>) -> impl IntoView {
                 let press_count_value = count;
 
                 TokenPumpedDumped.send_event(
+                    event_ctx,
                     token_details.token_name,
                     token_root,
                     "pump".to_string(),

@@ -17,9 +17,7 @@ use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::hooks::use_navigate;
 use state::app_type::AppType;
-use state::canisters::authenticated_canisters;
-use state::canisters::unauth_canisters;
-use utils::event_streaming::events::account_connected_reader;
+use state::canisters::{auth_state, unauth_canisters};
 use utils::event_streaming::events::CentsAdded;
 use utils::host::get_host;
 use utils::token::icpump::IcpumpTokenInfo;
@@ -27,7 +25,7 @@ use yral_canisters_common::cursored_data::token_roots::{TokenListResponse, Token
 use yral_canisters_common::utils::token::balance::TokenBalance;
 use yral_canisters_common::utils::token::{RootType, TokenMetadata, TokenOwner};
 use yral_canisters_common::CENT_TOKEN_NAME;
-use yral_canisters_common::{Canisters, SATS_TOKEN_NAME};
+use yral_canisters_common::SATS_TOKEN_NAME;
 use yral_pump_n_dump_common::WithdrawalState;
 
 use super::ShowLoginSignal;
@@ -40,7 +38,11 @@ pub fn TokenViewFallback() -> impl IntoView {
 }
 
 #[component]
-pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl IntoView {
+pub fn TokenList(
+    logged_in_user: Principal,
+    user_principal: Principal,
+    user_canister: Principal,
+) -> impl IntoView {
     let app_type: AppType = AppType::select();
     let exclude = match app_type {
         AppType::YRAL | AppType::Pumpdump | AppType::HotOrNot => vec![RootType::COYNS],
@@ -53,36 +55,25 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
     // - create new methods for loading just display information like `name`, `logo`, `symbol`
     // - create new methods for loading just the balance, with similar interface as `get_token_metadata`
     // - define trait `Airdroppable` that _may_ fetch airdrop status for a given token
+    let provider = TokenRootList {
+        viewer_principal: logged_in_user,
+        canisters: unauth_canisters(),
+        user_canister,
+        user_principal,
+        nsfw_detector: IcpumpTokenInfo,
+        exclude,
+    };
     view! {
         <div class="flex flex-col w-full gap-2 mb-2 items-center">
-           <Suspense>
-                {
-                    Suspend::new(async move {
-                        let viewer_principal = Canisters::from_wire(authenticated_canisters().await.unwrap(), expect_context()).unwrap().user_principal();
-
-                        let provider = TokenRootList {
-                            viewer_principal,
-                            canisters: unauth_canisters(),
-                            user_canister,
-                            user_principal,
-                            nsfw_detector: IcpumpTokenInfo,
-                            exclude,
-                        };
-
-                        view! {
-                            <InfiniteScroller
-                            provider
-                            fetch_count=5
-                            children=move |TokenListResponse{token_metadata, airdrop_claimed, root}, _ref| {
-                                view! {
-                                    <WalletCard user_principal token_metadata=token_metadata is_airdrop_claimed=airdrop_claimed _ref=_ref.unwrap_or_default() is_utility_token=matches!(root, RootType::COYNS | RootType::CENTS | RootType::SATS)/>
-                                }
-                            }
-                        />
-                        }
-                    })
+            <InfiniteScroller
+                provider
+                fetch_count=5
+                children=move |TokenListResponse{token_metadata, airdrop_claimed, root}, _ref| {
+                    view! {
+                        <WalletCard user_principal token_metadata=token_metadata is_airdrop_claimed=airdrop_claimed _ref=_ref.unwrap_or_default() is_utility_token=matches!(root, RootType::COYNS | RootType::CENTS | RootType::SATS)/>
+                    }
                 }
-            </Suspense>
+            />
         </div>
     }
 }
@@ -220,7 +211,7 @@ pub fn WalletCard(
     // let airdrop_popup = RwSignal::new(false);
     // let buffer_signal = RwSignal::new(false);
     // let claimed = RwSignal::new(is_airdrop_claimed);
-    let (is_connected, _) = account_connected_reader();
+    let is_connected = auth_state().is_logged_in_with_oauth();
     let show_login = use_context()
         .map(|ShowLoginSignal(show_login)| show_login)
         .unwrap_or_else(|| RwSignal::new(false));
@@ -338,49 +329,59 @@ fn WalletCardOptions(
     buffer_signal: RwSignal<bool>,
     claimed: RwSignal<bool>,
 ) -> impl IntoView {
-    use_context().map(|WalletCardOptionsContext { is_utility_token, root, token_owner, user_principal, .. }|{
-        let share_link_coin = format!("/token/info/{root}/{user_principal}");
-        let token_owner_c = token_owner.clone();
-        let root_c = root.clone();
-        let cans_res = authenticated_canisters();
-        let airdrop_action = Action::new_local(move |&()| {
-            let cans_res = cans_res;
-            let token_owner_cans_id = token_owner_c.clone().unwrap().canister_id;
-            airdrop_popup.set(true);
-            let root = Principal::from_text(root_c.clone()).unwrap();
+    let WalletCardOptionsContext {
+        is_utility_token,
+        root,
+        token_owner,
+        user_principal,
+        ..
+    } = use_context()?;
 
-            async move {
-                if claimed.get() && !buffer_signal.get() {
-                    return Ok(());
-                }
-                buffer_signal.set(true);
-                let cans_wire = cans_res.await?;
-                let cans = Canisters::from_wire(cans_wire, expect_context())?;
-                let token_owner = cans.individual_user(token_owner_cans_id).await;
-                token_owner
-                    .request_airdrop(
-                        root,
-                        None,
-                        Into::<Nat>::into(100u64) * 10u64.pow(8),
-                        cans.user_canister(),
-                    )
-                    .await?;
-                let user = cans.individual_user(cans.user_canister()).await;
-                user.add_token(root).await?;
+    let share_link_coin = format!("/token/info/{root}/{user_principal}");
+    let token_owner_c = token_owner.clone();
+    let root_c = root.clone();
 
-                if is_utility_token {
-                    CentsAdded.send_event("airdrop".to_string(), 100);
-                }
+    let auth = auth_state();
+    let base = unauth_canisters();
+    let airdrop_action = Action::new_local(move |&()| {
+        let token_owner_cans_id = token_owner_c.clone().unwrap().canister_id;
+        airdrop_popup.set(true);
+        let root = Principal::from_text(root_c.clone()).unwrap();
+        let base = base.clone();
 
-                buffer_signal.set(false);
-                claimed.set(true);
-                Ok::<_, ServerFnError>(())
+        async move {
+            if claimed.get() && !buffer_signal.get() {
+                return Ok(());
             }
-        });
+            buffer_signal.set(true);
+            let cans = auth.auth_cans(base).await?;
+            let token_owner = cans.individual_user(token_owner_cans_id).await;
+            token_owner
+                .request_airdrop(
+                    root,
+                    None,
+                    Into::<Nat>::into(100u64) * 10u64.pow(8),
+                    cans.user_canister(),
+                )
+                .await?;
+            let user = cans.individual_user(cans.user_canister()).await;
+            user.add_token(root).await?;
 
-        let airdrop_disabled = Signal::derive(move || token_owner.is_some() && claimed.get() || token_owner.is_none());
-        view! {
-            <div class="flex items-center justify-around">
+            if is_utility_token {
+                CentsAdded.send_event(auth.event_ctx(), "airdrop".to_string(), 100);
+            }
+
+            buffer_signal.set(false);
+            claimed.set(true);
+            Ok::<_, ServerFnError>(())
+        }
+    });
+
+    let airdrop_disabled =
+        Signal::derive(move || token_owner.is_some() && claimed.get() || token_owner.is_none());
+
+    Some(view! {
+        <div class="flex items-center justify-around">
             <ActionButton disabled=is_utility_token href=format!("/token/transfer/{root}") label="Send".to_string()>
                 <SendIcon class="h-full w-full" />
             </ActionButton>
@@ -398,6 +399,5 @@ fn WalletCardOptions(
                 <Icon attr:class="h-6 w-6" icon=ChevronRightIcon />
             </ActionButton>
         </div>
-        }
     })
 }

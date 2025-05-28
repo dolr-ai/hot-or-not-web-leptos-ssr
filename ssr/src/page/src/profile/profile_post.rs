@@ -9,11 +9,8 @@ use leptos_router::{
     *,
 };
 use leptos_use::use_debounce_fn;
-use state::canisters::unauth_canisters;
-use utils::{
-    event_streaming::events::auth_canisters_store, route::failure_redirect, send_wrap,
-    try_or_redirect,
-};
+use state::canisters::{auth_state, unauth_canisters};
+use utils::{route::failure_redirect, send_wrap, try_or_redirect};
 
 use crate::scrolling_post_view::ScrollingPostView;
 
@@ -42,16 +39,18 @@ fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
         start: start_index.get_untracked() as u64,
         limit: 10,
     });
-    let auth_canister = auth_canisters_store();
+    let auth = auth_state();
     let overlay = move || {
-        if auth_canister
-            .get_untracked()
-            .map(|c| c.user_canister() == initial_post.canister_id)
-            .unwrap_or(false)
-        {
-            Some(view! { <YourProfileOverlay /> }.into_any())
-        } else {
-            None
+        view! {
+            <Suspense>
+                {move || auth.user_canister.get().map(|canister| {
+                    if canister == Ok(initial_post.canister_id) {
+                        Some(view! { <YourProfileOverlay /> }.into_any())
+                    } else {
+                        None
+                    }
+                })}
+            </Suspense>
         }
     };
 
@@ -65,10 +64,10 @@ fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
     let next_videos: Action<_, _> = Action::new_unsync(move |_| async move {
         let cursor = fetch_cursor.get_untracked();
 
-        let posts_res = if let Some(canisters) = auth_canister.get_untracked() {
+        let canisters = unauth_canisters();
+        let posts_res = if let Some(canisters) = auth.auth_cans_if_available(canisters.clone()) {
             VidStream::fetch_next_posts(cursor, &canisters, user_canister).await
         } else {
-            let canisters = unauth_canisters();
             VidStream::fetch_next_posts(cursor, &canisters, user_canister).await
         };
 
