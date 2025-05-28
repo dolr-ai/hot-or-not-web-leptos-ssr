@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::icpump::{ActionButton, ActionButtonLink};
 use crate::wallet::airdrop::AirdropPopup;
 use candid::{Nat, Principal};
@@ -94,6 +96,7 @@ pub fn TokenList(
         name: "Name".into(),
         symbol: "sym".into(),
         logo: "/img/hotornot/sats.svg".into(),
+        root: None,
     };
 
     let balance_0 = OnceResource::new(async {
@@ -112,6 +115,9 @@ pub fn TokenList(
         name: "Name1".into(),
         symbol: "sym1".into(),
         logo: "/img/hotornot/bitcoin.svg".into(),
+        root: Some(
+            Principal::from_str("67bll-riaaa-aaaaq-aaauq-cai").expect("principal to be valid"),
+        ),
     };
 
     view! {
@@ -214,6 +220,8 @@ pub struct TokenDisplayInfo {
     pub name: String,
     pub symbol: String,
     pub logo: String,
+    // Token root canister
+    pub root: Option<Principal>,
 }
 
 #[component]
@@ -228,8 +236,18 @@ pub fn FastWalletCard(
 ) -> impl IntoView {
     let _ = user_principal;
     let _ = user_canister;
-    let TokenDisplayInfo { name, symbol, logo } = display_info;
+    let TokenDisplayInfo {
+        name,
+        symbol,
+        logo,
+        root,
+    } = display_info;
 
+    let root: String = root
+        .map(|r| r.to_text())
+        .unwrap_or_else(|| name.to_lowercase());
+
+    // TODO: this pattern is not good. will improve this during refactor phase
     let share_link = RwSignal::new("".to_string());
 
     let share_message = {
@@ -247,7 +265,7 @@ pub fn FastWalletCard(
 
     provide_context(WalletCardOptionsContext {
         is_utility_token,
-        root: name.clone(),
+        root,
         // with icpump gone, there shouldn't be any token owners. but lets keep it just in case and pray the compiler optimizes things away
         token_owner: None,
         user_principal,
