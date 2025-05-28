@@ -1,6 +1,14 @@
+use codee::string::FromToStringCodec;
 use leptos::{component, prelude::*, view, IntoView, Params};
 use leptos_router::{hooks::use_query, params::Params};
-use utils::try_or_redirect_opt;
+use leptos_use::storage::use_local_storage;
+use utils::{
+    event_streaming::events::auth_canisters_store,
+    mixpanel::mixpanel_events::{
+        MixPanelEvent, MixpanelGlobalProps, MixpanelSatsToBtcConvertedProps,
+    },
+    try_or_redirect_opt,
+};
 use yral_canisters_common::utils::token::balance::TokenBalance;
 
 #[derive(Debug, PartialEq, Eq, Clone, Params)]
@@ -13,6 +21,21 @@ pub fn Failure() -> impl IntoView {
     let params = use_query::<FailureParams>();
     let FailureParams { sats } = try_or_redirect_opt!(params.get_untracked());
     let formatted_sats = TokenBalance::new(sats.into(), 0).humanize_float_truncate_to_dp(0);
+    let (is_connected, _, _) =
+        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
+    if let Some(cans) = auth_canisters_store().get_untracked() {
+        let is_logged_in = is_connected.get_untracked();
+        let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
+        MixPanelEvent::track_sats_to_btc_conversion_failed(MixpanelSatsToBtcConvertedProps {
+            user_id: global.user_id,
+            visitor_id: global.visitor_id,
+            is_logged_in: global.is_logged_in,
+            canister_id: global.canister_id,
+            is_nsfw_enabled: global.is_nsfw_enabled,
+            sats_converted: sats as f64,
+            conversion_ratio: crate::consts::SATS_TO_BTC_CONVERSION_RATIO,
+        });
+    }
     Some(view! {
         <div
             style:background-image="url('/img/pumpdump/onboarding-bg-grayscale.webp')"

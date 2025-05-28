@@ -166,6 +166,7 @@ fn HNButtonOverlay(
                             stake_type: StakeType::SATs,
                             conclusion: game_conclusion,
                             won_loss_amount: win_loss_amount,
+                            creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
                         });
                         Some(())
                     }
@@ -275,7 +276,7 @@ fn LostBadge() -> impl IntoView {
 #[component]
 fn HNWonLost(game_result: GameResult, vote_amount: u64) -> impl IntoView {
     let won = matches!(game_result, GameResult::Win { .. });
-    let creator_reward = (vote_amount * 2) / 10;
+    let creator_reward = (vote_amount * crate::consts::CREATOR_COMMISION_PERCENT) / 100;
     let message = match game_result {
         GameResult::Win { win_amt } => format!(
             "You received {} SATS, {} SATS went to the creator.",

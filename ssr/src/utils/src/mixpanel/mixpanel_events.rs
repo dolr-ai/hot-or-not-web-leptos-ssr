@@ -160,8 +160,6 @@ pub struct MixpanelSatsToBtcConvertedProps {
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
     pub sats_converted: f64,
-    pub updated_sats_wallet_balance: f64,
-    pub updated_token_wallet_balance: f64,
     pub conversion_ratio: f64,
 }
 
@@ -262,6 +260,7 @@ pub struct MixpanelGamePlayedProps {
     pub is_game_enabled: bool,
     pub conclusion: GameConclusion,
     pub won_loss_amount: String,
+    pub creator_commision_percentage: u64,
 }
 
 #[derive(Serialize)]
@@ -288,6 +287,7 @@ pub struct MixpanelVideoUploadSuccessProps {
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
     pub video_id: String,
+    pub creator_commision_percentage: u64,
     // pub publisher_user_id: String,
     pub is_game_enabled: bool,
     pub game_type: MixpanelPostGameType,
@@ -339,12 +339,16 @@ impl MixPanelEvent {
         track_event("login_success", p);
     }
 
+    pub fn track_sats_to_btc_conversion_failed(p: MixpanelSatsToBtcConvertedProps) {
+        track_event("sats_to_btc_converted", p);
+    }
+
     pub fn track_sats_to_btc_converted(p: MixpanelSatsToBtcConvertedProps) {
         track_event("sats_to_btc_converted", p);
     }
 
     pub fn track_nsfw_true(p: MixpanelNsfwToggleProps) {
-        track_event("NSFW_True", p);
+        track_event("nsfw_enabled", p);
     }
 
     pub fn track_nsfw_false(p: MixpanelNsfwToggleProps) {

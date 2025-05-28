@@ -1,8 +1,16 @@
+use codee::string::FromToStringCodec;
 use component::{back_btn::BackButton, title::TitleText};
 use leptos::prelude::*;
 use leptos_router::{hooks::use_query, params::Params};
+use leptos_use::storage::use_local_storage;
 // use utils::event_streaming::events::SatsWithdrawn;
-use utils::{event_streaming::events::SatsWithdrawn, try_or_redirect_opt};
+use utils::{
+    event_streaming::events::{auth_canisters_store, SatsWithdrawn},
+    mixpanel::mixpanel_events::{
+        MixPanelEvent, MixpanelGlobalProps, MixpanelSatsToBtcConvertedProps,
+    },
+    try_or_redirect_opt,
+};
 use yral_canisters_common::utils::token::balance::TokenBalance;
 #[derive(Debug, PartialEq, Eq, Clone, Params)]
 struct SuccessParams {
@@ -17,10 +25,25 @@ pub fn Success() -> impl IntoView {
     let formatted_sats = TokenBalance::new(sats.into(), 0).humanize_float_truncate_to_dp(0);
 
     let sats_value = formatted_sats.clone().parse::<f64>().unwrap_or(0.0);
-
+    let (is_connected, _, _) =
+        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
     Effect::new(move |_| {
         SatsWithdrawn.send_event(sats_value);
     });
+
+    if let Some(cans) = auth_canisters_store().get_untracked() {
+        let is_logged_in = is_connected.get_untracked();
+        let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
+        MixPanelEvent::track_sats_to_btc_converted(MixpanelSatsToBtcConvertedProps {
+            user_id: global.user_id,
+            visitor_id: global.visitor_id,
+            is_logged_in: global.is_logged_in,
+            canister_id: global.canister_id,
+            is_nsfw_enabled: global.is_nsfw_enabled,
+            sats_converted: sats_value,
+            conversion_ratio: crate::consts::SATS_TO_BTC_CONVERSION_RATIO,
+        });
+    }
 
     Some(view! {
         <div

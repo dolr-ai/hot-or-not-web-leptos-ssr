@@ -317,21 +317,14 @@ pub fn VideoDetailsOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> 
                         let is_logged_in = is_connected.get_untracked();
                         let global =
                             MixpanelGlobalProps::try_get_with_nsfw_info(&cans, is_logged_in, false);
-                        let is_hot_or_not = true;
-                        MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+                        MixPanelEvent::track_nsfw_true(MixpanelNsfwToggleProps {
                             user_id: global.user_id,
                             visitor_id: global.visitor_id,
                             is_logged_in: global.is_logged_in,
                             canister_id: global.canister_id,
-                            is_nsfw: post.is_nsfw,
                             is_nsfw_enabled: global.is_nsfw_enabled,
-                            is_game_enabled: is_hot_or_not,
                             publisher_user_id: post.poster_principal.to_text(),
-                            game_type: MixpanelPostGameType::HotOrNot,
-                            cta_type: MixpanelVideoClickedCTAType::NsfwTrue,
                             video_id,
-                            view_count: post.views,
-                            like_count: post.likes,
                         });
                     }
                     set_nsfw_enabled(true);
