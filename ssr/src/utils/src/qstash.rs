@@ -86,7 +86,8 @@ impl QStashClient {
         let path = format!("publish/{off_chain_ep}");
         let ep = self.base_url.join(&path).unwrap();
 
-        self.client
+        let res = self
+            .client
             .post(ep)
             .json(&req)
             .header(CONTENT_TYPE, "application/json")
@@ -94,6 +95,10 @@ impl QStashClient {
             .header("Upstash-Forward-Authorization", format!("Bearer {token}"))
             .send()
             .await?;
+        if res.status() != 200 {
+            let e = res.text().await?;
+            log::error!("Error sending analytics to qstash: {e:?}");
+        }
         Ok(())
     }
 }

@@ -43,6 +43,7 @@ jobs:
           flyctl secrets set ALLOYDB_DB_PASSWORD="$ALLOYDB_DB_PASSWORD" --app "hot-or-not-web-leptos-ssr" --stage
           flyctl secrets set ALLOYDB_SERVICE_ACCOUNT_JSON="$ALLOYDB_SERVICE_ACCOUNT_JSON" --app "hot-or-not-web-leptos-ssr" --stage
           flyctl secrets set HON_WORKER_JWT="$HON_WORKER_JWT" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set ANALYTICS_SERVER_TOKEN="$ANALYTICS_SERVER_TOKEN" --app "hot-or-not-web-leptos-ssr" --stage
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET }}
           BACKEND_ADMIN_IDENTITY: ${{ secrets.YRAL_WHITELISTED_BACKEND_GLOBAL_ADMIN_SECRET_KEY }}
@@ -62,6 +63,7 @@ jobs:
           ALLOYDB_DB_PASSWORD: ${{ secrets.HOT_OR_NOT_ALLOYDB_DB_PASSWORD }}
           ALLOYDB_SERVICE_ACCOUNT_JSON: ${{ secrets.HOT_OR_NOT_ALLOYDB_SERVICE_ACCOUNT }}
           HON_WORKER_JWT: ${{ secrets.HOT_OR_NOT_WORKER_JWT }}
+          ANALYTICS_SERVER_TOKEN: ${{ secrets.ANALYTICS_SERVER_TOKEN }}
 
       - name: Deploy a docker container to Fly.io
         run: flyctl deploy --remote-only -c fly-prod.toml
