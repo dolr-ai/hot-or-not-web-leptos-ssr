@@ -38,11 +38,11 @@ jobs:
           flyctl secrets set QSTASH_TOKEN="$QSTASH_TOKEN" --app "hot-or-not-web-leptos-ssr-staging" --stage
           flyctl secrets set GA4_API_SECRET="$GA4_API_SECRET" --app "hot-or-not-web-leptos-ssr-staging" --stage
           flyctl secrets set NSFW_GRPC_TOKEN="$NSFW_GRPC_TOKEN" --app "hot-or-not-web-leptos-ssr-staging" --stage
-          flyctl secrets set ALLOYDB_INSTANCE="$ALLOYDB_INSTANCE" --app "$APP_NAME" --stage
-          flyctl secrets set ALLOYDB_DB_PASSWORD="$ALLOYDB_DB_PASSWORD" --app "$APP_NAME" --stage
-          flyctl secrets set ALLOYDB_SERVICE_ACCOUNT_JSON="$ALLOYDB_SERVICE_ACCOUNT_JSON" --app "$APP_NAME" --stage
-          flyctl secrets set HON_WORKER_JWT="$HON_WORKER_JWT" --app "$APP_NAME" --stage
-          flyctl secrets set ANALYTICS_SERVER_TOKEN="$ANALYTICS_SERVER_TOKEN" --app "$APP_NAME" --stage
+          flyctl secrets set ALLOYDB_INSTANCE="$ALLOYDB_INSTANCE" --app "hot-or-not-web-leptos-ssr-staging" --stage
+          flyctl secrets set ALLOYDB_DB_PASSWORD="$ALLOYDB_DB_PASSWORD" --app "hot-or-not-web-leptos-ssr-staging" --stage
+          flyctl secrets set ALLOYDB_SERVICE_ACCOUNT_JSON="$ALLOYDB_SERVICE_ACCOUNT_JSON" --app "hot-or-not-web-leptos-ssr-staging" --stage
+          flyctl secrets set HON_WORKER_JWT="$HON_WORKER_JWT" --app "hot-or-not-web-leptos-ssr-staging" --stage
+          flyctl secrets set ANALYTICS_SERVER_TOKEN="$ANALYTICS_SERVER_TOKEN" --app "hot-or-not-web-leptos-ssr-staging" --stage
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET }}
           BACKEND_ADMIN_IDENTITY: ${{ secrets.YRAL_WHITELISTED_BACKEND_GLOBAL_ADMIN_SECRET_KEY }}
