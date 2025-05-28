@@ -29,6 +29,7 @@ enum CoinState {
 }
 
 impl CoinState {
+    #[allow(dead_code)]
     fn wrapping_next(self) -> Self {
         match self {
             CoinState::C10 => CoinState::C50,
