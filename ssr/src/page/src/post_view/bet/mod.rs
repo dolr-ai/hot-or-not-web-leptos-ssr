@@ -38,6 +38,7 @@ impl CoinState {
         }
     }
 
+    #[allow(dead_code)]
     fn wrapping_prev(self) -> Self {
         match self {
             CoinState::C10 => CoinState::C200,
@@ -204,7 +205,7 @@ fn HNButtonOverlay(
 
         </AuthCansProvider>
 
-        
+
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>

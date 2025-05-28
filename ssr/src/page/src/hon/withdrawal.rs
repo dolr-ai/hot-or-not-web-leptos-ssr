@@ -248,12 +248,12 @@ pub fn HonWithdrawal() -> impl IntoView {
                                 let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize && sats() > MAX_WITHDRAWAL_PER_TXN as usize;
                                 let is_claiming = is_claiming();
                                 let message = if invalid_input {
-                                    format!("Enter valid Amount. Min: {} Max: {}", MIN_WITHDRAWAL_PER_TXN, MAX_WITHDRAWAL_PER_TXN)
+                                    format!("Enter valid Amount. Min: {MIN_WITHDRAWAL_PER_TXN} Max: {MAX_WITHDRAWAL_PER_TXN}")
                                 } else {
                                     match (can_withdraw, is_claiming) {
-                                        (false, _) => format!("Not enough winnings"),
-                                        (_, true) => format!("Claiming..."),
-                                        (_, _) => format!("Withdraw Now!")
+                                        (false, _) => "Not enough winnings".to_string(),
+                                        (_, true) => "Claiming...".to_string(),
+                                        (_, _) => "Withdraw Now!".to_string()
                                     }
                                 };
                                 Some(view! {
