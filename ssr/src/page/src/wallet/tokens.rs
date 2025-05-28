@@ -80,39 +80,20 @@ pub fn TokenList(
     //     </div>
     // }
 
-    let balance_1 = OnceResource::new(async {
+    let balance = OnceResource::new(async {
         send_wrap(
-            send_wrap(reqwest::get("https://yral.com"))
+            send_wrap(reqwest::get("https://example.com"))
                 .await
                 .unwrap()
                 .text(),
         )
         .await
         .unwrap();
-        TokenBalance::new(Nat::from(100usize), 0)
+        TokenBalance::new(Nat::from(100usize) * 10_000_000usize, 7)
     });
 
-    let display_info_1 = TokenDisplayInfo {
-        name: "Name".into(),
-        symbol: "sym".into(),
-        logo: "/img/hotornot/sats.svg".into(),
-        root: None,
-    };
-
-    let balance_0 = OnceResource::new(async {
-        send_wrap(
-            send_wrap(reqwest::get("https://yral.com"))
-                .await
-                .unwrap()
-                .text(),
-        )
-        .await
-        .unwrap();
-        TokenBalance::new(Nat::from(100usize), 0)
-    });
-
-    let display_info_0 = TokenDisplayInfo {
-        name: "Name1".into(),
+    let display_info = TokenDisplayInfo {
+        name: CENT_TOKEN_NAME.into(),
         symbol: "sym1".into(),
         logo: "/img/hotornot/bitcoin.svg".into(),
         root: Some(
@@ -120,10 +101,13 @@ pub fn TokenList(
         ),
     };
 
+    let withdrawal_state = OnceResource::new(async {
+        Some(WithdrawalState::Value(Nat::from(50usize) * 10_000_000usize))
+    });
+
     view! {
         <div class="flex flex-col w-full gap-2 mb-2 items-center">
-            <FastWalletCard user_principal user_canister display_info=display_info_0 balance=balance_0 />
-            <FastWalletCard user_principal user_canister display_info=display_info_1 balance=balance_1 />
+            <FastWalletCard user_principal user_canister display_info balance withdrawal_state />
         </div>
     }
 }
@@ -225,11 +209,67 @@ pub struct TokenDisplayInfo {
 }
 
 #[component]
+pub fn WithdrawSection(
+    withdrawal_state: WithdrawalState,
+    #[prop(into)] token_name: String,
+) -> impl IntoView {
+    let withdrawer = match token_name.as_str() {
+        s if s == SATS_TOKEN_NAME => Box::new(WithdrawSats) as Withdrawer,
+        s if s == CENT_TOKEN_NAME => Box::new(WithdrawCents),
+        _ => unimplemented!("Withdrawing is not implemented for a token"),
+    };
+
+    let withdraw_url = withdrawer.withdraw_url();
+    let is_connected = auth_state().is_logged_in_with_oauth();
+    let show_login = use_context()
+        .map(|ShowLoginSignal(show_login)| show_login)
+        .unwrap_or_else(|| RwSignal::new(false));
+    let nav = use_navigate();
+    let withdraw_handle = move |_| {
+        if !is_connected() {
+            show_login.set(true);
+            return;
+        }
+
+        nav(&withdraw_url, Default::default());
+    };
+
+    let (is_withdrawable, withdraw_message, withdrawable_balance) =
+        match withdrawer.details(withdrawal_state.clone()) {
+            WithdrawDetails::CanWithdraw { amount, message } => (true, Some(message), Some(amount)),
+            WithdrawDetails::CannotWithdraw { message } => (false, Some(message), None),
+        };
+    let withdraw_cta = withdrawer.withdraw_cta();
+    let is_cents = token_name == CENT_TOKEN_NAME;
+    view! {
+        <div class="border-t border-neutral-700 flex flex-col pt-4 gap-2">
+            {is_cents.then_some(view! {
+                <div class="flex items-center">
+                    <Icon attr:class="text-neutral-300" icon=if is_withdrawable { PadlockOpen } else { PadlockClose } />
+                    <span class="text-neutral-400 text-xs mx-2">{withdraw_message}</span>
+                    <Tooltip icon=Information title="Withdrawal Tokens" description="Only Cents earned above your airdrop amount can be withdrawn." />
+                    <span class="ml-auto">{withdrawable_balance}</span>
+                </div>
+            })}
+            <button
+                class="rounded-lg px-5 py-2 text-sm text-center font-bold"
+                class=(["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled"], !is_withdrawable)
+                class=(["text-neutral-50", "bg-brand-gradient"], is_withdrawable)
+                on:click=withdraw_handle
+            >
+                {withdraw_cta}
+            </button>
+        </div>
+    }
+}
+
+#[component]
 pub fn FastWalletCard(
     user_principal: Principal,
     user_canister: Principal,
     display_info: TokenDisplayInfo,
     balance: OnceResource<TokenBalance>,
+    withdrawal_state: OnceResource<Option<WithdrawalState>>,
     #[prop(optional)] is_utility_token: bool,
     // TODO: check if we really need this now that we are not using infinite scroller
     #[prop(optional)] _ref: NodeRef<html::Div>,
@@ -274,6 +314,7 @@ pub fn FastWalletCard(
     let buffer_signal = RwSignal::new(false);
     // TODO: load this as resouce
     let claimed = RwSignal::new(true);
+    let name_c = StoredValue::new(name.clone());
 
     view! {
         <div node_ref=_ref class="flex flex-col gap-4 bg-neutral-900/90 rounded-lg w-full font-kumbh text-white p-4">
@@ -301,28 +342,17 @@ pub fn FastWalletCard(
                         <div class="text-xs">{symbol}</div>
                     </div>
                 </div>
-                // TODO: add withdrawal logic
-                // {show_withdraw_button.then_some(view! {
-                //     <div class="border-t border-neutral-700 flex flex-col pt-4 gap-2">
-                //         {is_cents.then_some(view! {
-                //             <div class="flex items-center">
-                //                 <Icon attr:class="text-neutral-300" icon=if is_withdrawable { PadlockOpen } else { PadlockClose } />
-                //                 <span class="text-neutral-400 text-xs mx-2">{withdraw_message}</span>
-                //                 <Tooltip icon=Information title="Withdrawal Tokens" description="Only Cents earned above your airdrop amount can be withdrawn." />
-                //                 <span class="ml-auto">{withdrawable_balance}</span>
-                //             </div>
-                //         })}
-                //         <button
-                //             class="rounded-lg px-5 py-2 text-sm text-center font-bold"
-                //             class=(["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled"], !is_withdrawable)
-                //             class=(["text-neutral-50", "bg-brand-gradient"], is_withdrawable)
-                //             on:click=withdraw_handle
-                //         >
-                //             {withdraw_cta}
-                //         </button>
-                //     </div>
-
-                // })}
+                <Suspense
+                    fallback=move || view! { "loading" }
+                >
+                {move || Suspend::new(async move {
+                    let withdrawal_state = withdrawal_state.await;
+                    let withdrawal_state = withdrawal_state?;
+                    Some(view! {
+                        <WithdrawSection withdrawal_state token_name=name_c.get_value() />
+                    })
+                })}
+                </Suspense>
             </div>
 
             <WalletCardOptions pop_up=pop_up.write_only() share_link=share_link.write_only() airdrop_popup buffer_signal claimed/>
