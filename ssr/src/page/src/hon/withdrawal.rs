@@ -245,7 +245,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                             }>
                             {move || {
                                 let can_withdraw = true; // all of the money can be withdrawn
-                                let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize && sats() > MAX_WITHDRAWAL_PER_TXN as usize;
+                                let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize || sats() > MAX_WITHDRAWAL_PER_TXN as usize;
                                 let is_claiming = is_claiming();
                                 let message = if invalid_input {
                                     format!("Enter valid Amount. Min: {MIN_WITHDRAWAL_PER_TXN} Max: {MAX_WITHDRAWAL_PER_TXN}")
