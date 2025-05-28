@@ -129,12 +129,6 @@ ic-certification = "2.6.0"
 ciborium = "0.2.2"
 yral-metadata-client = { git = "https://github.com/yral-dapp/yral-metadata", branch = "master" }
 yral-metadata-types = { git = "https://github.com/yral-dapp/yral-metadata", branch = "master" }
-yral-pump-n-dump-common = { git = "https://github.com/yral-dapp/yral-common", features = [
-    "client",
-], branch = "master", version = "0.1.0" }
-# yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features = [
-#     "client",
-# ], version = "0.1.0" }
 uuid = { version = "1.11.0", features = ["v4", "js"] }
 regex = { version = "1.11.1" }
 tonic-build = { version = "0.12.0", default-features = false, features = [
@@ -181,18 +175,24 @@ sentry-tower = { version = "0.37.0", features = ["axum", "axum-matched-path"] }
 #     "client",
 # ], version = "0.1.0" }
 # hon-worker-common = { path = "../yral-common/hon-worker-common", features = [ "client", ], version = "0.1.0" }
+# yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features = [
+#     "client",
+# ], version = "0.1.0" }
 # ===
-sns-validation = { git = "https://github.com/yral-dapp/yral-common.git", branch = "master" }
-yral-grpc-traits = { git = "https://github.com/yral-dapp/yral-common.git", branch = "master" }
-yral-types = { git = "https://github.com/yral-dapp/yral-common.git", branch = "master" }
-yral-qstash-types = { git = "https://github.com/yral-dapp/yral-common.git", branch = "master" }
-yral-canisters-client = { git = "https://github.com/yral-dapp/yral-common.git", branch = "master", features = [
+yral-pump-n-dump-common = { git = "https://github.com/yral-dapp/yral-common", features = [
+    "client",
+], branch = "feat/wallet-page-optimization", version = "0.1.0" }
+sns-validation = { git = "https://github.com/yral-dapp/yral-common.git", branch = "feat/wallet-page-optimization" }
+yral-grpc-traits = { git = "https://github.com/yral-dapp/yral-common.git", branch = "feat/wallet-page-optimization" }
+yral-types = { git = "https://github.com/yral-dapp/yral-common.git", branch = "feat/wallet-page-optimization" }
+yral-qstash-types = { git = "https://github.com/yral-dapp/yral-common.git", branch = "feat/wallet-page-optimization" }
+yral-canisters-client = { git = "https://github.com/yral-dapp/yral-common.git", branch = "feat/wallet-page-optimization", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/yral-dapp/yral-common.git", branch = "master" }
+yral-canisters-common = { git = "https://github.com/yral-dapp/yral-common.git", branch = "feat/wallet-page-optimization" }
 hon-worker-common = { git = "https://github.com/yral-dapp/yral-common", features = [
     "client",
-], branch = "master", version = "0.1.0" }
+], branch = "feat/wallet-page-optimization", version = "0.1.0" }
 google-cloud-alloydb-v1 = "0.2.0"
 yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adbf4be5cb62a26f2a90032261321bf1df33f08b", default-features = false }
 

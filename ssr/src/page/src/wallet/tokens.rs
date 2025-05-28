@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use crate::icpump::{ActionButton, ActionButtonLink};
 use crate::wallet::airdrop::AirdropPopup;
 use candid::{Nat, Principal};
@@ -23,9 +21,11 @@ use utils::event_streaming::events::CentsAdded;
 use utils::host::get_host;
 use utils::send_wrap;
 use yral_canisters_common::utils::token::balance::TokenBalance;
-use yral_canisters_common::utils::token::{RootType, TokenMetadata, TokenOwner};
-use yral_canisters_common::CENT_TOKEN_NAME;
-use yral_canisters_common::SATS_TOKEN_NAME;
+use yral_canisters_common::utils::token::{
+    load_cents_balance, load_sats_balance, RootType, TokenMetadata, TokenOwner,
+};
+use yral_canisters_common::{Canisters, CENT_TOKEN_NAME};
+use yral_canisters_common::{SATS_TOKEN_NAME, SATS_TOKEN_SYMBOL};
 use yral_pump_n_dump_common::WithdrawalState;
 
 use super::ShowLoginSignal;
@@ -34,6 +34,103 @@ use super::ShowLoginSignal;
 pub fn TokenViewFallback() -> impl IntoView {
     view! {
         <div class="w-full items-center h-16 rounded-xl border-2 border-neutral-700 bg-white/15 animate-pulse"></div>
+    }
+}
+
+enum BalanceFetcherType {
+    Icrc1 { ledger: Principal, decimals: u8 },
+    Sats,
+    Cents,
+}
+
+impl BalanceFetcherType {
+    async fn fetch(
+        &self,
+        cans: Canisters<false>,
+        user_canister: Principal,
+        user_principal: Principal,
+    ) -> Result<TokenBalance, ServerFnError> {
+        let res = match self {
+            BalanceFetcherType::Icrc1 { ledger, decimals } => cans
+                .icrc1_balance_of(user_principal, *ledger)
+                .await
+                .map(|b| TokenBalance::new(b, *decimals))?,
+            BalanceFetcherType::Sats => load_sats_balance(user_principal)
+                .await
+                .map(|info| TokenBalance::new(info.balance.into(), 0))?,
+            BalanceFetcherType::Cents => load_cents_balance(user_canister)
+                .await
+                .map(|info| TokenBalance::new(info.balance, 6))?,
+        };
+
+        Ok(res)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum TokenType {
+    Sats,
+    Btc,
+    Cents,
+    Dolr,
+    Usdc,
+}
+
+impl From<TokenType> for TokenDisplayInfo {
+    fn from(value: TokenType) -> Self {
+        match value {
+            TokenType::Sats => Self {
+                name: SATS_TOKEN_NAME.into(),
+                symbol: SATS_TOKEN_SYMBOL.into(),
+                logo: "/img/hotornot/sats.svg".into(),
+                root: None,
+            },
+            TokenType::Btc => Self {
+                name: "Bitcoin".into(),
+                symbol: "BTC".into(),
+                logo: "/img/hotornot/bitcoin.svg".into(),
+                root: None,
+            },
+            TokenType::Cents => Self {
+                name: CENT_TOKEN_NAME.into(),
+                symbol: CENT_TOKEN_NAME.into(),
+                logo: "/img/pumpdump/cents.webp".into(),
+                root: None,
+            },
+            TokenType::Dolr => Self {
+                name: "DOLR AI".into(),
+                symbol: "DOLR".into(),
+                logo: "/img/common/dolr.png".into(),
+                root: Some("67bll-riaaa-aaaaq-aaauq-cai".parse().unwrap()),
+            },
+            TokenType::Usdc => Self {
+                name: "USDC".into(),
+                symbol: "USDC".into(),
+                logo: "/img/common/usdc.svg".into(),
+                root: None,
+            },
+        }
+    }
+}
+
+impl From<TokenType> for BalanceFetcherType {
+    fn from(value: TokenType) -> Self {
+        match value {
+            TokenType::Sats => Self::Sats,
+            TokenType::Btc => Self::Icrc1 {
+                ledger: Principal::from_text("mxzaz-hqaaa-aaaar-qaada-cai").unwrap(),
+                decimals: 8,
+            },
+            TokenType::Cents => Self::Cents,
+            TokenType::Dolr => Self::Icrc1 {
+                ledger: Principal::from_text("6rdgd-kyaaa-aaaaq-aaavq-cai").unwrap(),
+                decimals: 8,
+            },
+            TokenType::Usdc => Self::Icrc1 {
+                ledger: Principal::from_text("xevnm-gaaaa-aaaar-qafnq-cai").unwrap(),
+                decimals: 6,
+            },
+        }
     }
 }
 
@@ -57,57 +154,37 @@ pub fn TokenList(
     // - create new methods for loading just the balance, with similar interface as `get_token_metadata`
     // - define trait `Airdroppable` that _may_ fetch airdrop status for a given token
 
-    // TODO: nuke this code patch, only needed as reference
-    // let provider = TokenRootList {
-    //     viewer_principal: logged_in_user,
-    //     canisters: unauth_canisters(),
-    //     user_canister,
-    //     user_principal,
-    //     nsfw_detector: IcpumpTokenInfo,
-    //     exclude,
-    // };
-    // view! {
-    //     <div class="flex flex-col w-full gap-2 mb-2 items-center">
-    //         <InfiniteScroller
-    //             provider
-    //             fetch_count=5
-    //             children=move |TokenListResponse{token_metadata, airdrop_claimed, root}, _ref| {
-    //                 view! {
-    //                     <WalletCard user_principal token_metadata=token_metadata is_airdrop_claimed=airdrop_claimed _ref=_ref.unwrap_or_default() is_utility_token=matches!(root, RootType::COYNS | RootType::CENTS | RootType::SATS)/>
-    //                 }
-    //             }
-    //         />
-    //     </div>
-    // }
-
-    let balance = OnceResource::new(async {
-        send_wrap(
-            send_wrap(reqwest::get("https://example.com"))
+    let balance = |token_type: TokenType| {
+        OnceResource::new(async move {
+            let fetcher: BalanceFetcherType = token_type.into();
+            send_wrap(fetcher.fetch(unauth_canisters(), user_canister, user_principal))
                 .await
                 .unwrap()
-                .text(),
-        )
-        .await
-        .unwrap();
-        TokenBalance::new(Nat::from(100usize) * 10_000_000usize, 7)
-    });
-
-    let display_info = TokenDisplayInfo {
-        name: CENT_TOKEN_NAME.into(),
-        symbol: "sym1".into(),
-        logo: "/img/hotornot/bitcoin.svg".into(),
-        root: Some(
-            Principal::from_str("67bll-riaaa-aaaaq-aaauq-cai").expect("principal to be valid"),
-        ),
+        })
     };
 
-    let withdrawal_state = OnceResource::new(async {
-        Some(WithdrawalState::Value(Nat::from(50usize) * 10_000_000usize))
-    });
+    let tokens = [
+        TokenType::Sats,
+        TokenType::Btc,
+        TokenType::Cents,
+        TokenType::Dolr,
+        TokenType::Usdc,
+    ];
 
     view! {
         <div class="flex flex-col w-full gap-2 mb-2 items-center">
-            <FastWalletCard user_principal user_canister display_info balance withdrawal_state />
+            {tokens.into_iter().map(|token_type| {
+                let display_info: TokenDisplayInfo = token_type.into();
+                let balance = balance(token_type);
+                let withdrawal_state = OnceResource::new(async {
+                    // TODO: load from source
+                    None
+                });
+
+                view! {
+                    <FastWalletCard user_principal user_canister display_info balance withdrawal_state />
+                }
+            }).collect_view()}
         </div>
     }
 }
