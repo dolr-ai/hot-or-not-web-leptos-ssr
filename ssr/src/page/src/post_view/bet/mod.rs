@@ -217,8 +217,9 @@ fn HNButtonOverlay(
         </div>
         // Bottom row: Hot <down arrow> Not
         // most of the CSS is for alignment with above icons
-        <div class="flex gap-6 justify-between items-center pt-2 w-full text-base font-medium text-center md:text-lg lg:text-xl touch-manipulation">
+        <div class="flex gap-6 justify-center items-center pt-2 w-full text-base font-medium text-center md:text-lg lg:text-xl touch-manipulation">
             <p class="w-14 md:w-16 lg:w-18">Hot</p>
+            <div class="flex justify-center w-12 md:w-14 lg:w-16"></div>
             <p class="w-14 md:w-16 lg:w-18">Not</p>
         </div>
         <ShadowBg />
