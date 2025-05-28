@@ -208,11 +208,9 @@ fn HNButtonOverlay(
 
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot />
-            <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
-                <div class:grayscale=running>
-                    <Icon attr:class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-lg" icon=C10Icon />
-                </div>
-            </button>
+            <div class:grayscale=running>
+                <Icon attr:class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-lg" icon=C10Icon />
+            </div>
             <HNButton disabled=running bet_direction kind=VoteKind::Not />
         </div>
         // Bottom row: Hot <down arrow> Not
@@ -391,7 +389,7 @@ fn ShadowBg() -> impl IntoView {
 #[component]
 pub fn HNGameOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> impl IntoView {
     let bet_direction = RwSignal::new(None::<VoteKind>);
-    let coin = RwSignal::new(CoinState::C50);
+    let coin = RwSignal::new(CoinState::C10);
 
     let refetch_bet = Trigger::new();
     let post = StoredValue::new(post);
