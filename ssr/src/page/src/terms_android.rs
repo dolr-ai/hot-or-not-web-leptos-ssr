@@ -39,7 +39,7 @@ pub fn TermsAndroid() -> impl IntoView {
         "Provide accurate information and keep it updated.",
         "Not be a convicted sex offender.",
         "Comply with all applicable laws.",
-        "Accept full responsibility for activity on your account."
+        "Accept full responsibility for activity on your account.",
     ];
 
     let csae_bullets = vec![
@@ -55,36 +55,36 @@ pub fn TermsAndroid() -> impl IntoView {
         "Sexual content involving minors or any form of abuse",
         "Content promoting violence or illegal activity",
         "Impersonation, misinformation, or threats",
-        "Content with viruses or malicious software"
+        "Content with viruses or malicious software",
     ];
 
     let moderation_bullets = vec![
         "Report inappropriate or harmful content",
-        "Expect reported content to be reviewed within 24 hours"
+        "Expect reported content to be reviewed within 24 hours",
     ];
 
     let moderation_rights_bullets = vec![
         "Remove content without prior notice",
-        "Suspend or terminate accounts in violation"
+        "Suspend or terminate accounts in violation",
     ];
 
     let user_responsibilities_bullets = vec![
         "Follow all rules and applicable laws while using the App",
         "Only post content you have rights to",
         "Not infringe on others' privacy, copyright, or legal protections",
-        "Use reporting tools responsibly and not misuse moderation features"
+        "Use reporting tools responsibly and not misuse moderation features",
     ];
 
     let blocking_bullets = vec![
         "Block or report other users",
         "Filter their content experience (e.g., by disabling NSFW content)",
-        "Control who interacts with their content and profile"
+        "Control who interacts with their content and profile",
     ];
 
     let liability_bullets = vec![
         "Damages due to app errors or downtime",
         "Content uploaded by users",
-        "Loss of data or revenue"
+        "Loss of data or revenue",
     ];
 
     view! {
@@ -226,4 +226,4 @@ pub fn TermsAndroid() -> impl IntoView {
             </div>
         </div>
     }
-} 
+}
