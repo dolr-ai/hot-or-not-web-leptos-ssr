@@ -24,7 +24,6 @@ pub mod settings;
 pub mod terms;
 pub mod terms_android;
 pub mod terms_ios;
-pub mod terms_android;
 pub mod token;
 pub mod upload;
 pub mod view_profile_redirect;
