@@ -1,5 +1,6 @@
 use leptos::prelude::ServerFnError;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen_futures::JsFuture;
 use yral_metadata_types::DeviceRegistrationToken;
 
 pub mod device_id;
@@ -8,30 +9,22 @@ pub mod device_id;
 extern "C" {
     #[wasm_bindgen(catch, js_name = getToken)]
     pub async fn get_token() -> Result<JsValue, JsValue>;
-
-    #[wasm_bindgen(catch, js_name = getNotificationPermission)]
-    pub async fn get_notification_permission() -> Result<JsValue, JsValue>;
-
-    #[wasm_bindgen(catch, js_name = deleteFcmToken)]
-    pub async fn delete_fcm_token_js() -> Result<JsValue, JsValue>;
-}
-
-pub async fn delete_fcm_token() -> Result<bool, ServerFnError> {
-    let deleted = delete_fcm_token_js()
-        .await
-        .map_err(|e| ServerFnError::new(format!("{e:?}")))?;
-    deleted.as_bool().ok_or(ServerFnError::new(
-        "Failed to parse delete_fcm_token result",
-    ))
 }
 
 pub async fn notification_permission_granted() -> Result<bool, ServerFnError> {
-    let permission = get_notification_permission()
-        .await
-        .map_err(|e| ServerFnError::new(format!("{e:?}")))?
-        .as_bool()
-        .ok_or(ServerFnError::new("Failed to get notification permission"))?;
-    Ok(permission)
+    let promise = leptos::web_sys::Notification::request_permission().map_err(|e| {
+        ServerFnError::new(format!("Failed to request notification permission: {e:?}"))
+    })?;
+    let js_value = JsFuture::from(promise).await.map_err(|e| {
+        ServerFnError::new(format!(
+            "Failed to await notification permission promise: {e:?}"
+        ))
+    })?;
+
+    let permission_string = js_value
+        .as_string()
+        .ok_or_else(|| ServerFnError::new("Failed to convert permission to string"))?;
+    Ok(permission_string == "granted")
 }
 
 pub async fn get_fcm_token() -> Result<DeviceRegistrationToken, ServerFnError> {
