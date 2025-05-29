@@ -15,14 +15,13 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::hooks::use_navigate;
-use state::app_type::AppType;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::event_streaming::events::CentsAdded;
 use utils::host::get_host;
 use utils::send_wrap;
 use yral_canisters_common::utils::token::balance::TokenBalance;
 use yral_canisters_common::utils::token::{
-    load_cents_balance, load_sats_balance, RootType, TokenMetadata, TokenOwner,
+    load_cents_balance, load_sats_balance, TokenMetadata, TokenOwner,
 };
 use yral_canisters_common::{Canisters, CENT_TOKEN_NAME};
 use yral_canisters_common::{SATS_TOKEN_NAME, SATS_TOKEN_SYMBOL};
@@ -134,25 +133,22 @@ impl From<TokenType> for BalanceFetcherType {
     }
 }
 
+impl TokenType {
+    fn is_utility_token(&self) -> bool {
+        matches!(self, Self::Sats | Self::Cents)
+    }
+}
+
 #[component]
 pub fn TokenList(
     logged_in_user: Principal,
     user_principal: Principal,
     user_canister: Principal,
 ) -> impl IntoView {
-    let app_type: AppType = AppType::select();
-    let _exclude = match app_type {
-        AppType::YRAL | AppType::Pumpdump | AppType::HotOrNot => vec![RootType::COYNS],
-        _ => vec![RootType::CENTS],
-    };
     let _ = logged_in_user;
     // TODO:
-    // - make this list static to only load `SATS, ckBTC, CENTS, DOLR, ckUSDC`
-    // - load each token's metadata (excluding balance) as static data
-    // - load each token's balance in parallel
-    // - create new methods for loading just display information like `name`, `logo`, `symbol`
-    // - create new methods for loading just the balance, with similar interface as `get_token_metadata`
-    // - define trait `Airdroppable` that _may_ fetch airdrop status for a given token
+    // - load withdrawal state
+    // - add better error handling
 
     let balance = |token_type: TokenType| {
         OnceResource::new(async move {
@@ -177,12 +173,12 @@ pub fn TokenList(
                 let display_info: TokenDisplayInfo = token_type.into();
                 let balance = balance(token_type);
                 let withdrawal_state = OnceResource::new(async {
-                    // TODO: load from source
                     None
                 });
+                let is_utility_token = token_type.is_utility_token();
 
                 view! {
-                    <FastWalletCard user_principal user_canister display_info balance withdrawal_state />
+                    <FastWalletCard user_principal user_canister display_info balance withdrawal_state is_utility_token />
                 }
             }).collect_view()}
         </div>
@@ -383,13 +379,13 @@ pub fn FastWalletCard(
     provide_context(WalletCardOptionsContext {
         is_utility_token,
         root,
-        // with icpump gone, there shouldn't be any token owners. but lets keep it just in case and pray the compiler optimizes things away
+        // with icpump gone, there shouldn't be any token owners. but lets keep
+        // it just in case; and pray the compiler optimizes things away
         token_owner: None,
         user_principal,
     });
     let airdrop_popup = RwSignal::new(false);
     let buffer_signal = RwSignal::new(false);
-    // TODO: load this as resouce
     let claimed = RwSignal::new(true);
     let name_c = StoredValue::new(name.clone());
 
