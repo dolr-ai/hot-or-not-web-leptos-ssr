@@ -1,3 +1,24 @@
+//! The wallet is currently optimized by doing the following:
+//! - Have a static list of tokens to show
+//! - Avoid loading any bits of information that is not presented on the screen
+//! - Display information like `name`, `logo`, etc, is also kept static
+//! - Each individual piece of dynamic information, like `balance`, is kept in
+//!   its own [`leptos::prelude::Resource`]
+//!
+//! However, in future it may be required that we add a dynamic number
+//! of tokens. In which case, to avoid regression, define a new type that
+//! encapsulates both statically loaded tokens and the dynamic ones:
+//! ```rs
+//! enum Token {
+//!     Static(TokenType),
+//!     Dynamic(...),
+//! }
+//! ```
+//! Which renders to [`FastWalletCard`].
+//! Then seed the list with static items before loading the dynamic tokens.
+//!
+//! This will ensure we keep the near instant loading time while also fetching items dynmically.
+
 use crate::icpump::{ActionButton, ActionButtonLink};
 use crate::wallet::airdrop::AirdropPopup;
 use candid::{Nat, Principal};
@@ -37,13 +58,23 @@ pub fn TokenViewFallback() -> impl IntoView {
     }
 }
 
+/// Different strategies for loading balances of tokens as [`yral_canisters_common::utils::token::balance::TokenBalance`]
 enum BalanceFetcherType {
+    /// Load icrc1 tokens like dolr, ckbtc, etc.
+    ///
+    /// `decimals` must be known, which allows for performance optimizations
     Icrc1 { ledger: Principal, decimals: u8 },
+    /// Load Sats balance
     Sats,
+    /// Load cents balance
     Cents,
 }
 
 impl BalanceFetcherType {
+    /// Fetch the balance based on the selected strategy
+    ///
+    /// Both `user_principal` and `user_canister` must be provided by the
+    /// caller, which allows for perfomance optimizations
     async fn fetch(
         &self,
         cans: Canisters<false>,
@@ -67,13 +98,21 @@ impl BalanceFetcherType {
     }
 }
 
+/// Different strategies for loading withdrawal state of tokens
 enum WithdrawalStateFetcherType {
+    /// Load withdrawal state for sats
     Sats,
+    /// Load withdrawal state for cents
     Cents,
+    /// Simply return `Ok(None)`, used for tokens which can't be withdrawn
     Noop,
 }
 
 impl WithdrawalStateFetcherType {
+    /// Fetch the withdrawal state based on the selected strategy
+    ///
+    /// Both `user_principal` and `user_canister` must be provided by the
+    /// caller, which allows for perfomance optimizations
     async fn fetch(
         &self,
         user_canister: Principal,
@@ -99,6 +138,9 @@ impl WithdrawalStateFetcherType {
     }
 }
 
+/// Different tokens shown statically on the wallet page
+///
+/// Can be used to select balance and withdrawal state fetching strategy.
 #[derive(Debug, Clone, Copy)]
 enum TokenType {
     Sats,
@@ -118,6 +160,8 @@ impl From<TokenType> for WithdrawalStateFetcherType {
     }
 }
 
+/// Display information for each token is loaded statically as a performance
+/// optmization
 impl From<TokenType> for TokenDisplayInfo {
     fn from(value: TokenType) -> Self {
         match value {
@@ -143,7 +187,8 @@ impl From<TokenType> for TokenDisplayInfo {
                 name: "DOLR AI".into(),
                 symbol: "DOLR".into(),
                 logo: "/img/common/dolr.png".into(),
-                root: Some("67bll-riaaa-aaaaq-aaauq-cai".parse().unwrap()),
+                // root: 67bll-riaaa-aaaaq-aaauq-cai
+                root: Some(Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 41, 1, 1])),
             },
             TokenType::Usdc => Self {
                 name: "USDC".into(),
@@ -160,16 +205,19 @@ impl From<TokenType> for BalanceFetcherType {
         match value {
             TokenType::Sats => Self::Sats,
             TokenType::Btc => Self::Icrc1 {
-                ledger: Principal::from_text("mxzaz-hqaaa-aaaar-qaada-cai").unwrap(),
+                // ledger: mxzaz-hqaaa-aaaar-qaada-cai
+                ledger: Principal::from_slice(&[0, 0, 0, 0, 2, 48, 0, 6, 1, 1]),
                 decimals: 8,
             },
             TokenType::Cents => Self::Cents,
             TokenType::Dolr => Self::Icrc1 {
-                ledger: Principal::from_text("6rdgd-kyaaa-aaaaq-aaavq-cai").unwrap(),
+                // ledger: 6rdgd-kyaaa-aaaaq-aaavq-cai
+                ledger: Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 43, 1, 1]),
                 decimals: 8,
             },
             TokenType::Usdc => Self::Icrc1 {
-                ledger: Principal::from_text("xevnm-gaaaa-aaaar-qafnq-cai").unwrap(),
+                // ledger: xevnm-gaaaa-aaaar-qafnq-cai
+                ledger: Principal::from_slice(&[0, 0, 0, 0, 2, 48, 1, 91, 1, 1]),
                 decimals: 6,
             },
         }
@@ -177,6 +225,8 @@ impl From<TokenType> for BalanceFetcherType {
 }
 
 impl TokenType {
+    /// Whether the token is maintained artifically by our platform, unlike
+    /// icrc1/2 tokens. For example, `Sats` and `Cents`
     fn is_utility_token(&self) -> bool {
         matches!(self, Self::Sats | Self::Cents)
     }
@@ -189,8 +239,6 @@ pub fn TokenList(
     user_canister: Principal,
 ) -> impl IntoView {
     let _ = logged_in_user;
-    // TODO:
-    // - add skeleton where makes sense
 
     let balance = |token_type: TokenType| {
         OnceResource::new(async move {
