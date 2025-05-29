@@ -10,6 +10,7 @@ use component::icons::{
 use component::overlay::PopupOverlay;
 use component::overlay::ShadowOverlay;
 use component::share_popup::ShareContent;
+use component::skeleton::Skeleton;
 use component::tooltip::Tooltip;
 use leptos::html;
 use leptos::prelude::*;
@@ -214,7 +215,7 @@ pub fn TokenList(
     ];
 
     view! {
-        <div class="flex flex-col w-full gap-2 mb-2 items-center">
+        <div class="flex flex-col w-full gap-2 mb-2 items-center pb-10">
             {tokens.into_iter().map(|token_type| {
                 let display_info: TokenDisplayInfo = token_type.into();
                 let balance = balance(token_type);
@@ -450,7 +451,9 @@ pub fn FastWalletCard(
                     </div>
                     <div class="flex flex-col items-end">
                         <Suspense
-                            fallback=move || view! { <pre>---</pre> }
+                            fallback=move || view! {
+                                <Skeleton class="h-3 w-10 rounded-sm text-neutral-600 [--shimmer:#27272A]" />
+                            }
                         >
                             {move || Suspend::new(async move {
                                 // show error text if balance fails to load for whatever reason
