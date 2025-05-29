@@ -66,6 +66,38 @@ impl BalanceFetcherType {
     }
 }
 
+enum WithdrawalStateFetcherType {
+    Sats,
+    Cents,
+    Noop,
+}
+
+impl WithdrawalStateFetcherType {
+    async fn fetch(
+        &self,
+        user_canister: Principal,
+        user_principal: Principal,
+    ) -> Result<Option<WithdrawalState>, ServerFnError> {
+        let res = match self {
+            Self::Sats => load_sats_balance(user_principal)
+                .await
+                .map(|info| Some(WithdrawalState::Value(info.balance.into())))?,
+            Self::Cents => load_cents_balance(user_canister).await.map(|info| {
+                if info.withdrawable == 0usize {
+                    Some(WithdrawalState::NeedMoreEarnings(
+                        (info.net_airdrop_reward - info.balance) + 1e6 as usize,
+                    ))
+                } else {
+                    Some(WithdrawalState::Value(info.withdrawable))
+                }
+            })?,
+            Self::Noop => None,
+        };
+
+        Ok(res)
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 enum TokenType {
     Sats,
@@ -73,6 +105,16 @@ enum TokenType {
     Cents,
     Dolr,
     Usdc,
+}
+
+impl From<TokenType> for WithdrawalStateFetcherType {
+    fn from(value: TokenType) -> Self {
+        match value {
+            TokenType::Sats => Self::Sats,
+            TokenType::Cents => Self::Cents,
+            _ => Self::Noop,
+        }
+    }
 }
 
 impl From<TokenType> for TokenDisplayInfo {
@@ -159,6 +201,15 @@ pub fn TokenList(
         })
     };
 
+    let withdrawal_state = |token_type: TokenType| {
+        OnceResource::new(async move {
+            let fetcher: WithdrawalStateFetcherType = token_type.into();
+            send_wrap(fetcher.fetch(user_canister, user_principal))
+                .await
+                .unwrap()
+        })
+    };
+
     let tokens = [
         TokenType::Sats,
         TokenType::Btc,
@@ -172,9 +223,7 @@ pub fn TokenList(
             {tokens.into_iter().map(|token_type| {
                 let display_info: TokenDisplayInfo = token_type.into();
                 let balance = balance(token_type);
-                let withdrawal_state = OnceResource::new(async {
-                    None
-                });
+                let withdrawal_state = withdrawal_state(token_type);
                 let is_utility_token = token_type.is_utility_token();
 
                 view! {
@@ -415,9 +464,7 @@ pub fn FastWalletCard(
                         <div class="text-xs">{symbol}</div>
                     </div>
                 </div>
-                <Suspense
-                    fallback=move || view! { "loading" }
-                >
+                <Suspense>
                 {move || Suspend::new(async move {
                     let withdrawal_state = withdrawal_state.await;
                     let withdrawal_state = withdrawal_state?;
