@@ -11,7 +11,9 @@ use leptos_router::hooks::use_query_map;
 use leptos_use::storage::use_local_storage;
 use state::canisters::auth_state;
 use utils::host::show_nsfw_content;
-use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, MixpanelHomePageViewedProps};
+use utils::mixpanel::mixpanel_events::{
+    MixPanelEvent, MixpanelGlobalProps, MixpanelHomePageViewedProps,
+};
 use utils::{
     host::{show_cdao_page, show_pnd_page},
     ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw},

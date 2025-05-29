@@ -137,38 +137,38 @@ fn HNButtonOverlay(
             match res {
                 Ok(res) => {
                     let is_logged_in = is_connected.get_untracked();
-                        let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-                        let game_conclusion = match res.game_result {
-                            GameResult::Win { .. } => GameConclusion::Win,
-                            GameResult::Loss { .. } => GameConclusion::Loss,
-                        };
-                        let win_loss_amount = match res.game_result.clone() {
-                            GameResult::Win { win_amt } => {
-                                TokenBalance::new((win_amt + bet_amount).into(), 0).humanize()
-                            }
-                            GameResult::Loss { lose_amt } => {
-                                TokenBalance::new((lose_amt + 0u64).into(), 0).humanize()
-                            }
-                        };
-                        MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
-                            user_id: global.user_id,
-                            visitor_id: global.visitor_id,
-                            is_logged_in: global.is_logged_in,
-                            canister_id: global.canister_id,
-                            is_nsfw_enabled: global.is_nsfw_enabled,
-                            game_type: MixpanelPostGameType::HotOrNot,
-                            option_chosen: bet_direction,
-                            publisher_user_id: post_mix.poster_principal.to_text(),
-                            video_id: post_mix.uid.clone(),
-                            view_count: post_mix.views,
-                            like_count: post_mix.likes,
-                            stake_amount: bet_amount,
-                            is_game_enabled: true,
-                            stake_type: StakeType::Sats,
-                            conclusion: game_conclusion,
-                            won_loss_amount: win_loss_amount,
-                            creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
-                        });
+                    let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
+                    let game_conclusion = match res.game_result {
+                        GameResult::Win { .. } => GameConclusion::Win,
+                        GameResult::Loss { .. } => GameConclusion::Loss,
+                    };
+                    let win_loss_amount = match res.game_result.clone() {
+                        GameResult::Win { win_amt } => {
+                            TokenBalance::new((win_amt + bet_amount).into(), 0).humanize()
+                        }
+                        GameResult::Loss { lose_amt } => {
+                            TokenBalance::new((lose_amt + 0u64).into(), 0).humanize()
+                        }
+                    };
+                    MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
+                        user_id: global.user_id,
+                        visitor_id: global.visitor_id,
+                        is_logged_in: global.is_logged_in,
+                        canister_id: global.canister_id,
+                        is_nsfw_enabled: global.is_nsfw_enabled,
+                        game_type: MixpanelPostGameType::HotOrNot,
+                        option_chosen: bet_direction,
+                        publisher_user_id: post_mix.poster_principal.to_text(),
+                        video_id: post_mix.uid.clone(),
+                        view_count: post_mix.views,
+                        like_count: post_mix.likes,
+                        stake_amount: bet_amount,
+                        is_game_enabled: true,
+                        stake_type: StakeType::Sats,
+                        conclusion: game_conclusion,
+                        won_loss_amount: win_loss_amount,
+                        creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
+                    });
                     Some(())
                 }
                 Err(e) => {
