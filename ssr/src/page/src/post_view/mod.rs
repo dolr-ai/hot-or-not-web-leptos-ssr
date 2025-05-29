@@ -16,7 +16,7 @@ use yral_types::post::PostItem;
 use candid::Principal;
 use codee::string::FromToStringCodec;
 use futures::StreamExt;
-use leptos::{logging, prelude::*};
+use leptos::prelude::*;
 use leptos_router::{
     hooks::{use_navigate, use_params},
     params::Params,
@@ -264,7 +264,10 @@ pub fn PostView() -> impl IntoView {
         if home_page_viewed_sent.get_untracked() {
             return;
         }
-        if let Some(global) = MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(auth.event_ctx(), nsfw_enabled.get_untracked()) {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(
+            auth.event_ctx(),
+            nsfw_enabled.get_untracked(),
+        ) {
             MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps {
                 user_id: global.user_id,
                 visitor_id: global.visitor_id,
