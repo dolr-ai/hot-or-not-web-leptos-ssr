@@ -16,14 +16,15 @@ use yral_types::post::PostItem;
 use candid::Principal;
 use codee::string::FromToStringCodec;
 use futures::StreamExt;
-use leptos::prelude::*;
+use leptos::{logging, prelude::*};
 use leptos_router::{
     hooks::{use_navigate, use_params},
     params::Params,
 };
 use leptos_use::{storage::use_local_storage, use_debounce_fn};
 use utils::{
-    posts::FetchCursor, route::failure_redirect, send_wrap, try_or_redirect, types::PostId,
+    mixpanel::mixpanel_events::*, posts::FetchCursor, route::failure_redirect, send_wrap,
+    try_or_redirect, types::PostId,
 };
 
 use video_iter::{new_video_fetch_stream, new_video_fetch_stream_auth, FeedResultType};
@@ -256,7 +257,24 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
 pub fn PostView() -> impl IntoView {
     let params = use_params::<PostParams>();
     let initial_canister_and_post = RwSignal::new(params.get_untracked().ok());
-
+    let home_page_viewed_sent = RwSignal::new(false);
+    let auth = auth_state();
+    let (nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
+    Effect::new(move |_| {
+        if home_page_viewed_sent.get_untracked() {
+            return;
+        }
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(auth.event_ctx(), nsfw_enabled.get_untracked()) {
+            MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+            });
+            home_page_viewed_sent.set(true);
+        }
+    });
     Effect::new_isomorphic(move |_| {
         if initial_canister_and_post.with_untracked(|p| p.is_some()) {
             return None;
