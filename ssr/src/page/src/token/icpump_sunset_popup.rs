@@ -9,7 +9,7 @@ pub fn IcpumpSunsetPopup() -> impl IntoView {
     view! {
         <Popup show={icpump_sunset_popup_ctx.show}>
             <div class="flex flex-col gap-4 text-center">
-                <h1 style="font-size: 3.5rem" class="font-bold pt-24">"👋"</h1>
+                <h1 style="font-size: 3.5rem" class="font-bold pt-16">"👋"</h1>
                 <div class="text-3xl font-semibold text-neutral-100">
                     "ICPump.fun is being sunset soon."
                 </div>
