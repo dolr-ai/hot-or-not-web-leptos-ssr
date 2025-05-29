@@ -405,7 +405,7 @@ pub fn FastWalletCard(
 
     let root: String = root
         .map(|r| r.to_text())
-        .unwrap_or_else(|| name.to_lowercase());
+        .unwrap_or_else(|| symbol.to_lowercase());
 
     // TODO: this pattern is not good. will improve this during refactor phase
     let share_link = RwSignal::new("".to_string());
