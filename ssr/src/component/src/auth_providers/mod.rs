@@ -8,9 +8,10 @@ use consts::REFERRAL_REWARD;
 use ic_agent::Identity;
 use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
-use state::local_storage::LocalStorageSyncContext;
-use state::{auth::auth_state, local_storage::use_referrer_store};
+use leptos_router::hooks::use_navigate;
+use state::canisters::auth_state;
 use utils::event_streaming::events::CentsAdded;
+use utils::event_streaming::events::EventCtx;
 use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, ProviderKind};
 use utils::mixpanel::mixpanel_events::MixPanelEvent;
 use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
@@ -42,13 +43,14 @@ async fn mark_user_registered(user_principal: Principal) -> Result<bool, ServerF
 
 pub async fn handle_user_login(
     canisters: Canisters<true>,
+    event_ctx: EventCtx,
     referrer: Option<Principal>,
 ) -> Result<(), ServerFnError> {
     let user_principal = canisters.identity().sender().unwrap();
     let first_time_login = mark_user_registered(user_principal).await?;
 
     if first_time_login {
-        CentsAdded.send_event("signup".to_string(), NEW_USER_SIGNUP_REWARD);
+        CentsAdded.send_event(event_ctx, "signup".to_string(), NEW_USER_SIGNUP_REWARD);
         let global = MixpanelGlobalProps::try_get(&canisters, true);
         MixPanelEvent::track_signup_success(MixpanelSignupSuccessProps {
             user_id: global.user_id,
@@ -75,7 +77,7 @@ pub async fn handle_user_login(
     match referrer {
         Some(_referee_principal) if first_time_login => {
             issue_referral_rewards(canisters.user_canister()).await?;
-            CentsAdded.send_event("referral".to_string(), REFERRAL_REWARD);
+            CentsAdded.send_event(event_ctx, "referral".to_string(), REFERRAL_REWARD);
             Ok(())
         }
         _ => Ok(()),
@@ -124,39 +126,44 @@ fn LoginProvButton<Cb: Fn(ev::MouseEvent) + 'static>(
     }
 }
 
+/// on_resolve -> a callback that returns the new principal
 #[component]
-pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) -> impl IntoView {
+pub fn LoginProviders(
+    show_modal: RwSignal<bool>,
+    lock_closing: RwSignal<bool>,
+    redirect_to: Option<String>,
+) -> impl IntoView {
     let auth = auth_state();
-    let storage_sync_ctx =
-        use_context::<LocalStorageSyncContext>().expect("LocalStorageSyncContext not provided");
 
     let processing = RwSignal::new(None);
-    let (referrer_store, _, _) = use_referrer_store();
 
     let login_action = Action::new(move |id: &DelegatedIdentityWire| {
         // Clone the necessary parts
         let id = id.clone();
+        let redirect_to = redirect_to.clone();
         // Capture the context signal setter
-        async move {
-            let referrer = referrer_store.get_untracked();
+        send_wrap(async move {
+            let referrer = auth.referrer_store.get_untracked();
+            auth.set_new_identity(id.clone(), true);
 
-            // This is some redundant work, but saves us 100+ lines of resource handling
-            let canisters =
-                send_wrap(Canisters::authenticate_with_network(id.clone(), referrer)).await?;
+            let canisters = Canisters::authenticate_with_network(id, referrer).await?;
 
-            if let Err(e) = send_wrap(handle_user_login(canisters.clone(), referrer)).await {
+            if let Err(e) = handle_user_login(canisters.clone(), auth.event_ctx(), referrer).await {
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
 
             let _ = LoginSuccessful.send_event(canisters);
 
+            if let Some(redir_loc) = redirect_to {
+                let nav = use_navigate();
+                nav(&redir_loc, Default::default());
+            }
+
             // Update the context signal instead of writing directly
-            storage_sync_ctx.account_connected.set(true);
-            auth.set(Some(id.clone()));
             show_modal.set(false);
 
             Ok::<_, ServerFnError>(())
-        }
+        })
     });
 
     let ctx = LoginProvCtx {
@@ -174,26 +181,26 @@ pub fn LoginProviders(show_modal: RwSignal<bool>, lock_closing: RwSignal<bool>) 
 
     view! {
         <div class="flex flex-col py-12 px-16 items-center gap-2 bg-neutral-900 text-white cursor-auto">
-        <h1 class="text-xl">Login to Yral</h1>
-        <img class="h-32 w-32 object-contain my-8" src="/img/yral/logo.webp" />
-        <span class="text-md">Continue with</span>
-        <div class="flex flex-col w-full gap-4 items-center">
+            <h1 class="text-xl">Login to Yral</h1>
+            <img class="h-32 w-32 object-contain my-8" src="/img/yral/logo.webp" />
+            <span class="text-md">Continue with</span>
+            <div class="flex flex-col w-full gap-4 items-center">
 
-            {
-                #[cfg(feature = "local-auth")]
-                view! {
-                    <local_storage::LocalStorageProvider></local_storage::LocalStorageProvider>
+                {
+                    #[cfg(feature = "local-auth")]
+                    view! {
+                        <local_storage::LocalStorageProvider></local_storage::LocalStorageProvider>
+                    }
                 }
-            }
-            {
-                #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-                view! { <google::GoogleAuthProvider></google::GoogleAuthProvider> }
-            }
-            <div id="tnc" class="text-white text-center">
-                By continuing you agree to our <a class="text-primary-600 underline" href="/terms-of-service">Terms of Service</a>
+                {
+                    #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
+                    view! { <google::GoogleAuthProvider></google::GoogleAuthProvider> }
+                }
+                <div id="tnc" class="text-white text-center">
+                    By continuing you agree to our <a class="text-primary-600 underline" href="/terms-of-service">Terms of Service</a>
+                </div>
             </div>
         </div>
-    </div>
     }
 }
 

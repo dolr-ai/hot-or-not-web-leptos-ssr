@@ -1,23 +1,22 @@
 use codee::string::FromToStringCodec;
 use component::back_btn::BackButton;
-use component::canisters_prov::AuthCansProvider;
 use component::title::TitleText;
 use component::{social::*, toggle::Toggle};
 use consts::NOTIFICATIONS_ENABLED_STORE;
+use leptos::either::Either;
 use leptos::html::Input;
 use leptos::web_sys::{Notification, NotificationPermission};
 use leptos::{ev, prelude::*};
 use leptos_icons::*;
+use leptos_router::components::Redirect;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
-use state::canisters::authenticated_canisters;
-use utils::event_streaming::events::account_connected_reader;
+use state::canisters::auth_state;
 use utils::host::{show_cdao_page, show_pnd_page};
 use utils::notifications::{
     get_device_registeration_token, get_fcm_token, notification_permission_granted,
 };
 use yral_canisters_common::utils::profile::ProfileDetails;
-use yral_canisters_common::Canisters;
 use yral_metadata_client::MetadataClient;
 use yral_metadata_types::error::ApiError;
 
@@ -86,7 +85,9 @@ fn ProfileLoading() -> impl IntoView {
 
 #[component]
 fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
-    let (is_connected, _) = account_connected_reader();
+    let auth_state = auth_state();
+    let is_connected = auth_state.is_logged_in_with_oauth();
+
     view! {
         <div class="basis-4/12 aspect-square overflow-clip rounded-full">
             <img class="h-full w-full object-cover" src=user_details.profile_pic_or_random() />
@@ -116,17 +117,27 @@ fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
 
 #[component]
 fn ProfileInfo() -> impl IntoView {
+    let auth = auth_state();
     view! {
-        <AuthCansProvider fallback=ProfileLoading let:canisters>
-            <ProfileLoaded user_details=canisters.profile_details() />
-        </AuthCansProvider>
+        <Suspense fallback=ProfileLoading>
+            {move || Suspend::new(async move {
+                let res = auth.cans_wire().await;
+                match res {
+                    Ok(cans) => {
+                        let user_details = cans.profile_details;
+                        Either::Left(view! { <ProfileLoaded user_details/> })
+                    }
+                    Err(e) => {
+                        Either::Right(view! { <Redirect path=format!("/error?err={e}") /> })
+                    }
+                }
+            })}
+        </Suspense>
     }
 }
 
 #[component]
 fn EnableNotifications() -> impl IntoView {
-    let (_, _) = account_connected_reader();
-
     let (notifs_enabled, set_notifs_enabled, _) =
         use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
 
@@ -137,12 +148,12 @@ fn EnableNotifications() -> impl IntoView {
 
     let toggle_ref = NodeRef::<Input>::new();
 
-    let auth_cans = authenticated_canisters();
+    let auth = auth_state();
 
     let on_token_click: Action<(), ()> = Action::new_unsync(move |()| async move {
         let metaclient: MetadataClient<false> = MetadataClient::default();
 
-        let cans = Canisters::from_wire(auth_cans.await.unwrap(), expect_context()).unwrap();
+        let cans = auth.auth_cans(expect_context()).await.unwrap();
 
         let browser_permission = Notification::permission();
         let notifs_enabled_val = notifs_enabled.get_untracked();

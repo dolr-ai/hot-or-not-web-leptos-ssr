@@ -2,7 +2,8 @@ use gloo::history::{BrowserHistory, History};
 use leptos::prelude::*;
 use leptos_router::hooks::use_query;
 use leptos_router::params::Params;
-use utils::event_streaming::events::{auth_canisters_store, ErrorEvent};
+use state::canisters::auth_state;
+use utils::event_streaming::events::ErrorEvent;
 
 #[derive(Clone, Params, PartialEq)]
 struct ServerErrParams {
@@ -46,8 +47,8 @@ pub fn ServerErrorPage() -> impl IntoView {
         ));
     });
 
-    let canister_store = auth_canisters_store();
-    ErrorEvent.send_event(error_str, canister_store);
+    let auth = auth_state();
+    ErrorEvent.send_event(auth.event_ctx(), error_str);
 
     view! { <ErrorView error /> }
 }

@@ -1,23 +1,18 @@
 mod server_impl;
 
 use crate::post_view::BetEligiblePostCtx;
-use codee::string::FromToStringCodec;
-use component::{
-    bullet_loader::BulletLoader, canisters_prov::AuthCansProvider, hn_icons::*, spinner::SpinnerFit,
-};
+use component::{bullet_loader::BulletLoader, hn_icons::*, spinner::SpinnerFit};
 use hon_worker_common::{sign_vote_request, GameInfo, GameResult, WORKER_URL};
 use ic_agent::Identity;
 use leptos::html::Audio;
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
-use leptos_use::storage::use_local_storage;
 use server_impl::vote_with_cents_on_post;
-use state::canisters::authenticated_canisters;
+use state::canisters::auth_state;
 use utils::try_or_redirect_opt;
 use utils::{mixpanel::mixpanel_events::*, send_wrap};
-use yral_canisters_common::{
-    utils::{posts::PostDetails, token::balance::TokenBalance, vote::VoteKind},
-    Canisters,
+use yral_canisters_common::utils::{
+    posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -116,63 +111,61 @@ fn HNButtonOverlay(
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
 ) -> impl IntoView {
-    let (is_connected, _, _) =
-        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
-    let place_bet_action = Action::new(
-        move |(canisters, bet_direction, bet_amount): &(Canisters<true>, VoteKind, u64)| {
-            let post_canister = post.canister_id;
-            let post_id = post.post_id;
-            let cans = canisters.clone();
-            let bet_amount = *bet_amount;
-            let bet_direction = *bet_direction;
-            let req = hon_worker_common::VoteRequest {
-                post_canister,
-                post_id,
-                vote_amount: bet_amount as u128,
-                direction: bet_direction.into(),
-            };
+    let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
 
+    let place_bet_action = Action::new(move |(bet_direction, bet_amount): &(VoteKind, u64)| {
+        let post_canister = post.canister_id;
+        let post_id = post.post_id;
+        let bet_amount = *bet_amount;
+        let bet_direction = *bet_direction;
+        let req = hon_worker_common::VoteRequest {
+            post_canister,
+            post_id,
+            vote_amount: bet_amount as u128,
+            direction: bet_direction.into(),
+        };
+
+        let post_mix = post.clone();
+        send_wrap(async move {
+            let cans = auth.auth_cans(expect_context()).await.ok()?;
             let identity = cans.identity();
             let sender = identity.sender().unwrap();
-            let sig = sign_vote_request(identity, req.clone());
+            let sig = sign_vote_request(identity, req.clone()).ok()?;
 
-            let post_mix = post.clone();
-            send_wrap(async move {
-                let sig = sig.ok()?;
-                let res = vote_with_cents_on_post(sender, req, sig).await;
-                match res {
-                    Ok(_) => {
-                        let is_logged_in = is_connected.get_untracked();
-                        let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
+            let res = vote_with_cents_on_post(sender, req, sig).await;
+            match res {
+                Ok(_) => {
+                    let is_logged_in = is_connected.get_untracked();
+                    let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
 
-                        MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
-                            user_id: global.user_id,
-                            visitor_id: global.visitor_id,
-                            is_logged_in: global.is_logged_in,
-                            canister_id: global.canister_id,
-                            is_nsfw_enabled: global.is_nsfw_enabled,
-                            game_type: MixpanelPostGameType::HotOrNot,
-                            option_chosen: bet_direction,
-                            publisher_user_id: post_mix.poster_principal.to_text(),
-                            video_id: post_mix.uid.clone(),
-                            view_count: post_mix.views,
-                            like_count: post_mix.likes,
-                            stake_amount: bet_amount,
-                            is_game_enabled: true,
-                            stake_type: StakeType::Cents,
-                            conclusion: GameConclusion::Pending,
-                            won_amount: None,
-                        });
-                        Some(())
-                    }
-                    Err(e) => {
-                        log::error!("{e}");
-                        None
-                    }
+                    MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
+                        user_id: global.user_id,
+                        visitor_id: global.visitor_id,
+                        is_logged_in: global.is_logged_in,
+                        canister_id: global.canister_id,
+                        is_nsfw_enabled: global.is_nsfw_enabled,
+                        game_type: MixpanelPostGameType::HotOrNot,
+                        option_chosen: bet_direction,
+                        publisher_user_id: post_mix.poster_principal.to_text(),
+                        video_id: post_mix.uid.clone(),
+                        view_count: post_mix.views,
+                        like_count: post_mix.likes,
+                        stake_amount: bet_amount,
+                        is_game_enabled: true,
+                        stake_type: StakeType::Cents,
+                        conclusion: GameConclusion::Pending,
+                        won_amount: None,
+                    });
+                    Some(())
                 }
-            })
-        },
-    );
+                Err(e) => {
+                    log::error!("{e}");
+                    None
+                }
+            }
+        })
+    });
     let place_bet_res = place_bet_action.value();
     Effect::new(move |_| {
         if place_bet_res.get().flatten().is_some() {
@@ -191,22 +184,15 @@ fn HNButtonOverlay(
         }
     });
 
+    Effect::new(move |_| {
+        let Some(bet_direction) = bet_direction() else {
+            return;
+        };
+        let bet_amount = coin.get_untracked().into();
+        place_bet_action.dispatch((bet_direction, bet_amount));
+    });
+
     view! {
-        <AuthCansProvider let:canisters>
-
-            {
-                Effect::new(move |_| {
-                    let Some(bet_direction) = bet_direction() else {
-                        return;
-                    };
-                    let bet_amount = coin.get_untracked().into();
-                    place_bet_action.dispatch((canisters.clone(), bet_direction, bet_amount));
-                });
-            }
-
-        </AuthCansProvider>
-
-
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot />
             <div class:grayscale=running>
@@ -418,13 +404,11 @@ pub fn HNGameOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> impl I
     //     )
     // };
 
-    let create_game_info = Resource::new(
-        move || (),
-        move |_| {
-            refetch_bet.track();
+    let auth = auth_state();
+    let create_game_info = auth.derive_resource(
+        move || refetch_bet.track(),
+        move |cans, _| {
             send_wrap(async move {
-                let cans = authenticated_canisters().await?;
-                let cans = Canisters::from_wire(cans, expect_context())?;
                 let post = post.get_value();
                 let game_info = cans
                     .fetch_game_with_sats_info(
@@ -436,6 +420,7 @@ pub fn HNGameOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> impl I
             })
         },
     );
+
     view! {
         <Suspense fallback=LoaderWithShadowBg>
 

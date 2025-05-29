@@ -9,7 +9,7 @@ use hon_worker_common::{HoNGameWithdrawReq, SatsBalanceInfo};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
-use state::{canisters::authenticated_canisters, server::HonWorkerJwt};
+use state::{canisters::auth_state, server::HonWorkerJwt};
 use utils::{send_wrap, try_or_redirect_opt};
 use yral_canisters_client::individual_user_template::{Result9, SessionType};
 use yral_canisters_common::{utils::token::balance::TokenBalance, Canisters};
@@ -131,19 +131,20 @@ fn BalanceDisplay(#[prop(into)] balance: Nat) -> impl IntoView {
 
 #[component]
 pub fn HonWithdrawal() -> impl IntoView {
-    let auth_wire = authenticated_canisters();
-    let details_res = Resource::new(
-        move || (),
-        move |_| {
+    let auth = auth_state();
+    let details_res = auth.derive_resource(
+        || (),
+        move |cans, _| {
             send_wrap(async move {
-                let cans_wire = auth_wire.await?;
-                let principal = cans_wire.profile_details.principal;
+                let principal = cans.user_principal();
+
                 load_withdrawal_details(principal)
                     .map_err(ServerFnError::new)
                     .await
             })
         },
     );
+
     let sats = RwSignal::new(0usize);
     let formated_dolrs = move || {
         format!(
@@ -165,17 +166,12 @@ pub fn HonWithdrawal() -> impl IntoView {
         sats.set(value);
     };
 
-    let auth_wire = authenticated_canisters();
     let send_claim = Action::new_local(move |&()| {
-        let auth_wire = auth_wire;
         async move {
-            let auth_wire = auth_wire.await.map_err(ServerFnError::new)?;
-
-            let cans = Canisters::from_wire(auth_wire.clone(), expect_context())
-                .map_err(ServerFnError::new)?;
+            let cans = auth.auth_cans(expect_context()).await?;
 
             // TODO: do we still need this?
-            handle_user_login(cans.clone(), None).await?;
+            handle_user_login(cans.clone(), auth.event_ctx(), None).await?;
 
             let req = hon_worker_common::WithdrawRequest {
                 receiver: cans.user_principal(),
