@@ -265,7 +265,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
                 let is_utility_token = token_type.is_utility_token();
 
                 view! {
-                    <FastWalletCard user_principal user_canister display_info balance withdrawal_state is_utility_token />
+                    <FastWalletCard user_principal display_info balance withdrawal_state is_utility_token />
                 }
             }).collect_view()}
         </div>
@@ -429,16 +429,11 @@ pub fn WithdrawSection(
 #[component]
 pub fn FastWalletCard(
     user_principal: Principal,
-    user_canister: Principal,
     display_info: TokenDisplayInfo,
     balance: OnceResource<Result<TokenBalance, ServerFnError>>,
     withdrawal_state: OnceResource<Result<Option<WithdrawalState>, ServerFnError>>,
     #[prop(optional)] is_utility_token: bool,
-    // TODO: check if we really need this now that we are not using infinite scroller
-    #[prop(optional)] _ref: NodeRef<html::Div>,
 ) -> impl IntoView {
-    let _ = user_principal;
-    let _ = user_canister;
     let TokenDisplayInfo {
         name,
         symbol,
@@ -480,7 +475,7 @@ pub fn FastWalletCard(
     let name_c = StoredValue::new(name.clone());
 
     view! {
-        <div node_ref=_ref class="flex flex-col gap-4 bg-neutral-900/90 rounded-lg w-full font-kumbh text-white p-4">
+        <div class="flex flex-col gap-4 bg-neutral-900/90 rounded-lg w-full font-kumbh text-white p-4">
             <div class="flex flex-col gap-4 p-3 rounded-sm bg-neutral-800/70">
                 <div class="w-full flex items-center justify-between">
                     <div class="flex items-center gap-2">
@@ -505,7 +500,7 @@ pub fn FastWalletCard(
                                 let err = bal.is_none();
                                 let text = bal.unwrap_or_else(|| "err".into());
                                 view! {
-                                    <div class="text-lg font-medium" class=("text-color-500", err)>{text}</div>
+                                    <div class="text-lg font-medium" class=("text-red-500", err)>{text}</div>
                                 }
                             })}
                         </Suspense>
