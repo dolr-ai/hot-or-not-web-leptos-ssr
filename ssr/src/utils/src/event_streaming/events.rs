@@ -134,13 +134,13 @@ pub struct EventUserDetails {
 #[derive(Clone, Copy)]
 pub struct EventCtx {
     pub is_connected: StoredValue<Box<dyn Fn() -> bool + Send + Sync>>,
-    pub user_details: StoredValue<Option<EventUserDetails>>,
+    pub user_details: StoredValue<Box<dyn Fn() -> Option<EventUserDetails> + Send + Sync>>,
 }
 
 impl EventCtx {
     /// DO NOT USE THIS TO RENDER DOM
     pub fn user_details(&self) -> Option<EventUserDetails> {
-        self.user_details.get_value()
+        self.user_details.with_value(|c| c())
     }
 
     pub fn is_connected(&self) -> bool {

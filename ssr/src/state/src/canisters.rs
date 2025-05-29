@@ -140,7 +140,6 @@ impl Default for AuthState {
             },
         );
 
-        let user_details_for_event_ctx = StoredValue::new(None::<EventUserDetails>);
         let canisters_resource: AuthCansResource = Resource::new(
             move || {
                 user_identity_resource.track();
@@ -152,11 +151,6 @@ impl Default for AuthState {
                     let ref_principal = referrer_principal.get_untracked();
 
                     let res = do_canister_auth(id_wire, ref_principal).await?;
-
-                    user_details_for_event_ctx.set_value(Some(EventUserDetails {
-                        details: res.profile_details.clone(),
-                        canister_id: res.user_canister,
-                    }));
 
                     Ok::<_, ServerFnError>(res)
                 })
@@ -219,7 +213,18 @@ impl Default for AuthState {
                     .get_untracked()
                     .unwrap_or_default()
             })),
-            user_details: user_details_for_event_ctx,
+            user_details: StoredValue::new(Box::new(move || {
+                canisters_resource
+                    .into_future()
+                    .now_or_never()
+                    .and_then(|c| {
+                        let cans_wire = c.ok()?;
+                        Some(EventUserDetails {
+                            details: cans_wire.profile_details.clone(),
+                            canister_id: cans_wire.user_canister,
+                        })
+                    })
+            })),
         };
 
         Self {
@@ -257,7 +262,6 @@ impl AuthState {
         self.user_principal_cookie
             .1
             .set(Some(Principal::self_authenticating(&new_identity.from_key)));
-        self.event_ctx.user_details.set_value(None);
         self.new_identity_setter.set(Some(new_identity));
     }
 
