@@ -306,6 +306,25 @@ pub fn VideoDetailsOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> 
 
             if !nsfw_enabled() && !show_nsfw_permission() {
                 show_nsfw_permission.set(true);
+                if let Some(global) = MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(ev_ctx, false)
+                {
+                    let is_hot_or_not = true;
+                    MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+                        user_id: global.user_id,
+                        visitor_id: global.visitor_id,
+                        is_logged_in: global.is_logged_in,
+                        is_nsfw: post.is_nsfw,
+                        canister_id: global.canister_id,
+                        is_nsfw_enabled: global.is_nsfw_enabled,
+                        is_game_enabled: is_hot_or_not,
+                        publisher_user_id: post.poster_principal.to_text(),
+                        game_type: MixpanelPostGameType::HotOrNot,
+                        cta_type: MixpanelVideoClickedCTAType::NsfwToggle,
+                        video_id,
+                        view_count: post.views,
+                        like_count: post.likes,
+                    });
+                }
             } else {
                 if !nsfw_enabled() && show_nsfw_permission() {
                     show_nsfw_permission.set(false);
@@ -340,7 +359,7 @@ pub fn VideoDetailsOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> 
                             is_game_enabled: is_hot_or_not,
                             publisher_user_id: post.poster_principal.to_text(),
                             game_type: MixpanelPostGameType::HotOrNot,
-                            cta_type: MixpanelVideoClickedCTAType::NsfwFalse,
+                            cta_type: MixpanelVideoClickedCTAType::NsfwToggle,
                             video_id,
                             view_count: post.views,
                             like_count: post.likes,

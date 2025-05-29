@@ -260,6 +260,22 @@ pub enum MixpanelPostGameType {
     HotOrNot,
 }
 
+impl From<VoteKind> for ChosenGameOption {
+    fn from(value: VoteKind) -> Self {
+        match value {
+            VoteKind::Hot => Self::Hot,
+            VoteKind::Not => Self::Not,
+        }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ChosenGameOption {
+    Hot,
+    Not,
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MixpanelVideoClickedCTAType {
@@ -267,8 +283,7 @@ pub enum MixpanelVideoClickedCTAType {
     Share,
     ReferAndEarn,
     Report,
-    NsfwTrue,
-    NsfwFalse,
+    NsfwToggle,
     Mute,
     Unmute,
     CreatorProfile,
@@ -304,13 +319,14 @@ pub struct MixpanelGamePlayedProps {
     pub game_type: MixpanelPostGameType,
     pub stake_amount: u64,
     pub stake_type: StakeType,
-    pub option_chosen: VoteKind,
+    pub option_chosen: ChosenGameOption,
     pub like_count: u64,
     pub view_count: u64,
     pub is_game_enabled: bool,
     pub conclusion: GameConclusion,
     pub won_loss_amount: String,
     pub creator_commision_percentage: u64,
+    pub is_nsfw: bool,
 }
 
 #[derive(Serialize)]
