@@ -5,6 +5,7 @@ use page::icpump::ai::ICPumpAi;
 use page::icpump::ICPumpLanding;
 use page::post_view::PostDetailsCacheCtx;
 use page::pumpdump::{withdrawal, PndProfilePage};
+use page::token::context::IcpumpSunsetPopupCtx;
 use state::app_type::AppType;
 // use crate::page::wallet::TestIndex;
 use crate::error_template::{AppError, ErrorTemplate};
@@ -158,6 +159,11 @@ pub fn App() -> impl IntoView {
     let app_type = AppType::select();
     let app_state = AppState::from_type(&app_type);
     provide_context(app_state.clone());
+
+    let show_icpump_sunset_popup = RwSignal::new(true);
+    provide_context(IcpumpSunsetPopupCtx {
+        show: show_icpump_sunset_popup,
+    });
 
     // Existing context providers
     provide_context(Canisters::default());
