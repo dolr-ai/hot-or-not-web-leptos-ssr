@@ -29,7 +29,9 @@ use sns_validation::{
     pbs::sns_pb::SnsInitPayload,
 };
 
-use super::{popups::TokenCreationPopup, sns_form::SnsFormState};
+use super::{
+    icpump_sunset_popup::IcpumpSunsetPopup, popups::TokenCreationPopup, sns_form::SnsFormState,
+};
 
 use icp_ledger::AccountIdentifier;
 
@@ -398,6 +400,7 @@ pub fn CreateToken() -> impl IntoView {
 
     view! {
         <Title text="ICPump - Create token" />
+        <IcpumpSunsetPopup />
         <div class="w-dvw min-h-dvh bg-black pt-4 flex flex-col gap-4" style="padding-bottom:6rem">
             <TitleText justify_center=false>
                 <div class="flex justify-between w-full">

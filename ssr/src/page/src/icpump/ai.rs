@@ -15,6 +15,8 @@ use utils::{
 use wasm_bindgen::prelude::Closure;
 use wasm_bindgen::prelude::*;
 
+use crate::token::icpump_sunset_popup::IcpumpSunsetPopup;
+
 const QUERY_LIST: [&str; 3] = [
     "Dog meme token",
     "Show tokens, latest created first",
@@ -481,6 +483,7 @@ pub fn ICPumpAi() -> impl IntoView {
 
     view! {
         <Title text="ICPump - AI Chat" />
+        <IcpumpSunsetPopup />
         <div class="h-screen w-screen block bg-black text-white">
           <div class="max-w-md flex flex-col relative w-full mx-auto h-full"
                 class:justify-center={move|| page_no.get() != 2}

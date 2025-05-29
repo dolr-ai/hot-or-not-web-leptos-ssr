@@ -3,6 +3,7 @@ use component::{
     auth_providers::handle_user_login, back_btn::BackButton,
     icons::notification_icon::NotificationIcon, title::TitleText,
 };
+use consts::{MAX_WITHDRAWAL_PER_TXN, MIN_WITHDRAWAL_PER_TXN};
 use futures::TryFutureExt;
 use hon_worker_common::{HoNGameWithdrawReq, SatsBalanceInfo};
 use leptos::prelude::*;
@@ -223,7 +224,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                                     <div class="flex gap-2 items-center">
                                         <span>You withdraw</span>
                                     </div>
-                                    <input placeholder="Min: 1500" disabled=is_claiming on:input=on_input type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-44 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg" />
+                                    <input min={MIN_WITHDRAWAL_PER_TXN} max={MAX_WITHDRAWAL_PER_TXN} placeholder=format!("Min: {}", MIN_WITHDRAWAL_PER_TXN) disabled=is_claiming on:input=on_input type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-44 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg" />
                                 </div>
                                 <div class="flex justify-between">
                                     <div class="flex gap-2 items-center">
@@ -240,15 +241,15 @@ pub fn HonWithdrawal() -> impl IntoView {
                             }>
                             {move || {
                                 let can_withdraw = true; // all of the money can be withdrawn
-                                let invalid_input = sats() < 1500usize;
+                                let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize || sats() > MAX_WITHDRAWAL_PER_TXN as usize;
                                 let is_claiming = is_claiming();
                                 let message = if invalid_input {
-                                    "Enter valid Amount"
+                                    format!("Enter valid Amount. Min: {MIN_WITHDRAWAL_PER_TXN} Max: {MAX_WITHDRAWAL_PER_TXN}")
                                 } else {
                                     match (can_withdraw, is_claiming) {
-                                        (false, _) => "Not enough winnings",
-                                        (_, true) => "Claiming...",
-                                        (_, _) => "Withdraw Now!"
+                                        (false, _) => "Not enough winnings".to_string(),
+                                        (_, true) => "Claiming...".to_string(),
+                                        (_, _) => "Withdraw Now!".to_string()
                                     }
                                 };
                                 Some(view! {
