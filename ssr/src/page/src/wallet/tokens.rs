@@ -233,13 +233,7 @@ impl TokenType {
 }
 
 #[component]
-pub fn TokenList(
-    logged_in_user: Principal,
-    user_principal: Principal,
-    user_canister: Principal,
-) -> impl IntoView {
-    let _ = logged_in_user;
-
+pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl IntoView {
     let balance = |token_type: TokenType| {
         OnceResource::new(async move {
             let fetcher: BalanceFetcherType = token_type.into();
@@ -430,7 +424,7 @@ pub fn WithdrawSection(
 }
 
 // avoid redirecting in case of error, because that will
-// render the whole wallet even if only a single system
+// render the whole wallet useless even if only a single system
 // is down
 #[component]
 pub fn FastWalletCard(
