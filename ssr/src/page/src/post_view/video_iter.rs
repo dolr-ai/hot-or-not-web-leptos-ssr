@@ -1,14 +1,11 @@
 use std::pin::Pin;
 
 use candid::Principal;
-use codee::string::JsonSerdeCodec;
 use futures::{stream::FuturesOrdered, Stream, StreamExt};
 use leptos::prelude::*;
 
-use consts::USER_CANISTER_ID_STORE;
-use leptos_use::storage::use_local_storage;
+use state::canisters::AuthState;
 use utils::{
-    event_streaming::events::auth_canisters_store,
     host::show_nsfw_content,
     ml_feed::{
         get_ml_feed_clean, get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw,
@@ -34,14 +31,78 @@ pub struct FetchVideosRes<'a> {
     pub res_type: FeedResultType,
 }
 
-pub struct VideoFetchStream<'a, const AUTH: bool> {
+pub struct VideoFetchStream<
+    'a,
+    const AUTH: bool,
+    CanFun: for<'x> AsyncFn(&'x Canisters<AUTH>, &'x AuthState) -> Result<Principal, ServerFnError>,
+> {
     canisters: &'a Canisters<AUTH>,
+    auth: AuthState,
     cursor: FetchCursor,
+    user_canister: CanFun,
 }
 
-impl<'a, const AUTH: bool> VideoFetchStream<'a, AUTH> {
-    pub fn new(canisters: &'a Canisters<AUTH>, cursor: FetchCursor) -> Self {
-        Self { canisters, cursor }
+async fn user_canister_unauth(
+    _canisters: &Canisters<false>,
+    auth: &AuthState,
+) -> Result<Principal, ServerFnError> {
+    if let Some(user_canister_id) = auth.user_canister_if_available() {
+        return Ok(user_canister_id);
+    }
+
+    let cans = auth.cans_wire().await?;
+    Ok(cans.user_canister)
+}
+
+async fn user_canister_auth(
+    canisters: &Canisters<true>,
+    _auth: &AuthState,
+) -> Result<Principal, ServerFnError> {
+    Ok(canisters.user_canister())
+}
+
+pub fn new_video_fetch_stream<'a>(
+    canisters: &'a Canisters<false>,
+    auth: AuthState,
+    cursor: FetchCursor,
+) -> VideoFetchStream<
+    'a,
+    false,
+    impl AsyncFn(&Canisters<false>, &AuthState) -> Result<Principal, ServerFnError>,
+> {
+    VideoFetchStream {
+        canisters,
+        auth,
+        cursor,
+        user_canister: user_canister_unauth,
+    }
+}
+
+pub fn new_video_fetch_stream_auth<'a>(
+    canisters: &'a Canisters<true>,
+    auth: AuthState,
+    cursor: FetchCursor,
+) -> VideoFetchStream<
+    'a,
+    true,
+    impl AsyncFn(&Canisters<true>, &AuthState) -> Result<Principal, ServerFnError>,
+> {
+    VideoFetchStream {
+        canisters,
+        auth,
+        cursor,
+        user_canister: user_canister_auth,
+    }
+}
+
+impl<
+        'a,
+        const AUTH: bool,
+        CanFun: AsyncFn(&Canisters<AUTH>, &AuthState) -> Result<Principal, ServerFnError>,
+    > VideoFetchStream<'a, AUTH, CanFun>
+{
+    async fn user_canister(&self) -> Result<Principal, ServerFnError> {
+        (self.user_canister)(self.canisters, &self.auth).await
     }
 
     pub async fn fetch_post_uids_ml_feed_chunked(
@@ -50,25 +111,7 @@ impl<'a, const AUTH: bool> VideoFetchStream<'a, AUTH> {
         allow_nsfw: bool,
         video_queue: Vec<PostDetails>,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
-        let (user_canister_id_local_storage, _, _) =
-            use_local_storage::<Option<Principal>, JsonSerdeCodec>(USER_CANISTER_ID_STORE);
-        let user_canister_id;
-        if let Some(canister_id) = user_canister_id_local_storage.get_untracked() {
-            user_canister_id = canister_id;
-        } else {
-            let cans_store = auth_canisters_store();
-            let mut cans_stream = cans_store.to_stream();
-            let cans;
-            loop {
-                if let Some(cans_val) = cans_stream.next().await.flatten() {
-                    cans = cans_val;
-                    break;
-                } else {
-                    continue;
-                }
-            }
-            user_canister_id = cans.user_canister();
-        }
+        let user_canister_id = self.user_canister().await?;
 
         let show_nsfw = allow_nsfw || show_nsfw_content();
         let top_posts = if show_nsfw {
@@ -109,18 +152,14 @@ impl<'a, const AUTH: bool> VideoFetchStream<'a, AUTH> {
             res_type: FeedResultType::MLFeed,
         })
     }
-}
 
-impl<'a> VideoFetchStream<'a, true> {
     pub async fn fetch_post_uids_mlfeed_cache_chunked(
         &self,
         chunks: usize,
         allow_nsfw: bool,
         video_queue: Vec<PostDetails>,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
-        let cans_true = self.canisters;
-
-        let user_canister_id = cans_true.user_canister();
+        let user_canister_id = self.user_canister().await?;
 
         let show_nsfw = allow_nsfw || show_nsfw_content();
         let top_posts = if show_nsfw {

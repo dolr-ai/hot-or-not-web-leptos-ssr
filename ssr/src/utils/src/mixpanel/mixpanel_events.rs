@@ -11,6 +11,8 @@ use wasm_bindgen::JsValue;
 use yral_canisters_common::utils::vote::VoteKind;
 use yral_canisters_common::Canisters;
 
+use crate::event_streaming::events::EventCtx;
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = mixpanel, catch)]
@@ -97,6 +99,27 @@ impl MixpanelGlobalProps {
         }
     }
 
+    pub fn from_ev_ctx(ev_ctx: EventCtx) -> Option<Self> {
+        let (is_nsfw_enabled, _, _) =
+            use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
+        let is_nsfw_enabled = is_nsfw_enabled.get_untracked();
+
+        Self::from_ev_ctx_with_nsfw_info(ev_ctx, is_nsfw_enabled)
+    }
+
+    pub fn from_ev_ctx_with_nsfw_info(ev_ctx: EventCtx, is_nsfw_enabled: bool) -> Option<Self> {
+        let user = ev_ctx.user_details()?;
+        let is_logged_in = ev_ctx.is_connected();
+
+        Some(Self {
+            user_id: is_logged_in.then(|| user.details.principal()),
+            visitor_id: (!is_logged_in).then(|| user.details.principal()),
+            is_logged_in,
+            canister_id: user.canister_id.to_text(),
+            is_nsfw_enabled,
+        })
+    }
+
     pub fn try_get_with_nsfw_info(
         cans: &Canisters<true>,
         is_logged_in: bool,
@@ -173,6 +196,7 @@ pub struct MixpanelNsfwToggleProps {
     pub is_nsfw_enabled: bool,
     pub publisher_user_id: String,
     pub video_id: String,
+    pub is_nsfw: bool,
 }
 
 #[derive(Serialize)]
@@ -274,7 +298,7 @@ pub enum GameConclusion {
 #[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum StakeType {
-    SATs,
+    Sats,
     Cents,
 }
 

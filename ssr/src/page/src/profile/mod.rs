@@ -7,27 +7,21 @@ mod speculation;
 mod tokens;
 
 use candid::Principal;
-use codee::string::FromToStringCodec;
 use component::connect::ConnectLogin;
-use consts::USER_PRINCIPAL_STORE;
 use indexmap::IndexSet;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_meta::*;
 use leptos_router::{components::Redirect, hooks::use_params, params::Params};
-use leptos_use::use_cookie;
 use posts::ProfilePosts;
 use speculation::ProfileSpeculations;
 use state::{
     app_state::AppState,
-    canisters::{authenticated_canisters, unauth_canisters},
+    canisters::{auth_state, unauth_canisters},
 };
 use tokens::ProfileTokens;
-use utils::{event_streaming::events::account_connected_reader, send_wrap};
-use yral_canisters_common::{
-    utils::{posts::PostDetails, profile::ProfileDetails},
-    Canisters,
-};
+use utils::send_wrap;
+use yral_canisters_common::utils::{posts::PostDetails, profile::ProfileDetails};
 
 #[derive(Clone, Default)]
 pub struct ProfilePostsContext {
@@ -50,17 +44,18 @@ struct TabsParam {
 #[component]
 fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl IntoView {
     let param = use_params::<TabsParam>();
+    let tab = Signal::derive(move || {
+        param
+            .get()
+            .map(|t| t.tab)
+            .unwrap_or_else(move |_| "tokens".to_string())
+    });
 
-    let current_tab = Memo::new(move |_| {
-        param.with(|p| {
-            let tab = p.as_ref().map(|p| p.tab.as_str()).unwrap_or("tokens");
-            match tab {
-                "posts" => 0,
-                "stakes" => 1,
-                "tokens" => 2,
-                _ => 0,
-            }
-        })
+    let current_tab = Memo::new(move |_| match tab.get().as_str() {
+        "posts" => 0,
+        "stakes" => 1,
+        "tokens" => 2,
+        _ => 0,
     });
 
     let tab_class = move |tab_id: usize| {
@@ -105,12 +100,14 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
 
 #[component]
 fn ProfileViewInner(user: ProfileDetails, user_canister: Principal) -> impl IntoView {
+    let user_principal = user.principal;
     let username_or_principal = user.username_or_principal();
     let profile_pic = user.profile_pic_or_random();
     let display_name = user.display_name_or_fallback();
     let _earnings = user.lifetime_earnings;
-    let (is_connected, _) = account_connected_reader();
-    let (viewer_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
+
+    let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
 
     view! {
         <div class="min-h-screen bg-black text-white overflow-y-auto pt-10 pb-12">
@@ -131,18 +128,28 @@ fn ProfileViewInner(user: ProfileDetails, user_canister: Principal) -> impl Into
                             >
                                 {display_name}
                             </span>
-                            <Show when=move || !is_connected() && viewer_principal.get().map(|v| v.to_text() == username_or_principal).unwrap_or(false)>
-                                <div class="md:w-4/12 w-6/12 pt-5">
-                                    <ConnectLogin cta_location="profile" />
-                                </div>
-                            </Show>
+                            <Suspense>
+                            {move || auth.user_principal.get().map(|v| {
+                                view! {
+                                    <Show when=move || !is_connected() && v == Ok(user_principal)>
+                                        <div class="md:w-4/12 w-6/12 pt-5">
+                                            <ConnectLogin
+                                                cta_location="profile"
+                                                redirect_to=format!("/profile/posts")
+                                            />
+                                        </div>
+                                    </Show>
+                                }
+                            })}
+                            </Suspense>
                         </div>
                     </div>
                 </div>
-                <ListSwitcher1 user_canister user_principal=user.principal />
+                <ListSwitcher1 user_canister user_principal />
             </div>
         </div>
-    }.into_any()
+    }
+    .into_any()
 }
 #[component]
 pub fn ProfileView() -> impl IntoView {
@@ -156,13 +163,10 @@ pub fn ProfileView() -> impl IntoView {
         })
     };
 
-    let auth_cans = authenticated_canisters();
-
-    let profile_info_res = Resource::new(param_principal, move |principal| {
+    let auth = auth_state();
+    let profile_info_res = auth.derive_resource(param_principal, move |cans, principal| {
         send_wrap(async move {
-            let cans_wire = auth_cans.await?;
-            let canisters = Canisters::from_wire(cans_wire.clone(), expect_context())?;
-            let user_principal = canisters.user_principal();
+            let user_principal = cans.user_principal();
 
             let Some(principal) = principal else {
                 return Ok::<_, ServerFnError>((
@@ -171,8 +175,8 @@ pub fn ProfileView() -> impl IntoView {
                 ));
             };
             if user_principal == principal {
-                let details = cans_wire.profile_details.clone();
-                let user_canister = canisters.user_canister();
+                let details = cans.profile_details();
+                let user_canister = cans.user_canister();
                 return Ok((Some((details, user_canister)), None));
             }
             let canisters = unauth_canisters();

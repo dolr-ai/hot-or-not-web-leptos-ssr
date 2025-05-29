@@ -1,52 +1,45 @@
 use auth::logout_identity;
 use codee::string::FromToStringCodec;
 use component::loading::Loading;
-use consts::{ACCOUNT_CONNECTED_STORE, NOTIFICATIONS_ENABLED_STORE};
+use consts::NOTIFICATIONS_ENABLED_STORE;
 use leptos::prelude::*;
 use leptos_router::components::Redirect;
 use leptos_use::storage::use_local_storage;
-use state::auth::auth_state;
-use utils::{
-    event_streaming::events::{auth_canisters_store, LogoutClicked, LogoutConfirmation},
-    try_or_redirect_opt,
-};
+use state::canisters::auth_state;
+use utils::event_streaming::events::{LogoutClicked, LogoutConfirmation};
 
 #[component]
 pub fn Logout() -> impl IntoView {
-    let canister_store = auth_canisters_store();
-
-    LogoutClicked.send_event(canister_store);
     let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
+    LogoutClicked.send_event(ev_ctx);
+
+    let auth_res = OnceResource::new_blocking(logout_identity());
+
     let (_, set_notifs_enabled, _) =
         use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
-    let auth_res = Resource::new_blocking(
-        || (),
-        move |_| async move {
-            let id = try_or_redirect_opt!(logout_identity().await);
-
-            LogoutConfirmation.send_event(canister_store);
-
-            let (_, write_account_connected, _) =
-                use_local_storage::<bool, FromToStringCodec>(ACCOUNT_CONNECTED_STORE);
-            write_account_connected(false);
-            set_notifs_enabled(false);
-            Some(id)
-        },
-    );
 
     view! {
         <Loading text="Logging out...".to_string()>
             <Suspense>
-                {move || {
-                    auth_res
-                        .get()
-                        .flatten()
-                        .map(|id| {
-                            auth.set(Some(id));
-                            view! { <Redirect path="/menu" /> }
-                        })
-                }}
-
+                {move || Suspend::new(async move {
+                    let res = auth_res.await;
+                    match res {
+                        Ok(id) => {
+                            auth.set_new_identity(id, false);
+                            set_notifs_enabled(false);
+                            LogoutConfirmation.send_event(ev_ctx);
+                            view! {
+                                <Redirect path="/menu" />
+                            }
+                        },
+                        Err(e) => {
+                            view! {
+                                <Redirect path=format!("/error?err={e}") />
+                            }
+                        }
+                    }
+                })}
             </Suspense>
         </Loading>
     }

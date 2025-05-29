@@ -1,11 +1,11 @@
 use crate::nav_icons::*;
 use candid::Principal;
 use codee::string::FromToStringCodec;
-use consts::USER_PRINCIPAL_STORE;
+use consts::{AUTH_UTIL_COOKIES_MAX_AGE_MS, USER_PRINCIPAL_STORE};
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_router::hooks::use_location;
-use leptos_use::use_cookie;
+use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use state::app_type::AppType;
 
 #[derive(Clone)]
@@ -27,7 +27,12 @@ enum NavItemRenderData {
 fn pnd_nav_items() -> Vec<NavItem> {
     let cur_location = use_location();
     let path = cur_location.pathname;
-    let (user_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
+    let (user_principal, _) = use_cookie_with_options::<Principal, FromToStringCodec>(
+        USER_PRINCIPAL_STORE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(AUTH_UTIL_COOKIES_MAX_AGE_MS),
+    );
     let home_path = RwSignal::new("/".to_string());
     vec![
         NavItem {
@@ -81,7 +86,12 @@ fn pnd_nav_items() -> Vec<NavItem> {
 fn yral_nav_items() -> Vec<NavItem> {
     let cur_location = use_location();
     let path = cur_location.pathname;
-    let (user_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
+    let (user_principal, _) = use_cookie_with_options::<Principal, FromToStringCodec>(
+        USER_PRINCIPAL_STORE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(AUTH_UTIL_COOKIES_MAX_AGE_MS),
+    );
     let home_path = RwSignal::new("/".to_string());
     vec![
         NavItem {
@@ -141,7 +151,12 @@ fn yral_nav_items() -> Vec<NavItem> {
 fn icpump_nav_items() -> Vec<NavItem> {
     let cur_location = use_location();
     let path = cur_location.pathname;
-    let (user_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
+    let (user_principal, _) = use_cookie_with_options::<Principal, FromToStringCodec>(
+        USER_PRINCIPAL_STORE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(AUTH_UTIL_COOKIES_MAX_AGE_MS),
+    );
     let home_path = RwSignal::new("/".to_string());
     vec![
         NavItem {
