@@ -189,24 +189,19 @@ pub fn TokenList(
 ) -> impl IntoView {
     let _ = logged_in_user;
     // TODO:
-    // - load withdrawal state
-    // - add better error handling
+    // - add skeleton where makes sense
 
     let balance = |token_type: TokenType| {
         OnceResource::new(async move {
             let fetcher: BalanceFetcherType = token_type.into();
-            send_wrap(fetcher.fetch(unauth_canisters(), user_canister, user_principal))
-                .await
-                .unwrap()
+            send_wrap(fetcher.fetch(unauth_canisters(), user_canister, user_principal)).await
         })
     };
 
     let withdrawal_state = |token_type: TokenType| {
         OnceResource::new(async move {
             let fetcher: WithdrawalStateFetcherType = token_type.into();
-            send_wrap(fetcher.fetch(user_canister, user_principal))
-                .await
-                .unwrap()
+            send_wrap(fetcher.fetch(user_canister, user_principal)).await
         })
     };
 
@@ -385,13 +380,16 @@ pub fn WithdrawSection(
     }
 }
 
+// avoid redirecting in case of error, because that will
+// render the whole wallet even if only a single system
+// is down
 #[component]
 pub fn FastWalletCard(
     user_principal: Principal,
     user_canister: Principal,
     display_info: TokenDisplayInfo,
-    balance: OnceResource<TokenBalance>,
-    withdrawal_state: OnceResource<Option<WithdrawalState>>,
+    balance: OnceResource<Result<TokenBalance, ServerFnError>>,
+    withdrawal_state: OnceResource<Result<Option<WithdrawalState>, ServerFnError>>,
     #[prop(optional)] is_utility_token: bool,
     // TODO: check if we really need this now that we are not using infinite scroller
     #[prop(optional)] _ref: NodeRef<html::Div>,
@@ -455,9 +453,14 @@ pub fn FastWalletCard(
                             fallback=move || view! { <pre>---</pre> }
                         >
                             {move || Suspend::new(async move {
-                                let b = balance.await;
+                                // show error text if balance fails to load for whatever reason
+                                // error logs are captured by sentry
+                                let bal = balance.await.inspect_err(|err| {log::error!("balance loading error: {err:?}");}).ok();
+                                let bal = bal.map(|b| b.humanize_float_truncate_to_dp(8));
+                                let err = bal.is_none();
+                                let text = bal.unwrap_or_else(|| "err".into());
                                 view! {
-                                    <div class="text-lg font-medium">{b.humanize_float_truncate_to_dp(8)}</div>
+                                    <div class="text-lg font-medium" class=("text-color-500", err)>{text}</div>
                                 }
                             })}
                         </Suspense>
@@ -466,7 +469,9 @@ pub fn FastWalletCard(
                 </div>
                 <Suspense>
                 {move || Suspend::new(async move {
-                    let withdrawal_state = withdrawal_state.await;
+                    // withdraw section wont show in case of error
+                    // error logs are captured by sentry
+                    let withdrawal_state = withdrawal_state.await.inspect_err(|err| log::error!("withdrawal state loading error: {err:?}")).ok().flatten();
                     let withdrawal_state = withdrawal_state?;
                     Some(view! {
                         <WithdrawSection withdrawal_state token_name=name_c.get_value() />
