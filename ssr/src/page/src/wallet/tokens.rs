@@ -33,6 +33,9 @@ use component::overlay::ShadowOverlay;
 use component::share_popup::ShareContent;
 use component::skeleton::Skeleton;
 use component::tooltip::Tooltip;
+use consts::{
+    CKBTC_LEDGER_CANISTER, DOLR_AI_LEDGER_CANISTER, DOLR_AI_ROOT_CANISTER, USDC_LEDGER_CANISTER,
+};
 use leptos::html;
 use leptos::prelude::*;
 use leptos_icons::*;
@@ -60,21 +63,14 @@ pub fn TokenViewFallback() -> impl IntoView {
 
 /// Different strategies for loading balances of tokens as [`yral_canisters_common::utils::token::balance::TokenBalance`]
 enum BalanceFetcherType {
-    /// Load icrc1 tokens like dolr, ckbtc, etc.
-    ///
-    /// `decimals` must be known, which allows for performance optimizations
     Icrc1 { ledger: Principal, decimals: u8 },
-    /// Load Sats balance
     Sats,
-    /// Load cents balance
     Cents,
 }
 
 impl BalanceFetcherType {
-    /// Fetch the balance based on the selected strategy
-    ///
-    /// Both `user_principal` and `user_canister` must be provided by the
-    /// caller, which allows for perfomance optimizations
+    // Both `user_principal` and `user_canister` must be provided by the
+    // caller, which allows for perfomance optimizations
     async fn fetch(
         &self,
         cans: Canisters<false>,
@@ -100,19 +96,15 @@ impl BalanceFetcherType {
 
 /// Different strategies for loading withdrawal state of tokens
 enum WithdrawalStateFetcherType {
-    /// Load withdrawal state for sats
     Sats,
-    /// Load withdrawal state for cents
     Cents,
     /// Simply return `Ok(None)`, used for tokens which can't be withdrawn
     Noop,
 }
 
 impl WithdrawalStateFetcherType {
-    /// Fetch the withdrawal state based on the selected strategy
-    ///
-    /// Both `user_principal` and `user_canister` must be provided by the
-    /// caller, which allows for perfomance optimizations
+    // Both `user_principal` and `user_canister` must be provided by the
+    // caller, which allows for perfomance optimizations
     async fn fetch(
         &self,
         user_canister: Principal,
@@ -138,9 +130,6 @@ impl WithdrawalStateFetcherType {
     }
 }
 
-/// Different tokens shown statically on the wallet page
-///
-/// Can be used to select balance and withdrawal state fetching strategy.
 #[derive(Debug, Clone, Copy)]
 enum TokenType {
     Sats,
@@ -169,32 +158,31 @@ impl From<TokenType> for TokenDisplayInfo {
                 name: SATS_TOKEN_NAME.into(),
                 symbol: SATS_TOKEN_SYMBOL.into(),
                 logo: "/img/hotornot/sats.svg".into(),
-                root: None,
+                token_root_canister: None,
             },
             TokenType::Btc => Self {
                 name: "Bitcoin".into(),
                 symbol: "BTC".into(),
                 logo: "/img/hotornot/bitcoin.svg".into(),
-                root: None,
+                token_root_canister: None,
             },
             TokenType::Cents => Self {
                 name: CENT_TOKEN_NAME.into(),
                 symbol: CENT_TOKEN_NAME.into(),
                 logo: "/img/pumpdump/cents.webp".into(),
-                root: None,
+                token_root_canister: None,
             },
             TokenType::Dolr => Self {
                 name: "DOLR AI".into(),
                 symbol: "DOLR".into(),
-                logo: "/img/common/dolr.png".into(),
-                // root: 67bll-riaaa-aaaaq-aaauq-cai
-                root: Some(Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 41, 1, 1])),
+                logo: "/img/common/dolr.svg".into(),
+                token_root_canister: Some(DOLR_AI_ROOT_CANISTER.parse().unwrap()),
             },
             TokenType::Usdc => Self {
                 name: "USDC".into(),
                 symbol: "USDC".into(),
                 logo: "/img/common/usdc.svg".into(),
-                root: None,
+                token_root_canister: None,
             },
         }
     }
@@ -205,19 +193,16 @@ impl From<TokenType> for BalanceFetcherType {
         match value {
             TokenType::Sats => Self::Sats,
             TokenType::Btc => Self::Icrc1 {
-                // ledger: mxzaz-hqaaa-aaaar-qaada-cai
-                ledger: Principal::from_slice(&[0, 0, 0, 0, 2, 48, 0, 6, 1, 1]),
+                ledger: CKBTC_LEDGER_CANISTER.parse().unwrap(),
                 decimals: 8,
             },
             TokenType::Cents => Self::Cents,
             TokenType::Dolr => Self::Icrc1 {
-                // ledger: 6rdgd-kyaaa-aaaaq-aaavq-cai
-                ledger: Principal::from_slice(&[0, 0, 0, 0, 2, 0, 0, 43, 1, 1]),
+                ledger: DOLR_AI_LEDGER_CANISTER.parse().unwrap(),
                 decimals: 8,
             },
             TokenType::Usdc => Self::Icrc1 {
-                // ledger: xevnm-gaaaa-aaaar-qafnq-cai
-                ledger: Principal::from_slice(&[0, 0, 0, 0, 2, 48, 1, 91, 1, 1]),
+                ledger: USDC_LEDGER_CANISTER.parse().unwrap(),
                 decimals: 6,
             },
         }
@@ -364,8 +349,7 @@ pub struct TokenDisplayInfo {
     pub name: String,
     pub symbol: String,
     pub logo: String,
-    // Token root canister
-    pub root: Option<Principal>,
+    pub token_root_canister: Option<Principal>,
 }
 
 #[component]
@@ -438,10 +422,10 @@ pub fn FastWalletCard(
         name,
         symbol,
         logo,
-        root,
+        token_root_canister,
     } = display_info;
 
-    let root: String = root
+    let root: String = token_root_canister
         .map(|r| r.to_text())
         .unwrap_or_else(|| symbol.to_lowercase());
 
