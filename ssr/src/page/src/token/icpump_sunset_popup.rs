@@ -11,10 +11,10 @@ pub fn IcpumpSunsetPopup() -> impl IntoView {
             <div class="flex flex-col gap-4 text-center">
                 <h1 style="font-size: 3.5rem" class="font-bold pt-24">"👋"</h1>
                 <div class="text-3xl font-semibold text-neutral-100">
-                    "ICPum.fun is being sunset soon."
+                    "ICPump.fun is being sunset soon."
                 </div>
                 <div class="text-neutral-200 text-xl">
-                    "All created tokens will be dissolved. In case of any concerns, <br/>please reach out to us on " <a href="https://t.me/HotOrNot_app" target="_blank" class="underline">Telegram</a>
+                    "All created tokens will be dissolved. In case of any concerns, please reach out to us on " <a href="https://t.me/HotOrNot_app" target="_blank" class="underline">Telegram</a>
                 </div>
             </div>
         </Popup>
