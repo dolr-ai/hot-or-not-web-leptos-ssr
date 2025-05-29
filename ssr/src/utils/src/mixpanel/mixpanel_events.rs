@@ -4,6 +4,8 @@ use leptos::logging;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_use::storage::use_local_storage;
+use leptos_use::use_timeout_fn;
+use leptos_use::UseTimeoutFnReturn;
 use serde::Serialize;
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
@@ -100,24 +102,38 @@ impl MixpanelGlobalProps {
     }
 
     pub fn from_ev_ctx(ev_ctx: EventCtx) -> Option<Self> {
-        let (is_nsfw_enabled, _, _) =
-            use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
-        let is_nsfw_enabled = is_nsfw_enabled.get_untracked();
+        #[cfg(not(feature = "hydrate"))]
+        {
+            return None;
+        }
+        #[cfg(feature = "hydrate")]
+        {
+            let (is_nsfw_enabled, _, _) =
+                use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
+            let is_nsfw_enabled = is_nsfw_enabled.get_untracked();
 
-        Self::from_ev_ctx_with_nsfw_info(ev_ctx, is_nsfw_enabled)
+            Self::from_ev_ctx_with_nsfw_info(ev_ctx, is_nsfw_enabled)
+        }
     }
 
     pub fn from_ev_ctx_with_nsfw_info(ev_ctx: EventCtx, is_nsfw_enabled: bool) -> Option<Self> {
-        let user = ev_ctx.user_details()?;
-        let is_logged_in = ev_ctx.is_connected();
+        #[cfg(not(feature = "hydrate"))]
+        {
+            return None;
+        }
+        #[cfg(feature = "hydrate")]
+        {
+            let user = ev_ctx.user_details()?;
+            let is_logged_in = ev_ctx.is_connected();
 
-        Some(Self {
-            user_id: is_logged_in.then(|| user.details.principal()),
-            visitor_id: (!is_logged_in).then(|| user.details.principal()),
-            is_logged_in,
-            canister_id: user.canister_id.to_text(),
-            is_nsfw_enabled,
-        })
+            Some(Self {
+                user_id: is_logged_in.then(|| user.details.principal()),
+                visitor_id: (!is_logged_in).then(|| user.details.principal()),
+                is_logged_in,
+                canister_id: user.canister_id.to_text(),
+                is_nsfw_enabled,
+            })
+        }
     }
 
     pub fn try_get_with_nsfw_info(
@@ -150,6 +166,16 @@ pub struct MixpanelHomePageViewedProps {
     pub is_logged_in: bool,
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
+}
+
+#[derive(Serialize, Clone)]
+pub struct MixpanelPageViewedProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub page: String,
 }
 
 #[derive(Serialize)]
@@ -353,6 +379,27 @@ impl MixPanelEvent {
     }
     pub fn track_home_page_viewed(p: MixpanelHomePageViewedProps) {
         track_event("home_page_viewed", p);
+    }
+
+    pub fn track_page_viewed(p: MixpanelPageViewedProps) {
+        let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
+            move |_| {
+                let props = p.clone();
+                if props.page == "/" {
+                    let home_props = props.clone();
+                    Self::track_home_page_viewed(MixpanelHomePageViewedProps {
+                        user_id: home_props.user_id,
+                        visitor_id: home_props.visitor_id,
+                        is_logged_in: home_props.is_logged_in,
+                        canister_id: home_props.canister_id,
+                        is_nsfw_enabled: home_props.is_nsfw_enabled,
+                    });
+                }
+                track_event("page_viewed", props);
+            },
+            10000.0,
+        );
+        start(());
     }
 
     pub fn track_signup_success(p: MixpanelSignupSuccessProps) {
