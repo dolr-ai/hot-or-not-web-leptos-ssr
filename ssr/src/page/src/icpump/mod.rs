@@ -34,6 +34,7 @@ use utils::token::firestore::listen_to_documents;
 use utils::token::icpump::get_paginated_token_list;
 use utils::token::icpump::TokenListItem;
 
+use crate::token::icpump_sunset_popup::IcpumpSunsetPopup;
 use crate::wallet::airdrop::AirdropPopup;
 use component::overlay::ShadowOverlay;
 
@@ -251,6 +252,7 @@ pub fn ICPumpLanding() -> impl IntoView {
     // TODO: add the pump-ai icon here, as shown in the new ui for pnd game
     view! {
         <Title text="ICPump - Home" />
+        <IcpumpSunsetPopup />
         <div class="min-h-screen bg-black text-white  flex flex-col gap-4 px-4 md:px-8 py-6 font-kumbh">
             <div class="flex lg:flex-row gap-4 flex-col items-center justify-center">
                 <div class="lg:left-0 lg:top-0 flex items-center gap-4">
