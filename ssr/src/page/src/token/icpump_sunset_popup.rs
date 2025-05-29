@@ -14,7 +14,7 @@ pub fn IcpumpSunsetPopup() -> impl IntoView {
                 "icpump.fun is being sunset soon."
                 </div>
                 <div class="text-neutral-500">
-                "All created tokens will be dissolved in case of any concerns please reach out to us on" <a href="https://t.me/HotOrNot_app" target="_blank" class="underline">Telegram</a>
+                "All created tokens will be dissolved. In case of any concerns, please reach out to us on " <a href="https://t.me/HotOrNot_app" target="_blank" class="underline">Telegram</a>
                 </div>
             </div>
         </Popup>
