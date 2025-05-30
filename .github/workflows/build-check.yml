@@ -32,6 +32,7 @@ jobs:
           toolchain: "nightly-2025-01-09"
           targets: "wasm32-unknown-unknown"
           components: "clippy,rustfmt"
+          override: true
 
       - uses: cargo-bins/cargo-binstall@main
       - name: cargo-leptos setup
