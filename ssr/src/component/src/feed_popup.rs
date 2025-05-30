@@ -38,7 +38,7 @@ pub fn FeedPopUp<F: Fn(MouseEvent) + 'static>(
                     </span>
                     <span class="text-white text-center p-2 pb-4">{body_text}</span>
                     <div class="flex justify-center">
-                        <div class="w-7/12 sm:w-4/12 z-[60]">
+                        <div class="w-7/12 sm:w-4/12 z-60">
                             <ConnectLogin login_text=login_text cta_location="feed_popup" />
                         </div>
                     </div>

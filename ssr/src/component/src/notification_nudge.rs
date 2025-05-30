@@ -92,7 +92,7 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
                     <HighlightedButton
                             alt_style=false
                             on_click=move || {notification_action.dispatch(());}
-                        classes="w-full py-3 bg-gradient-to-r from-fuchsia-600 to-pink-500 hover:from-fuchsia-500 hover:to-pink-400 text-white font-semibold rounded-lg shadow-md transition-all".to_string()
+                        classes="w-full py-3 bg-linear-to-r from-fuchsia-600 to-pink-500 hover:from-fuchsia-500 hover:to-pink-400 text-white font-semibold rounded-lg shadow-md transition-all".to_string()
                     >
                         <span>"Turn on alerts"</span>
                     </HighlightedButton>

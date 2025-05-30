@@ -115,7 +115,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                 />
 
                 <Show when=queue_end>
-                    <div class="h-full w-full relative top-0 left-0 bg-inherit z-[21] flex snap-always snap-end justify-center items-center text-xl text-white/80">
+                    <div class="h-full w-full relative top-0 left-0 bg-inherit z-21 flex snap-always snap-end justify-center items-center text-xl text-white/80">
                         <span>You have reached the end!</span>
                     </div>
                 </Show>

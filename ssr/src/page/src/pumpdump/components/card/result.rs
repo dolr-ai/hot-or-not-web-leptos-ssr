@@ -77,7 +77,7 @@ pub fn PlayingCard() -> impl IntoView {
                     </div>
                 </div>
             </div>
-            <div class="flex select-none flex-col gap-4 h-[8.5rem] w-full">
+            <div class="flex select-none flex-col gap-4 h-34 w-full">
                 <BullBearSlider />
                 <div
                     class="flex relative items-center gap-6 justify-center w-full"

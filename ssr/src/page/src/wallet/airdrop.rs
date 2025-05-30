@@ -28,7 +28,7 @@ pub fn AirdropPage(meta: TokenMetadata, airdrop_amount: u64) -> impl IntoView {
             <img
                 alt="bg"
                 src="/img/airdrop/bg.webp"
-                class="absolute inset-0 z-[1] fade-in w-full h-full object-cover"
+                class="absolute inset-0 z-1 fade-in w-full h-full object-cover"
             />
 
             {move || {
@@ -98,7 +98,7 @@ fn AirdropButton(
     view! {
         <div
             style="--duration:1500ms"
-            class="fade-in flex text-xl font-bold z-[2] w-full flex-col gap-4 items-center justify-center px-8"
+            class="fade-in flex text-xl font-bold z-2 w-full flex-col gap-4 items-center justify-center px-8"
         >
             <Show clone:name_c when=claimed fallback=move ||view! {
                     <div class="text-center">
@@ -205,7 +205,7 @@ fn AirdropPopUpButton(
     view! {
         <div
             style="--duration:1500ms"
-            class="fade-in flex text-xl font-bold z-[2] w-full flex-col gap-4 items-center justify-center px-8"
+            class="fade-in flex text-xl font-bold z-2 w-full flex-col gap-4 items-center justify-center px-8"
         >
             <Show when=claimed fallback=move || view! {
                 <div class="text-center font-normal"><span class="font-semibold">100 {name_c.clone()}</span> successfully claimed and added to your wallet!</div>
@@ -267,7 +267,7 @@ pub fn AirdropPopup(
             <img
                 alt="bg"
                 src="/img/airdrop/bg.webp"
-                class="absolute inset-0 z-[1] fade-in w-full h-full object-cover"
+                class="absolute inset-0 z-1 fade-in w-full h-full object-cover"
             />
             <AirdropAnimation claimed=claimed.into() logo=logo.clone()/>
             <AirdropPopUpButton
@@ -284,12 +284,12 @@ fn AirdropAnimation(claimed: Signal<bool>, logo: String) -> impl IntoView {
     let logo_c = logo.clone();
     view! {
         <Show when=claimed fallback=move || view! {
-            <div class="h-[30vh] max-h-96 w-full flex items-center justify-center z-[2] lg:mb-8 mt-12">
+            <div class="h-[30vh] max-h-96 w-full flex items-center justify-center z-2 lg:mb-8 mt-12">
                 <div class="h-[22vh] w-[22vh] lg:h-[27vh] lg:w-[27vh] relative gap-12">
                     <AnimatedTick />
                     <div
                         style="--duration:1500ms; background: radial-gradient(circle, rgba(27,0,15,1) 0%, rgba(0,0,0,1) 100%); box-shadow: 0px 0px 3.43px 0px #FFFFFF29;"
-                        class="p-[1px] fade-in absolute w-16 h-16 -bottom-4 -right-4 rounded-md"
+                        class="p-px fade-in absolute w-16 h-16 -bottom-4 -right-4 rounded-md"
                     >
                         <img
                             alt="Airdrop"
@@ -300,7 +300,7 @@ fn AirdropAnimation(claimed: Signal<bool>, logo: String) -> impl IntoView {
                 </div>
             </div>
         }>
-        <div class="relative h-[50vh] max-h-96 z-[2]">
+        <div class="relative h-[50vh] max-h-96 z-2">
         <div
             style="--y: 50px"
             class="flex flex-col items-center justify-center airdrop-parachute"
@@ -313,7 +313,7 @@ fn AirdropAnimation(claimed: Signal<bool>, logo: String) -> impl IntoView {
 
             <div
                 style="background: radial-gradient(circle, rgb(244 141 199) 0%, rgb(255 255 255) 100%); box-shadow: 0px 0px 3.43px 0px #FFFFFF29;"
-                class="p-[1px] w-16 h-16 -translate-y-8 rounded-md"
+                class="p-px w-16 h-16 -translate-y-8 rounded-md"
             >
                 <img
                     alt="Airdrop"
@@ -342,16 +342,16 @@ fn AirdropAnimation(claimed: Signal<bool>, logo: String) -> impl IntoView {
 #[component]
 pub fn AnimatedTick() -> impl IntoView {
     view! {
-        <div class="h-full w-full [perspective:800px]">
-            <div class="relative h-full w-full scale-110 animate-coin-spin-horizontal rounded-full [transform-style:preserve-3d] before:absolute before:h-full before:w-full before:rounded-full
-            before:bg-gradient-to-b before:from-[#FFC6F9] before:via-[#C01271] before:to-[#990D55] before:[transform-style:preserve-3d] before:[transform:translateZ(1px)]">
+        <div class="h-full w-full perspective-midrange">
+            <div class="relative h-full w-full scale-110 animate-coin-spin-horizontal rounded-full transform-3d before:absolute before:h-full before:w-full before:rounded-full
+            before:bg-linear-to-b before:from-[#FFC6F9] before:via-[#C01271] before:to-[#990D55] before:transform-3d before:[transform:translateZ(1px)]">
                 <div class="absolute flex h-full w-full items-center justify-center rounded-full text-center [transform:translateZ(2rem)] p-12
-                bg-gradient-to-br from-[#C01272] to-[#FF48B2]">
+                bg-linear-to-br from-[#C01272] to-[#FF48B2]">
                     <div class="relative">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             xmlns:xlink="http://www.w3.org/1999/xlink"
-                            class="h-full w-full text-current [transform-style:preserve-3d] [transform:translateZ(10px)]"
+                            class="h-full w-full text-current transform-3d [transform:translateZ(10px)]"
                             viewBox="0 -3 32 32"
                             version="1.1"
                         >

@@ -148,7 +148,7 @@ fn PreUploadView(
                     <HighlightedButton
                         on_click=move || on_submit()
                         disabled=disa
-                        classes="w-full mx-auto py-[12px] px-[20px] rounded-xl bg-gradient-to-r from-pink-300 to-pink-500 text-white font-light text-[17px] transition disabled:opacity-60 disabled:cursor-not-allowed".to_string()
+                        classes="w-full mx-auto py-[12px] px-[20px] rounded-xl bg-linear-to-r from-pink-300 to-pink-500 text-white font-light text-[17px] transition disabled:opacity-60 disabled:cursor-not-allowed".to_string()
                     >
                         "Upload"
                     </HighlightedButton>

@@ -30,7 +30,7 @@ fn Post(details: PostDetails, user_canister: Principal, _ref: NodeRef<html::Div>
 
     view! {
         <div node_ref=_ref class="relative w-full basis-1/3 md:basis-1/4 xl:basis-1/5">
-            <div class="relative aspect-[9/16] h-full rounded-md border-white/20 m-2 border-[1px]">
+            <div class="relative aspect-9/16 h-full rounded-md border-white/20 m-2 border">
                 <a class="h-full w-full" href=profile_post_url on:click=move |_| video_click()>
                     <Show
                         when=image_error

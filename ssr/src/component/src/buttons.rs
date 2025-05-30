@@ -25,7 +25,7 @@ pub fn HighlightedButton(
         >
             <div class=move || {
                 if alt_style{
-                    "bg-gradient-to-r from-[#FF78C1] via-[#E2017B] to-[#5F0938] inline-block text-transparent bg-clip-text"
+                    "bg-linear-to-r from-[#FF78C1] via-[#E2017B] to-[#5F0938] inline-block text-transparent bg-clip-text"
                 } else {
                     "text-white"
                 }
@@ -58,7 +58,7 @@ pub fn HighlightedLinkButton(
         >
         <div class=move || {
             if alt_style{
-                "bg-gradient-to-r from-[#FF78C1] via-[#E2017B] to-[#5F0938] inline-block text-transparent bg-clip-text"
+                "bg-linear-to-r from-[#FF78C1] via-[#E2017B] to-[#5F0938] inline-block text-transparent bg-clip-text"
             } else {
                 "text-white"
             }

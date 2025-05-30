@@ -116,7 +116,7 @@ pub fn ShadowOverlay(#[prop(into)] show: ShowOverlay, children: ChildrenFn) -> i
                         #[cfg(not(feature = "hydrate"))] { |_| () }
                     }
 
-                    class="flex cursor-pointer modal-bg w-dvw h-dvh fixed left-0 top-0 bg-black/60 z-[99] justify-center items-center overflow-hidden backdrop-blur-sm"
+                    class="flex cursor-pointer modal-bg w-dvw h-dvh fixed left-0 top-0 bg-black/60 z-99 justify-center items-center overflow-hidden backdrop-blur-sm"
                 >
                     {(children_s.get_value())()}
                 </div>

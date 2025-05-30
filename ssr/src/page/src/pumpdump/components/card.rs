@@ -95,7 +95,7 @@ pub fn GameCard(token: ProcessedTokenListResponse) -> impl IntoView {
         {move || game_state.get().map(move |game_state| view! {
             <div
                 style="perspective: 500px; transition: transform 0.4s; transform-style: preserve-3d;"
-                class="relative w-full min-h-[31rem] snap-start snap-always"
+                class="relative w-full min-h-124 snap-start snap-always"
             >
                 {match game_state {
                     GameState::Playing => Either::Left(view! {
