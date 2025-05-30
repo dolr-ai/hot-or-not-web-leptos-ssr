@@ -2,13 +2,11 @@ mod history;
 
 use candid::Principal;
 use gloo::timers::callback::Timeout;
-use ic_agent::Identity;
 use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_meta::*;
 use leptos_router::components::Redirect;
-use leptos_router::hooks::query_signal;
 use leptos_use::use_window;
 
 use component::connect::ConnectLogin;
@@ -181,9 +179,6 @@ fn ReferView() -> impl IntoView {
 
 #[component]
 pub fn ReferEarn() -> impl IntoView {
-    let auth = auth_state();
-    let logged_in = auth.is_logged_in_with_oauth();
-
     let app_state = use_context::<AppState>();
     let page_title = app_state.unwrap().name.to_owned() + " - Refer & Earn";
     view! {

@@ -279,7 +279,7 @@ dependencies = [
  "tokio",
  "web-time",
  "yral-canisters-common",
- "yral-types 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-types",
 ]
 
 [[package]]
@@ -1085,7 +1085,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "simple_logger",
- "sns-validation 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "sns-validation",
  "speedate",
  "state",
  "testcontainers",
@@ -1105,15 +1105,15 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "web-time",
- "yral-canisters-client 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-canisters-client",
  "yral-canisters-common",
- "yral-grpc-traits 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-grpc-traits",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-pump-n-dump-common 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
- "yral-types 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-types",
 ]
 
 [[package]]
@@ -1254,7 +1254,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "simple_logger",
- "sns-validation 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "sns-validation",
  "speedate",
  "testcontainers",
  "thiserror 2.0.12",
@@ -1272,15 +1272,15 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "web-time",
- "yral-canisters-client 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-canisters-client",
  "yral-canisters-common",
- "yral-grpc-traits 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-grpc-traits",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-pump-n-dump-common 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
- "yral-types 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-types",
 ]
 
 [[package]]
@@ -3398,7 +3398,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "simple_logger",
- "sns-validation 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "sns-validation",
  "speedate",
  "state",
  "testcontainers",
@@ -3421,15 +3421,15 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "web-time",
- "yral-canisters-client 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-canisters-client",
  "yral-canisters-common",
- "yral-grpc-traits 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-grpc-traits",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-pump-n-dump-common 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
- "yral-types 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-types",
 ]
 
 [[package]]
@@ -5514,7 +5514,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "simple_logger",
- "sns-validation 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "sns-validation",
  "speedate",
  "state",
  "testcontainers",
@@ -5534,16 +5534,16 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "web-time",
- "yral-canisters-client 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-canisters-client",
  "yral-canisters-common",
- "yral-grpc-traits 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-grpc-traits",
  "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-pump-n-dump-common 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
- "yral-types 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-types",
 ]
 
 [[package]]
@@ -7474,19 +7474,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sns-validation"
-version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#503f3b441cc78c9a9a3dfd5776009472055d645f"
-dependencies = [
- "candid",
- "humantime",
- "regex",
- "serde",
- "serde_bytes",
- "web-time",
-]
-
-[[package]]
 name = "socket2"
 version = "0.5.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7602,7 +7589,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "simple_logger",
- "sns-validation 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "sns-validation",
  "speedate",
  "testcontainers",
  "thiserror 2.0.12",
@@ -7621,15 +7608,15 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "web-time",
- "yral-canisters-client 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-canisters-client",
  "yral-canisters-common",
- "yral-grpc-traits 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-grpc-traits",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-pump-n-dump-common 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
- "yral-types 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-types",
 ]
 
 [[package]]
@@ -8721,7 +8708,7 @@ dependencies = [
  "serde_bytes",
  "serde_json",
  "simple_logger",
- "sns-validation 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "sns-validation",
  "speedate",
  "testcontainers",
  "thiserror 2.0.12",
@@ -8739,15 +8726,15 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "web-time",
- "yral-canisters-client 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-canisters-client",
  "yral-canisters-common",
- "yral-grpc-traits 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-grpc-traits",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-pump-n-dump-common 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
- "yral-types 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-types",
 ]
 
 [[package]]
@@ -9389,21 +9376,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "yral-canisters-client"
-version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#503f3b441cc78c9a9a3dfd5776009472055d645f"
-dependencies = [
- "anyhow",
- "candid",
- "candid_parser",
- "convert_case 0.6.0",
- "ic-agent",
- "serde",
- "serde_bytes",
- "serde_json",
-]
-
-[[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
 source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#503f3b441cc78c9a9a3dfd5776009472055d645f"
@@ -9423,31 +9395,23 @@ dependencies = [
  "send_wrapper",
  "serde",
  "serde_json",
- "sns-validation 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
+ "sns-validation",
  "thiserror 2.0.12",
  "url",
  "web-time",
- "yral-canisters-client 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
- "yral-grpc-traits 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
+ "yral-canisters-client",
+ "yral-grpc-traits",
  "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=56e3f1f1f5f452673bee17739520c800c1264295)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=56e3f1f1f5f452673bee17739520c800c1264295)",
- "yral-pump-n-dump-common 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
- "yral-types 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
+ "yral-pump-n-dump-common",
+ "yral-types",
 ]
 
 [[package]]
 name = "yral-grpc-traits"
 version = "0.1.0"
 source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#503f3b441cc78c9a9a3dfd5776009472055d645f"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "yral-grpc-traits"
-version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#503f3b441cc78c9a9a3dfd5776009472055d645f"
 dependencies = [
  "serde",
 ]
@@ -9529,36 +9493,23 @@ version = "0.1.0"
 source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#503f3b441cc78c9a9a3dfd5776009472055d645f"
 dependencies = [
  "candid",
- "serde",
- "serde_json",
- "uuid",
- "yral-canisters-client 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
- "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
-]
-
-[[package]]
-name = "yral-pump-n-dump-common"
-version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#503f3b441cc78c9a9a3dfd5776009472055d645f"
-dependencies = [
- "candid",
  "ic-agent",
  "serde",
  "serde_json",
  "url",
  "uuid",
- "yral-canisters-client 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-canisters-client",
  "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
 ]
 
 [[package]]
 name = "yral-qstash-types"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#503f3b441cc78c9a9a3dfd5776009472055d645f"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#503f3b441cc78c9a9a3dfd5776009472055d645f"
 dependencies = [
  "candid",
  "serde",
- "yral-types 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
+ "yral-types",
 ]
 
 [[package]]
@@ -9576,16 +9527,6 @@ dependencies = [
 name = "yral-types"
 version = "0.1.0"
 source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#503f3b441cc78c9a9a3dfd5776009472055d645f"
-dependencies = [
- "ic-agent",
- "k256",
- "serde",
-]
-
-[[package]]
-name = "yral-types"
-version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#503f3b441cc78c9a9a3dfd5776009472055d645f"
 dependencies = [
  "ic-agent",
  "k256",

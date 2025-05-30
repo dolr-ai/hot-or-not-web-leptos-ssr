@@ -1,10 +1,7 @@
 mod server_impl;
 
 use crate::post_view::BetEligiblePostCtx;
-use codee::string::FromToStringCodec;
-use component::{
-    bullet_loader::BulletLoader, canisters_prov::AuthCansProvider, hn_icons::*, spinner::SpinnerFit,
-};
+use component::{bullet_loader::BulletLoader, hn_icons::*, spinner::SpinnerFit};
 use hon_worker_common::{sign_vote_request, GameInfo, GameResult, WORKER_URL};
 use ic_agent::Identity;
 use leptos::html::Audio;
