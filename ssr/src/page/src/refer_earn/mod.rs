@@ -10,7 +10,7 @@ use leptos_router::components::Redirect;
 use leptos_use::use_window;
 
 use component::connect::ConnectLogin;
-use component::{back_btn::BackButton, buttons::HighlightedButton, title::TitleText, overlay::ShadowOverlay};
+use component::{back_btn::BackButton, buttons::HighlightedButton, title::TitleText};
 use state::app_state::AppState;
 use state::canisters::auth_state;
 use utils::event_streaming::events::{Refer, ReferShareLink};
