@@ -93,6 +93,8 @@ impl QStashClient {
             .header(CONTENT_TYPE, "application/json")
             .header("upstash-method", "POST")
             .header("Upstash-Forward-Authorization", format!("Bearer {token}"))
+            .header("Upstash-Forward-Ip", format!("Bearer {token}"))
+            .header("Upstash-Forward-UserAgent", format!("Bearer {token}"))
             .send()
             .await?;
         if res.status() != 200 {

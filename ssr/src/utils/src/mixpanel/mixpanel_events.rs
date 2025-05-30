@@ -32,6 +32,22 @@ pub fn identify_user(user_id: &str) {
 
 #[server]
 async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
+    use axum::extract::ConnectInfo;
+    use axum_extra::headers::UserAgent;
+    use axum_extra::TypedHeader;
+    use leptos_axum::extract;
+    use std::net::SocketAddr;
+
+    let (ConnectInfo(addr), TypedHeader(user_agent)): (
+        ConnectInfo<SocketAddr>,
+        TypedHeader<UserAgent>,
+    ) = extract().await?;
+
+    let ip = addr.ip().to_string();
+    let ua = user_agent.as_str().to_string();
+    let mut props = props;
+    props["ip"] = ip.into();
+    props["user_agent"] = ua.into();
     #[cfg(feature = "qstash")]
     {
         let qstash_client: crate::qstash::QStashClient = expect_context();
