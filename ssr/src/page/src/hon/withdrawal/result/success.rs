@@ -3,7 +3,13 @@ use leptos::prelude::*;
 use leptos_router::{hooks::use_query, params::Params};
 use state::canisters::auth_state;
 // use utils::event_streaming::events::SatsWithdrawn;
-use utils::{event_streaming::events::SatsWithdrawn, try_or_redirect_opt};
+use utils::{
+    event_streaming::events::SatsWithdrawn,
+    mixpanel::mixpanel_events::{
+        MixPanelEvent, MixpanelGlobalProps, MixpanelSatsToBtcConvertedProps,
+    },
+    try_or_redirect_opt,
+};
 use yral_canisters_common::utils::token::balance::TokenBalance;
 #[derive(Debug, PartialEq, Eq, Clone, Params)]
 struct SuccessParams {
@@ -23,6 +29,17 @@ pub fn Success() -> impl IntoView {
 
     Effect::new(move |_| {
         SatsWithdrawn.send_event(auth.event_ctx(), sats_value);
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
+            MixPanelEvent::track_sats_to_btc_converted(MixpanelSatsToBtcConvertedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                sats_converted: sats_value,
+                conversion_ratio: crate::consts::SATS_TO_BTC_CONVERSION_RATIO,
+            });
+        }
     });
 
     Some(view! {

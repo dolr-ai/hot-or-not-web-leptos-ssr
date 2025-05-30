@@ -81,20 +81,6 @@ pub fn YralRootPage() -> impl IntoView {
         }
     });
     let post_details_cache: PostDetailsCacheCtx = expect_context();
-    // let auth = auth_state();
-
-    // Effect::new(move |_| {
-    //     let ctx = auth.event_ctx();
-    //     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ctx) {
-    //         MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps {
-    //             user_id: global.user_id,
-    //             visitor_id: global.visitor_id,
-    //             is_logged_in: global.is_logged_in,
-    //             canister_id: global.canister_id,
-    //             is_nsfw_enabled: global.is_nsfw_enabled,
-    //         })
-    //     }
-    // });
 
     view! {
         <Title text="YRAL - Home" />

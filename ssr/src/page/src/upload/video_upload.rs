@@ -314,6 +314,7 @@ pub fn VideoUploader(
                         is_nsfw_enabled: global.is_nsfw_enabled,
                         video_id: uid.clone(),
                         is_game_enabled: true,
+                        creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
                         game_type: MixpanelPostGameType::HotOrNot,
                     });
                     published.set(true)
