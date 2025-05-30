@@ -129,12 +129,6 @@ ic-certification = "2.6.0"
 ciborium = "0.2.2"
 yral-metadata-client = { git = "https://github.com/yral-dapp/yral-metadata", branch = "master" }
 yral-metadata-types = { git = "https://github.com/yral-dapp/yral-metadata", branch = "master" }
-yral-pump-n-dump-common = { git = "https://github.com/yral-dapp/yral-common", features = [
-    "client",
-], branch = "master", version = "0.1.0" }
-# yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features = [
-#     "client",
-# ], version = "0.1.0" }
 uuid = { version = "1.11.0", features = ["v4", "js"] }
 regex = { version = "1.11.1" }
 tonic-build = { version = "0.12.0", default-features = false, features = [
@@ -181,7 +175,13 @@ sentry-tower = { version = "0.37.0", features = ["axum", "axum-matched-path"] }
 #     "client",
 # ], version = "0.1.0" }
 # hon-worker-common = { path = "../yral-common/hon-worker-common", features = [ "client", ], version = "0.1.0" }
+# yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features = [
+#     "client",
+# ], version = "0.1.0" }
 # ===
+yral-pump-n-dump-common = { git = "https://github.com/yral-dapp/yral-common", features = [
+    "client",
+], branch = "master", version = "0.1.0" }
 sns-validation = { git = "https://github.com/yral-dapp/yral-common.git", branch = "master" }
 yral-grpc-traits = { git = "https://github.com/yral-dapp/yral-common.git", branch = "master" }
 yral-types = { git = "https://github.com/yral-dapp/yral-common.git", branch = "master" }

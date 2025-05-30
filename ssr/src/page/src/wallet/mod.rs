@@ -58,7 +58,7 @@ fn ProfileCard(
             <Show when=move || !is_connected.get() && is_own_account>
                 <ConnectLogin
                     show_login
-                    login_text="Login to claim your Cents"
+                    login_text="Login to claim your Bitcoin (SATS)"
                     cta_location="wallet"
                     redirect_to="/wallet"
                 />
@@ -254,13 +254,12 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
                 <Suspense>
                     {move || Suspend::new(async move {
                         let canister_id = canister_id.await;
-                        let logged_in_user = auth.user_principal.await;
-                        match canister_id.and_then(|c| Ok((c, logged_in_user?))) {
-                            Ok((canister_id, logged_in_user)) => Either::Left(view! {
+                        match canister_id {
+                            Ok(canister_id) => Either::Left(view! {
                                 <div class="font-kumbh self-start pt-3 font-bold text-lg text-white">
                                     My tokens
                                 </div>
-                                <TokenList logged_in_user user_principal=principal user_canister=canister_id />
+                                <TokenList user_principal=principal user_canister=canister_id />
                             }),
                             Err(e) => {
                                 Either::Right(view! {
