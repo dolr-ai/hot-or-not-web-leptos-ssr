@@ -81,6 +81,8 @@ impl QStashClient {
         &self,
         req: Value,
         token: String,
+        ip: String, 
+        user_agent: String,
     ) -> Result<(), reqwest::Error> {
         let off_chain_ep = ANALYTICS_SERVER_URL.join("api/send_event").unwrap();
         let path = format!("publish/{off_chain_ep}");
@@ -93,8 +95,8 @@ impl QStashClient {
             .header(CONTENT_TYPE, "application/json")
             .header("upstash-method", "POST")
             .header("Upstash-Forward-Authorization", format!("Bearer {token}"))
-            .header("Upstash-Forward-Ip", format!("Bearer {token}"))
-            .header("Upstash-Forward-UserAgent", format!("Bearer {token}"))
+            .header("Upstash-Forward-Ip", ip)
+            .header("Upstash-Forward-UserAgent", user_agent)
             .send()
             .await?;
         if res.status() != 200 {

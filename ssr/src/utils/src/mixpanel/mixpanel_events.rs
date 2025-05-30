@@ -46,15 +46,15 @@ async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
     let ip = addr.ip().to_string();
     let ua = user_agent.as_str().to_string();
     let mut props = props;
-    props["ip"] = ip.into();
-    props["user_agent"] = ua.into();
+    props["ip"] = ip.clone().into();
+    props["user_agent"] = ua.clone().into();
     #[cfg(feature = "qstash")]
     {
         let qstash_client: crate::qstash::QStashClient = expect_context();
         let token =
             std::env::var("ANALYTICS_SERVER_TOKEN").expect("ANALYTICS_SERVER_TOKEN is not set");
         qstash_client
-            .send_analytics_event_to_qstash(props, token)
+            .send_analytics_event_to_qstash(props, token, ip, ua)
             .await
             .map_err(|e| ServerFnError::new(format!("Mixpanel track error: {e:?}")))?;
     }
