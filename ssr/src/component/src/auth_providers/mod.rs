@@ -241,7 +241,7 @@ mod server_fn_impl {
             let res = client
                 .post(&req_url)
                 .json(&worker_req)
-                .header("Authorization", format!("Bearer {}", jwt.0))
+                .bearer_auth(jwt.0)
                 .send()
                 .await?;
 
