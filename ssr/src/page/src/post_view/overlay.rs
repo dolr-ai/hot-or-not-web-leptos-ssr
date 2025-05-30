@@ -168,18 +168,10 @@ pub fn VideoDetailsOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> 
     let ev_ctx = auth.event_ctx();
 
     let post_details_share = post.clone();
-    let share_video_id = post.uid.clone();
-    let report_video_id = post.uid.clone();
+    let track_video_id = post.uid.clone();
 
-    let share = move || {
-        let video_id = share_video_id.clone();
-        let post_details = post_details_share.clone();
-        let url = video_url();
-        if share_url(&url).is_some() {
-            return;
-        }
-        show_share.set(true);
-        ShareVideo.send_event(ev_ctx, post_details);
+    let track_video_clicked = move |cta_type: MixpanelVideoClickedCTAType| {
+        let video_id = track_video_id.clone();
         let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
             return;
         };
@@ -194,35 +186,28 @@ pub fn VideoDetailsOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> 
             is_game_enabled: is_hot_or_not,
             publisher_user_id: post.poster_principal.to_text(),
             game_type: MixpanelPostGameType::HotOrNot,
-            cta_type: MixpanelVideoClickedCTAType::Share,
+            cta_type,
             video_id,
             view_count: post.views,
             like_count: post.likes,
         });
     };
+    let track_video_share = track_video_clicked.clone();
+    let track_video_share = move || track_video_share(MixpanelVideoClickedCTAType::Share);
+    let track_video_refer = track_video_clicked.clone();
+    let track_video_refer = move || track_video_refer(MixpanelVideoClickedCTAType::ReferAndEarn);
+    let track_video_report = track_video_clicked.clone();
+    let track_video_report = move || track_video_report(MixpanelVideoClickedCTAType::Report);
 
-    let mixpanel_track_refer = move || {
-        let video_id = report_video_id.clone();
-        let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
+    let share = move || {
+        let post_details = post_details_share.clone();
+        let url = video_url();
+        track_video_share();
+        if share_url(&url).is_some() {
             return;
-        };
-        let is_hot_or_not = true;
-
-        MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-            user_id: global.user_id,
-            visitor_id: global.visitor_id,
-            is_logged_in: global.is_logged_in,
-            is_nsfw: post.is_nsfw,
-            canister_id: global.canister_id,
-            is_nsfw_enabled: global.is_nsfw_enabled,
-            is_game_enabled: is_hot_or_not,
-            publisher_user_id: post.poster_principal.to_text(),
-            game_type: MixpanelPostGameType::HotOrNot,
-            cta_type: MixpanelVideoClickedCTAType::ReferAndEarn,
-            video_id,
-            view_count: post.views,
-            like_count: post.likes,
-        });
+        }
+        show_share.set(true);
+        ShareVideo.send_event(ev_ctx, post_details);
     };
 
     let profile_url = format!("/profile/{}/tokens", post.poster_principal.to_text());
@@ -235,10 +220,8 @@ pub fn VideoDetailsOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> 
     };
 
     let post_details_report = post.clone();
-    let report_video_id = post.uid.clone();
     let profile_click_video_id = post.uid.clone();
     let click_report = Action::new(move |()| {
-        let video_id = report_video_id.clone();
         #[cfg(feature = "ga4")]
         {
             use utils::report::send_report_offchain;
@@ -262,27 +245,6 @@ pub fn VideoDetailsOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> 
                 .unwrap();
             });
         }
-
-        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            let is_hot_or_not = true;
-            MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw: post.is_nsfw,
-
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                is_game_enabled: is_hot_or_not,
-                publisher_user_id: post.poster_principal.to_text(),
-                game_type: MixpanelPostGameType::HotOrNot,
-                cta_type: MixpanelVideoClickedCTAType::Report,
-                video_id,
-                view_count: post.views,
-                like_count: post.likes,
-            });
-        }
-
         async move {
             show_report.set(false);
         }
@@ -446,10 +408,10 @@ pub fn VideoDetailsOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> 
             </div>
             <div class="flex flex-col gap-2 w-full">
                 <div class="flex flex-col pointer-events-auto gap-6 self-end items-end text-2xl md:text-3xl lg:text-4xl">
-                    <button on:click=move |_| show_report.set(true)>
+                    <button on:click=move |_| {track_video_report(); show_report.set(true);}>
                         <Icon attr:class="drop-shadow-lg" icon=icondata::TbMessageReport />
                     </button>
-                    <a on:click=move|_| mixpanel_track_refer()  href="/refer-earn">
+                    <a on:click=move|_| track_video_refer()  href="/refer-earn">
                         <Icon attr:class="drop-shadow-lg" icon=icondata::AiGiftFilled />
                     </a>
                     <LikeAndAuthCanLoader post=post_c.clone() />
