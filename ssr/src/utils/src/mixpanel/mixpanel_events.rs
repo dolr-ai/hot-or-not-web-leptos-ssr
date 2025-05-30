@@ -47,6 +47,7 @@ async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
     let ua = user_agent.as_str().to_string();
     let mut props = props;
     props["ip"] = ip.clone().into();
+    props["$ip"] = ip.clone().into();
     props["user_agent"] = ua.clone().into();
     #[cfg(feature = "qstash")]
     {
