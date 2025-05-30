@@ -78,9 +78,15 @@ jobs:
           cargo fmt --check
           cargo clippy --no-deps --all-features --release -- -Dwarnings
 
+      - name: Print Rust and Cargo version
+        run: |
+          rustc --version
+          cargo --version
+
       - name: Build the Leptos project to output
         run: cargo leptos build --release --lib-features release-lib --bin-features release-bin
         env:
+          RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
           LEPTOS_HASH_FILES: true
           LEPTOS_TAILWIND_VERSION: v4.1.7
       - name: Setup Sentry CLI
