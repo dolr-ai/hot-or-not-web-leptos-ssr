@@ -70,7 +70,6 @@ pub fn YralRootPage() -> impl IntoView {
         } else if utm_source == "internaloff" {
             set_is_internal_user(false);
         }
-        // home_page_event.dispatch(());
     });
 
     let target_post = Resource::new_blocking(params, move |params_map| async move {
