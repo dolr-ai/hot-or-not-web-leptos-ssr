@@ -31,10 +31,10 @@ fn ReferShareOverlay(#[prop(into)] show: RwSignal<bool>) -> impl IntoView {
     view! {
         <div
             on:click=move |_| show.set(false)
-            class="flex cursor-pointer modal-bg w-dvw h-dvh fixed left-0 top-0 bg-black/60 z-[99] justify-center overflow-hidden backdrop-blur-sm"
+            class="flex cursor-pointer modal-bg w-dvw h-dvh fixed left-0 top-0 bg-black/60 z-[99] justify-center items-start lg:items-center overflow-hidden backdrop-blur-sm"
         >
-            <div class="py-4 px-[20px] max-w-md mx-auto border border-neutral-700 max-h-full pt-16 items-center cursor-auto flex-col flex gap-4 bg-neutral-900 rounded-md">
-            <img src="/img/common/share-link.webp" class="w-full" />
+            <div style="margin-top: 12rem;" class="py-4 px-[20px] max-w-md mx-auto border lg:!mt-0 border-neutral-700 h-fit items-center cursor-auto flex-col flex gap-4 bg-neutral-900 rounded-md">
+            <img src="/img/common/refer-share.webp" style="width:12rem;" />
             <div class="flex flex-col items-center  font-bold text-xs md:text-sm">
                 <div class="text-center text-neutral-50">"Share your link with a friend and"</div>
                 <div class="text-center text-[#FFC33A]">"You both Win 500 SATS each!"</div>
