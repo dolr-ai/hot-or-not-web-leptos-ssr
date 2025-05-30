@@ -57,26 +57,6 @@ pub fn CreatorDaoRootPage() -> impl IntoView {
 pub fn YralRootPage() -> impl IntoView {
     let params = use_query_map();
 
-    // let home_page_event = Action::new_unsync(move |_: &()| {
-    //     let auth = auth_state();
-    //     let base = unauth_canisters();
-    //     async move {
-    //         let cans = match auth.auth_cans(base).await {
-    //             Ok(c) => c,
-    //             Err(e) => return Err(e.to_string()),
-    //         };
-    //         let global = MixpanelGlobalProps::try_get(&cans, false);
-    //         MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps {
-    //             user_id: global.user_id,
-    //             visitor_id: global.visitor_id,
-    //             is_logged_in: global.is_logged_in,
-    //             canister_id: global.canister_id,
-    //             is_nsfw_enabled: global.is_nsfw_enabled,
-    //         });
-    //         Ok(())
-    //     }
-    // });
-
     Effect::new(move |_| {
         let params_map = params.get();
         let utm_source = params_map
@@ -102,16 +82,6 @@ pub fn YralRootPage() -> impl IntoView {
         }
     });
     let post_details_cache: PostDetailsCacheCtx = expect_context();
-
-    // if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
-    //     MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps {
-    //         user_id: global.user_id,
-    //         visitor_id: global.visitor_id,
-    //         is_logged_in: global.is_logged_in,
-    //         canister_id: global.canister_id,
-    //         is_nsfw_enabled: global.is_nsfw_enabled,
-    //     });
-    // }
 
     view! {
         <Title text="YRAL - Home" />
