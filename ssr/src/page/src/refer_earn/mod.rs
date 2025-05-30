@@ -2,19 +2,19 @@ mod history;
 
 use candid::Principal;
 use gloo::timers::callback::Timeout;
-use ic_agent::Identity;
+use leptos::either::Either;
 use leptos::{prelude::*, reactive::wrappers::write::SignalSetter};
 use leptos_icons::*;
 use leptos_meta::*;
+use leptos_router::components::Redirect;
 use leptos_router::hooks::query_signal;
 use leptos_use::use_window;
 
-use component::canisters_prov::AuthCansProvider;
 use component::connect::ConnectLogin;
 use component::{back_btn::BackButton, dashbox::DashboxLoading, title::TitleText};
 use history::HistoryView;
 use state::app_state::AppState;
-use utils::event_streaming::events::{account_connected_reader, auth_canisters_store};
+use state::canisters::auth_state;
 use utils::event_streaming::events::{Refer, ReferShareLink};
 use utils::web::{copy_to_clipboard, share_url};
 
@@ -44,9 +44,9 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
         })
         .unwrap_or_default();
 
-    let (logged_in, _) = account_connected_reader();
+    let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
     let show_copied_popup = RwSignal::new(false);
-    let canister_store = auth_canisters_store();
 
     let click_copy = Action::new(move |refer_link: &String| {
         let refer_link = refer_link.clone();
@@ -54,7 +54,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
         async move {
             let _ = copy_to_clipboard(&refer_link);
 
-            ReferShareLink.send_event(logged_in, canister_store);
+            ReferShareLink.send_event(ev_ctx);
 
             show_copied_popup.set(true);
             Timeout::new(1200, move || show_copied_popup.set(false)).forget();
@@ -88,18 +88,34 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
 
 #[component]
 fn ReferCode() -> impl IntoView {
+    let auth = auth_state();
     view! {
-        <AuthCansProvider fallback=DashboxLoading let:cans>
-            <ReferLoaded user_principal=cans.identity().sender().unwrap() />
-        </AuthCansProvider>
+        <Suspense fallback=DashboxLoading>
+        {move || Suspend::new(async move {
+            let res = auth.user_principal.await;
+            match res {
+                Ok(user_principal) => {
+                    Either::Left(view! {
+                        <ReferLoaded user_principal />
+                    })
+                }
+                Err(e) => {
+                    Either::Right(view! {
+                        <Redirect path=format!("/error?err={e}") />
+                    })
+                }
+            }
+        })}
+        </Suspense>
     }
 }
 
 #[component]
 fn ReferView() -> impl IntoView {
-    let (logged_in, _) = account_connected_reader();
+    let auth_state = auth_state();
+    let logged_in = auth_state.is_logged_in_with_oauth();
 
-    Refer.send_event(logged_in);
+    Refer.send_event(auth_state.event_ctx());
 
     view! {
         <div class="flex flex-col w-full h-full items-center text-white gap-10">
@@ -209,7 +225,8 @@ fn ListSwitcher() -> impl IntoView {
 
 #[component]
 pub fn ReferEarn() -> impl IntoView {
-    let (logged_in, _) = account_connected_reader();
+    let auth = auth_state();
+    let logged_in = auth.is_logged_in_with_oauth();
 
     let app_state = use_context::<AppState>();
     let page_title = app_state.unwrap().name.to_owned() + " - Refer & Earn";

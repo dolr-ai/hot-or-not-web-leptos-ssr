@@ -1,22 +1,19 @@
-use component::canisters_prov::AuthCansProvider;
-use leptos::prelude::*;
-use state::canisters::authenticated_canisters;
-use utils::event_streaming::events::account_connected_reader;
-use utils::notifications::get_device_registeration_token;
+use leptos::{either::Either, prelude::*};
+use leptos_router::components::Redirect;
+use state::canisters::auth_state;
 
+use utils::notifications::get_device_registeration_token;
 use yral_canisters_common::utils::profile::ProfileDetails;
-use yral_canisters_common::Canisters;
 use yral_metadata_client::MetadataClient;
 
 #[component]
 fn NotifInnerComponent(details: ProfileDetails) -> impl IntoView {
-    let (_, _) = account_connected_reader();
-    let auth_cans = authenticated_canisters();
+    let auth_state = auth_state();
 
     let on_token_click: Action<(), ()> = Action::new_unsync(move |()| async move {
         let metaclient: MetadataClient<false> = MetadataClient::default();
 
-        let cans = Canisters::from_wire(auth_cans.await.unwrap(), expect_context()).unwrap();
+        let cans = auth_state.auth_cans(expect_context()).await.unwrap();
 
         let token = get_device_registeration_token().await.unwrap();
         metaclient
@@ -42,11 +39,22 @@ fn NotifInnerComponent(details: ProfileDetails) -> impl IntoView {
 
 #[component]
 pub fn Notif() -> impl IntoView {
+    let auth = auth_state();
     view! {
         <div class="h-screen w-screen grid grid-cols-1 justify-items-center place-content-center">
-            <AuthCansProvider let:cans>
-                <NotifInnerComponent details=cans.profile_details() />
-            </AuthCansProvider>
+            <Suspense>
+            {move || Suspend::new(async move {
+                let res = auth.cans_wire().await;
+                match res {
+                    Ok(cans) => Either::Left(view! {
+                        <NotifInnerComponent details=cans.profile_details />
+                    }),
+                    Err(e) => Either::Right(view! {
+                        <Redirect path=format!("/error?err={e}") />
+                    })
+                }
+            })}
+            </Suspense>
         </div>
     }
 }

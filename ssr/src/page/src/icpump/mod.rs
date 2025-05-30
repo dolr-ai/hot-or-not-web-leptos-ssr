@@ -3,26 +3,22 @@ use leptos_meta::*;
 
 use candid::Nat;
 use candid::Principal;
-use codee::string::FromToStringCodec;
 use component::overlay::PopupOverlay;
 use consts::ICPUMP_LISTING_PAGE_SIZE;
-use consts::USER_PRINCIPAL_STORE;
 use futures::StreamExt;
 use leptos::html::Div;
 use leptos::prelude::*;
 use leptos_icons::Icon;
-use leptos_use::use_cookie;
 use leptos_use::use_intersection_observer_with_options;
 use leptos_use::use_media_query;
 use leptos_use::UseIntersectionObserverOptions;
 use serde::Deserialize;
 use serde::Serialize;
-use state::canisters::authenticated_canisters;
+use state::canisters::auth_state;
 use std::collections::VecDeque;
 use utils::event_streaming::events::CentsAdded;
 use utils::send_wrap;
 use yral_canisters_common::utils::token::TokenOwner;
-use yral_canisters_common::Canisters;
 
 use component::buttons::HighlightedLinkButton;
 use component::icons::airdrop_icon::AirdropIcon;
@@ -38,6 +34,7 @@ use utils::token::firestore::listen_to_documents;
 use utils::token::icpump::get_paginated_token_list;
 use utils::token::icpump::TokenListItem;
 
+use crate::token::icpump_sunset_popup::IcpumpSunsetPopup;
 use crate::wallet::airdrop::AirdropPopup;
 use component::overlay::ShadowOverlay;
 
@@ -136,17 +133,16 @@ pub fn ICPumpListingFeed() -> impl IntoView {
     let page = RwSignal::new(1);
     let end = RwSignal::new(false);
     let loading = RwSignal::new(true);
-    let (curr_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
     let token_list: RwSignal<Vec<ProcessedTokenListResponse>> = RwSignal::new(vec![]);
     let new_token_list: RwSignal<VecDeque<ProcessedTokenListResponse>> =
         RwSignal::new(VecDeque::new());
 
-    let fetch_res = Resource::new(
+    let auth = auth_state();
+
+    let _fetch_res = auth.derive_resource(
         move || page.get(),
-        move |page| {
+        move |cans, page| {
             send_wrap(async move {
-                let cans = authenticated_canisters().await;
-                let cans = Canisters::from_wire(cans.unwrap(), expect_context()).unwrap();
                 new_token_list.set(VecDeque::new());
 
                 loading.set(true);
@@ -166,13 +162,14 @@ pub fn ICPumpListingFeed() -> impl IntoView {
                 });
 
                 loading.set(false);
+
+                Ok(())
             })
         },
     );
 
     Effect::new(move |_| {
-        fetch_res.refetch();
-        if let Some(principal) = curr_principal.get() {
+        if let Some(principal) = auth.user_principal_if_available() {
             spawn_local(async move {
                 let (_app, firestore) = init_firebase();
                 let mut stream = listen_to_documents(&firestore);
@@ -255,6 +252,7 @@ pub fn ICPumpLanding() -> impl IntoView {
     // TODO: add the pump-ai icon here, as shown in the new ui for pnd game
     view! {
         <Title text="ICPump - Home" />
+        <IcpumpSunsetPopup />
         <div class="min-h-screen bg-black text-white  flex flex-col gap-4 px-4 md:px-8 py-6 font-kumbh">
             <div class="flex lg:flex-row gap-4 flex-col items-center justify-center">
                 <div class="lg:left-0 lg:top-0 flex items-center gap-4">
@@ -363,10 +361,11 @@ pub fn TokenCard(
 
     let claimed = RwSignal::new(is_airdrop_claimed);
     let buffer_signal = RwSignal::new(false);
-    let cans_res = authenticated_canisters();
+
+    let auth = auth_state();
+
     let token_owner_c = token_owner.clone();
     let airdrop_action = Action::new_local(move |&()| {
-        let cans_res = cans_res;
         let token_owner_cans_id = token_owner_c.clone().unwrap().canister_id;
         let token_symbol = token_symbol_c.clone();
         airdrop_popup.set(true);
@@ -375,10 +374,7 @@ pub fn TokenCard(
                 return Ok(());
             }
             buffer_signal.set(true);
-            let cans_wire = cans_res
-                .get_untracked()
-                .ok_or_else(|| ServerFnError::new("Auth Failed"))??;
-            let cans = Canisters::from_wire(cans_wire, expect_context())?;
+            let cans = auth.auth_cans(expect_context()).await?;
             let token_owner = cans.individual_user(token_owner_cans_id).await;
 
             token_owner
@@ -394,7 +390,7 @@ pub fn TokenCard(
             user.add_token(root).await?;
 
             if token_symbol == "COYNS" || token_symbol == "CENTS" {
-                CentsAdded.send_event("airdrop".to_string(), 100);
+                CentsAdded.send_event(auth.event_ctx(), "airdrop".to_string(), 100);
             }
 
             buffer_signal.set(false);

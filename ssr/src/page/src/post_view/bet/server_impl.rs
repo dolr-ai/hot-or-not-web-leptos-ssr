@@ -41,7 +41,7 @@ mod alloydb {
         // sanitization is not required here, as get_post_details verifies that the post is valid
         // and exists on cloudflare
         let query = format!(
-            "select hot_or_not_evaluator.get_hot_or_not('{}')",
+            "select hot_or_not_evaluator.get_hot_or_not_multiple_slots_v2('{}')",
             post_info.uid
         );
 
@@ -50,15 +50,15 @@ mod alloydb {
         let mut res = res
             .sql_results
             .pop()
-            .expect("hot_or_not_evaluator.get_hot_or_not MUST return a result");
+            .expect("hot_or_not_evaluator.get_hot_or_not_multiple_slots_v2 MUST return a result");
         let mut res = res
             .rows
             .pop()
-            .expect("hot_or_not_evaluator.get_hot_or_not MUST return a row");
+            .expect("hot_or_not_evaluator.get_hot_or_not_multiple_slots_v2 MUST return a row");
         let res = res
             .values
             .pop()
-            .expect("hot_or_not_evaluator.get_hot_or_not MUST return a value");
+            .expect("hot_or_not_evaluator.get_hot_or_not_multiple_slots_v2 MUST return a value");
 
         let res = res.value.clone().map(|v| v.to_uppercase());
         let sentiment = match res.as_deref() {
@@ -67,7 +67,7 @@ mod alloydb {
             None => HotOrNot::Not,
             _ => {
                 return Err(ServerFnError::new(
-                    "hot_or_not_evaluator.get_hot_or_not MUST return a boolean",
+                    "hot_or_not_evaluator.get_hot_or_not_multiple_slots_v2 MUST return a boolean",
                 ));
             }
         };

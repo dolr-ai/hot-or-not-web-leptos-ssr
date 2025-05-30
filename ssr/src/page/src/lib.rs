@@ -22,6 +22,7 @@ pub mod root;
 pub mod scrolling_post_view;
 pub mod settings;
 pub mod terms;
+pub mod terms_android;
 pub mod terms_ios;
 pub mod token;
 pub mod upload;

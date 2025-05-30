@@ -4,11 +4,10 @@ use leptos::prelude::*;
 use leptos::web_sys::{Notification, NotificationPermission};
 use leptos_icons::Icon;
 use leptos_use::storage::use_local_storage;
-use state::canisters::authenticated_canisters;
+use state::canisters::auth_state;
 use utils::notifications::{
     get_device_registeration_token, get_fcm_token, notification_permission_granted,
 };
-use yral_canisters_common::Canisters;
 use yral_metadata_client::MetadataClient;
 
 use crate::{
@@ -18,7 +17,7 @@ use crate::{
 
 #[component]
 pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
-    let cans = authenticated_canisters();
+    let auth = auth_state();
 
     let (notifs_enabled, set_notifs_enabled, _) =
         use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
@@ -32,7 +31,7 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
     let notification_action: Action<(), ()> = Action::new_unsync(move |()| async move {
         let metaclient: MetadataClient<false> = MetadataClient::default();
 
-        let cans = Canisters::from_wire(cans.await.unwrap(), expect_context()).unwrap();
+        let cans = auth.auth_cans(expect_context()).await.unwrap();
 
         let browser_permission = Notification::permission();
         let notifs_enabled_val = notifs_enabled.get_untracked();

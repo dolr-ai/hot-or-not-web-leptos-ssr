@@ -9,7 +9,7 @@ use component::spinner::FullScreenSpinner;
 use consts::NSFW_TOGGLE_STORE;
 use indexmap::IndexSet;
 use priority_queue::DoublePriorityQueue;
-use state::canisters::{authenticated_canisters, unauth_canisters};
+use state::canisters::{auth_state, unauth_canisters};
 use std::{cmp::Reverse, collections::HashMap};
 use yral_types::post::PostItem;
 
@@ -26,7 +26,7 @@ use utils::{
     posts::FetchCursor, route::failure_redirect, send_wrap, try_or_redirect, types::PostId,
 };
 
-use video_iter::{FeedResultType, VideoFetchStream};
+use video_iter::{new_video_fetch_stream, new_video_fetch_stream_auth, FeedResultType};
 use yral_canisters_common::{utils::posts::PostDetails, Canisters};
 
 #[derive(Params, PartialEq, Clone, Copy)]
@@ -154,12 +154,17 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
         ..
     } = expect_context();
 
-    let auth_cans = authenticated_canisters();
+    let auth = auth_state();
 
-    let fetch_video_action = Action::new_local(move |_| {
-        let auth_cans = auth_cans;
+    let fetch_video_action = Action::new(move |_| {
         let (nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
-        async move {
+        #[cfg(not(feature = "hydrate"))]
+        {
+            return async {};
+        }
+
+        #[cfg(feature = "hydrate")]
+        send_wrap(async move {
             {
                 let mut prio_q = priority_q.write();
                 let mut cnt = 0;
@@ -187,18 +192,22 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                 let Some(batch_cnt_val) = batch_cnt.try_get_untracked() else {
                     return;
                 };
+                leptos::logging::log!("fetching ml feed");
+                let cans_false: Canisters<false> = unauth_canisters();
+                let cans_true = auth.auth_cans_if_available(cans_false.clone());
 
-                let canisters = auth_cans.await;
-                let cans_true = Canisters::from_wire(canisters.unwrap(), expect_context()).unwrap();
-
-                let mut fetch_stream = VideoFetchStream::new(&cans_true, cursor);
-                let chunks = fetch_stream
-                    .fetch_post_uids_hybrid(
-                        3,
-                        nsfw_enabled,
-                        video_queue.get_untracked().iter().cloned().collect(),
-                    )
-                    .await;
+                let video_queue_c = video_queue.get_untracked().iter().cloned().collect();
+                let chunks = if let Some(cans_true) = cans_true.as_ref() {
+                    let mut fetch_stream = new_video_fetch_stream_auth(cans_true, auth, cursor);
+                    fetch_stream
+                        .fetch_post_uids_hybrid(3, nsfw_enabled, video_queue_c)
+                        .await
+                } else {
+                    let mut fetch_stream = new_video_fetch_stream(&cans_false, auth, cursor);
+                    fetch_stream
+                        .fetch_post_uids_hybrid(3, nsfw_enabled, video_queue_c)
+                        .await
+                };
 
                 let res = try_or_redirect!(chunks);
                 let mut chunks = res.posts_stream;
@@ -237,7 +246,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
 
                 batch_cnt.update(|x| *x += 1);
             }
-        }
+        })
     });
 
     view! { <CommonPostViewWithUpdates initial_post fetch_video_action threshold_trigger_fetch=50 /> }.into_any()

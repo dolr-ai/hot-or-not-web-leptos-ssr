@@ -1,6 +1,5 @@
 use super::UploadParams;
 use auth::delegate_short_lived_identity;
-use codee::string::FromToStringCodec;
 use component::buttons::HighlightedLinkButton;
 use component::modal::Modal;
 use component::notification_nudge::NotificationNudge;
@@ -13,21 +12,18 @@ use leptos::{
     prelude::*,
 };
 use leptos_icons::*;
-use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use state::canisters::authenticated_canisters;
+use state::canisters::{auth_state, unauth_canisters};
 use utils::mixpanel::mixpanel_events::*;
 use utils::{
     event_streaming::events::{
-        auth_canisters_store, VideoUploadSuccessful, VideoUploadUnsuccessful,
-        VideoUploadVideoSelected,
+        VideoUploadSuccessful, VideoUploadUnsuccessful, VideoUploadVideoSelected,
     },
     try_or_redirect_opt,
     web::FileWithUrl,
 };
-use yral_canisters_common::Canisters;
 
 #[component]
 pub fn DropBox() -> impl IntoView {
@@ -52,7 +48,9 @@ pub fn PreVideoUpload(
     let file = RwSignal::new_local(None::<FileWithUrl>);
     let video_ref = NodeRef::<Video>::new();
     let modal_show = RwSignal::new(false);
-    let canister_store = auth_canisters_store();
+
+    let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
 
     #[cfg(feature = "hydrate")]
     {
@@ -65,13 +63,11 @@ pub fn PreVideoUpload(
                 let inp_file = input.files()?.get(0)?;
                 file.set(Some(FileWithUrl::new(inp_file.into())));
 
-                VideoUploadVideoSelected.send_event(canister_store);
+                VideoUploadVideoSelected.send_event(ev_ctx);
                 Some(())
             });
         });
     }
-
-    let canister_store = auth_canisters_store();
 
     let upload_action: Action<(), _> = Action::new_local(move |_| async move {
         let message = try_or_redirect_opt!(upload_video_part(
@@ -81,7 +77,7 @@ pub fn PreVideoUpload(
         )
         .await
         .inspect_err(|e| {
-            VideoUploadUnsuccessful.send_event(e.to_string(), 0, false, true, canister_store);
+            VideoUploadUnsuccessful.send_event(ev_ctx, e.to_string(), 0, false, true);
         }));
 
         uid.set(message.data.and_then(|m| m.uid));
@@ -262,17 +258,21 @@ pub fn VideoUploader(
 
     let is_nsfw = params.is_nsfw;
     let enable_hot_or_not = params.enable_hot_or_not;
-    let canister_store = auth_canisters_store();
+
+    let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
+    let ev_ctx = auth.event_ctx();
+
     let notification_nudge = RwSignal::new(false);
-    let (is_connected, _, _) =
-        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
-    let publish_action: Action<_, _> = Action::new_unsync(move |canisters: &Canisters<true>| {
-        let canisters = canisters.clone();
+
+    let publish_action: Action<_, _> = Action::new_unsync(move |&()| {
+        let unauth_cans = unauth_canisters();
         let hashtags = hashtags.clone();
         let hashtags_len = hashtags.len();
         let description = description.clone();
         let uid = uid.get_untracked().unwrap();
         async move {
+            let canisters = auth.auth_cans(unauth_cans).await.ok()?;
             let id = canisters.identity();
             let delegated_identity = delegate_short_lived_identity(id);
             let res: std::result::Result<reqwest::Response, ServerFnError> = {
@@ -321,29 +321,30 @@ pub fn VideoUploader(
                 Err(_) => {
                     let e = res.as_ref().err().unwrap().to_string();
                     VideoUploadUnsuccessful.send_event(
+                        ev_ctx,
                         e,
                         hashtags_len,
                         is_nsfw,
                         enable_hot_or_not,
-                        canister_store,
                     );
                 }
             }
             try_or_redirect_opt!(res);
 
             VideoUploadSuccessful.send_event(
+                ev_ctx,
                 uid,
                 hashtags_len,
                 is_nsfw,
                 enable_hot_or_not,
                 0,
-                canister_store,
             );
 
             Some(())
         }
     });
-    let cans_res = authenticated_canisters();
+
+    Effect::new(move |_| publish_action.dispatch(()));
 
     view! {
         <div class="flex flex-col-reverse lg:flex-row w-full gap-4 lg:gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
@@ -393,22 +394,9 @@ pub fn VideoUploader(
                 </p>
             </div>
         </div>
-
-            <Suspense>
-                {move || {
-                    let cans_wire = cans_res.get()?.ok()?;
-                    let canisters = Canisters::from_wire(cans_wire, expect_context()).ok()?;
-                    // Dispatching the action starts the process
-                     if !publish_action.pending().get() && !published.get() { // Avoid re-dispatching
-                          publish_action.dispatch(canisters);
-                     }
-                    Some(())
-                }}
-            </Suspense>
-
-            <Show when=published>
-                <PostUploadScreen />
-            </Show>
+        <Show when=published>
+            <PostUploadScreen />
+        </Show>
 
     }.into_any()
 }
