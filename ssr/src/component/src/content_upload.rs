@@ -1,6 +1,9 @@
 use super::spinner::Spinner;
 use auth::delegate_short_lived_identity;
-use state::{canisters::authenticated_canisters, content_seed_client::ContentSeedClient};
+use state::{
+    canisters::{auth_state, unauth_canisters},
+    content_seed_client::ContentSeedClient,
+};
 #[derive(Default, Clone, Copy)]
 pub struct AuthorizedUserToSeedContent(pub RwSignal<Option<(bool, Principal)>>);
 use candid::Principal;
@@ -15,17 +18,17 @@ fn YoutubeUploadInner(#[prop(optional)] url: String) -> impl IntoView {
         delegate_short_lived_identity(id)
     };
 
-    let authenticated_canisters = authenticated_canisters();
+    let auth = auth_state();
+    let base = unauth_canisters();
     let on_submit: Action<(), String> = Action::new_unsync(move |_| {
-        let authenticated_canisters = authenticated_canisters;
+        let base = base.clone();
         async move {
-            let canisters_copy = Canisters::from_wire(
-                authenticated_canisters.get_untracked().unwrap().unwrap(),
-                expect_context(),
-            )
-            .unwrap();
+            let cans = match auth.auth_cans(base).await {
+                Ok(c) => c,
+                Err(e) => return e.to_string(),
+            };
 
-            let delegated_identity = create_short_lived_delegated_identity(&canisters_copy);
+            let delegated_identity = create_short_lived_delegated_identity(&cans);
             let content_seed_client: ContentSeedClient = expect_context();
             let res = content_seed_client
                 .upload_content(url_value(), delegated_identity)

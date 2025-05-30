@@ -7,8 +7,10 @@ use super::{overlay::VideoDetailsOverlay, video_loader::VideoView};
 use crate::scrolling_post_view::MuteIconOverlay;
 use component::{back_btn::go_back_or_fallback, spinner::FullScreenSpinner};
 use leptos_router::{components::Redirect, hooks::use_params, params::Params};
-use state::{audio_state::AudioState, canisters::unauth_canisters};
-use utils::event_streaming::events::auth_canisters_store;
+use state::{
+    audio_state::AudioState,
+    canisters::{auth_state, unauth_canisters},
+};
 use utils::{bg_url, send_wrap};
 use yral_canisters_common::utils::posts::PostDetails;
 #[derive(Params, PartialEq, Clone, Copy)]
@@ -69,16 +71,20 @@ fn UnavailablePost() -> impl IntoView {
 #[component]
 pub fn SinglePost() -> impl IntoView {
     let params = use_params::<PostParams>();
-    let auth_cans = auth_canisters_store();
+
+    let auth = auth_state();
+
     let fetch_post = Resource::new(params, move |params| {
         send_wrap(async move {
             let params = params.map_err(|_| PostFetchError::Invalid)?;
-            let post_uid = if let Some(canisters) = auth_cans.get_untracked() {
+            let unauth_cans = unauth_canisters();
+            let post_uid = if let Some(canisters) = auth.auth_cans_if_available(unauth_cans.clone())
+            {
                 canisters
                     .get_post_details(params.canister_id, params.post_id)
                     .await
             } else {
-                let canisters = unauth_canisters();
+                let canisters = unauth_cans;
                 canisters
                     .get_post_details(params.canister_id, params.post_id)
                     .await

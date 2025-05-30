@@ -175,21 +175,24 @@ sentry-tower = { version = "0.37.0", features = ["axum", "axum-matched-path"] }
 #     "client",
 # ], version = "0.1.0" }
 # hon-worker-common = { path = "../yral-common/hon-worker-common", features = [ "client", ], version = "0.1.0" }
+# yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features = [
+#     "client",
+# ], version = "0.1.0" }
 # ===
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", rev = "68b65b80935106406ed612902a096fb1a4181a97" }
-yral-grpc-traits = { git = "https://github.com/dolr-ai/yral-common.git", rev = "68b65b80935106406ed612902a096fb1a4181a97" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", rev = "68b65b80935106406ed612902a096fb1a4181a97" }
-yral-qstash-types = { git = "https://github.com/dolr-ai/yral-common.git", rev = "68b65b80935106406ed612902a096fb1a4181a97" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev = "68b65b80935106406ed612902a096fb1a4181a97", features = [
+yral-pump-n-dump-common = { git = "https://github.com/yral-dapp/yral-common", features = [
+    "client",
+], branch = "master", version = "0.1.0" }
+sns-validation = { git = "https://github.com/yral-dapp/yral-common.git", branch = "master" }
+yral-grpc-traits = { git = "https://github.com/yral-dapp/yral-common.git", branch = "master" }
+yral-types = { git = "https://github.com/yral-dapp/yral-common.git", branch = "master" }
+yral-qstash-types = { git = "https://github.com/yral-dapp/yral-common.git", branch = "master" }
+yral-canisters-client = { git = "https://github.com/yral-dapp/yral-common.git", branch = "master", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "68b65b80935106406ed612902a096fb1a4181a97" }
-yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common", features = [
-    "client",
-], rev = "68b65b80935106406ed612902a096fb1a4181a97", version = "0.1.0" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], rev = "68b65b80935106406ed612902a096fb1a4181a97", version = "0.1.0" }
+], branch = "master", version = "0.1.0" }
 google-cloud-alloydb-v1 = "0.2.0"
 yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adbf4be5cb62a26f2a90032261321bf1df33f08b", default-features = false }
 

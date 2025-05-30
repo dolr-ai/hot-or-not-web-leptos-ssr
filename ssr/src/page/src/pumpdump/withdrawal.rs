@@ -1,6 +1,5 @@
 use crate::format_cents;
 use candid::{Nat, Principal};
-use codee::string::FromToStringCodec;
 use component::{
     auth_providers::handle_user_login,
     back_btn::BackButton,
@@ -13,11 +12,10 @@ use futures::TryFutureExt;
 use http::StatusCode;
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
-use leptos_use::storage::use_local_storage;
 use log;
-use state::canisters::authenticated_canisters;
+use state::canisters::auth_state;
 use utils::{mixpanel::mixpanel_events::*, send_wrap, try_or_redirect_opt};
-use yral_canisters_common::{utils::token::balance::TokenBalance, Canisters};
+use yral_canisters_common::utils::token::balance::TokenBalance;
 use yral_pump_n_dump_common::rest::{BalanceInfoResponse, ClaimReq};
 
 pub mod result;
@@ -105,13 +103,14 @@ fn BalanceDisplay(#[prop(into)] balance: Nat, #[prop(into)] withdrawable: Nat) -
 
 #[component]
 pub fn PndWithdrawal() -> impl IntoView {
-    let auth_wire = authenticated_canisters();
-    let details_res = Resource::new(
+    let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
+
+    let details_res = auth.derive_resource(
         move || (),
-        move |_| {
+        move |cans, _| {
             send_wrap(async move {
-                let cans_wire = auth_wire.await?;
-                load_withdrawal_details(cans_wire.user_canister)
+                load_withdrawal_details(cans.user_canister())
                     .map_err(ServerFnError::new)
                     .await
             })
@@ -139,62 +138,55 @@ pub fn PndWithdrawal() -> impl IntoView {
 
         cents.set(value);
     };
-    let (is_connected, _, _) =
-        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
 
-    let auth_wire = authenticated_canisters();
-    let send_claim = Action::new_local(move |&()| {
-        let auth_wire = auth_wire;
-        async move {
-            let auth_wire = auth_wire.await.map_err(ServerFnError::new)?;
+    let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
 
-            let cans = Canisters::from_wire(auth_wire.clone(), expect_context())
-                .map_err(ServerFnError::new)?;
+    let send_claim = Action::new_local(move |&()| async move {
+        let cans = auth.auth_cans(expect_context()).await?;
+        handle_user_login(cans.clone(), ev_ctx, None).await?;
 
-            handle_user_login(cans.clone(), None).await?;
+        let req = ClaimReq::new(cans.identity(), dolrs()).map_err(ServerFnError::new)?;
+        let claim_url = PUMP_AND_DUMP_WORKER_URL
+            .join("/claim_gdollr")
+            .expect("Url to be valid");
+        let client = reqwest::Client::new();
+        let res = client
+            .post(claim_url)
+            .json(&req)
+            .send()
+            .await
+            .map_err(ServerFnError::new)?;
 
-            let req = ClaimReq::new(cans.identity(), dolrs()).map_err(ServerFnError::new)?;
-            let claim_url = PUMP_AND_DUMP_WORKER_URL
-                .join("/claim_gdollr")
-                .expect("Url to be valid");
-            let client = reqwest::Client::new();
-            let res = client
-                .post(claim_url)
-                .json(&req)
-                .send()
-                .await
-                .map_err(ServerFnError::new)?;
-
-            if res.status() != StatusCode::OK {
-                return Err(ServerFnError::new("Request failed"));
-            }
-
-            let mix_formatted_cents = TokenBalance::new(cents().e8s, 6)
-                .humanize_float_truncate_to_dp(4)
-                .parse::<u64>()
-                .unwrap_or(0);
-            let cents_value = mix_formatted_cents as f64;
-            let is_logged_in = is_connected.get_untracked();
-            let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-            let balance_info = balance_info_signal.get();
-            let updated_cents_wallet_balance = format_cents!(balance_info.unwrap().balance)
-                .parse::<f64>()
-                .unwrap_or(0.0)
-                - mix_formatted_cents as f64;
-
-            MixPanelEvent::track_cents_to_dolr(MixpanelCentsToDolrProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                updated_cents_wallet_balance,
-                conversion_ratio: 0.01,
-                cents_converted: cents_value,
-            });
-
-            Ok::<(), ServerFnError>(())
+        if res.status() != StatusCode::OK {
+            return Err(ServerFnError::new("Request failed"));
         }
+
+        let mix_formatted_cents = TokenBalance::new(cents().e8s, 6)
+            .humanize_float_truncate_to_dp(4)
+            .parse::<u64>()
+            .unwrap_or(0);
+        let cents_value = mix_formatted_cents as f64;
+        let is_logged_in = is_connected.get_untracked();
+        let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
+        let balance_info = balance_info_signal.get();
+        let updated_cents_wallet_balance = format_cents!(balance_info.unwrap().balance)
+            .parse::<f64>()
+            .unwrap_or(0.0)
+            - mix_formatted_cents as f64;
+
+        MixPanelEvent::track_cents_to_dolr(MixpanelCentsToDolrProps {
+            user_id: global.user_id,
+            visitor_id: global.visitor_id,
+            is_logged_in: global.is_logged_in,
+            canister_id: global.canister_id,
+            is_nsfw_enabled: global.is_nsfw_enabled,
+            updated_cents_wallet_balance,
+            conversion_ratio: 0.01,
+            cents_converted: cents_value,
+        });
+
+        Ok::<(), ServerFnError>(())
     });
     let is_claiming = send_claim.pending();
     let claim_res = send_claim.value();

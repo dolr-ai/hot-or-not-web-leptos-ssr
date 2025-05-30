@@ -9,7 +9,7 @@ use codee::string::JsonSerdeCodec;
 use consts::PUMP_AND_DUMP_WORKER_URL;
 use leptos::{either::Either, prelude::*};
 use leptos_use::{use_websocket, UseWebSocketReturn};
-use state::canisters::authenticated_canisters;
+use state::canisters::auth_state;
 use yral_pump_n_dump_common::ws::{websocket_connection_url, WsRequest};
 
 use crate::{
@@ -41,7 +41,7 @@ pub fn GameCard(token: ProcessedTokenListResponse) -> impl IntoView {
         }
     });
 
-    let auth_cans = authenticated_canisters();
+    let auth = auth_state();
     let player_data: PlayerDataRes = expect_context();
     let running_game_res = LocalResource::new(move || {
         let player_data = player_data.clone();
@@ -61,7 +61,7 @@ pub fn GameCard(token: ProcessedTokenListResponse) -> impl IntoView {
             };
             ws_url.set_scheme(scheme).expect("scheme to be valid");
 
-            let cans = auth_cans.await?;
+            let cans = auth.cans_wire().await?;
             let id: DelegatedIdentity = cans.id.try_into()?;
             let websocket_url = websocket_connection_url(
                 ws_url,
