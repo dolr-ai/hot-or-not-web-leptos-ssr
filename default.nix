@@ -11,7 +11,6 @@ pkgs.mkShell {
     flyctl
     leptosfmt
     nodejs_22
-    nodePackages_latest.tailwindcss
     rustup
     openssl
     git
