@@ -32,13 +32,30 @@ pub fn identify_user(user_id: &str) {
 
 #[server]
 async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
+    use axum::extract::ConnectInfo;
+    use axum_extra::headers::UserAgent;
+    use axum_extra::TypedHeader;
+    use leptos_axum::extract;
+    use std::net::SocketAddr;
+
+    let (ConnectInfo(addr), TypedHeader(user_agent)): (
+        ConnectInfo<SocketAddr>,
+        TypedHeader<UserAgent>,
+    ) = extract().await?;
+
+    let ip = addr.ip().to_string();
+    let ua = user_agent.as_str().to_string();
+    let mut props = props;
+    props["ip"] = ip.clone().into();
+    props["$ip"] = ip.clone().into();
+    props["user_agent"] = ua.clone().into();
     #[cfg(feature = "qstash")]
     {
         let qstash_client: crate::qstash::QStashClient = expect_context();
         let token =
             std::env::var("ANALYTICS_SERVER_TOKEN").expect("ANALYTICS_SERVER_TOKEN is not set");
         qstash_client
-            .send_analytics_event_to_qstash(props, token)
+            .send_analytics_event_to_qstash(props, token, ip, ua)
             .await
             .map_err(|e| ServerFnError::new(format!("Mixpanel track error: {e:?}")))?;
     }

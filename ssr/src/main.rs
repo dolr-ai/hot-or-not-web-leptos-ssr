@@ -192,10 +192,13 @@ async fn main_impl() {
     // `axum::Server` is a re-export of `hyper::Server`
     println!("listening on http://{}", &addr);
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    axum::serve(listener, app.into_make_service())
-        .with_graceful_shutdown(terminate)
-        .await
-        .unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .with_graceful_shutdown(terminate)
+    .await
+    .unwrap();
 }
 
 fn main() {
