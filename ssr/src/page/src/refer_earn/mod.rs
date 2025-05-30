@@ -10,7 +10,7 @@ use leptos_router::components::Redirect;
 use leptos_use::use_window;
 
 use component::connect::ConnectLogin;
-use component::{back_btn::BackButton, buttons::HighlightedButton, title::TitleText};
+use component::{back_btn::BackButton, buttons::HighlightedButton, title::TitleText, overlay::ShadowOverlay};
 use state::app_state::AppState;
 use state::canisters::auth_state;
 use utils::event_streaming::events::{Refer, ReferShareLink};
@@ -22,6 +22,24 @@ fn WorkButton(#[prop(into)] text: String, #[prop(into)] head: String) -> impl In
         <div class="flex flex-1 flex-col lg:flex-row items-center justify-center text-xs lg:text-md gap-3 bg-neutral-900 rounded-md px-3 lg:px-4 lg:py-5 py-4">
             <div class="font-bold text-neutral-50 whitespace-nowrap">{head}</div>
             <span class="text-neutral-400">{text}</span>
+        </div>
+    }
+}
+
+#[component]
+fn ReferShareOverlay(#[prop(into)] show: RwSignal<bool>) -> impl IntoView {
+    view! {
+        <div
+            on:click=move |_| show.set(false)
+            class="flex cursor-pointer modal-bg w-dvw h-dvh fixed left-0 top-0 bg-black/60 z-[99] justify-center overflow-hidden backdrop-blur-sm"
+        >
+            <div class="py-4 px-[20px] max-w-md mx-auto border border-neutral-700 max-h-full pt-16 items-center cursor-auto flex-col flex gap-4 bg-neutral-900 rounded-md">
+            <img src="/img/common/share-link.webp" class="w-full" />
+            <div class="flex flex-col items-center  font-bold text-xs md:text-sm">
+                <div class="text-center text-neutral-50">"Share your link with a friend and"</div>
+                <div class="text-center text-[#FFC33A]">"You both Win 500 SATS each!"</div>
+            </div>
+            </div>
         </div>
     }
 }
@@ -66,6 +84,8 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
         click_copy.dispatch(url.clone());
     };
 
+    let show_share_overlay = RwSignal::new(false);
+
     view! {
         <div class="flex z-[1] w-full gap-2 justify-between">
             <div class="flex flex-1 items-center w-full rounded-md border-dashed border-2 p-3 gap-2 border-neutral-700 bg-neutral-900">
@@ -78,10 +98,17 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
             classes="!w-fit".to_string()
             alt_style=false
             disabled=false
-            on_click=move || { handle_share() }>
+            on_click=move || { 
+                handle_share();
+                show_share_overlay.set(true);
+             }>
                 Share
             </HighlightedButton>
         </div>
+
+        <Show when=show_share_overlay>
+            <ReferShareOverlay show=show_share_overlay />
+        </Show>
 
         <Show when=show_copied_popup>
             <div class="absolute flex flex-col justify-center items-center z-[10]">
