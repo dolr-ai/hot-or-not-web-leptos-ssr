@@ -44,80 +44,32 @@ fn init_cookie_key() -> Key {
 }
 
 #[cfg(feature = "oauth-ssr")]
-fn init_google_oauth() -> auth::core_clients::CoreClients {
-    use auth::core_clients::CoreClients;
-    use consts::google::GOOGLE_ISSUER_URL;
-    use openidconnect::core::CoreProviderMetadata;
-    use openidconnect::{
-        core::CoreClient, reqwest::http_client, ClientId, ClientSecret, IssuerUrl, RedirectUrl,
+fn init_yral_oauth() -> auth::server_impl::yral::YralOAuthClient {
+    use auth::server_impl::yral::YralOAuthClient;
+    use consts::yral_auth::{
+        YRAL_AUTH_AUTHORIZATION_URL, YRAL_AUTH_ISSUER_URL, YRAL_AUTH_TOKEN_URL,
     };
+    use openidconnect::{ClientId, ClientSecret, IssuerUrl, RedirectUrl};
+    use openidconnect::{AuthUrl, TokenUrl};
 
-    let client_id = env::var("GOOGLE_CLIENT_ID").expect("`GOOGLE_CLIENT_ID` is required!");
+    let client_id = env::var("YRAL_AUTH_CLIENT_ID").expect("`YRAL_AUTH_CLIENT_ID` is required!");
     let client_secret =
-        env::var("GOOGLE_CLIENT_SECRET").expect("`GOOGLE_CLIENT_SECRET` is required!");
-    let redirect_uri = env::var("GOOGLE_REDIRECT_URL").expect("`GOOGLE_REDIRECT_URL` is required!");
+        env::var("YRAL_AUTH_CLIENT_SECRET").expect("`YRAL_AUTH_CLIENT_SECRET` is required!");
+    let redirect_uri =
+        env::var("YRAL_AUTH_REDIRECT_URL").expect("`YRAL_AUTH_REDIRECT_URL` is required!");
 
-    let google_oauth_metadata = CoreProviderMetadata::discover(
-        &IssuerUrl::new(GOOGLE_ISSUER_URL.to_string()).unwrap(),
-        http_client,
-    )
-    .unwrap();
+    
 
-    let google_oauth = CoreClient::from_provider_metadata(
-        google_oauth_metadata.clone(),
+    YralOAuthClient::new(
         ClientId::new(client_id),
         Some(ClientSecret::new(client_secret)),
+        IssuerUrl::new(YRAL_AUTH_ISSUER_URL.to_string()).unwrap(),
+        AuthUrl::new(YRAL_AUTH_AUTHORIZATION_URL.to_string()).unwrap(),
+        Some(TokenUrl::new(YRAL_AUTH_TOKEN_URL.to_string()).unwrap()),
+        None,
+        Default::default(),
     )
-    .set_redirect_uri(RedirectUrl::new(redirect_uri).unwrap());
-
-    let client_id =
-        env::var("HOTORNOT_GOOGLE_CLIENT_ID").expect("`HOTORNOT_GOOGLE_CLIENT_ID` is required!");
-    let client_secret = env::var("HOTORNOT_GOOGLE_CLIENT_SECRET")
-        .expect("`HOTORNOT_GOOGLE_CLIENT_SECRET` is required!");
-    let redirect_uri = env::var("HOTORNOT_GOOGLE_REDIRECT_URL")
-        .expect("`HOTORNOT_GOOGLE_REDIRECT_URL` is required!");
-
-    let hotornot_google_oauth = CoreClient::from_provider_metadata(
-        google_oauth_metadata.clone(),
-        ClientId::new(client_id),
-        Some(ClientSecret::new(client_secret)),
-    )
-    .set_redirect_uri(RedirectUrl::new(redirect_uri).unwrap());
-
-    let client_id =
-        env::var("ICPUMPFUN_GOOGLE_CLIENT_ID").expect("`ICPUMPFUN_GOOGLE_CLIENT_ID` is required!");
-    let client_secret = env::var("ICPUMPFUN_GOOGLE_CLIENT_SECRET")
-        .expect("`ICPUMPFUN_GOOGLE_CLIENT_SECRET` is required!");
-    let redirect_uri = env::var("ICPUMPFUN_GOOGLE_REDIRECT_URL")
-        .expect("`ICPUMPFUN_GOOGLE_REDIRECT_URL` is required!");
-
-    let icpump_google_oauth = CoreClient::from_provider_metadata(
-        google_oauth_metadata.clone(),
-        ClientId::new(client_id),
-        Some(ClientSecret::new(client_secret)),
-    )
-    .set_redirect_uri(RedirectUrl::new(redirect_uri).unwrap());
-
-    let client_id =
-        env::var("PUMPDUMP_GOOGLE_CLIENT_ID").expect("`PUMPDUMP_GOOGLE_CLIENT_ID` is required!");
-    let client_secret = env::var("PUMPDUMP_GOOGLE_CLIENT_SECRET")
-        .expect("`PUMPDUMP_GOOGLE_CLIENT_SECRET` is required!");
-    let redirect_uri = env::var("PUMPDUMP_GOOGLE_REDIRECT_URL")
-        .expect("`PUMPDUMP_GOOGLE_REDIRECT_URL` is required!");
-
-    let pumpdump_google_oauth = CoreClient::from_provider_metadata(
-        google_oauth_metadata.clone(),
-        ClientId::new(client_id),
-        Some(ClientSecret::new(client_secret)),
-    )
-    .set_redirect_uri(RedirectUrl::new(redirect_uri).unwrap());
-
-    CoreClients {
-        google_oauth,
-        hotornot_google_oauth,
-        icpump_google_oauth,
-        pumpdump_google_oauth,
-    }
+    .set_redirect_uri(RedirectUrl::new(redirect_uri).unwrap())
 }
 
 #[cfg(feature = "firestore")]
@@ -327,7 +279,7 @@ impl AppStateBuilder {
             kv,
             cookie_key: init_cookie_key(),
             #[cfg(feature = "oauth-ssr")]
-            google_oauth_clients: init_google_oauth(),
+            yral_oauth_client: init_yral_oauth(),
             #[cfg(feature = "ga4")]
             grpc_offchain_channel: init_grpc_offchain_channel().await,
             #[cfg(feature = "firestore")]

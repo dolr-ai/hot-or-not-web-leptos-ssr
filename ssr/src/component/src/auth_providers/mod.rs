@@ -1,7 +1,5 @@
 #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-pub mod google;
-#[cfg(feature = "local-auth")]
-pub mod local_storage;
+pub mod yral;
 use candid::Principal;
 use consts::NEW_USER_SIGNUP_REWARD;
 use consts::REFERRAL_REWARD;
@@ -197,16 +195,9 @@ pub fn LoginProviders(
             <img class="h-32 w-32 object-contain my-8" src="/img/yral/logo.webp" />
             <span class="text-md">Continue with</span>
             <div class="flex flex-col w-full gap-4 items-center">
-
-                {
-                    #[cfg(feature = "local-auth")]
-                    view! {
-                        <local_storage::LocalStorageProvider></local_storage::LocalStorageProvider>
-                    }
-                }
                 {
                     #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-                    view! { <google::GoogleAuthProvider></google::GoogleAuthProvider> }
+                    view! { <yral::YralAuthProvider/> }
                 }
                 <div id="tnc" class="text-white text-center">
                     By continuing you agree to our <a class="text-primary-600 underline" href="/terms-of-service">Terms of Service</a>

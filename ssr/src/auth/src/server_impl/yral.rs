@@ -2,13 +2,20 @@ use axum_extra::extract::{
     cookie::{Cookie, Key, SameSite},
     PrivateCookieJar, SignedCookieJar,
 };
-use candid::Principal;
-use ic_agent::{identity::Secp256k1Identity, Identity};
 use leptos::prelude::*;
 use leptos_axum::{extract_with_state, ResponseOptions};
 use openidconnect::{
-    core::CoreAuthenticationFlow, reqwest::async_http_client, AuthorizationCode, CsrfToken, Nonce,
-    PkceCodeChallenge, PkceCodeVerifier, Scope,
+    core::{
+        CoreAuthDisplay, CoreAuthPrompt, CoreAuthenticationFlow, CoreErrorResponseType,
+        CoreGenderClaim, CoreIdTokenVerifier, CoreJsonWebKey, CoreJsonWebKeyType,
+        CoreJsonWebKeyUse, CoreJweContentEncryptionAlgorithm, CoreJwsSigningAlgorithm,
+        CoreRevocableToken, CoreRevocationErrorResponse, CoreTokenIntrospectionResponse,
+        CoreTokenType,
+    },
+    reqwest::async_http_client,
+    AdditionalClaims, AuthorizationCode, CsrfToken, EmptyExtraTokenFields, IdTokenFields, Nonce,
+    OAuth2TokenResponse, PkceCodeChallenge, PkceCodeVerifier, Scope, StandardErrorResponse,
+    StandardTokenResponse,
 };
 use serde::{Deserialize, Serialize};
 use web_time::Duration;
@@ -22,14 +29,51 @@ use yral_types::delegated_identity::DelegatedIdentityWire;
 //     DelegatedIdentityWire,
 // };
 
-use super::{
-    fetch_identity_from_kv, set_cookies,
-    store::{KVStore, KVStoreImpl},
-    try_extract_identity, update_user_identity_and_delegate,
-};
+use super::{set_cookies, update_user_identity};
 
 const PKCE_VERIFIER_COOKIE: &str = "google-pkce-verifier";
 const CSRF_TOKEN_COOKIE: &str = "google-csrf-token";
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct YralAuthAdditionalTokenClaims {
+    pub ext_is_anonymous: bool,
+    pub ext_delegated_identity: DelegatedIdentityWire,
+}
+
+impl AdditionalClaims for YralAuthAdditionalTokenClaims {}
+
+pub type YralOAuthClient = openidconnect::Client<
+    YralAuthAdditionalTokenClaims,
+    CoreAuthDisplay,
+    CoreGenderClaim,
+    CoreJweContentEncryptionAlgorithm,
+    CoreJwsSigningAlgorithm,
+    CoreJsonWebKeyType,
+    CoreJsonWebKeyUse,
+    CoreJsonWebKey,
+    CoreAuthPrompt,
+    StandardErrorResponse<CoreErrorResponseType>,
+    StandardTokenResponse<
+        IdTokenFields<
+            YralAuthAdditionalTokenClaims,
+            EmptyExtraTokenFields,
+            CoreGenderClaim,
+            CoreJweContentEncryptionAlgorithm,
+            CoreJwsSigningAlgorithm,
+            CoreJsonWebKeyType,
+        >,
+        CoreTokenType,
+    >,
+    CoreTokenType,
+    CoreTokenIntrospectionResponse,
+    CoreRevocableToken,
+    CoreRevocationErrorResponse,
+>;
+
+pub fn token_verifier() -> CoreIdTokenVerifier<'static> {
+    // TODO: use real impl
+    CoreIdTokenVerifier::new_insecure_without_verification()
+}
 
 #[derive(Serialize, Deserialize)]
 struct OAuthState {
@@ -37,8 +81,8 @@ struct OAuthState {
     pub client_redirect_uri: Option<String>,
 }
 
-pub async fn google_auth_url_impl(
-    oauth2: openidconnect::core::CoreClient,
+pub async fn yral_auth_url_impl(
+    oauth2: YralOAuthClient,
     client_redirect_uri: Option<String>,
 ) -> Result<String, ServerFnError> {
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
@@ -83,49 +127,14 @@ pub async fn google_auth_url_impl(
     Ok(auth_url.to_string())
 }
 
-fn no_op_nonce_verifier(_: Option<&Nonce>) -> Result<(), String> {
+pub fn no_op_nonce_verifier(_: Option<&Nonce>) -> Result<(), String> {
     Ok(())
 }
 
-fn principal_lookup_key(sub_id: &str) -> String {
-    format!("google-login-{sub_id}")
-}
-
-async fn try_extract_identity_from_google_sub(
-    kv: &KVStoreImpl,
-    sub_id: &str,
-) -> Result<Option<Secp256k1Identity>, ServerFnError> {
-    let Some(principal_text) = kv.read(principal_lookup_key(sub_id)).await? else {
-        return Ok(None);
-    };
-    let principal = Principal::from_text(principal_text)?;
-    let Some(identity_secret) = fetch_identity_from_kv(kv, principal).await? else {
-        return Ok(None);
-    };
-
-    Ok(Some(Secp256k1Identity::from_private_key(identity_secret)))
-}
-
-async fn extract_identity_and_associate_with_google_sub(
-    kv: &KVStoreImpl,
-    jar: &SignedCookieJar,
-    sub_id: &str,
-) -> Result<Secp256k1Identity, ServerFnError> {
-    let identity_secret = try_extract_identity(jar, kv)
-        .await?
-        .ok_or_else(|| ServerFnError::new("Attempting google login without an identity"))?;
-    let identity = Secp256k1Identity::from_private_key(identity_secret);
-    let principal = identity.sender().unwrap();
-    kv.write(principal_lookup_key(sub_id), principal.to_text())
-        .await?;
-
-    Ok(identity)
-}
-
-pub async fn perform_google_auth_impl(
+pub async fn perform_yral_auth_impl(
     provided_csrf: String,
     auth_code: String,
-    oauth2: openidconnect::core::CoreClient,
+    oauth2: YralOAuthClient,
 ) -> Result<DelegatedIdentityWire, ServerFnError> {
     let key: Key = expect_context();
     let mut jar: PrivateCookieJar = extract_with_state(&key).await?;
@@ -153,25 +162,22 @@ pub async fn perform_google_auth_impl(
         .request_async(async_http_client)
         .await?;
 
-    let id_token_verifier = oauth2.id_token_verifier();
+    let id_token_verifier = token_verifier();
     let id_token = token_res
         .extra_fields()
         .id_token()
         .ok_or_else(|| ServerFnError::new("Google did not return an ID token"))?;
     // we don't use a nonce
     let claims = id_token.claims(&id_token_verifier, no_op_nonce_verifier)?;
-    let sub_id = claims.subject();
+    let identity = claims.additional_claims().ext_delegated_identity.clone();
 
-    let kv: KVStoreImpl = expect_context();
     let jar: SignedCookieJar = extract_with_state(&key).await?;
-    let identity = if let Some(identity) = try_extract_identity_from_google_sub(&kv, sub_id).await?
-    {
-        identity
-    } else {
-        extract_identity_and_associate_with_google_sub(&kv, &jar, sub_id).await?
-    };
 
-    let delegated = update_user_identity_and_delegate(&resp, jar, identity)?;
+    let refresh_token = token_res
+        .refresh_token()
+        .expect("Yral Auth V2 must return a refresh token");
 
-    Ok(delegated)
+    update_user_identity(&resp, jar, refresh_token.secret().clone())?;
+
+    Ok(identity)
 }
