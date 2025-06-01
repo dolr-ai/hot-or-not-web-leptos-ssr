@@ -58,6 +58,8 @@ where
     } else {
         props.get("visitor_id").and_then(Value::as_str).into()
     };
+    let track_props = JsValue::from_str(serde_json::to_string(&props).unwrap().as_str());
+    let _ = track(event_name, track_props);
     spawn_local(async {
         let res = track_event_server_fn(props).await;
         match res {
