@@ -98,7 +98,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
             classes="!w-fit".to_string()
             alt_style=false
             disabled=false
-            on_click=move || { 
+            on_click=move || {
                 handle_share();
                 show_share_overlay.set(true);
              }>
