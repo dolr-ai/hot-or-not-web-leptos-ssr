@@ -86,7 +86,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
         if share(&refer_link_share, text).is_some() {
             return;
         }
-        click_copy.dispatch(refer_link_share);
+        click_copy.dispatch(refer_link_share.clone());
     };
 
     view! {
