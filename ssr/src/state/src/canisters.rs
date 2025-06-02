@@ -85,7 +85,7 @@ impl Default for AuthState {
             }
         });
 
-        let (_referrer_cookie, set_referrer_cookie) =
+        let (referrer_cookie, set_referrer_cookie) =
             use_cookie_with_options::<Principal, FromToStringCodec>(
                 REFERRER_COOKIE,
                 UseCookieOptions::default()
@@ -94,14 +94,17 @@ impl Default for AuthState {
             );
         let referrer_query = use_query::<Referrer>();
         let referrer_principal = Signal::derive(move || {
-            let referrer = referrer_query()
+            let referrer_query_val = referrer_query()
                 .ok()
                 .and_then(|r| Principal::from_text(r.user_refer).ok());
 
-            if let Some(ref_princ) = referrer {
+            let referrer_cookie_val = referrer_cookie.get_untracked();
+            if let Some(ref_princ) = referrer_query_val {
                 set_referrer_cookie(Some(ref_princ));
+                Some(ref_princ)
+            } else {
+                referrer_cookie_val
             }
-            referrer
         });
 
         let is_logged_in_with_oauth = use_cookie_with_options::<bool, FromToStringCodec>(

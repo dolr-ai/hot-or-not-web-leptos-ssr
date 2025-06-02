@@ -76,6 +76,7 @@ pub async fn handle_user_login(
 
     MixPanelEvent::identify_user(user_principal.to_text().as_str());
 
+    leptos::logging::log!("handle_user_login referrer: {:?}", referrer);
     match referrer {
         Some(referrer_principal) => {
             // if first_time_login => {
@@ -157,6 +158,7 @@ pub fn LoginProviders(
         // Capture the context signal setter
         send_wrap(async move {
             let referrer = auth.referrer_store.get_untracked();
+            leptos::logging::log!("LoginProviders referrer: {:?}", referrer);
             auth.set_new_identity(id.clone(), true);
 
             let canisters = Canisters::authenticate_with_network(id, referrer).await?;
