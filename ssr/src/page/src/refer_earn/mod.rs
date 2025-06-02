@@ -14,7 +14,7 @@ use component::{back_btn::BackButton, buttons::HighlightedButton, title::TitleTe
 use state::app_state::AppState;
 use state::canisters::auth_state;
 use utils::event_streaming::events::{Refer, ReferShareLink};
-use utils::web::{copy_to_clipboard, share_url};
+use utils::web::copy_to_clipboard;
 
 #[component]
 fn WorkButton(#[prop(into)] text: String, #[prop(into)] head: String) -> impl IntoView {
@@ -23,6 +23,29 @@ fn WorkButton(#[prop(into)] text: String, #[prop(into)] head: String) -> impl In
             <div class="font-bold text-neutral-50 whitespace-nowrap">{head}</div>
             <span class="text-neutral-400">{text}</span>
         </div>
+    }
+}
+
+fn share(url: &str, text: &str) -> Option<()> {
+    #[cfg(not(feature = "hydrate"))]
+    {
+        _ = url;
+        None
+    }
+    #[cfg(feature = "hydrate")]
+    {
+        use wasm_bindgen::JsValue;
+        use web_sys::{js_sys::Reflect, ShareData};
+        let window = use_window();
+        let nav = window.navigator()?;
+        if !Reflect::has(&nav.clone().into(), &JsValue::from_str("share")).unwrap_or_default() {
+            return None;
+        }
+        let share_data = ShareData::new();
+        share_data.set_url(url);
+        share_data.set_text(text);
+        _ = nav.share_with_data(&share_data);
+        Some(())
     }
 }
 
@@ -59,8 +82,8 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
     });
     let refer_link_share = refer_link.clone();
     let handle_share = move || {
-        let url = format!("Join YRAL—the world's 1st social platform on BITCOIN\nGet FREE BITCOIN (1000 SATS) Instantly\nAdditional BITCOIN (500 SATS) when you log in using {}", refer_link_share.clone());
-        if share_url(&url).is_some() {
+        let text = "Join YRAL—the world's 1st social platform on BITCOIN\nGet FREE BITCOIN (1000 SATS) Instantly\nAdditional BITCOIN (500 SATS) when you log in using the link.";
+        if share(&refer_link_share, text).is_some() {
             return;
         }
         click_copy.dispatch(refer_link_share);
