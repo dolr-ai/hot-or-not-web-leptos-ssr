@@ -263,7 +263,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                             }}
                             </Suspense>
                         </div>
-                        <span class="text-sm">1 Sats = 0.00000001 BTC</span>
+                        <span class="text-sm">1 Sats = {crate::consts::SATS_TO_BTC_CONVERSION_RATIO} BTC</span>
                     </div>
                 </div>
             </div>

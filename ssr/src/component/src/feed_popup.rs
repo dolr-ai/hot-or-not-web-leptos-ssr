@@ -5,7 +5,7 @@ use crate::connect::ConnectLogin;
 
 #[component]
 pub fn FeedPopUp<F: Fn(MouseEvent) + 'static>(
-    on_click: F,
+    on_dismiss: F,
     header_text: &'static str,
     body_text: &'static str,
     login_text: &'static str,
@@ -13,9 +13,9 @@ pub fn FeedPopUp<F: Fn(MouseEvent) + 'static>(
     view! {
         <div
             class="h-full w-full absolute bg-black opacity-90 z-50 flex flex-col justify-center"
-            on:click=on_click
+            on:click=on_dismiss
         >
-            <div class="flex flex-row justify-center">
+            <div class="flex flex-row justify-center" on:click=move |e| e.stop_propagation()>
                 <div class="flex flex-col justify-center w-9/12 sm:w-4/12 relative">
                     <img
                         class="h-28 w-28 absolute -left-4 -top-10"

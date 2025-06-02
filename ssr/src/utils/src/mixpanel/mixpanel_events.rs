@@ -1,9 +1,13 @@
 use codee::string::FromToStringCodec;
 use consts::NSFW_TOGGLE_STORE;
+use leptos::logging;
 use leptos::prelude::*;
+use leptos::task::spawn_local;
 use leptos_use::storage::use_local_storage;
+use leptos_use::use_timeout_fn;
+use leptos_use::UseTimeoutFnReturn;
 use serde::Serialize;
-use serde_wasm_bindgen::to_value;
+use serde_json::Value;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsValue;
 use yral_canisters_common::utils::vote::VoteKind;
@@ -26,13 +30,46 @@ pub fn identify_user(user_id: &str) {
     let _ = identify(user_id);
 }
 
+#[server]
+async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
+    #[cfg(feature = "qstash")]
+    {
+        let qstash_client: crate::qstash::QStashClient = expect_context();
+        let token =
+            std::env::var("ANALYTICS_SERVER_TOKEN").expect("ANALYTICS_SERVER_TOKEN is not set");
+        qstash_client
+            .send_analytics_event_to_qstash(props, token)
+            .await
+            .map_err(|e| ServerFnError::new(format!("Mixpanel track error: {e:?}")))?;
+    }
+    Ok(())
+}
+
 /// Generic helper: serializes `props` and calls Mixpanel.track
 pub fn track_event<T>(event_name: &str, props: T)
 where
     T: Serialize,
 {
-    let js_props = to_value(&props).expect("failed to serialize Mixpanel props");
-    let _ = track(event_name, js_props);
+    let track_props = serde_wasm_bindgen::to_value(&props);
+    if let Ok(track_props) = track_props {
+        let _ = track(event_name, track_props);
+    }
+    let mut props = serde_json::to_value(&props).unwrap();
+    props["event"] = event_name.into();
+    let user_id = props.get("user_id").and_then(Value::as_str);
+    props["principal"] = if user_id.is_some() {
+        user_id.into()
+    } else {
+        props.get("visitor_id").and_then(Value::as_str).into()
+    };
+
+    spawn_local(async {
+        let res = track_event_server_fn(props).await;
+        match res {
+            Ok(_) => {}
+            Err(e) => logging::error!("Error tracking Mixpanel event: {}", e),
+        }
+    });
 }
 
 /// Global properties for Mixpanel events
@@ -70,24 +107,38 @@ impl MixpanelGlobalProps {
     }
 
     pub fn from_ev_ctx(ev_ctx: EventCtx) -> Option<Self> {
-        let (is_nsfw_enabled, _, _) =
-            use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
-        let is_nsfw_enabled = is_nsfw_enabled.get_untracked();
+        #[cfg(not(feature = "hydrate"))]
+        {
+            return None;
+        }
+        #[cfg(feature = "hydrate")]
+        {
+            let (is_nsfw_enabled, _, _) =
+                use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
+            let is_nsfw_enabled = is_nsfw_enabled.get_untracked();
 
-        Self::from_ev_ctx_with_nsfw_info(ev_ctx, is_nsfw_enabled)
+            Self::from_ev_ctx_with_nsfw_info(ev_ctx, is_nsfw_enabled)
+        }
     }
 
     pub fn from_ev_ctx_with_nsfw_info(ev_ctx: EventCtx, is_nsfw_enabled: bool) -> Option<Self> {
-        let user = ev_ctx.user_details()?;
-        let is_logged_in = ev_ctx.is_connected();
+        #[cfg(not(feature = "hydrate"))]
+        {
+            return None;
+        }
+        #[cfg(feature = "hydrate")]
+        {
+            let user = ev_ctx.user_details()?;
+            let is_logged_in = ev_ctx.is_connected();
 
-        Some(Self {
-            user_id: is_logged_in.then(|| user.details.principal()),
-            visitor_id: (!is_logged_in).then(|| user.details.principal()),
-            is_logged_in,
-            canister_id: user.canister_id.to_text(),
-            is_nsfw_enabled,
-        })
+            Some(Self {
+                user_id: is_logged_in.then(|| user.details.principal()),
+                visitor_id: (!is_logged_in).then(|| user.details.principal()),
+                is_logged_in,
+                canister_id: user.canister_id.to_text(),
+                is_nsfw_enabled,
+            })
+        }
     }
 
     pub fn try_get_with_nsfw_info(
@@ -122,6 +173,16 @@ pub struct MixpanelHomePageViewedProps {
     pub is_nsfw_enabled: bool,
 }
 
+#[derive(Serialize, Clone)]
+pub struct MixpanelPageViewedProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub page: String,
+}
+
 #[derive(Serialize)]
 pub struct MixpanelSignupSuccessProps {
     // #[serde(flatten)]
@@ -153,8 +214,6 @@ pub struct MixpanelSatsToBtcConvertedProps {
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
     pub sats_converted: f64,
-    pub updated_sats_wallet_balance: f64,
-    pub updated_token_wallet_balance: f64,
     pub conversion_ratio: f64,
 }
 
@@ -168,6 +227,7 @@ pub struct MixpanelNsfwToggleProps {
     pub is_nsfw_enabled: bool,
     pub publisher_user_id: String,
     pub video_id: String,
+    pub is_nsfw: bool,
 }
 
 #[derive(Serialize)]
@@ -205,6 +265,22 @@ pub enum MixpanelPostGameType {
     HotOrNot,
 }
 
+impl From<VoteKind> for ChosenGameOption {
+    fn from(value: VoteKind) -> Self {
+        match value {
+            VoteKind::Hot => Self::Hot,
+            VoteKind::Not => Self::Not,
+        }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ChosenGameOption {
+    Hot,
+    Not,
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MixpanelVideoClickedCTAType {
@@ -212,8 +288,7 @@ pub enum MixpanelVideoClickedCTAType {
     Share,
     ReferAndEarn,
     Report,
-    NsfwTrue,
-    NsfwFalse,
+    NsfwToggle,
     Mute,
     Unmute,
     CreatorProfile,
@@ -249,12 +324,14 @@ pub struct MixpanelGamePlayedProps {
     pub game_type: MixpanelPostGameType,
     pub stake_amount: u64,
     pub stake_type: StakeType,
-    pub option_chosen: VoteKind,
+    pub option_chosen: ChosenGameOption,
     pub like_count: u64,
     pub view_count: u64,
     pub is_game_enabled: bool,
     pub conclusion: GameConclusion,
-    pub won_amount: Option<f64>,
+    pub won_loss_amount: String,
+    pub creator_commision_percentage: u64,
+    pub is_nsfw: bool,
 }
 
 #[derive(Serialize)]
@@ -268,7 +345,7 @@ pub enum GameConclusion {
 #[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum StakeType {
-    SATs,
+    Sats,
     Cents,
 }
 
@@ -281,6 +358,7 @@ pub struct MixpanelVideoUploadSuccessProps {
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
     pub video_id: String,
+    pub creator_commision_percentage: u64,
     // pub publisher_user_id: String,
     pub is_game_enabled: bool,
     pub game_type: MixpanelPostGameType,
@@ -324,6 +402,27 @@ impl MixPanelEvent {
         track_event("home_page_viewed", p);
     }
 
+    pub fn track_page_viewed(p: MixpanelPageViewedProps) {
+        let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
+            move |_| {
+                let props = p.clone();
+                if props.page == "/" {
+                    let home_props = props.clone();
+                    Self::track_home_page_viewed(MixpanelHomePageViewedProps {
+                        user_id: home_props.user_id,
+                        visitor_id: home_props.visitor_id,
+                        is_logged_in: home_props.is_logged_in,
+                        canister_id: home_props.canister_id,
+                        is_nsfw_enabled: home_props.is_nsfw_enabled,
+                    });
+                }
+                track_event("page_viewed", props);
+            },
+            10000.0,
+        );
+        start(());
+    }
+
     pub fn track_signup_success(p: MixpanelSignupSuccessProps) {
         track_event("signup_success", p);
     }
@@ -332,12 +431,16 @@ impl MixPanelEvent {
         track_event("login_success", p);
     }
 
+    pub fn track_sats_to_btc_conversion_failed(p: MixpanelSatsToBtcConvertedProps) {
+        track_event("sats_to_btc_converted", p);
+    }
+
     pub fn track_sats_to_btc_converted(p: MixpanelSatsToBtcConvertedProps) {
         track_event("sats_to_btc_converted", p);
     }
 
     pub fn track_nsfw_true(p: MixpanelNsfwToggleProps) {
-        track_event("NSFW_True", p);
+        track_event("nsfw_enabled", p);
     }
 
     pub fn track_nsfw_false(p: MixpanelNsfwToggleProps) {

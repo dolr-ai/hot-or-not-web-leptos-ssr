@@ -58,7 +58,7 @@ fn ProfileCard(
             <Show when=move || !is_connected.get() && is_own_account>
                 <ConnectLogin
                     show_login
-                    login_text="Login to claim your Cents"
+                    login_text="Login to claim your Bitcoin (SATS)"
                     cta_location="wallet"
                     redirect_to="/wallet"
                 />
