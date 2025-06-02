@@ -85,7 +85,7 @@ impl Default for AuthState {
             }
         });
 
-        let (referrer_cookie, set_referrer_cookie) =
+        let (_referrer_cookie, set_referrer_cookie) =
             use_cookie_with_options::<Principal, FromToStringCodec>(
                 REFERRER_COOKIE,
                 UseCookieOptions::default()
@@ -98,13 +98,10 @@ impl Default for AuthState {
                 .ok()
                 .and_then(|r| Principal::from_text(r.user_refer).ok());
 
-            let referrer_cookie = referrer_cookie.get_untracked();
-            if let Some(ref_princ) = referrer_cookie {
-                Some(ref_princ)
-            } else {
-                set_referrer_cookie(referrer);
-                referrer
+            if let Some(ref_princ) = referrer {
+                set_referrer_cookie(Some(ref_princ));
             }
+            referrer
         });
 
         let is_logged_in_with_oauth = use_cookie_with_options::<bool, FromToStringCodec>(
