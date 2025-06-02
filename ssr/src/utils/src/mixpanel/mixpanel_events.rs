@@ -32,23 +32,37 @@ pub fn identify_user(user_id: &str) {
 
 #[server]
 async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
-    use axum::extract::ConnectInfo;
+    use axum::http::HeaderMap;
     use axum_extra::headers::UserAgent;
     use axum_extra::TypedHeader;
     use leptos_axum::extract;
-    use std::net::SocketAddr;
 
-    let (ConnectInfo(addr), TypedHeader(user_agent)): (
-        ConnectInfo<SocketAddr>,
-        TypedHeader<UserAgent>,
-    ) = extract().await?;
-
-    let ip = addr.ip().to_string();
-    let ua = user_agent.as_str().to_string();
     let mut props = props;
+
+    // Attempt to extract headers and User-Agent
+    let result: Result<(HeaderMap, TypedHeader<UserAgent>), _> = extract().await;
+
+    let (ip, ua) = match result {
+        Ok((headers, TypedHeader(user_agent))) => {
+            // Get IP from x-forwarded-for header
+            let ip = headers
+                .get("x-forwarded-for")
+                .and_then(|val| val.to_str().ok())
+                .and_then(|s| s.split(',').next())
+                .map(|s| s.trim().to_string())
+                .unwrap_or_else(|| "unknown".to_string());
+
+            let ua = user_agent.as_str().to_string();
+            (Some(ip), Some(ua))
+        }
+        Err(_) => (None, None),
+    };
+
+    // Inject metadata into props
     props["ip"] = ip.clone().into();
-    props["ip_addr"] = ip.into();
+    props["ip_addr"] = ip.clone().into();
     props["user_agent"] = ua.clone().into();
+
     #[cfg(feature = "qstash")]
     {
         let qstash_client: crate::qstash::QStashClient = expect_context();
