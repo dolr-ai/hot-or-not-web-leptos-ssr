@@ -350,10 +350,22 @@ pub fn VideoUploader(
         }
     });
 
-    Effect::new(move |_| {
-        if uid.get_untracked().is_some() {
-            publish_action.dispatch(());
+    Effect::new(move |prev_tracked_uid_val: Option<Option<String>>| {
+        let current_uid_val = uid.get();
+        let prev_uid_from_last_run: Option<String> = prev_tracked_uid_val.flatten();
+        if current_uid_val.is_some()
+            && (prev_uid_from_last_run.is_none() || prev_uid_from_last_run != current_uid_val)
+        {
+            if !publish_action.pending().get() && !published.get() {
+                log::info!(
+                    "UID is now Some ({:?}), was ({:?}). Dispatching publish_action",
+                    current_uid_val,
+                    prev_uid_from_last_run
+                );
+                publish_action.dispatch(());
+            }
         }
+        current_uid_val
     });
 
     view! {
