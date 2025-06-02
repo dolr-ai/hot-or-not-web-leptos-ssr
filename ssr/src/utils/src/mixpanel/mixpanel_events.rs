@@ -32,6 +32,36 @@ pub fn identify_user(user_id: &str) {
 
 #[server]
 async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
+    use axum::http::HeaderMap;
+    use axum_extra::headers::UserAgent;
+    use axum_extra::TypedHeader;
+    use leptos_axum::extract;
+
+    let mut props = props;
+
+    // Attempt to extract headers and User-Agent
+    let result: Result<(HeaderMap, TypedHeader<UserAgent>), _> = extract().await;
+
+    let (ip, ua) = match result {
+        Ok((headers, TypedHeader(user_agent))) => {
+            let ip = headers
+                .get("x-forwarded-for")
+                .and_then(|val| val.to_str().ok())
+                .and_then(|s| s.split(',').next())
+                .map(|s| s.trim().to_string())
+                .unwrap_or_else(|| "unknown".to_string());
+
+            let ua = user_agent.as_str().to_string();
+            (Some(ip), Some(ua))
+        }
+        Err(_) => (None, None),
+    };
+
+    // Inject metadata into props
+    props["ip"] = ip.clone().into();
+    props["ip_addr"] = ip.clone().into();
+    props["user_agent"] = ua.clone().into();
+
     #[cfg(feature = "qstash")]
     {
         let qstash_client: crate::qstash::QStashClient = expect_context();
@@ -62,7 +92,7 @@ where
     } else {
         props.get("visitor_id").and_then(Value::as_str).into()
     };
-
+    props["current_url"] = window().location().href().ok().into();
     spawn_local(async {
         let res = track_event_server_fn(props).await;
         match res {
