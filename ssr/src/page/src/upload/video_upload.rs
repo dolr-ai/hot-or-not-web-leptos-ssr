@@ -272,9 +272,7 @@ pub fn VideoUploader(
         log::info!("Publish action called");
 
         async move {
-            let Some(uid_value) = uid.get_untracked() else {
-                return None;
-            };
+            let uid_value = uid.get_untracked()?;
 
             let canisters = auth.auth_cans(unauth_cans).await.ok()?;
             let id = canisters.identity();
@@ -306,7 +304,6 @@ pub fn VideoUploader(
                     .map_err(|e| ServerFnError::new(e.to_string()))
             };
 
-            log::info!("res: {:?}", res);
             match res {
                 Ok(_) => {
                     let is_logged_in = is_connected.get_untracked();
@@ -355,15 +352,10 @@ pub fn VideoUploader(
         let prev_uid_from_last_run: Option<String> = prev_tracked_uid_val.flatten();
         if current_uid_val.is_some()
             && (prev_uid_from_last_run.is_none() || prev_uid_from_last_run != current_uid_val)
+            && !publish_action.pending().get()
+            && !published.get()
         {
-            if !publish_action.pending().get() && !published.get() {
-                log::info!(
-                    "UID is now Some ({:?}), was ({:?}). Dispatching publish_action",
-                    current_uid_val,
-                    prev_uid_from_last_run
-                );
-                publish_action.dispatch(());
-            }
+            publish_action.dispatch(());
         }
         current_uid_val
     });
