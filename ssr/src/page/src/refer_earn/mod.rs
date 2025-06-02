@@ -42,8 +42,8 @@ fn share(url: &str, text: &str) -> Option<()> {
             return None;
         }
         let share_data = ShareData::new();
-        share_data.set_url(url);
         share_data.set_text(text);
+        share_data.set_url(url);
         _ = nav.share_with_data(&share_data);
         Some(())
     }
