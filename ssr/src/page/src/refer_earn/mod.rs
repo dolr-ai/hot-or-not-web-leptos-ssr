@@ -164,7 +164,7 @@ fn ReferView() -> impl IntoView {
                 <img class="shrink-0 h-32 select-none" src="/img/common/wallet.webp" />
                 <img src="/img/common/bitcoin.webp" class="absolute top-8 left-5 size-6" style="filter: blur(1px); transform: rotate(30deg);" />
                 <img src="/img/common/bitcoin.webp" class="absolute top-16 right-3 size-6" style="filter: blur(1px); transform: rotate(40deg);" />
-                <img src="/img/common/bitcoin.webp" class="absolute bottom-4 left-6 size-9" style="filter: blur(1px); transform: rotate(-60deg);" />
+                <img src="/img/common/bitcoin.webp" class="absolute bottom-4 left-6 size-9" style="filter: blur(0.3px); transform: rotate(-60deg);" />
             </div>
             <div style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%); height:29rem" class="absolute z-0 inset-x-0 top-16"></div>
 
@@ -176,7 +176,7 @@ fn ReferView() -> impl IntoView {
                     <ReferCode />
                 </Show>
             </div>
-            <div class="flex flex-col w-full z-[1] items-center gap-8 mt-4">
+            <div class="flex flex-col w-full z-[1] items-center gap-8 mt-4 pb-5">
                 <span class="font-xl font-semibold">How it works?</span>
                 <div class="flex flex-row gap-4 text-center">
                     <WorkButton
