@@ -206,8 +206,6 @@ pub fn ReferEarn() -> impl IntoView {
     let page_title = app_state.unwrap().name.to_owned() + " - Refer & Earn";
     view! {
         <Title text=page_title.clone() />
-        <Meta property="og:title" content=page_title />
-        <Meta property="og:image" content="/img/common/bitcoin.webp"/>
 
         <div class="flex flex-col items-center min-w-dvw min-h-dvh bg-black pt-2 pb-12 gap-6">
             <TitleText justify_center=false>
