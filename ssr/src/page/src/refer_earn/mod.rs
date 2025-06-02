@@ -27,24 +27,6 @@ fn WorkButton(#[prop(into)] text: String, #[prop(into)] head: String) -> impl In
 }
 
 #[component]
-fn ReferShareOverlay(#[prop(into)] show: RwSignal<bool>) -> impl IntoView {
-    view! {
-        <div
-            on:click=move |_| show.set(false)
-            class="flex cursor-pointer modal-bg w-dvw h-dvh fixed left-0 top-0 bg-black/60 z-[99] justify-center items-start lg:items-center overflow-hidden backdrop-blur-sm"
-        >
-            <div style="margin-top: 12rem;" class="py-4 px-[20px] max-w-md mx-auto border lg:!mt-0 border-neutral-700 h-fit items-center cursor-auto flex-col flex gap-4 bg-neutral-900 rounded-md">
-            <img src="/img/common/refer-share.webp" style="width:12rem;" />
-            <div class="flex flex-col items-center  font-bold text-xs md:text-sm">
-                <div class="text-center text-neutral-50">"Share your link with a friend and"</div>
-                <div class="text-center text-[#FFC33A]">"You both Win 500 SATS each!"</div>
-            </div>
-            </div>
-        </div>
-    }
-}
-
-#[component]
 fn ReferLoaded(user_principal: Principal) -> impl IntoView {
     let window = use_window();
     let refer_link = window
@@ -77,14 +59,13 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
     });
     let refer_link_share = refer_link.clone();
     let handle_share = move || {
-        let url = format!("Join YRAL—the world's 1st social platform on BITCOIN\nGet FREE BITCOIN (1000 SATS) Instantly\nAdditional BITCOIN (500 SATS) when you log in using {refer_link_share}");
+        let url = format!("Join YRAL—the world's 1st social platform on BITCOIN\nGet FREE BITCOIN (1000 SATS) Instantly\nAdditional BITCOIN (500 SATS) when you log in using {}", refer_link_share.clone());
         if share_url(&url).is_some() {
             return;
         }
-        click_copy.dispatch(url.clone());
+        click_copy.dispatch(refer_link_share);
     };
 
-    let show_share_overlay = RwSignal::new(false);
 
     view! {
         <div class="flex z-[1] w-full gap-2 justify-between">
@@ -100,15 +81,10 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
             disabled=false
             on_click=move || {
                 handle_share();
-                show_share_overlay.set(true);
              }>
                 Share
             </HighlightedButton>
         </div>
-
-        <Show when=show_share_overlay>
-            <ReferShareOverlay show=show_share_overlay />
-        </Show>
 
         <Show when=show_copied_popup>
             <div class="absolute flex flex-col justify-center items-center z-4">
@@ -166,9 +142,9 @@ fn ReferView() -> impl IntoView {
             </div>
             <div style="height: 19rem;" class="flex z-[1] relative justify-center w-full items-center gap-4 overflow-visible">
                 <img class="shrink-0 h-32 select-none" src="/img/common/wallet.webp" />
-                <img src="/img/common/bitcoin-logo.svg" class="absolute top-8 left-5 size-6" style="filter: blur(1px); transform: rotate(30deg);" />
-                <img src="/img/common/bitcoin-logo.svg" class="absolute top-16 right-3 size-6" style="filter: blur(1px); transform: rotate(40deg);" />
-                <img src="/img/common/bitcoin-logo.svg" class="absolute bottom-4 left-6 size-9" style="filter: blur(1px); transform: rotate(-60deg);" />
+                <img src="/img/common/bitcoin.webp" class="absolute top-8 left-5 size-6" style="filter: blur(1px); transform: rotate(30deg);" />
+                <img src="/img/common/bitcoin.webp" class="absolute top-16 right-3 size-6" style="filter: blur(1px); transform: rotate(40deg);" />
+                <img src="/img/common/bitcoin.webp" class="absolute bottom-4 left-6 size-9" style="filter: blur(1px); transform: rotate(-60deg);" />
             </div>
             <div style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%); height:29rem" class="absolute z-0 inset-x-0 top-16"></div>
 
@@ -210,6 +186,9 @@ pub fn ReferEarn() -> impl IntoView {
     let page_title = app_state.unwrap().name.to_owned() + " - Refer & Earn";
     view! {
         <Title text=page_title />
+        <Meta property="og:title" content=page_title.clone()/>
+        <Meta property="og:image" content="/img/common/bitcoin.webp"/>
+        
         <div class="flex flex-col items-center min-w-dvw min-h-dvh bg-black pt-2 pb-12 gap-6">
             <TitleText justify_center=false>
                 <div class="flex flex-row justify-between">
