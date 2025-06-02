@@ -111,7 +111,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
         </Show>
 
         <Show when=show_copied_popup>
-            <div class="absolute flex flex-col justify-center items-center z-[10]">
+            <div class="absolute flex flex-col justify-center items-center z-4">
                 <span class="absolute top-28 flex flex-row justify-center items-center bg-white/90 rounded-md h-10 w-28 text-center shadow-lg">
                     <p class="text-black">Link Copied!</p>
                 </span>

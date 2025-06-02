@@ -80,6 +80,10 @@ pub fn track_event<T>(event_name: &str, props: T)
 where
     T: Serialize,
 {
+    let track_props = serde_wasm_bindgen::to_value(&props);
+    if let Ok(track_props) = track_props {
+        let _ = track(event_name, track_props);
+    }
     let mut props = serde_json::to_value(&props).unwrap();
     props["event"] = event_name.into();
     let user_id = props.get("user_id").and_then(Value::as_str);

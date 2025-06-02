@@ -145,10 +145,10 @@ pub fn ICPumpAiPage2(
     });
 
     view! {
-        <div class="bg-black z-[4] absolute top-0 select-none inset-x-0 py-3 px-4 flex items-center justify-center gap-3">
+        <div class="bg-black z-4 absolute top-0 select-none inset-x-0 py-3 px-4 flex items-center justify-center gap-3">
             <img src="/img/icpump/pump-ai.svg" class="h-5 w-5"/>
             <div class="text-xl font-semibold">Pump AI</div>
-            <button class="absolute z-[5] left-0 px-4 h-full"
+            <button class="absolute z-5 left-0 px-4 h-full"
                 on:click={
                     move |_| {
                         reset_state.dispatch(());
@@ -214,7 +214,7 @@ pub fn ICPumpAiToken(details: TokenListItem) -> impl IntoView {
             <img
                 src=details.logo
                 class=move || {
-                    let mut classes = "w-[5.5rem] shrink-0 h-[5.5rem]".to_string();
+                    let mut classes = "w-22 shrink-0 h-22".to_string();
                     if details.is_nsfw {
                         classes.push_str(" blur-md");
                     }
@@ -324,10 +324,10 @@ pub fn ICPumpAiPage3(
     reset_state: Action<(), ()>,
 ) -> impl IntoView {
     view! {
-        <div class="bg-black z-[4] absolute top-0 select-none inset-x-0 py-3 px-4 flex items-center justify-center gap-3">
+        <div class="bg-black z-4 absolute top-0 select-none inset-x-0 py-3 px-4 flex items-center justify-center gap-3">
             <img src="/img/icpump/pump-ai.svg" class="h-5 w-5"/>
             <div class="text-xl font-semibold">Pump AI</div>
-            <button class="absolute z-[5] left-0 px-4 h-full"
+            <button class="absolute z-5 left-0 px-4 h-full"
                 on:click={
                     move |_| {
                         reset_state.dispatch(());

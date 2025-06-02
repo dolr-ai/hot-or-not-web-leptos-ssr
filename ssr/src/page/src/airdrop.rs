@@ -8,7 +8,7 @@ pub fn Airdrop() -> impl IntoView {
             <TitleText>
                 <div class="pt-4 pb-8 text-md font-bold">Airdrop</div>
             </TitleText>
-            <div class="max-w-80 px-16 sm:!max-h-80 pb-8">
+            <div class="max-w-80 px-16 sm:max-h-80! pb-8">
                 <AirdropLogo />
             </div>
             <div class="flex flex-col w-full max-w-md px-16 py-4 gap-4 items-center">

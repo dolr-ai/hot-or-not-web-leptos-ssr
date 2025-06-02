@@ -339,7 +339,7 @@ pub fn NotificationWalletImpl() -> impl IntoView {
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                     </svg>
                 </a>
-                <h1 class="text-xl font-bold text-center flex-grow">Notification</h1>
+                <h1 class="text-xl font-bold text-center grow">Notification</h1>
                 <div class="w-6"></div> // Spacer to balance the back button
             </div>
 

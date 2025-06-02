@@ -17,7 +17,7 @@ pub fn OnboardingPopup() -> impl IntoView {
         <div class="fade-in fixed inset-0 bg-black/50 flex py-16 justify-center z-50 p-4">
             <div
                 style="background-size: cover; background-position: left; background-image: url('/img/pumpdump/onboarding-bg.webp');"
-                class="rounded-2xl max-w-md flex flex-col h-[33.5rem] justify-center text-white gap-8 items-center pt-8 pb-5 px-8 absolute top-1/2 -translate-y-1/2 origin-center [@media(max-height:680px)]:scale-[.8]"
+                class="rounded-2xl max-w-md flex flex-col h-134 justify-center text-white gap-8 items-center pt-8 pb-5 px-8 absolute top-1/2 -translate-y-1/2 origin-center [@media(max-height:680px)]:scale-[.8]"
             >
                 <div
                     class="absolute flex items-center top-4 px-4 inset-x-0"
@@ -71,10 +71,10 @@ pub fn OnboardingPopup() -> impl IntoView {
                                 </div>
                                 <div class="flex-1 relative py-12">
                                     <div class="scale-[0.6] h-full w-full">
-                                        <div class="absolute bottom-0 -left-8 z-[2]">
+                                        <div class="absolute bottom-0 -left-8 z-2">
                                             <MockPumpButton />
                                         </div>
-                                        <div class="absolute -top-2 -right-6 z-[1]">
+                                        <div class="absolute -top-2 -right-6 z-1">
                                             <MockDumpButton />
                                         </div>
                                     </div>
@@ -101,7 +101,7 @@ pub fn OnboardingPopup() -> impl IntoView {
                                     </div>
                                 </div>
                                 <div class="flex-1 flex items-center justify-center relative py-6 pl-8">
-                                    <img src="/img/pumpdump/trophy.webp" alt="Trophy" class="h-20 w-[5.5rem]" />
+                                    <img src="/img/pumpdump/trophy.webp" alt="Trophy" class="h-20 w-22" />
                                 </div>
                             </div>
                         </div>
