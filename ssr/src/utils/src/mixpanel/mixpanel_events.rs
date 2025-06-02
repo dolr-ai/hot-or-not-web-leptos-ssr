@@ -44,7 +44,6 @@ async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
 
     let (ip, ua) = match result {
         Ok((headers, TypedHeader(user_agent))) => {
-            // Get IP from x-forwarded-for header
             let ip = headers
                 .get("x-forwarded-for")
                 .and_then(|val| val.to_str().ok())
@@ -89,6 +88,7 @@ where
     } else {
         props.get("visitor_id").and_then(Value::as_str).into()
     };
+    props["current_url"] = window().location().href().ok().into();
     spawn_local(async {
         let res = track_event_server_fn(props).await;
         match res {
