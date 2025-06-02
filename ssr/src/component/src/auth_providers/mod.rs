@@ -76,10 +76,8 @@ pub async fn handle_user_login(
 
     MixPanelEvent::identify_user(user_principal.to_text().as_str());
 
-    leptos::logging::log!("handle_user_login referrer: {:?}", referrer);
     match referrer {
-        Some(referrer_principal) => {
-            // if first_time_login => {
+        Some(referrer_principal) if first_time_login => {
             let req = hon_worker_common::ReferralReq {
                 referrer: referrer_principal,
                 referee: user_principal,
