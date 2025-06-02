@@ -45,8 +45,6 @@ fn PreUploadView(
         !desc_err_memo.with(|desc_err_memo| desc_err_memo.is_empty())
                 // Hashtags error
                 || !hashtags_err_memo.with(|hashtags_err_memo| hashtags_err_memo.is_empty())
-                // File is not uploaded
-                || uid.with(|uid| uid.is_none())
                 // Hashtags are empty
                 || hashtags.with(|hashtags| hashtags.is_empty())
                 // Description is empty

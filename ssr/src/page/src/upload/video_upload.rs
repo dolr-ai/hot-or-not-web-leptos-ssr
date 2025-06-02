@@ -110,45 +110,44 @@ pub fn PreVideoUpload(
     });
 
     view! {
-            <label
-                for="dropzone-file"
-                class="w-[358px] h-[300px] sm:w-full sm:h-auto sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] bg-neutral-950 rounded-2xl border-2 border-dashed border-neutral-600 flex flex-col items-center justify-center cursor-pointer select-none p-0"
-            >
-                <Show when=move || { file.with(| file | file.is_none()) }>
-                    <div class="flex flex-1 flex-col items-center justify-center w-full h-full gap-6">
-                        <div class="text-white text-[16px] font-semibold leading-tight text-center">Upload a video to share with the world!</div>
-                        <div class="text-neutral-400 text-[13px] leading-tight text-center">Drag & Drop or select video file ( Max 60s )</div>
-                        <span class="inline-block px-6 py-2 border border-pink-300 text-pink-300 rounded-lg font-medium text-[15px] bg-transparent transition-colors duration-150 cursor-pointer select-none">Select File</span>
-                    </div>
-                </Show>
+        <label
+            for="dropzone-file"
+            class="w-[358px] h-[300px] sm:w-full sm:h-auto sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] bg-neutral-950 rounded-2xl border-2 border-dashed border-neutral-600 flex flex-col items-center justify-center cursor-pointer select-none p-0"
+        >
+            <Show when=move || { file.with(| file | file.is_none()) }>
+                <div class="flex flex-1 flex-col items-center justify-center w-full h-full gap-6">
+                    <div class="text-white text-[16px] font-semibold leading-tight text-center">Upload a video to share with the world!</div>
+                    <div class="text-neutral-400 text-[13px] leading-tight text-center">Drag & Drop or select video file ( Max 60s )</div>
+                    <span class="inline-block px-6 py-2 border border-pink-300 text-pink-300 rounded-lg font-medium text-[15px] bg-transparent transition-colors duration-150 cursor-pointer select-none">Select File</span>
+                </div>
+            </Show>
+            <Show when=move || { file.with(| file | file.is_some()) }>
                 <video
-        node_ref=video_ref
-        class="w-full h-full object-contain rounded-xl bg-black p-2"
-        playsinline
-        muted
-        autoplay
-        loop
-        oncanplay="this.muted=true"
-        src=move || file.with(| file | file.as_ref().map(| f | f.url.to_string()))
-        style:display=move || {
-            file.with(| file | file.as_ref().map(| _ | "block").unwrap_or("none"))
-        }
-    ></video>
-                <input
-                    on:click=move |_| modal_show.set(true)
-                    id="dropzone-file"
-                    node_ref=file_ref
-                    type="file"
-                    accept="video/*"
-                    class="hidden w-0 h-0"
-                />
-            </label>
-            <Modal show=modal_show>
-                <span class="text-lg md:text-xl text-white h-full items-center py-10 text-center w-full flex flex-col justify-center">
-                    Please ensure that the video is shorter than 60 seconds
-                </span>
-            </Modal>
-        }
+                    node_ref=video_ref
+                    class="w-full h-full object-contain rounded-xl bg-black p-2"
+                    playsinline
+                    muted
+                    autoplay
+                    loop
+                    oncanplay="this.muted=true"
+                    src=move || file.with(| file | file.as_ref().map(| f | f.url.to_string()))
+                ></video>
+            </Show>
+            <input
+                on:click=move |_| modal_show.set(true)
+                id="dropzone-file"
+                node_ref=file_ref
+                type="file"
+                accept="video/*"
+                class="hidden w-0 h-0"
+            />
+        </label>
+        <Modal show=modal_show>
+            <span class="text-lg md:text-xl text-white h-full items-center py-10 text-center w-full flex flex-col justify-center">
+                Please ensure that the video is shorter than 60 seconds
+            </span>
+        </Modal>
+    }
 }
 
 #[allow(dead_code)]
@@ -270,8 +269,13 @@ pub fn VideoUploader(
         let hashtags = hashtags.clone();
         let hashtags_len = hashtags.len();
         let description = description.clone();
-        let uid = uid.get_untracked().unwrap();
+        log::info!("Publish action called");
+
         async move {
+            let Some(uid_value) = uid.get_untracked() else {
+                return None;
+            };
+
             let canisters = auth.auth_cans(unauth_cans).await.ok()?;
             let id = canisters.identity();
             let delegated_identity = delegate_short_lived_identity(id);
@@ -292,7 +296,7 @@ pub fn VideoUploader(
                             is_nsfw,
                             hashtags,
                             description,
-                            video_uid: uid.clone(),
+                            video_uid: uid_value.clone(),
                             creator_consent_for_inclusion_in_hot_or_not: enable_hot_or_not,
                         }
                     }));
@@ -302,6 +306,7 @@ pub fn VideoUploader(
                     .map_err(|e| ServerFnError::new(e.to_string()))
             };
 
+            log::info!("res: {:?}", res);
             match res {
                 Ok(_) => {
                     let is_logged_in = is_connected.get_untracked();
@@ -312,7 +317,7 @@ pub fn VideoUploader(
                         is_logged_in: global.is_logged_in,
                         canister_id: global.canister_id,
                         is_nsfw_enabled: global.is_nsfw_enabled,
-                        video_id: uid.clone(),
+                        video_id: uid_value.clone(),
                         is_game_enabled: true,
                         creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
                         game_type: MixpanelPostGameType::HotOrNot,
@@ -334,7 +339,7 @@ pub fn VideoUploader(
 
             VideoUploadSuccessful.send_event(
                 ev_ctx,
-                uid,
+                uid_value.clone(),
                 hashtags_len,
                 is_nsfw,
                 enable_hot_or_not,
@@ -345,7 +350,11 @@ pub fn VideoUploader(
         }
     });
 
-    Effect::new(move |_| publish_action.dispatch(()));
+    Effect::new(move |_| {
+        if uid.get_untracked().is_some() {
+            publish_action.dispatch(());
+        }
+    });
 
     view! {
         <div class="flex flex-col-reverse lg:flex-row w-full gap-4 lg:gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
@@ -375,7 +384,11 @@ pub fn VideoUploader(
                             if published.get() {
                                 "100%"
                             } else if publish_action.pending().get() {
+                                "90%"
+                            } else if uid.with(|u| u.is_some()) && !publish_action.pending().get() && !published.get() {
                                 "50%"
+                            } else if uid.with(|u| u.is_none()) {
+                                "25%"
                             } else {
                                 "0%"
                             }
@@ -388,7 +401,12 @@ pub fn VideoUploader(
                             "Upload complete!".to_string()
                         } else if publish_action.pending().get() {
                             "Processing video metadata...".to_string()
-                        } else {
+                        } else if uid.with(|u| u.is_none()) {
+                            "Uploading video file...".to_string()
+                        } else if uid.with(|u| u.is_some()) && !publish_action.pending().get() && !published.get() {
+                            "Video file uploaded. Waiting to publish metadata...".to_string()
+                        }
+                        else {
                             "Waiting to upload...".to_string()
                         }
                     }}
