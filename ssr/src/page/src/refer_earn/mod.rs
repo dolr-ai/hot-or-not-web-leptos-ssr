@@ -66,7 +66,6 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
         click_copy.dispatch(refer_link_share);
     };
 
-
     view! {
         <div class="flex z-[1] w-full gap-2 justify-between">
             <div class="flex flex-1 items-center w-full rounded-md border-dashed border-2 p-3 gap-2 border-neutral-700 bg-neutral-900">
@@ -185,10 +184,10 @@ pub fn ReferEarn() -> impl IntoView {
     let app_state = use_context::<AppState>();
     let page_title = app_state.unwrap().name.to_owned() + " - Refer & Earn";
     view! {
-        <Title text=page_title />
-        <Meta property="og:title" content=page_title.clone()/>
+        <Title text=page_title.clone() />
+        <Meta property="og:title" content=page_title />
         <Meta property="og:image" content="/img/common/bitcoin.webp"/>
-        
+
         <div class="flex flex-col items-center min-w-dvw min-h-dvh bg-black pt-2 pb-12 gap-6">
             <TitleText justify_center=false>
                 <div class="flex flex-row justify-between">
