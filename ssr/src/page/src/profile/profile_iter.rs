@@ -1,5 +1,4 @@
 use candid::Principal;
-use futures::stream::{ StreamExt, TryStreamExt};
 use yral_canisters_client::individual_user_template::{GetPostsOfUserProfileError, Result6};
 
 use yral_canisters_common::{utils::posts::PostDetails, Canisters, Error as CanistersError};
@@ -29,8 +28,6 @@ pub(crate) trait ProfVideoStream<const LIMIT: u64>: Sized {
         user_canister: Principal,
     ) -> Result<PostsRes, CanistersError>;
 }
-
-
 
 pub struct ProfileVideoStream<const LIMIT: u64>;
 

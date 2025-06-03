@@ -231,7 +231,7 @@ mod server_fn_impl {
         use hon_worker_common::WORKER_URL;
         use leptos::prelude::*;
         use state::server::HonWorkerJwt;
-        use yral_canisters_client::individual_user_template::{Result7, Result15};
+        use yral_canisters_client::individual_user_template::{Result15, Result7};
 
         pub async fn issue_referral_rewards_impl(
             worker_req: ReferralReqWithSignature,
