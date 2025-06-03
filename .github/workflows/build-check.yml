@@ -86,7 +86,7 @@ jobs:
           cargo --version
 
       - name: Build the Leptos project to output
-        run: RUSTFLAGS="--cfg=erase_components" cargo leptos build --release --lib-features release-lib --bin-features release-bin
+        run: cargo leptos build --release --lib-features release-lib --bin-features release-bin
         env:
           RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
           LEPTOS_HASH_FILES: true

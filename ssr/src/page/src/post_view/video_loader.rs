@@ -29,8 +29,25 @@ pub fn BgView(
     idx: usize,
     children: Children,
 ) -> impl IntoView {
-    let post = Memo::new(move |_| video_queue.with(|q| q.get_index(idx).cloned()));
-    let uid = move || post().as_ref().map(|q| q.uid.clone()).unwrap_or_default();
+    let post_with_prev = Memo::new(move |_| {
+        video_queue.with(|q| {
+            let cur_post = q.get_index(idx).cloned();
+            let prev_post = if idx > 0 {
+                q.get_index(idx - 1).cloned()
+            } else {
+                None
+            };
+            (cur_post, prev_post)
+        })
+    });
+
+    let uid = move || {
+        post_with_prev()
+            .0
+            .as_ref()
+            .map(|q| q.uid.clone())
+            .unwrap_or_default()
+    };
 
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
@@ -75,7 +92,16 @@ pub fn BgView(
             <ShowAny when=move || { show_onboarding_popup.get() }>
                 <OnboardingPopUp onboard_on_click=set_onboarded />
             </ShowAny>
-            {move || post().map(|post| view! { <VideoDetailsOverlay post win_audio_ref /> })}
+            {move || {
+                let (post, prev_post) = post_with_prev.get();
+                Some(view! {
+                    <VideoDetailsOverlay
+                        post=post?
+                        prev_post
+                        win_audio_ref
+                    />
+                 })
+            }}
             {children()}
         </div>
     }

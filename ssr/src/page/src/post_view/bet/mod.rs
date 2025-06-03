@@ -107,6 +107,7 @@ fn HNButton(
 #[component]
 fn HNButtonOverlay(
     post: PostDetails,
+    prev_post: Option<PostDetails>,
     coin: RwSignal<CoinState>,
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
@@ -125,6 +126,7 @@ fn HNButtonOverlay(
             vote_amount: bet_amount as u128,
             direction: bet_direction.into(),
         };
+        let prev_post = prev_post.as_ref().map(|p| (p.canister_id, p.post_id));
 
         let post_mix = post.clone();
         send_wrap(async move {
@@ -133,7 +135,7 @@ fn HNButtonOverlay(
             let sender = identity.sender().unwrap();
             let sig = sign_vote_request(identity, req.clone()).ok()?;
 
-            let res = vote_with_cents_on_post(sender, req, sig).await;
+            let res = vote_with_cents_on_post(sender, req, sig, prev_post).await;
             match res {
                 Ok(res) => {
                     let is_logged_in = is_connected.get_untracked();
@@ -387,35 +389,16 @@ fn ShadowBg() -> impl IntoView {
 }
 
 #[component]
-pub fn HNGameOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> impl IntoView {
+pub fn HNGameOverlay(
+    post: PostDetails,
+    prev_post: Option<PostDetails>,
+    win_audio_ref: NodeRef<Audio>,
+) -> impl IntoView {
     let bet_direction = RwSignal::new(None::<VoteKind>);
     let coin = RwSignal::new(CoinState::C10);
 
     let refetch_bet = Trigger::new();
     let post = StoredValue::new(post);
-
-    // let create_bet_participation_outcome = move |canisters: Canisters<true>| {
-    //     // TODO: leptos 0.7, switch to `create_resource`
-    //     LocalResource::new(
-    //         // MockPartialEq is necessary
-    //         // See: https://github.com/leptos-rs/leptos/issues/2661
-    //         move || {
-    //             refetch_bet.track();
-    //             let cans = canisters.clone();
-    //             async move {
-    //                 let post = post.get_value();
-    //                 let user = cans.authenticated_user().await;
-    //                 let bet_participation = user
-    //                     .get_individual_hot_or_not_bet_placed_by_this_profile(
-    //                         post.canister_id,
-    //                         post.post_id,
-    //                     )
-    //                     .await?;
-    //                 Ok::<_, ServerFnError>(bet_participation.map(VoteDetails::from))
-    //             }
-    //         },
-    //     )
-    // };
 
     let auth = auth_state();
     let create_game_info = auth.derive_resource(
@@ -452,6 +435,7 @@ pub fn HNGameOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> impl I
                                 view! {
                                     <HNButtonOverlay
                                         post
+                                        prev_post=prev_post.clone()
                                         bet_direction
                                         coin
                                         refetch_bet
