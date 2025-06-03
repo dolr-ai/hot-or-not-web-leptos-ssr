@@ -176,10 +176,8 @@ pub fn App() -> impl IntoView {
     }
 
     // Analytics
-    let enable_ga4_script = RwSignal::new(false);
     #[cfg(feature = "ga4")]
     {
-        enable_ga4_script.set(true);
         provide_context(EventHistory::default());
     }
 
