@@ -182,7 +182,7 @@ sentry-tower = { version = "0.37.0", features = ["axum", "axum-matched-path"] }
 # ===
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], branch = "master", version = "0.1.0" }
+], branch = "feat/update-did-files-to-remove-coyn-functions", version = "0.1.0" }
 sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "feat/update-did-files-to-remove-coyn-functions" }
 yral-grpc-traits = { git = "https://github.com/dolr-ai/yral-common.git", branch = "feat/update-did-files-to-remove-coyn-functions" }
 yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "feat/update-did-files-to-remove-coyn-functions" }

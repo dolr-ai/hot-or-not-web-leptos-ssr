@@ -1106,12 +1106,12 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "web-time",
- "yral-canisters-client 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions)",
+ "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-pump-n-dump-common 0.1.0 (git+https://github.com/dolr-ai/yral-common?branch=master)",
+ "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
  "yral-types",
@@ -1273,12 +1273,12 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "web-time",
- "yral-canisters-client 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions)",
+ "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-pump-n-dump-common 0.1.0 (git+https://github.com/dolr-ai/yral-common?branch=master)",
+ "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
  "yral-types",
@@ -3333,7 +3333,7 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#ad347ec232d6100f44d310ad43afbdb433aaf114"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
 dependencies = [
  "candid",
  "ic-agent",
@@ -3446,12 +3446,12 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "web-time",
- "yral-canisters-client 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions)",
+ "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-pump-n-dump-common 0.1.0 (git+https://github.com/dolr-ai/yral-common?branch=master)",
+ "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
  "yral-types",
@@ -5560,13 +5560,13 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "web-time",
- "yral-canisters-client 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions)",
+ "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
  "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-pump-n-dump-common 0.1.0 (git+https://github.com/dolr-ai/yral-common?branch=master)",
+ "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
  "yral-types",
@@ -7489,7 +7489,7 @@ checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#ad347ec232d6100f44d310ad43afbdb433aaf114"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
 dependencies = [
  "candid",
  "humantime",
@@ -7634,12 +7634,12 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "web-time",
- "yral-canisters-client 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions)",
+ "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-pump-n-dump-common 0.1.0 (git+https://github.com/dolr-ai/yral-common?branch=master)",
+ "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
  "yral-types",
@@ -8752,12 +8752,12 @@ dependencies = [
  "wasm-bindgen-futures",
  "web-sys",
  "web-time",
- "yral-canisters-client 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions)",
+ "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-pump-n-dump-common 0.1.0 (git+https://github.com/dolr-ai/yral-common?branch=master)",
+ "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
  "yral-types",
@@ -9389,22 +9389,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#ad347ec232d6100f44d310ad43afbdb433aaf114"
-dependencies = [
- "anyhow",
- "candid",
- "candid_parser",
- "convert_case 0.6.0",
- "ic-agent",
- "serde",
- "serde_bytes",
- "serde_json",
-]
-
-[[package]]
-name = "yral-canisters-client"
-version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#503f3b441cc78c9a9a3dfd5776009472055d645f"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
 dependencies = [
  "anyhow",
  "candid",
@@ -9419,7 +9404,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#ad347ec232d6100f44d310ad43afbdb433aaf114"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
 dependencies = [
  "candid",
  "ciborium",
@@ -9440,19 +9425,19 @@ dependencies = [
  "thiserror 2.0.12",
  "url",
  "web-time",
- "yral-canisters-client 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions)",
+ "yral-canisters-client",
  "yral-grpc-traits",
  "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=56e3f1f1f5f452673bee17739520c800c1264295)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?rev=56e3f1f1f5f452673bee17739520c800c1264295)",
- "yral-pump-n-dump-common 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions)",
+ "yral-pump-n-dump-common",
  "yral-types",
 ]
 
 [[package]]
 name = "yral-grpc-traits"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#ad347ec232d6100f44d310ad43afbdb433aaf114"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
 dependencies = [
  "serde",
 ]
@@ -9531,20 +9516,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#ad347ec232d6100f44d310ad43afbdb433aaf114"
-dependencies = [
- "candid",
- "serde",
- "serde_json",
- "uuid",
- "yral-canisters-client 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions)",
- "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
-]
-
-[[package]]
-name = "yral-pump-n-dump-common"
-version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#503f3b441cc78c9a9a3dfd5776009472055d645f"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
 dependencies = [
  "candid",
  "ic-agent",
@@ -9552,14 +9524,14 @@ dependencies = [
  "serde_json",
  "url",
  "uuid",
- "yral-canisters-client 0.1.0 (git+https://github.com/dolr-ai/yral-common?branch=master)",
+ "yral-canisters-client",
  "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
 ]
 
 [[package]]
 name = "yral-qstash-types"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#ad347ec232d6100f44d310ad43afbdb433aaf114"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
 dependencies = [
  "candid",
  "serde",
@@ -9580,7 +9552,7 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#ad347ec232d6100f44d310ad43afbdb433aaf114"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
 dependencies = [
  "ic-agent",
  "k256",

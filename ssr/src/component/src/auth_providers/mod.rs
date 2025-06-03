@@ -231,7 +231,7 @@ mod server_fn_impl {
         use hon_worker_common::WORKER_URL;
         use leptos::prelude::*;
         use state::server::HonWorkerJwt;
-        use yral_canisters_client::individual_user_template::{Result22, Result9};
+        use yral_canisters_client::individual_user_template::{Result7, Result15};
 
         pub async fn issue_referral_rewards_impl(
             worker_req: ReferralReqWithSignature,
@@ -266,7 +266,7 @@ mod server_fn_impl {
             let user = admin_cans.individual_user_for(user_canister).await;
             if matches!(
                 user.get_session_type().await?,
-                Result9::Ok(SessionType::RegisteredSession)
+                Result7::Ok(SessionType::RegisteredSession)
             ) {
                 return Ok(false);
             }
@@ -274,8 +274,8 @@ mod server_fn_impl {
                 .await
                 .map_err(ServerFnError::from)
                 .and_then(|res| match res {
-                    Result22::Ok(_) => Ok(()),
-                    Result22::Err(e) => Err(ServerFnError::new(format!(
+                    Result15::Ok(_) => Ok(()),
+                    Result15::Err(e) => Err(ServerFnError::new(format!(
                         "failed to mark user as registered {e}"
                     ))),
                 })?;

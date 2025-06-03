@@ -1,5 +1,3 @@
-mod history;
-
 use candid::Principal;
 use gloo::timers::callback::Timeout;
 use leptos::either::Either;

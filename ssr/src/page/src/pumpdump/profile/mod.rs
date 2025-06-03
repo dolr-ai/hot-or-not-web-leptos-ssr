@@ -210,8 +210,8 @@ async fn load_from_chain(
         .await
         .map_err(|err| format!("Couldn't load gameplay history: {err}"))?;
     let items = match items {
-        yral_canisters_client::individual_user_template::Result15::Ok(res) => res,
-        yral_canisters_client::individual_user_template::Result15::Err(err) => {
+        yral_canisters_client::individual_user_template::Result9::Ok(res) => res,
+        yral_canisters_client::individual_user_template::Result9::Err(err) => {
             return match err.as_str() {
                 "ReachedEndOfItemsList" => {
                     return Ok(Default::default());
