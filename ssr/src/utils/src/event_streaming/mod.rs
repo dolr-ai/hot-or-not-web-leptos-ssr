@@ -1,39 +1,16 @@
 use std::env;
 
-use gloo_utils::format::JsValueSerdeExt;
 use leptos::prelude::*;
-use serde::Serialize;
 use serde_json::json;
-use wasm_bindgen::prelude::*;
 
-use consts::GTAG_MEASUREMENT_ID;
 #[cfg(all(feature = "ssr", feature = "ga4"))]
 use tracing::instrument;
 
 pub mod events;
 
-#[derive(Debug, Serialize)]
-struct GA4Event {
-    client_id: String,
-    user_id: Option<String>,
-    events: Vec<Event>,
-}
-
-#[derive(Debug, Serialize)]
-struct Event {
-    name: String,
-    params: serde_json::Value,
-}
-
 #[cfg(feature = "ssr")]
 pub mod warehouse_events {
     tonic::include_proto!("warehouse_events");
-}
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_name = gtag)]
-    pub fn gtag(cmd: &str, event_name: &str, params: &JsValue);
 }
 
 #[derive(Clone, Default)]
@@ -62,15 +39,6 @@ pub async fn send_event_ssr(event_name: String, params: String) -> Result<(), Se
     // Warehouse
     send_event_warehouse(&event_name, &params).await;
 
-    // GA4
-    // get client_id as user_id from params
-    let user_id = params["user_id"].as_str().unwrap_or("0");
-    let res = send_event_ga4(user_id, &event_name, &params).await;
-
-    if let Err(e) = res {
-        log::error!("Error sending event to GA4: {e:?}");
-    }
-
     Ok(())
 }
 
@@ -95,25 +63,6 @@ pub fn send_event_ssr_spawn(event_name: String, params: String) -> Result<(), Se
     spawn_local(async move {
         let _ = send_event_ssr(event_name, params).await;
     });
-
-    Ok(())
-}
-
-#[cfg(feature = "ga4")]
-pub fn send_user_id(user_id: String) -> Result<(), ServerFnError> {
-    let gtag_measurement_id = GTAG_MEASUREMENT_ID.as_ref();
-
-    gtag(
-        "config",
-        gtag_measurement_id,
-        &JsValue::from_serde(&json!({
-            "user_id": user_id,
-        }))
-        .map_err(|e| {
-            log::error!("Error serializing params: {e:?}");
-            ServerFnError::new(e.to_string())
-        })?,
-    );
 
     Ok(())
 }
@@ -192,64 +141,6 @@ pub async fn stream_to_offchain_agent(
     let request = tonic::Request::new(warehouse_events::WarehouseEvent { event, params });
 
     client.send_event(request).await?;
-
-    Ok(())
-}
-
-fn convert_leaf_values_to_string(value: serde_json::Value) -> serde_json::Value {
-    match value {
-        serde_json::Value::Object(mut obj) => {
-            for (_, val) in obj.iter_mut() {
-                *val = convert_leaf_values_to_string(val.clone());
-            }
-            serde_json::Value::Object(obj)
-        }
-        serde_json::Value::Array(mut arr) => {
-            for item in arr.iter_mut() {
-                *item = convert_leaf_values_to_string(item.clone());
-            }
-            serde_json::Value::Array(arr)
-        }
-        serde_json::Value::Number(n) => serde_json::Value::String(n.to_string()),
-        serde_json::Value::Null => serde_json::Value::String("".to_string()),
-        serde_json::Value::Bool(value) => serde_json::Value::String(value.to_string()),
-        serde_json::Value::String(value) => serde_json::Value::String(value),
-    }
-}
-
-#[cfg(all(feature = "ga4", feature = "ssr"))]
-#[instrument]
-pub async fn send_event_ga4(
-    user_id: &str,
-    event_name: &str,
-    params: &serde_json::Value,
-) -> Result<(), Box<dyn std::error::Error>> {
-    use reqwest::Client;
-
-    let measurement_id: &str = GTAG_MEASUREMENT_ID.as_ref();
-    let api_secret = env::var("GA4_API_SECRET")?;
-
-    let client = Client::new();
-    let url = format!(
-        "https://www.google-analytics.com/mp/collect?measurement_id={measurement_id}&api_secret={api_secret}"
-    );
-
-    let params = convert_leaf_values_to_string(params.clone());
-
-    let payload = GA4Event {
-        client_id: "12345".to_string(), // Should be some unique id
-        user_id: Some(user_id.to_string()),
-        events: vec![Event {
-            name: event_name.to_string(),
-            params: params.clone(),
-        }],
-    };
-
-    let response = client.post(&url).json(&payload).send().await?;
-
-    if !response.status().is_success() {
-        return Err(format!("GA4 request failed: {:?}", response.status()).into());
-    }
 
     Ok(())
 }
