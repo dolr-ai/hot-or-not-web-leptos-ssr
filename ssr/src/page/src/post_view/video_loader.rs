@@ -17,7 +17,7 @@ use component::show_any::ShowAny;
 use component::{
     feed_popup::FeedPopUp, onboarding_flow::OnboardingPopUp, video_player::VideoPlayer,
 };
-use consts::USER_ONBOARDING_STORE;
+use consts::{REFERRAL_REWARD, USER_ONBOARDING_STORE};
 use utils::event_streaming::events::VideoWatched;
 use utils::{bg_url, mp4_url};
 
@@ -67,9 +67,8 @@ pub fn BgView(
             }>
                 <FeedPopUp
                     on_dismiss=move |_| set_show_refer_login_popup.set(false)
-                    header_text="Claim Your Referral
-                    Rewards Now!"
-                    body_text="Signup now to receive 500 SATS as referral rewards."
+                    header_text="Claim Your Referral Rewards Now!".to_string()
+                    body_text=format!("Signup now to receive {} SATS as referral rewards.", REFERRAL_REWARD)
                     login_text="Sign Up"
                 />
             </ShowAny>
