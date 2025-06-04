@@ -5,7 +5,7 @@ use component::{
     back_btn::BackButton,
     buttons::{HighlightedButton, HighlightedLinkButton},
     overlay::ShadowOverlay,
-    spinner::{Spinner, SpinnerCircle, SpinnerCircleStyled},
+    spinner::{SpinnerCircle, SpinnerCircleStyled},
 };
 use consts::SATS_AIRDROP_LIMIT_RANGE;
 use hon_worker_common::{ClaimRequest, VerifiableClaimRequest, WORKER_URL};
