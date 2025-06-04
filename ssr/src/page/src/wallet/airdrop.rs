@@ -1,5 +1,3 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
-
 use candid::{Nat, Principal};
 use component::{
     back_btn::BackButton,
@@ -39,12 +37,12 @@ pub async fn is_airdrop_claimed(user_principal: Principal) -> Result<bool, Serve
     };
     let last_airdrop_timestamp: u128 = last_airdrop_timestamp.into();
 
-    let now = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
+    let now = web_time::SystemTime::now()
+        .duration_since(web_time::UNIX_EPOCH)
         .unwrap()
         .as_millis();
 
-    let duration_24h = Duration::from_secs(24 * 60 * 60).as_millis();
+    let duration_24h = web_time::Duration::from_secs(24 * 60 * 60).as_millis();
 
     // user is blocked for 24h since last airdrop claim
     let blocked_window = last_airdrop_timestamp..(last_airdrop_timestamp + duration_24h);
