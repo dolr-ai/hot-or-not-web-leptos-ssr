@@ -9,7 +9,7 @@ use leptos_router::components::Redirect;
 use leptos_router::hooks::use_params;
 use leptos_router::hooks::use_query;
 use leptos_router::params::Params;
-use state::canisters::authenticated_canisters;
+use state::canisters::auth_state;
 use utils::send_wrap;
 use utils::token::icpump::IcpumpTokenInfo;
 use utils::web::copy_to_clipboard;
@@ -22,7 +22,6 @@ use leptos_meta::*;
 use serde::{Deserialize, Serialize};
 use yral_canisters_common::cursored_data::transaction::IndexOrLedger;
 use yral_canisters_common::utils::token::TokenMetadata;
-use yral_canisters_common::Canisters;
 
 #[component]
 fn TokenField(
@@ -230,18 +229,17 @@ pub fn TokenInfo() -> impl IntoView {
     let key_principal = use_params::<TokenKeyParam>();
     let airdrop_param = use_query::<AirdropParam>();
     let key_principal = move || key_principal.with(|p| p.as_ref().map(|p| p.key_principal).ok());
-    let cans_wire = authenticated_canisters();
-    let token_metadata_fetch = Resource::new(
-        move || (params(), key_principal()),
-        move |(params_result, key_principal)| {
+
+    let auth = auth_state();
+
+    let token_metadata_fetch = auth.derive_resource(
+        move || (params.get(), key_principal()),
+        move |cans, (params_result, key_principal)| {
             send_wrap(async move {
                 let params = match params_result {
                     Ok(p) => p,
                     Err(_) => return Ok::<_, ServerFnError>(None),
                 };
-
-                let cans_wire = cans_wire.await?;
-                let cans = Canisters::from_wire(cans_wire, expect_context())?;
 
                 let meta = cans
                     .token_metadata_by_root_type(

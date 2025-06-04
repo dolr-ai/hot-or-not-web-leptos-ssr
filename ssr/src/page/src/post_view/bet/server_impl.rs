@@ -8,24 +8,27 @@ pub async fn vote_with_cents_on_post(
     sender: Principal,
     req: VoteRequest,
     sig: Signature,
+    prev_video_info: Option<(Principal, u64)>,
 ) -> Result<VoteRes, ServerFnError> {
     #[cfg(feature = "alloydb")]
     use alloydb::vote_with_cents_on_post;
     #[cfg(not(feature = "alloydb"))]
     use mock::vote_with_cents_on_post;
 
-    vote_with_cents_on_post(sender, req, sig).await
+    vote_with_cents_on_post(sender, req, sig, prev_video_info).await
 }
 
 #[cfg(feature = "alloydb")]
 mod alloydb {
     use super::*;
-    use hon_worker_common::{HoNGameVoteReq, HotOrNot, VoteRequest, VoteRes, WORKER_URL};
+    use hon_worker_common::WORKER_URL;
+    use hon_worker_common::{HoNGameVoteReq, HotOrNot, VoteRequest, VoteRes};
 
     pub async fn vote_with_cents_on_post(
         sender: Principal,
         req: VoteRequest,
         sig: Signature,
+        prev_video_info: Option<(Principal, u64)>,
     ) -> Result<VoteRes, ServerFnError> {
         use state::alloydb::AlloyDbInstance;
         use state::server::HonWorkerJwt;
@@ -38,11 +41,21 @@ mod alloydb {
         else {
             return Err(ServerFnError::new("post not found"));
         };
+        let prev_uid_formatted = if let Some((canister_id, post_id)) = prev_video_info {
+            let details = cans
+                .get_post_details(canister_id, post_id)
+                .await?
+                .ok_or_else(|| ServerFnError::new("previous post not found"))?;
+            format!("'{}'", details.uid)
+        } else {
+            "NULL".to_string()
+        };
+
         // sanitization is not required here, as get_post_details verifies that the post is valid
         // and exists on cloudflare
         let query = format!(
-            "select hot_or_not_evaluator.get_hot_or_not('{}')",
-            post_info.uid
+            "select hot_or_not_evaluator.compare_videos_hot_or_not('{}', {})",
+            post_info.uid, prev_uid_formatted,
         );
 
         let alloydb: AlloyDbInstance = expect_context();
@@ -50,15 +63,15 @@ mod alloydb {
         let mut res = res
             .sql_results
             .pop()
-            .expect("hot_or_not_evaluator.get_hot_or_not MUST return a result");
+            .expect("hot_or_not_evaluator.compare_videos_hot_or_not MUST return a result");
         let mut res = res
             .rows
             .pop()
-            .expect("hot_or_not_evaluator.get_hot_or_not MUST return a row");
+            .expect("hot_or_not_evaluator.compare_videos_hot_or_not MUST return a row");
         let res = res
             .values
             .pop()
-            .expect("hot_or_not_evaluator.get_hot_or_not MUST return a value");
+            .expect("hot_or_not_evaluator.compare_videos_hot_or_not MUST return a value");
 
         let res = res.value.clone().map(|v| v.to_uppercase());
         let sentiment = match res.as_deref() {
@@ -67,7 +80,7 @@ mod alloydb {
             None => HotOrNot::Not,
             _ => {
                 return Err(ServerFnError::new(
-                    "hot_or_not_evaluator.get_hot_or_not MUST return a boolean",
+                    "hot_or_not_evaluator.compare_videos_hot_or_not MUST return a boolean",
                 ));
             }
         };
@@ -112,6 +125,7 @@ mod mock {
         _sender: Principal,
         _req: VoteRequest,
         _sig: Signature,
+        _prev_video_info: Option<(Principal, u64)>,
     ) -> Result<VoteRes, ServerFnError> {
         Ok(VoteRes {
             game_result: GameResult::Win {

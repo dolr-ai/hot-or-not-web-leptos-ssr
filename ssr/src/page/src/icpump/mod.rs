@@ -3,26 +3,22 @@ use leptos_meta::*;
 
 use candid::Nat;
 use candid::Principal;
-use codee::string::FromToStringCodec;
 use component::overlay::PopupOverlay;
 use consts::ICPUMP_LISTING_PAGE_SIZE;
-use consts::USER_PRINCIPAL_STORE;
 use futures::StreamExt;
 use leptos::html::Div;
 use leptos::prelude::*;
 use leptos_icons::Icon;
-use leptos_use::use_cookie;
 use leptos_use::use_intersection_observer_with_options;
 use leptos_use::use_media_query;
 use leptos_use::UseIntersectionObserverOptions;
 use serde::Deserialize;
 use serde::Serialize;
-use state::canisters::authenticated_canisters;
+use state::canisters::auth_state;
 use std::collections::VecDeque;
 use utils::event_streaming::events::CentsAdded;
 use utils::send_wrap;
 use yral_canisters_common::utils::token::TokenOwner;
-use yral_canisters_common::Canisters;
 
 use component::buttons::HighlightedLinkButton;
 use component::icons::airdrop_icon::AirdropIcon;
@@ -38,6 +34,7 @@ use utils::token::firestore::listen_to_documents;
 use utils::token::icpump::get_paginated_token_list;
 use utils::token::icpump::TokenListItem;
 
+use crate::token::icpump_sunset_popup::IcpumpSunsetPopup;
 use crate::wallet::airdrop::AirdropPopup;
 use component::overlay::ShadowOverlay;
 
@@ -136,17 +133,16 @@ pub fn ICPumpListingFeed() -> impl IntoView {
     let page = RwSignal::new(1);
     let end = RwSignal::new(false);
     let loading = RwSignal::new(true);
-    let (curr_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
     let token_list: RwSignal<Vec<ProcessedTokenListResponse>> = RwSignal::new(vec![]);
     let new_token_list: RwSignal<VecDeque<ProcessedTokenListResponse>> =
         RwSignal::new(VecDeque::new());
 
-    let fetch_res = Resource::new(
+    let auth = auth_state();
+
+    let _fetch_res = auth.derive_resource(
         move || page.get(),
-        move |page| {
+        move |cans, page| {
             send_wrap(async move {
-                let cans = authenticated_canisters().await;
-                let cans = Canisters::from_wire(cans.unwrap(), expect_context()).unwrap();
                 new_token_list.set(VecDeque::new());
 
                 loading.set(true);
@@ -166,13 +162,14 @@ pub fn ICPumpListingFeed() -> impl IntoView {
                 });
 
                 loading.set(false);
+
+                Ok(())
             })
         },
     );
 
     Effect::new(move |_| {
-        fetch_res.refetch();
-        if let Some(principal) = curr_principal.get() {
+        if let Some(principal) = auth.user_principal_if_available() {
             spawn_local(async move {
                 let (_app, firestore) = init_firebase();
                 let mut stream = listen_to_documents(&firestore);
@@ -255,6 +252,7 @@ pub fn ICPumpLanding() -> impl IntoView {
     // TODO: add the pump-ai icon here, as shown in the new ui for pnd game
     view! {
         <Title text="ICPump - Home" />
+        <IcpumpSunsetPopup />
         <div class="min-h-screen bg-black text-white  flex flex-col gap-4 px-4 md:px-8 py-6 font-kumbh">
             <div class="flex lg:flex-row gap-4 flex-col items-center justify-center">
                 <div class="lg:left-0 lg:top-0 flex items-center gap-4">
@@ -294,7 +292,7 @@ pub fn TokenCardFallback() -> impl IntoView {
     view! {
         <div class="flex flex-col gap-2 pt-3 pb-4 px-3 md:px-4 w-full text-xs rounded-lg bg-neutral-900/90 font-kumbh">
             <div class="flex gap-3 items-stretch">
-                <div class="w-[7rem] h-[7rem] rounded-[4px] shrink-0 bg-white/15 animate-pulse"></div>
+                <div class="w-28 h-28 rounded-[4px] shrink-0 bg-white/15 animate-pulse"></div>
                 <div class="flex flex-col justify-between overflow-hidden w-full gap-2">
                     <div class="flex flex-col gap-2">
                         <div class="flex gap-4 justify-between items-center w-full">
@@ -311,23 +309,23 @@ pub fn TokenCardFallback() -> impl IntoView {
             </div>
             <div class="flex gap-4 justify-between items-center p-2">
                 <div class="flex flex-col items-center gap-1">
-                    <div class="w-[1.875rem] h-[1.875rem] bg-white/15 animate-pulse rounded"></div>
+                    <div class="w-7.5 h-7.5 bg-white/15 animate-pulse rounded"></div>
                     <div class="w-10 h-3 bg-white/15 animate-pulse rounded"></div>
                 </div>
                 <div class="flex flex-col items-center gap-1">
-                    <div class="w-[1.875rem] h-[1.875rem] bg-white/15 animate-pulse rounded"></div>
+                    <div class="w-7.5 h-7.5 bg-white/15 animate-pulse rounded"></div>
                     <div class="w-14 h-3 bg-white/15 animate-pulse rounded"></div>
                 </div>
                 <div class="flex flex-col items-center gap-1">
-                    <div class="w-[1.875rem] h-[1.875rem] bg-white/15 animate-pulse rounded"></div>
+                    <div class="w-7.5 h-7.5 bg-white/15 animate-pulse rounded"></div>
                     <div class="w-12 h-3 bg-white/15 animate-pulse rounded"></div>
                 </div>
                 <div class="flex flex-col items-center gap-1">
-                    <div class="w-[1.875rem] h-[1.875rem] bg-white/15 animate-pulse rounded"></div>
+                    <div class="w-7.5 h-7.5 bg-white/15 animate-pulse rounded"></div>
                     <div class="w-10 h-3 bg-white/15 animate-pulse rounded"></div>
                 </div>
                 <div class="flex flex-col items-center gap-1">
-                    <div class="w-[1.875rem] h-[1.875rem] bg-white/15 animate-pulse rounded"></div>
+                    <div class="w-7.5 h-7.5 bg-white/15 animate-pulse rounded"></div>
                     <div class="w-12 h-3 bg-white/15 animate-pulse rounded"></div>
                 </div>
             </div>
@@ -363,10 +361,11 @@ pub fn TokenCard(
 
     let claimed = RwSignal::new(is_airdrop_claimed);
     let buffer_signal = RwSignal::new(false);
-    let cans_res = authenticated_canisters();
+
+    let auth = auth_state();
+
     let token_owner_c = token_owner.clone();
     let airdrop_action = Action::new_local(move |&()| {
-        let cans_res = cans_res;
         let token_owner_cans_id = token_owner_c.clone().unwrap().canister_id;
         let token_symbol = token_symbol_c.clone();
         airdrop_popup.set(true);
@@ -375,10 +374,7 @@ pub fn TokenCard(
                 return Ok(());
             }
             buffer_signal.set(true);
-            let cans_wire = cans_res
-                .get_untracked()
-                .ok_or_else(|| ServerFnError::new("Auth Failed"))??;
-            let cans = Canisters::from_wire(cans_wire, expect_context())?;
+            let cans = auth.auth_cans(expect_context()).await?;
             let token_owner = cans.individual_user(token_owner_cans_id).await;
 
             token_owner
@@ -394,7 +390,7 @@ pub fn TokenCard(
             user.add_token(root).await?;
 
             if token_symbol == "COYNS" || token_symbol == "CENTS" {
-                CentsAdded.send_event("airdrop".to_string(), 100);
+                CentsAdded.send_event(auth.event_ctx(), "airdrop".to_string(), 100);
             }
 
             buffer_signal.set(false);
@@ -408,17 +404,17 @@ pub fn TokenCard(
     view! {
         <div
             class:tada=is_new_token
-            class="flex flex-col gap-2 py-3 px-3 w-full text-xs rounded-lg transition-colors md:px-4 hover:bg-gradient-to-b group bg-neutral-900/90 font-kumbh hover:from-neutral-600 hover:to-neutral-800"
+            class="flex flex-col gap-2 py-3 px-3 w-full text-xs rounded-lg transition-colors md:px-4 hover:bg-linear-to-b group bg-neutral-900/90 font-kumbh hover:from-neutral-600 hover:to-neutral-800"
         >
             <div class="flex gap-3 items-stretch">
                 <div
                     style="box-shadow: 0px 0px 4px rgba(255, 255, 255, 0.16);"
-                    class="overflow-hidden relative w-[7rem] h-[7rem] rounded-[4px] shrink-0"
+                    class="overflow-hidden relative w-28 h-28 rounded-[4px] shrink-0"
                 >
                     <Show when=move || details.is_nsfw && !show_nsfw.get()>
                         <button
                             on:click=move |_| show_nsfw.set(!show_nsfw.get())
-                            class="flex absolute inset-0 justify-center items-center w-full h-full z-[2] backdrop-blur-[4px] bg-black/50 rounded-[4px]"
+                            class="flex absolute inset-0 justify-center items-center w-full h-full z-2 backdrop-blur-xs bg-black/50 rounded-[4px]"
                         >
                             <div class="flex flex-col gap-1 items-center text-xs">
                                 <EyeHiddenIcon classes="w-6 h-6".to_string() />
@@ -482,7 +478,7 @@ pub fn TokenCard(
             </PopupOverlay>
             <ShadowOverlay show=airdrop_popup >
                 <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-[560px] max-h-[634px] min-w-[343px] min-h-[480px] backdrop-blur-lg rounded-lg">
-                    <div class="rounded-lg z-[500]">
+                    <div class="rounded-lg z-500">
                         <AirdropPopup
                             name=details.name.clone()
                             logo=details.logo.clone()
@@ -524,12 +520,12 @@ pub fn TokenCardLoading() -> impl IntoView {
     view! {
         <div class="flex flex-col gap-2 py-3 px-3 w-full rounded-lg md:px-4 group bg-neutral-900/90">
             <div class="flex gap-3">
-                <div class="w-[7rem] h-[7rem] bg-loading rounded-[4px] relative shrink-0"></div>
+                <div class="w-28 h-28 bg-loading rounded-[4px] relative shrink-0"></div>
 
                 <div class="w-full bg-loading rounded-[4px]"></div>
             </div>
 
-            <div class="h-[4.125rem] bg-loading rounded-[4px]"></div>
+            <div class="h-16.5 bg-loading rounded-[4px]"></div>
         </div>
     }
 }
@@ -586,7 +582,7 @@ pub fn ActionButton(
                 )
             }
         >
-            <div class="w-[1.125rem] h-[1.125rem] flex items-center justify-center">
+            <div class="w-4.5 h-4.5 flex items-center justify-center">
                 {children()}
             </div>
 
@@ -606,7 +602,7 @@ pub fn ActionButtonLink(
             disabled=disabled
             class="flex flex-col gap-1 justify-center items-center text-xs transition-colors enabled:group-hover:text-white enabled:text-neutral-300 disabled:group-hover:cursor-default disabled:text-neutral-600"
         >
-            <div class="w-[1.125rem] h-[1.125rem] flex items-center justify-center">
+            <div class="w-4.5 h-4.5 flex items-center justify-center">
                 {children()}
             </div>
 

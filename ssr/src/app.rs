@@ -1,15 +1,12 @@
-use codee::string::FromToStringCodec;
 use component::content_upload::AuthorizedUserToSeedContent;
-use consts::ACCOUNT_CONNECTED_STORE;
-use leptos_use::storage::use_local_storage;
 use page::about_us::AboutUs;
 use page::hon;
 use page::icpump::ai::ICPumpAi;
 use page::icpump::ICPumpLanding;
 use page::post_view::PostDetailsCacheCtx;
 use page::pumpdump::{withdrawal, PndProfilePage};
+use page::token::context::IcpumpSunsetPopupCtx;
 use state::app_type::AppType;
-use state::local_storage::LocalStorageSyncContext;
 // use crate::page::wallet::TestIndex;
 use crate::error_template::{AppError, ErrorTemplate};
 use component::{base_route::BaseRoute, nav::NavBar};
@@ -17,6 +14,7 @@ use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::hooks::use_location;
 use leptos_router::{components::*, path, MatchNestedRoutes};
+use page::terms_android::TermsAndroid;
 use page::terms_ios::TermsIos;
 use page::{
     err::ServerErrorPage,
@@ -102,7 +100,6 @@ fn GooglePreviewAuthRedirectorRoute() -> impl MatchNestedRoutes + Clone {
         use page::preview_google_redirect::PreviewGoogleRedirector;
         view! { <Route path view=PreviewGoogleRedirector /> }.into_inner()
     }
-
     #[cfg(not(any(feature = "oauth-ssr", feature = "oauth-hydrate")))]
     {
         view! { <Route path view=NotFound /> }.into_inner()
@@ -117,7 +114,6 @@ fn GooglePreviewAuthRedirectHandlerRoute() -> impl MatchNestedRoutes + Clone {
         use page::preview_google_redirect::PreviewGoogleRedirectHandler;
         view! { <Route path view=PreviewGoogleRedirectHandler /> }.into_inner()
     }
-
     #[cfg(not(any(feature = "oauth-ssr", feature = "oauth-hydrate")))]
     {
         view! { <Route path view=NotFound /> }.into_inner()
@@ -131,21 +127,9 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
             <head>
                 <meta charset="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
-                <script type="module" src="/js/sentry-init.js" async></script>
-                <script type="module" src="/js/mixpanel-init.js" async></script>
-                <Script async_="true">
-                    {r#"
-                    (function(w,d,s,l,i){
-                    w[l]=w[l]||[];
-                    w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});
-                    var f=d.getElementsByTagName(s)[0], 
-                    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
-                    j.async=true;
-                    j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
-                    f.parentNode.insertBefore(j,f);
-                    })(window,document,'script','dataLayer','GTM-MNBWSPVJ');
-                    "#}
-                </Script>
+                <script fetchpriority="low" type="module" src="/js/sentry-init.js" async></script>
+                <script fetchpriority="low" type="module" src="/js/mixpanel-init.js" async></script>
+
                 <AutoReload options=options.clone() />
                 <HashedStylesheet id="leptos" options=options.clone() />
                 <HydrationScripts options />
@@ -165,6 +149,11 @@ pub fn App() -> impl IntoView {
     let app_type = AppType::select();
     let app_state = AppState::from_type(&app_type);
     provide_context(app_state.clone());
+
+    let show_icpump_sunset_popup = RwSignal::new(true);
+    provide_context(IcpumpSunsetPopupCtx {
+        show: show_icpump_sunset_popup,
+    });
 
     // Existing context providers
     provide_context(Canisters::default());
@@ -189,28 +178,10 @@ pub fn App() -> impl IntoView {
     }
 
     // Analytics
-    let enable_ga4_script = RwSignal::new(false);
     #[cfg(feature = "ga4")]
     {
-        enable_ga4_script.set(true);
         provide_context(EventHistory::default());
     }
-
-    // Set up local storage sync
-    let (initial_account_connected, write_account_connected, _) =
-        use_local_storage::<bool, FromToStringCodec>(ACCOUNT_CONNECTED_STORE);
-    let account_connected_signal = RwSignal::new(initial_account_connected.get_untracked());
-
-    // Effect to write to local storage when the signal changes
-    Effect::new(move |_| {
-        let current_value = account_connected_signal.get();
-        write_account_connected(current_value);
-    });
-
-    // Provide the context
-    provide_context(LocalStorageSyncContext {
-        account_connected: account_connected_signal,
-    });
 
     view! {
         <Title text=app_state.name />
@@ -234,22 +205,6 @@ pub fn App() -> impl IntoView {
         // App manifest
         <Link rel="manifest" href=format!("/{}/manifest.json", app_state.asset_path()) />
 
-        // GA4 Global Site Tag (gtag.js) - Google Analytics
-        // G-6W5Q2MRX0E to test locally | G-PLNNETMSLM
-        <Show when=enable_ga4_script>
-            <Script
-                async_="true"
-                src=concat!("https://www.googletagmanager.com/gtag/js?id=", "G-PLNNETMSLM")
-            />
-            <Script>
-                {r#"
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', 'G-PLNNETMSLM');
-                "#}
-            </Script>
-        </Show>
 
         <Router>
             <main class="bg-black" id="body">
@@ -259,8 +214,8 @@ pub fn App() -> impl IntoView {
                     <GoogleAuthRedirectorRoute />
                     <GooglePreviewAuthRedirectorRoute />
                     <GooglePreviewAuthRedirectHandlerRoute />
+                    <Route path=path!("/") view=RootPage />
                     <ParentRoute path=path!("") view=BaseRoute>
-                        <Route path=path!("/") view=RootPage />
                         <Route path=path!("/hot-or-not/withdraw") view=hon::withdrawal::HonWithdrawal />
                         <Route
                             path=path!("/hot-or-not/withdraw/success")
@@ -309,6 +264,7 @@ pub fn App() -> impl IntoView {
                             view=withdrawal::result::Failure
                         />
                         <Route path=path!("/terms-ios") view=TermsIos />
+                        <Route path=path!("/terms-android") view=TermsAndroid />
 
                         <Route path=path!("/test_airdrop") view=test::TestAirdrop />
 

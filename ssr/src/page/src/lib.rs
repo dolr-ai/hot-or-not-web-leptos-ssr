@@ -1,6 +1,7 @@
 #![recursion_limit = "256"]
 pub mod about_us;
 pub mod airdrop;
+pub mod consts;
 pub mod err;
 pub mod faq;
 #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
@@ -22,6 +23,7 @@ pub mod root;
 pub mod scrolling_post_view;
 pub mod settings;
 pub mod terms;
+pub mod terms_android;
 pub mod terms_ios;
 pub mod token;
 pub mod upload;

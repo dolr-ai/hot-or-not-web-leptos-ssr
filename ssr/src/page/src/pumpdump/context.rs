@@ -3,7 +3,7 @@ use std::sync::Arc;
 use candid::Principal;
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
-use state::canisters::AuthCansResource;
+use state::canisters::AuthState;
 use utils::send_wrap;
 use yral_pump_n_dump_common::{
     ws::{GameResult as RawGameResult, WsError, WsMessage, WsRequest, WsResp},
@@ -66,13 +66,13 @@ pub(super) struct PlayerDataRes {
 }
 
 impl PlayerDataRes {
-    pub fn derive(auth_cans: AuthCansResource) -> Self {
+    pub fn derive(auth: AuthState) -> Self {
         let read = Resource::new(
             || (),
             move |_| {
                 send_wrap(async move {
-                    let cans_wire = auth_cans.await;
-                    let data = PlayerData::load(cans_wire?.user_canister).await?;
+                    let cans_wire = auth.cans_wire().await?;
+                    let data = PlayerData::load(cans_wire.user_canister).await?;
                     Ok::<_, ServerFnError>(RwSignal::new(data))
                 })
             },
@@ -115,7 +115,7 @@ pub(super) struct WsResponse {
 #[derive(Clone)]
 pub(super) struct RunningGameCtx {
     sendfn: SendFn,
-    pub reload_running_data: Action<(), (), LocalStorage>,
+    pub reload_running_data: Action<(), ()>,
     player_data: PlayerDataRes,
     running_data: RwSignal<Option<GameRunningData>>,
     current_round: StoredValue<Option<u64>>,

@@ -1,6 +1,5 @@
 use crate::token::RootType;
 use candid::Principal;
-use codee::string::FromToStringCodec;
 use component::buttons::GradientButton;
 use component::{back_btn::BackButton, spinner::FullScreenSpinner, title::TitleText};
 use leptos::either::Either;
@@ -10,9 +9,8 @@ use leptos_icons::*;
 use leptos_meta::*;
 use leptos_router::components::Redirect;
 use leptos_router::hooks::use_params;
-use leptos_use::storage::use_local_storage;
 use server_fn::codec::Json;
-use state::canisters::authenticated_canisters;
+use state::canisters::{auth_state, unauth_canisters};
 use utils::mixpanel::mixpanel_events::*;
 use utils::send_wrap;
 use utils::token::icpump::IcpumpTokenInfo;
@@ -37,6 +35,7 @@ async fn transfer_token_to_user_principal(
     amount: TokenBalance,
 ) -> Result<(), ServerFnError> {
     let cans = Canisters::from_wire(cans_wire, expect_context())?;
+    // This must be called in a server function so the client can't interrupt a call to add_token
     cans.transfer_token_to_user_principal(
         destination_principal,
         ledger_canister,
@@ -44,19 +43,6 @@ async fn transfer_token_to_user_principal(
         amount,
     )
     .await?;
-
-    Ok(())
-}
-
-async fn transfer_ck_token_to_user_principal(
-    cans_wire: CanistersAuthWire,
-    destination_principal: Principal,
-    ledger_canister: Principal,
-    amount: TokenBalance,
-) -> Result<(), ServerFnError> {
-    let cans = Canisters::from_wire(cans_wire, expect_context())?;
-    cans.transfer_ck_token_to_user_principal(destination_principal, ledger_canister, amount)
-        .await?;
 
     Ok(())
 }
@@ -81,10 +67,12 @@ fn FormError<V: 'static + Send + Sync>(
 fn TokenTransferInner(
     root: RootType,
     info: TokenMetadata,
-    source_addr: Principal,
+    cans_wire: CanistersAuthWire,
 ) -> impl IntoView {
+    let source_addr = Principal::self_authenticating(&cans_wire.id.from_key);
+
     let destination_ref = NodeRef::<html::Input>::new();
-    let paste_destination: Action<_, _, LocalStorage> = Action::new_unsync(move |&()| async move {
+    let paste_destination: Action<_, _> = Action::new_unsync(move |&()| async move {
         let input = destination_ref.get()?;
         let principal = paste_from_clipboard().await?;
         input.set_value(&principal);
@@ -159,22 +147,23 @@ fn TokenTransferInner(
         }
     });
 
-    let auth_cans_wire = authenticated_canisters();
-    let (is_connected, _, _) =
-        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
+    let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
+    let base = unauth_canisters();
 
     let mix_fees = info.fees.clone();
     let token_name = info.symbol.clone();
 
     let send_action = Action::new(move |&()| {
         let root = root.clone();
-        let auth_cans_wire = auth_cans_wire;
         let fees = mix_fees.clone();
         let token_name = token_name.clone();
+        let cans_wire = cans_wire.clone();
+        let base = base.clone();
 
         send_wrap(async move {
-            let auth_cans_wire = auth_cans_wire.await?;
-            let cans = Canisters::from_wire(auth_cans_wire.clone(), expect_context())?;
+            let cans = Canisters::from_wire(cans_wire.clone(), base)?;
+
             let destination = destination_res.get_untracked().unwrap().unwrap();
             // let amt = amt_res.get_untracked().unwrap().unwrap();
 
@@ -203,7 +192,7 @@ fn TokenTransferInner(
                     log::debug!("ledger_canister: {ledger_canister:?}");
 
                     transfer_token_to_user_principal(
-                        auth_cans_wire.clone(),
+                        cans_wire.clone(),
                         destination,
                         ledger_canister,
                         root,
@@ -212,22 +201,12 @@ fn TokenTransferInner(
                     .await?;
                 }
                 RootType::BTC { ledger, .. } => {
-                    transfer_ck_token_to_user_principal(
-                        auth_cans_wire.clone(),
-                        destination,
-                        ledger,
-                        amt.clone(),
-                    )
-                    .await?;
+                    cans.transfer_ck_token_to_user_principal(destination, ledger, amt.clone())
+                        .await?;
                 }
                 RootType::USDC { ledger, .. } => {
-                    transfer_ck_token_to_user_principal(
-                        auth_cans_wire,
-                        destination,
-                        ledger,
-                        amt.clone(),
-                    )
-                    .await?;
+                    cans.transfer_ck_token_to_user_principal(destination, ledger, amt.clone())
+                        .await?;
                 }
                 RootType::COYNS => return Err(ServerFnError::new("Coyns cannot be transferred")),
                 RootType::CENTS => return Err(ServerFnError::new("Cents cannot be transferred")),
@@ -360,12 +339,9 @@ fn TokenTransferInner(
 #[component]
 pub fn TokenTransfer() -> impl IntoView {
     let params = use_params::<TokenParams>();
-    let cans = authenticated_canisters();
-    let token_metadata_fetch = Resource::new(params, move |params| {
+    let auth = auth_state();
+    let token_metadata_fetch = auth.derive_resource(params, |cans, params| {
         send_wrap(async move {
-            let cans = cans.await?;
-            let cans = Canisters::from_wire(cans, expect_context())?;
-
             let Ok(params) = params else {
                 return Ok::<_, ServerFnError>(None);
             };
@@ -379,25 +355,29 @@ pub fn TokenTransfer() -> impl IntoView {
                 .ok()
                 .flatten();
 
-            Ok(meta.map(|m| (m, params.token_root, cans.user_principal())))
+            Ok(meta.map(|m| (m, params.token_root, CanistersAuthWire::from(cans))))
         })
     });
 
     view! {
         <Title text="ICPump - Token transfer" />
-        <Suspense fallback=FullScreenSpinner>{
-            move || {
-                token_metadata_fetch.get().map(|res|{
-                    match res{
-                        Err(e) => {
-                            println!("Error: {e:?}");
-                            view! { <Redirect path=format!("/error?err={e}") /> }.into_any()
-                        },
-                        Ok(None) => view! { <Redirect path="/" /> }.into_any(),
-                        Ok(Some((info, root, source_addr))) => view! { <TokenTransferInner info root source_addr/> }.into_any(),
-                    }
-                })
+        <Suspense fallback=FullScreenSpinner>
+        {move || Suspend::new(async move {
+            let res = token_metadata_fetch.await;
+            match res {
+                Err(e) => {
+                    view! { <Redirect path=format!("/error?err={e}") /> }.into_any()
+                },
+                Ok(None) => view! { <Redirect path="/" /> }.into_any(),
+                Ok(Some((info, root, cans_wire))) => view! {
+                    <TokenTransferInner
+                        info=info
+                        root=root
+                        cans_wire
+                    />
+                }.into_any()
             }
-        }</Suspense>
+        })}
+        </Suspense>
     }
 }

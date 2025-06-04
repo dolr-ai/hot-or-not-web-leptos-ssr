@@ -95,7 +95,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                             }
                         });
                         let show_video = Memo::new(move |_| {
-                            queue_idx.abs_diff(current_idx()) <= 20
+                            queue_idx.abs_diff(current_idx()) <= 6
                         });
                         view! {
                             <div node_ref=container_ref class="snap-always snap-end w-full h-full">
@@ -115,7 +115,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                 />
 
                 <Show when=queue_end>
-                    <div class="h-full w-full relative top-0 left-0 bg-inherit z-[21] flex snap-always snap-end justify-center items-center text-xl text-white/80">
+                    <div class="h-full w-full relative top-0 left-0 bg-inherit z-21 flex snap-always snap-end justify-center items-center text-xl text-white/80">
                         <span>You have reached the end!</span>
                     </div>
                 </Show>

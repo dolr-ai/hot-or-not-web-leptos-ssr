@@ -4,11 +4,8 @@ use leptos_icons::*;
 use candid::Principal;
 
 use component::profile_placeholders::NoMorePostsGraphic;
-use state::canisters::unauth_canisters;
-use utils::{
-    bg_url, event_streaming::events::auth_canisters_store,
-    event_streaming::events::ProfileViewVideo, profile::PostsProvider,
-};
+use state::canisters::{auth_state, unauth_canisters};
+use utils::{bg_url, event_streaming::events::ProfileViewVideo, profile::PostsProvider};
 
 use super::ic::ProfileStream;
 use super::ProfilePostsContext;
@@ -24,15 +21,16 @@ fn Post(details: PostDetails, user_canister: Principal, _ref: NodeRef<html::Div>
     let handle_image_error =
         move |_| _ = image_error.try_update(|image_error| *image_error = !*image_error);
 
-    let canisters = auth_canisters_store();
+    let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
     let post_details = details.clone();
     let video_click = move || {
-        ProfileViewVideo.send_event(post_details.clone(), canisters);
+        ProfileViewVideo.send_event(ev_ctx, post_details.clone());
     };
 
     view! {
         <div node_ref=_ref class="relative w-full basis-1/3 md:basis-1/4 xl:basis-1/5">
-            <div class="relative aspect-[9/16] h-full rounded-md border-white/20 m-2 border-[1px]">
+            <div class="relative aspect-9/16 h-full rounded-md border-white/20 m-2 border">
                 <a class="h-full w-full" href=profile_post_url on:click=move |_| video_click()>
                     <Show
                         when=image_error

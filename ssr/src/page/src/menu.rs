@@ -2,12 +2,13 @@ use codee::string::FromToStringCodec;
 use component::content_upload::AuthorizedUserToSeedContent;
 use component::content_upload::YoutubeUpload;
 use component::modal::Modal;
-use component::spinner::FullScreenSpinner;
 use component::title::TitleText;
 use component::{connect::ConnectLogin, social::*, toggle::Toggle};
 use consts::NSFW_TOGGLE_STORE;
 use leptos::either::Either;
+use leptos::html::Div;
 use leptos::html::Input;
+use leptos::portal::Portal;
 use leptos::{ev, prelude::*};
 use leptos_icons::*;
 use leptos_meta::*;
@@ -15,15 +16,14 @@ use leptos_router::{components::Redirect, hooks::use_query_map};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use state::app_state::AppState;
-use state::canisters::authenticated_canisters;
+use state::canisters::auth_state;
+use state::canisters::unauth_canisters;
 use state::content_seed_client::ContentSeedClient;
-use utils::event_streaming::events::account_connected_reader;
 use utils::host::show_cdao_page;
 use utils::host::show_pnd_page;
-use utils::notifications::get_token_for_principal;
 use utils::send_wrap;
 use yral_canisters_common::utils::profile::ProfileDetails;
-use yral_canisters_common::Canisters;
+
 #[component]
 fn MenuItem(
     #[prop(into)] text: String,
@@ -89,7 +89,9 @@ fn ProfileLoading() -> impl IntoView {
 
 #[component]
 fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
-    let (is_connected, _) = account_connected_reader();
+    let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
+
     view! {
         <div class="basis-4/12 aspect-square overflow-clip rounded-full">
             <img class="h-full w-full object-cover" src=user_details.profile_pic_or_random() />
@@ -156,39 +158,13 @@ fn NsfwToggle() -> impl IntoView {
 }
 
 #[component]
-#[allow(dead_code)]
-fn EnableNotifications(user_details: ProfileDetails) -> impl IntoView {
-    let (_, _) = account_connected_reader();
-
-    let on_token_click: Action<(), (), LocalStorage> = Action::new_unsync(move |()| async move {
-        get_token_for_principal(user_details.principal.to_string()).await;
-    });
-
-    view! {
-        <div class="grid grid-cols-2 items-center w-full">
-            <div class="flex flex-row gap-4 items-center">
-                <Icon attr:class="text-2xl" icon=icondata::BiCommentDotsRegular />
-                <span>Enable Notifications</span>
-            </div>
-            <div class="justify-self-end">
-                <button
-                    class="p-2 bg-black rounded-md text-white"
-                    on:click=move |_| {on_token_click.dispatch(());}
-                >
-                    Enable
-                </button>
-            </div>
-        </div>
-    }
-    .into_any()
-}
-
-#[component]
 pub fn Menu() -> impl IntoView {
-    let (is_connected, _) = account_connected_reader();
     let query_map = use_query_map();
     let show_content_modal = RwSignal::new(false);
     let is_authorized_to_seed_content: AuthorizedUserToSeedContent = expect_context();
+
+    let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
 
     Effect::new(move |_| {
         let query_params = query_map.get();
@@ -199,22 +175,11 @@ pub fn Menu() -> impl IntoView {
         Some(())
     });
 
-    let cans = authenticated_canisters();
-    let authorized_fetch_res = Resource::new(
-        move || {},
-        move |_| {
+    let authorized_fetch_res = auth.derive_resource(
+        move || (),
+        move |cans, _| {
             send_wrap(async move {
-                let Ok(cans) = cans.await else {
-                    is_authorized_to_seed_content.0.set(None);
-                    return None;
-                };
-                let Ok(cans_wire) = Canisters::from_wire(cans, expect_context()) else {
-                    is_authorized_to_seed_content.0.set(None);
-                    return None;
-                };
-
-                let user_principal = cans_wire.user_principal();
-
+                let user_principal = cans.user_principal();
                 match is_authorized_to_seed_content.0.get_untracked() {
                     Some((auth, principal)) if principal == user_principal => {
                         is_authorized_to_seed_content
@@ -234,34 +199,53 @@ pub fn Menu() -> impl IntoView {
                 is_authorized_to_seed_content
                     .0
                     .set(Some((res, user_principal)));
-                Some(cans_wire.profile_details())
+                Ok(())
             })
         },
     );
 
     let app_state = use_context::<AppState>();
     let page_title = app_state.unwrap().name.to_owned() + " - Menu";
+
+    let upload_content_mount_point = NodeRef::<Div>::new();
     view! {
         <Title text=page_title />
-        <Suspense fallback=FullScreenSpinner>
-            {
-                move ||{
-                    authorized_fetch_res.get().map(|profile_details|{
-                        let Some(profile_details) = profile_details else{
-                            return Either::Left(view! {
-                                <Redirect path="/" />
-                            });
-                        };
-                        Either::Right(view! {
-                            <Modal show=show_content_modal>
-                { move ||{
-                    is_authorized_to_seed_content.0.get().map(|(_, principal)|{
+        <Suspense>
+            {move || Suspend::new(async move {
+                if let Err(e) = authorized_fetch_res.await {
+                    return Either::Left(view! {
+                        <Redirect path=format!("/error?err={e}") />
+                    })
+                };
+
+                Either::Right(view! {
+                    <Modal show=show_content_modal>
+                    {move || is_authorized_to_seed_content.0.get().map(|(_, principal)| {
                         view! {
                             <YoutubeUpload url=query_map.get().get("text").unwrap_or_default() user_principal=principal />
                         }
-                    })
-                }}
-        </Modal>
+                    })}
+                    </Modal>
+                    {move || upload_content_mount_point.get().map(|mount| view! {
+                            <Portal mount>
+                                <Show when=move || {
+                                    is_authorized_to_seed_content.0.get().map(|(a, _)| a).unwrap_or_default()
+                                        && is_connected()
+                                }>
+                                    <div class="w-full px-8 md:w-4/12 xl:w-2/12">
+                                        <button
+                                            class="font-bold rounded-full bg-primary-600 py-2 md:py-3 w-full text-center text-lg md:text-xl text-white"
+                                            on:click=move |_| show_content_modal.set(true)
+                                        >
+                                            Upload Content
+                                        </button>
+                                    </div>
+                            </Show>
+                        </Portal>
+                    })}
+                })
+            })}
+        </Suspense>
         <div class="min-h-screen w-full flex flex-col text-white pt-2 pb-12 bg-black items-center divide-y divide-white/10">
             <div class="flex flex-col items-center w-full gap-20 pb-16">
                 <TitleText justify_center=false>
@@ -271,7 +255,14 @@ pub fn Menu() -> impl IntoView {
                 </TitleText>
                 <div class="flex flex-col items-center w-full gap-4">
                     <div class="flex flex-row w-full max-w-lg justify-center gap-4 items-center px-4">
-                        <ProfileInfo profile_details=profile_details />
+                        <Suspense fallback=ProfileLoading>
+                            {move || Suspend::new(async move {
+                                let cans = auth.auth_cans(unauth_canisters()).await;
+                                cans.map(|c| view! {
+                                    <ProfileInfo profile_details=c.profile_details() />
+                                })
+                            })}
+                        </Suspense>
                     </div>
                     <Show when=move || !is_connected()>
                         <div class="w-full px-8 md:w-4/12 xl:w-2/12">
@@ -281,20 +272,7 @@ pub fn Menu() -> impl IntoView {
                             {r#"Your Yral account has been setup. Login with Google to not lose progress."#}
                         </div>
                     </Show>
-                    <Show when=move || {
-                        is_authorized_to_seed_content.0.get().map(|(a, _)| a).unwrap_or_default()
-                            && is_connected()
-                    }>
-                        <div class="w-full px-8 md:w-4/12 xl:w-2/12">
-                            <button
-                                class="font-bold rounded-full bg-primary-600 py-2 md:py-3 w-full text-center text-lg md:text-xl text-white"
-                                on:click=move |_| show_content_modal.set(true)
-                            >
-                                Upload Content
-                            </button>
-                        </div>
-                    </Show>
-
+                    <div node_ref=upload_content_mount_point/>
                 </div>
             </div>
             <div class="flex flex-col py-12 px-8 gap-8 w-full text-lg">
@@ -319,10 +297,5 @@ pub fn Menu() -> impl IntoView {
             </div>
             <MenuFooter />
         </div>
-                        })
-                    })
-                }
-            }
-        </Suspense>
     }
 }

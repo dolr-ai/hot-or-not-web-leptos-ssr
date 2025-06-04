@@ -1,8 +1,8 @@
 use super::UploadParams;
 use auth::delegate_short_lived_identity;
-use codee::string::FromToStringCodec;
 use component::buttons::HighlightedLinkButton;
 use component::modal::Modal;
+use component::notification_nudge::NotificationNudge;
 use consts::UPLOAD_URL;
 use gloo::net::http::Request;
 use leptos::web_sys::{Blob, FormData};
@@ -12,26 +12,23 @@ use leptos::{
     prelude::*,
 };
 use leptos_icons::*;
-use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use state::canisters::authenticated_canisters;
+use state::canisters::{auth_state, unauth_canisters};
 use utils::mixpanel::mixpanel_events::*;
 use utils::{
     event_streaming::events::{
-        auth_canisters_store, VideoUploadSuccessful, VideoUploadUnsuccessful,
-        VideoUploadVideoSelected,
+        VideoUploadSuccessful, VideoUploadUnsuccessful, VideoUploadVideoSelected,
     },
     try_or_redirect_opt,
     web::FileWithUrl,
 };
-use yral_canisters_common::Canisters;
 
 #[component]
 pub fn DropBox() -> impl IntoView {
     view! {
-        <div class="flex flex-col items-center justify-self-center justify-center w-full border-2 border-dashed rounded-lg cursor-pointer border-gray-600 hover:bg-gray-600 aspect-[3/4] lg:aspect-[5/4]">
+        <div class="flex flex-col items-center justify-self-center justify-center w-full border-2 border-dashed rounded-lg cursor-pointer border-gray-600 hover:bg-gray-600 aspect-3/4 lg:aspect-5/4">
             <Icon attr:class="w-10 h-10 mb-4 text-gray-400" icon=icondata::BiCloudUploadRegular />
             <p class="text-center mb-2 mx-2 text-sm text-gray-400">
                 <span class="font-semibold">Click to upload</span>
@@ -51,7 +48,9 @@ pub fn PreVideoUpload(
     let file = RwSignal::new_local(None::<FileWithUrl>);
     let video_ref = NodeRef::<Video>::new();
     let modal_show = RwSignal::new(false);
-    let canister_store = auth_canisters_store();
+
+    let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
 
     #[cfg(feature = "hydrate")]
     {
@@ -64,15 +63,13 @@ pub fn PreVideoUpload(
                 let inp_file = input.files()?.get(0)?;
                 file.set(Some(FileWithUrl::new(inp_file.into())));
 
-                VideoUploadVideoSelected.send_event(canister_store);
+                VideoUploadVideoSelected.send_event(ev_ctx);
                 Some(())
             });
         });
     }
 
-    let canister_store = auth_canisters_store();
-
-    let upload_action: Action<(), _, LocalStorage> = Action::new_local(move |_| async move {
+    let upload_action: Action<(), _> = Action::new_local(move |_| async move {
         let message = try_or_redirect_opt!(upload_video_part(
             UPLOAD_URL,
             "file",
@@ -80,7 +77,7 @@ pub fn PreVideoUpload(
         )
         .await
         .inspect_err(|e| {
-            VideoUploadUnsuccessful.send_event(e.to_string(), 0, false, true, canister_store);
+            VideoUploadUnsuccessful.send_event(ev_ctx, e.to_string(), 0, false, true);
         }));
 
         uid.set(message.data.and_then(|m| m.uid));
@@ -261,93 +258,98 @@ pub fn VideoUploader(
 
     let is_nsfw = params.is_nsfw;
     let enable_hot_or_not = params.enable_hot_or_not;
-    let canister_store = auth_canisters_store();
-    let (is_connected, _, _) =
-        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
-    let publish_action: Action<_, _, LocalStorage> =
-        Action::new_unsync(move |canisters: &Canisters<true>| {
-            let canisters = canisters.clone();
-            let hashtags = hashtags.clone();
-            let hashtags_len = hashtags.len();
-            let description = description.clone();
-            let uid = uid.get_untracked().unwrap();
-            async move {
-                let id = canisters.identity();
-                let delegated_identity = delegate_short_lived_identity(id);
-                let res: std::result::Result<reqwest::Response, ServerFnError> = {
-                    let client = reqwest::Client::new();
 
-                    let req = client
-                        .post(format!("{UPLOAD_URL}/update_metadata"))
-                        .json(&json!({
-                            "video_uid": uid,
-                            "delegated_identity_wire": delegated_identity,
-                            "meta": VideoMetadata{
-                                title: description.clone(),
-                                description: description.clone(),
-                                tags: hashtags.join(",")
-                            },
-                            "post_details": SerializablePostDetailsFromFrontend{
-                                is_nsfw,
-                                hashtags,
-                                description,
-                                video_uid: uid.clone(),
-                                creator_consent_for_inclusion_in_hot_or_not: enable_hot_or_not,
-                            }
-                        }));
+    let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
+    let ev_ctx = auth.event_ctx();
 
-                    req.send()
-                        .await
-                        .map_err(|e| ServerFnError::new(e.to_string()))
-                };
+    let notification_nudge = RwSignal::new(false);
 
-                match res {
-                    Ok(_) => {
-                        let is_logged_in = is_connected.get_untracked();
-                        let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
-                        MixPanelEvent::track_video_upload_success(
-                            MixpanelVideoUploadSuccessProps {
-                                user_id: global.user_id,
-                                visitor_id: global.visitor_id,
-                                is_logged_in: global.is_logged_in,
-                                canister_id: global.canister_id,
-                                is_nsfw_enabled: global.is_nsfw_enabled,
-                                video_id: uid.clone(),
-                                is_game_enabled: true,
-                                game_type: MixpanelPostGameType::HotOrNot,
-                            },
-                        );
-                        published.set(true)
-                    }
-                    Err(_) => {
-                        let e = res.as_ref().err().unwrap().to_string();
-                        VideoUploadUnsuccessful.send_event(
-                            e,
-                            hashtags_len,
+    let publish_action: Action<_, _> = Action::new_unsync(move |&()| {
+        let unauth_cans = unauth_canisters();
+        let hashtags = hashtags.clone();
+        let hashtags_len = hashtags.len();
+        let description = description.clone();
+        let uid = uid.get_untracked().unwrap();
+        async move {
+            let canisters = auth.auth_cans(unauth_cans).await.ok()?;
+            let id = canisters.identity();
+            let delegated_identity = delegate_short_lived_identity(id);
+            let res: std::result::Result<reqwest::Response, ServerFnError> = {
+                let client = reqwest::Client::new();
+                notification_nudge.set(true);
+                let req = client
+                    .post(format!("{UPLOAD_URL}/update_metadata"))
+                    .json(&json!({
+                        "video_uid": uid,
+                        "delegated_identity_wire": delegated_identity,
+                        "meta": VideoMetadata{
+                            title: description.clone(),
+                            description: description.clone(),
+                            tags: hashtags.join(",")
+                        },
+                        "post_details": SerializablePostDetailsFromFrontend{
                             is_nsfw,
-                            enable_hot_or_not,
-                            canister_store,
-                        );
-                    }
+                            hashtags,
+                            description,
+                            video_uid: uid.clone(),
+                            creator_consent_for_inclusion_in_hot_or_not: enable_hot_or_not,
+                        }
+                    }));
+
+                req.send()
+                    .await
+                    .map_err(|e| ServerFnError::new(e.to_string()))
+            };
+
+            match res {
+                Ok(_) => {
+                    let is_logged_in = is_connected.get_untracked();
+                    let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
+                    MixPanelEvent::track_video_upload_success(MixpanelVideoUploadSuccessProps {
+                        user_id: global.user_id,
+                        visitor_id: global.visitor_id,
+                        is_logged_in: global.is_logged_in,
+                        canister_id: global.canister_id,
+                        is_nsfw_enabled: global.is_nsfw_enabled,
+                        video_id: uid.clone(),
+                        is_game_enabled: true,
+                        creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
+                        game_type: MixpanelPostGameType::HotOrNot,
+                    });
+                    published.set(true)
                 }
-                try_or_redirect_opt!(res);
-
-                VideoUploadSuccessful.send_event(
-                    uid,
-                    hashtags_len,
-                    is_nsfw,
-                    enable_hot_or_not,
-                    0,
-                    canister_store,
-                );
-
-                Some(())
+                Err(_) => {
+                    let e = res.as_ref().err().unwrap().to_string();
+                    VideoUploadUnsuccessful.send_event(
+                        ev_ctx,
+                        e,
+                        hashtags_len,
+                        is_nsfw,
+                        enable_hot_or_not,
+                    );
+                }
             }
-        });
-    let cans_res = authenticated_canisters();
+            try_or_redirect_opt!(res);
+
+            VideoUploadSuccessful.send_event(
+                ev_ctx,
+                uid,
+                hashtags_len,
+                is_nsfw,
+                enable_hot_or_not,
+                0,
+            );
+
+            Some(())
+        }
+    });
+
+    Effect::new(move |_| publish_action.dispatch(()));
 
     view! {
         <div class="flex flex-col-reverse lg:flex-row w-full gap-4 lg:gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
+            <NotificationNudge pop_up=notification_nudge />
             <div class="flex flex-col items-center justify-center w-full h-auto min-h-[200px] max-h-[60vh] sm:min-h-[300px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] lg:min-h-[600px] lg:max-h-[600px] rounded-2xl text-center px-4 mt-0 mb-0 sm:mt-0 sm:mb-0 sm:px-6 lg:px-0 lg:overflow-y-auto">
                 <video
                     class="w-full h-full object-contain rounded-xl bg-black p-2"
@@ -368,7 +370,7 @@ pub fn VideoUploader(
                 </div>
                 <div class="w-full bg-neutral-800 rounded-full h-2.5 mt-2">
                     <div
-                        class="bg-gradient-to-r from-[#EC55A7] to-[#E2017B] h-2.5 rounded-full transition-width duration-500 ease-in-out"
+                        class="bg-linear-to-r from-[#EC55A7] to-[#E2017B] h-2.5 rounded-full transition-width duration-500 ease-in-out"
                         style:width=move || {
                             if published.get() {
                                 "100%"
@@ -393,22 +395,9 @@ pub fn VideoUploader(
                 </p>
             </div>
         </div>
-
-            <Suspense>
-                {move || {
-                    let cans_wire = cans_res.get()?.ok()?;
-                    let canisters = Canisters::from_wire(cans_wire, expect_context()).ok()?;
-                    // Dispatching the action starts the process
-                     if !publish_action.pending().get() && !published.get() { // Avoid re-dispatching
-                          publish_action.dispatch(canisters);
-                     }
-                    Some(())
-                }}
-            </Suspense>
-
-            <Show when=published>
-                <PostUploadScreen />
-            </Show>
+        <Show when=published>
+            <PostUploadScreen />
+        </Show>
 
     }.into_any()
 }
@@ -423,10 +412,10 @@ fn PostUploadScreen() -> impl IntoView {
          <img
          alt="bg"
          src="/img/airdrop/bg.webp"
-         class="absolute inset-0 z-[25] fade-in w-full h-full object-cover"
+         class="absolute inset-0 z-25 fade-in w-full h-full object-cover"
      />
             <div class="z-50 flex flex-col items-center">
-            <img src="/img/common/coins/sucess-coin.png" width=170 class="z-[300] mb-6"/>
+            <img src="/img/common/coins/sucess-coin.png" width=170 class="z-300 mb-6"/>
 
                 <h1 class="font-semibold text-lg mb-2">Video uploaded sucessfully</h1>
 

@@ -1,38 +1,33 @@
 use hon_worker_common::{sign_claim_request, ClaimRequest};
 use leptos::prelude::*;
 use page::wallet::airdrop::{claim_sats_airdrop, is_airdrop_claimed};
-use state::canisters::authenticated_canisters;
+use state::canisters::auth_state;
 use yral_canisters_common::Canisters;
 
 #[component]
 pub fn TestAirdrop() -> impl IntoView {
-    let cans_wire = authenticated_canisters();
-    let fetch_claim_status = Action::new_local(move |&()| {
-        let cans_wire = cans_wire;
-        async move {
-            let cans_wire = cans_wire.await.unwrap();
-            let cans = Canisters::from_wire(cans_wire.clone(), expect_context()).unwrap();
-            let is_airdrop_claimed = is_airdrop_claimed(cans.user_principal()).await?;
+    let auth = auth_state();
+    let fetch_claim_status = Action::new_local(move |&()| async move {
+        let cans_wire = auth.cans_wire().await.unwrap();
+        let cans = Canisters::from_wire(cans_wire.clone(), expect_context()).unwrap();
+        let is_airdrop_claimed = is_airdrop_claimed(cans.user_principal()).await?;
 
-            Ok::<bool, ServerFnError>(is_airdrop_claimed)
-        }
+        Ok::<bool, ServerFnError>(is_airdrop_claimed)
     });
 
-    let send_claim_request = Action::new_local(move |&()| {
-        let cans_wire = cans_wire;
-        async move {
-            let cans_wire = cans_wire.await.unwrap();
-            let cans = Canisters::from_wire(cans_wire.clone(), expect_context()).unwrap();
+    let auth = auth_state();
+    let send_claim_request = Action::new_local(move |&()| async move {
+        let cans_wire = auth.cans_wire().await.unwrap();
+        let cans = Canisters::from_wire(cans_wire.clone(), expect_context()).unwrap();
 
-            let request = ClaimRequest {
-                user_principal: cans.user_principal(),
-            };
-            let signature = sign_claim_request(cans.identity(), request.clone()).unwrap();
+        let request = ClaimRequest {
+            user_principal: cans.user_principal(),
+        };
+        let signature = sign_claim_request(cans.identity(), request.clone()).unwrap();
 
-            let res = claim_sats_airdrop(cans.user_canister(), request, signature).await?;
+        let res = claim_sats_airdrop(cans.user_canister(), request, signature).await?;
 
-            Ok::<_, ServerFnError>(res)
-        }
+        Ok::<_, ServerFnError>(res)
     });
 
     let claim_status = fetch_claim_status.value();

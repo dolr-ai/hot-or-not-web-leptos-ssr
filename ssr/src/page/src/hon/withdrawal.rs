@@ -3,12 +3,13 @@ use component::{
     auth_providers::handle_user_login, back_btn::BackButton,
     icons::notification_icon::NotificationIcon, title::TitleText,
 };
+use consts::{MAX_WITHDRAWAL_PER_TXN, MIN_WITHDRAWAL_PER_TXN};
 use futures::TryFutureExt;
 use hon_worker_common::{HoNGameWithdrawReq, SatsBalanceInfo};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
-use state::{canisters::authenticated_canisters, server::HonWorkerJwt};
+use state::{canisters::auth_state, server::HonWorkerJwt};
 use utils::{send_wrap, try_or_redirect_opt};
 use yral_canisters_client::individual_user_template::{Result9, SessionType};
 use yral_canisters_common::{utils::token::balance::TokenBalance, Canisters};
@@ -130,19 +131,20 @@ fn BalanceDisplay(#[prop(into)] balance: Nat) -> impl IntoView {
 
 #[component]
 pub fn HonWithdrawal() -> impl IntoView {
-    let auth_wire = authenticated_canisters();
-    let details_res = Resource::new(
-        move || (),
-        move |_| {
+    let auth = auth_state();
+    let details_res = auth.derive_resource(
+        || (),
+        move |cans, _| {
             send_wrap(async move {
-                let cans_wire = auth_wire.await?;
-                let principal = cans_wire.profile_details.principal;
+                let principal = cans.user_principal();
+
                 load_withdrawal_details(principal)
                     .map_err(ServerFnError::new)
                     .await
             })
         },
     );
+
     let sats = RwSignal::new(0usize);
     let formated_dolrs = move || {
         format!(
@@ -164,17 +166,12 @@ pub fn HonWithdrawal() -> impl IntoView {
         sats.set(value);
     };
 
-    let auth_wire = authenticated_canisters();
     let send_claim = Action::new_local(move |&()| {
-        let auth_wire = auth_wire;
         async move {
-            let auth_wire = auth_wire.await.map_err(ServerFnError::new)?;
-
-            let cans = Canisters::from_wire(auth_wire.clone(), expect_context())
-                .map_err(ServerFnError::new)?;
+            let cans = auth.auth_cans(expect_context()).await?;
 
             // TODO: do we still need this?
-            handle_user_login(cans.clone(), None).await?;
+            handle_user_login(cans.clone(), auth.event_ctx(), None).await?;
 
             let req = hon_worker_common::WithdrawRequest {
                 receiver: cans.user_principal(),
@@ -188,7 +185,7 @@ pub fn HonWithdrawal() -> impl IntoView {
     let is_claiming = send_claim.pending();
     let claim_res = send_claim.value();
     Effect::new(move |_| {
-        if let Some(res) = claim_res() {
+        if let Some(res) = claim_res.get() {
             let nav = use_navigate();
             match res {
                 Ok(_) => {
@@ -227,7 +224,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                                     <div class="flex gap-2 items-center">
                                         <span>You withdraw</span>
                                     </div>
-                                    <input placeholder="Min: 1500" disabled=is_claiming on:input=on_input type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-44 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg" />
+                                    <input min={MIN_WITHDRAWAL_PER_TXN} max={MAX_WITHDRAWAL_PER_TXN} placeholder=format!("Min: {}", MIN_WITHDRAWAL_PER_TXN) disabled=is_claiming on:input=on_input type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-44 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg" />
                                 </div>
                                 <div class="flex justify-between">
                                     <div class="flex gap-2 items-center">
@@ -244,15 +241,15 @@ pub fn HonWithdrawal() -> impl IntoView {
                             }>
                             {move || {
                                 let can_withdraw = true; // all of the money can be withdrawn
-                                let invalid_input = sats() < 1500usize;
+                                let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize || sats() > MAX_WITHDRAWAL_PER_TXN as usize;
                                 let is_claiming = is_claiming();
                                 let message = if invalid_input {
-                                    "Enter valid Amount"
+                                    format!("Enter valid Amount. Min: {MIN_WITHDRAWAL_PER_TXN} Max: {MAX_WITHDRAWAL_PER_TXN}")
                                 } else {
                                     match (can_withdraw, is_claiming) {
-                                        (false, _) => "Not enough winnings",
-                                        (_, true) => "Claiming...",
-                                        (_, _) => "Withdraw Now!"
+                                        (false, _) => "Not enough winnings".to_string(),
+                                        (_, true) => "Claiming...".to_string(),
+                                        (_, _) => "Withdraw Now!".to_string()
                                     }
                                 };
                                 Some(view! {
@@ -266,7 +263,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                             }}
                             </Suspense>
                         </div>
-                        <span class="text-sm">1 Sats = 0.00000001 BTC</span>
+                        <span class="text-sm">1 Sats = {crate::consts::SATS_TO_BTC_CONVERSION_RATIO} BTC</span>
                     </div>
                 </div>
             </div>

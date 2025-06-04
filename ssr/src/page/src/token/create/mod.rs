@@ -5,7 +5,6 @@ use component::{
     token_logo_sanitize::TokenLogoSanitize,
 };
 use server_fn::codec::Json;
-use state::canisters::authenticated_canisters;
 
 use candid::Principal;
 use leptos::{
@@ -14,15 +13,14 @@ use leptos::{
     prelude::*,
 };
 use leptos_meta::*;
+use state::canisters::auth_state;
 use std::env;
 use utils::{
-    event_streaming::events::{
-        auth_canisters_store, TokenCreationCompleted, TokenCreationFailed, TokenCreationStarted,
-    },
+    event_streaming::events::{TokenCreationCompleted, TokenCreationFailed, TokenCreationStarted},
     token::{nsfw::NSFWInfo, DeployedCdaoCanisters},
     web::FileWithUrl,
 };
-use yral_canisters_common::{utils::profile::ProfileDetails, Canisters, CanistersAuthWire};
+use yral_canisters_common::{utils::profile::ProfileDetails, CanistersAuthWire};
 
 use leptos::html;
 use sns_validation::humanize::parse_tokens;
@@ -31,7 +29,9 @@ use sns_validation::{
     pbs::sns_pb::SnsInitPayload,
 };
 
-use super::{popups::TokenCreationPopup, sns_form::SnsFormState};
+use super::{
+    icpump_sunset_popup::IcpumpSunsetPopup, popups::TokenCreationPopup, sns_form::SnsFormState,
+};
 
 use icp_ledger::AccountIdentifier;
 
@@ -208,24 +208,22 @@ macro_rules! input_element {
     };
 }
 
-#[allow(dead_code)]
-#[allow(unused_variables)]
 macro_rules! input_component {
-    ($name:ident, $input_element:ident, $input_type:ident, $attrs:expr) => {
-        #[component]
+    ($name:ident, $input_element:ident, $input_type:ident, $($rest:tt)*) => {
         #[allow(dead_code)]
         #[allow(unused_variables)]
+        #[component]
         fn $name<T: 'static, U: Fn(T) + 'static + Copy, V: Fn(String) -> Option<T> + 'static + Copy>(
-            #[prop(into)] heading: String,
-            #[prop(into)] placeholder: String,
-            #[prop(optional)] initial_value: Option<String>,
+            #[prop(into)] _heading: String,
+            #[prop(into)] _placeholder: String,
+            #[prop(optional)] _initial_value: Option<String>,
             #[prop(optional, into)] _input_type: Option<String>,
             #[prop(default = false)] _disabled: bool,
-            updater: U,
-            validator: V,
+            _updater: U,
+            _validator: V,
         ) -> impl IntoView {
             let ctx: CreateTokenCtx = expect_context();
-            let error = RwSignal::new(initial_value.is_none());
+            let error = RwSignal::new(_initial_value.is_none());
             let show_error = RwSignal::new(false);
             if error.get_untracked() {
                 ctx.invalid_cnt.update(|c| *c += 1);
@@ -236,13 +234,13 @@ macro_rules! input_component {
                     return;
                 };
                 let value = input.value();
-                match validator(value) {
+                match _validator(value) {
                     Some(v) => {
                         if error.get_untracked() {
                             ctx.invalid_cnt.update(|c| *c -= 1);
                         }
                         error.set(false);
-                        updater(v);
+                        _updater(v);
                     },
                     None => {
                         show_error.set(true);
@@ -276,13 +274,13 @@ macro_rules! input_component {
             };
             view! {
                 <div class="flex flex-col grow gap-y-1 text-sm md:text-base">
-                     <span class="text-white font-semibold">{heading.clone()}</span>
+                     <span class="text-white font-semibold">{_heading.clone()}</span>
                      {input_element! {
                         $input_element,
                         input_ref,
-                        initial_value,
+                        _initial_value,
                         on_input,
-                        placeholder,
+                        _placeholder,
                         input_class,
                         _input_type
                      }}
@@ -330,7 +328,7 @@ impl CreateTokenCtx {
 
 #[component]
 pub fn CreateToken() -> impl IntoView {
-    let auth_cans = auth_canisters_store();
+    let auth = auth_state();
 
     let ctx: CreateTokenCtx = expect_context();
 
@@ -351,11 +349,10 @@ pub fn CreateToken() -> impl IntoView {
         });
     };
 
-    let cans_wire_res = authenticated_canisters();
-
     let create_action = Action::new(move |&()| async move {
-        let cans_wire = cans_wire_res.await.map_err(|e| e.to_string())?;
-        let cans = Canisters::from_wire(cans_wire.clone(), use_context().unwrap_or_default())
+        let cans = auth
+            .auth_cans(use_context().unwrap_or_default())
+            .await
             .map_err(|_| "Unable to authenticate".to_string())?;
 
         let canister_id = cans.user_canister();
@@ -375,12 +372,16 @@ pub fn CreateToken() -> impl IntoView {
             return Err("Server is not available".to_string());
         }
 
-        TokenCreationStarted.send_event(create_sns.clone(), auth_cans);
+        TokenCreationStarted.send_event(auth.event_ctx(), create_sns.clone());
 
-        let _deployed_cans_response =
-            deploy_cdao_canisters(cans_wire, create_sns.clone(), profile_details, canister_id)
-                .await
-                .map_err(|e| e.to_string())?;
+        let _deployed_cans_response = deploy_cdao_canisters(
+            cans.into(),
+            create_sns.clone(),
+            profile_details,
+            canister_id,
+        )
+        .await
+        .map_err(|e| e.to_string())?;
 
         Ok(())
     });
@@ -388,7 +389,6 @@ pub fn CreateToken() -> impl IntoView {
 
     let create_disabled = Memo::new(move |_| {
         creating()
-            || auth_cans.with(|c| c.is_none())
             || ctx.form_state.with(|f| f.logo_b64.is_none())
             || ctx.form_state.with(|f: &SnsFormState| f.name.is_none())
             || ctx
@@ -400,6 +400,7 @@ pub fn CreateToken() -> impl IntoView {
 
     view! {
         <Title text="ICPump - Create token" />
+        <IcpumpSunsetPopup />
         <div class="w-dvw min-h-dvh bg-black pt-4 flex flex-col gap-4" style="padding-bottom:6rem">
             <TitleText justify_center=false>
                 <div class="flex justify-between w-full">
@@ -414,52 +415,52 @@ pub fn CreateToken() -> impl IntoView {
                 <div class="flex flex-row w-full gap-4  justify-between items-center">
                     <TokenImage />
                     <InputBox
-                        heading="Token name"
-                        placeholder="Add a name to your crypto currency"
-                        updater=set_token_name
-                        validator=non_empty_string_validator
-                        initial_value=ctx
+                        _heading="Token name"
+                        _placeholder="Add a name to your crypto currency"
+                        _updater=set_token_name
+                        _validator=non_empty_string_validator
+                        _initial_value=ctx
                             .form_state
                             .with_untracked(|f| f.name.clone())
                             .unwrap_or_default()
                     />
                 </div>
                 <InputArea
-                    heading="Description"
-                    placeholder="Fun & friendly internet currency inspired by the legendary Shiba Inu dog 'Kabosu'"
-                    updater=set_token_desc
-                    validator=non_empty_string_validator
-                    initial_value=ctx
+                    _heading="Description"
+                    _placeholder="Fun & friendly internet currency inspired by the legendary Shiba Inu dog 'Kabosu'"
+                    _updater=set_token_desc
+                    _validator=non_empty_string_validator
+                    _initial_value=ctx
                         .form_state
                         .with_untracked(|f| f.description.clone())
                         .unwrap_or_default()
                 />
 
                 <InputBox
-                    heading="Token Symbol"
-                    placeholder="Eg. DODGE"
-                    updater=set_token_symbol
-                    validator=non_empty_string_validator
-                    initial_value=ctx
+                    _heading="Token Symbol"
+                    _placeholder="Eg. DODGE"
+                    _updater=set_token_symbol
+                    _validator=non_empty_string_validator
+                    _initial_value=ctx
                         .form_state
                         .with_untracked(|f| f.symbol.clone())
                         .unwrap_or_default()
                 />
 
                 <InputBox
-                    heading="Distribution"
-                    placeholder="Distribution Tokens"
+                    _heading="Distribution"
+                    _placeholder="Distribution Tokens"
                     _input_type="number"
-                    updater=set_total_distribution
+                    _updater=set_total_distribution
                     // initial_value="100000000".into()
-                    initial_value=(ctx
+                    _initial_value=(ctx
                         .form_state
                         .with_untracked(|f| {
                             f.total_distrubution().e8s.unwrap_or_else(|| 1000000 * 1e8 as u64)
                                 / 1e8 as u64
                         }))
                         .to_string()
-                    validator=non_empty_string_validator_for_u64
+                    _validator=non_empty_string_validator_for_u64
                 />
 
                 <div class="w-full flex justify-center">
@@ -497,7 +498,7 @@ fn CommingSoonBanner() -> impl IntoView {
         <div class="with-gradient relative bg-black rounded-md p-3 bg-no-repeat bg-cover bg-left" style="background-image: url('/img/gradient-backdrop.png')">
             <div class="flex flex-col gap-1">
                 <h2 class="text-white font-bold">Want to raise ICP?</h2>
-                <span class="text-font bg-clip-text text-transparent bg-gradient-to-r from-[#FFFFFF80] to-[#882B5E80]">Coming Soon...</span>
+                <span class="text-font bg-clip-text text-transparent bg-linear-to-r from-[#FFFFFF80] to-[#882B5E80]">Coming Soon...</span>
             </div>
             <img src="/img/coming-soon-art.svg" class="absolute right-0 bottom-0" />
         </div>

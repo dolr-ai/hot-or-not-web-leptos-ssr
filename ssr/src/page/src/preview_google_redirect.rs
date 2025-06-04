@@ -70,7 +70,7 @@ pub fn PreviewGoogleRedirector() -> impl IntoView {
 
     LocalResource::new(move || async move {
         let url_res = google_redirect.get();
-        let url_res = url_res.map(|u| u.take()).transpose()?;
+        let url_res = url_res.transpose()?;
         if let Some(redirect_url) = url_res {
             preview_google_auth_redirector(redirect_url).await?;
             return Ok(());
@@ -90,7 +90,7 @@ pub fn PreviewGoogleRedirector() -> impl IntoView {
     view! {
         <Suspense>
             {move || {
-                if let Some(Err(err)) = google_redirect.get().map(|res| res.take()) {
+                if let Some(Err(err)) = google_redirect.get() {
                     log::info!("Error Redirecting {err}")
                 }
                 None::<()>
@@ -164,7 +164,7 @@ pub fn PreviewGoogleRedirectHandler() -> impl IntoView {
                     identity_resource
                         .get()
                         .map(|identity_res| {
-                            view! { <IdentitySender identity_res=identity_res.take() /> }
+                            view! { <IdentitySender identity_res=identity_res /> }
                         })
                 }}
 

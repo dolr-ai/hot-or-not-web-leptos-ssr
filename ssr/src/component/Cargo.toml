@@ -10,6 +10,7 @@ crate-type = ["cdylib", "rlib"]
 axum = { workspace = true, optional = true }
 console_error_panic_hook = { workspace = true }
 console_log = { workspace = true }
+hon-worker-common = { workspace = true }
 leptos = { workspace = true, features = ["nightly"] }
 leptos_axum = { workspace = true, optional = true }
 leptos_meta = { workspace = true, optional = true }
@@ -80,7 +81,7 @@ yral-canisters-common = { workspace = true }
 pulldown-cmark = { workspace = true }
 ic-certification = { workspace = true }
 ciborium = { workspace = true }
-yral-metadata-client = { workspace = true, optional = true }
+yral-metadata-client = { workspace = true}
 yral-metadata-types = { workspace = true, optional = true }
 yral-pump-n-dump-common = { workspace = true }
 uuid = { workspace = true, features = ["v4", "js"] }
@@ -236,7 +237,6 @@ local-bin = [
     "dep:testcontainers",
     "dep:yral-testcontainers",
     "yral-canisters-common/local",
-    "dep:yral-metadata-client",
     "dep:yral-metadata-types",
     "consts/local-bin",
     "utils/local-bin",

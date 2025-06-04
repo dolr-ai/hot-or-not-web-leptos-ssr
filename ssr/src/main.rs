@@ -161,7 +161,7 @@ async fn main_impl() {
     // build our application with a route
     let app = Router::new()
         .route(
-            "/api/*fn_name",
+            "/api/{*fn_name}",
             get(server_fn_handler).post(server_fn_handler),
         )
         .layer(
@@ -190,12 +190,15 @@ async fn main_impl() {
 
     // run our app with hyper
     // `axum::Server` is a re-export of `hyper::Server`
-    log::info!("listening on http://{}", &addr);
+    println!("listening on http://{}", &addr);
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    axum::serve(listener, app.into_make_service())
-        .with_graceful_shutdown(terminate)
-        .await
-        .unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .with_graceful_shutdown(terminate)
+    .await
+    .unwrap();
 }
 
 fn main() {

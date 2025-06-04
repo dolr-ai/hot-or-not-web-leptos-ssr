@@ -1,43 +1,44 @@
 mod server_impl;
 
 use crate::post_view::BetEligiblePostCtx;
-use codee::string::FromToStringCodec;
-use component::{
-    bullet_loader::BulletLoader, canisters_prov::AuthCansProvider, hn_icons::*, spinner::SpinnerFit,
-};
+use component::{bullet_loader::BulletLoader, hn_icons::*, spinner::SpinnerFit};
 use hon_worker_common::{sign_vote_request, GameInfo, GameResult, WORKER_URL};
 use ic_agent::Identity;
+use leptos::html::Audio;
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
-use leptos_use::storage::use_local_storage;
 use server_impl::vote_with_cents_on_post;
-use state::canisters::authenticated_canisters;
+use state::canisters::auth_state;
 use utils::try_or_redirect_opt;
 use utils::{mixpanel::mixpanel_events::*, send_wrap};
-use yral_canisters_common::{
-    utils::{posts::PostDetails, token::balance::TokenBalance, vote::VoteKind},
-    Canisters,
+use yral_canisters_common::utils::{
+    posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum CoinState {
+    C10,
     C50,
     C100,
     C200,
 }
 
 impl CoinState {
+    #[allow(dead_code)]
     fn wrapping_next(self) -> Self {
         match self {
+            CoinState::C10 => CoinState::C50,
             CoinState::C50 => CoinState::C100,
             CoinState::C100 => CoinState::C200,
-            CoinState::C200 => CoinState::C50,
+            CoinState::C200 => CoinState::C10,
         }
     }
 
+    #[allow(dead_code)]
     fn wrapping_prev(self) -> Self {
         match self {
-            CoinState::C50 => CoinState::C200,
+            CoinState::C10 => CoinState::C200,
+            CoinState::C50 => CoinState::C10,
             CoinState::C100 => CoinState::C50,
             CoinState::C200 => CoinState::C100,
         }
@@ -47,6 +48,7 @@ impl CoinState {
 impl From<CoinState> for u64 {
     fn from(coin: CoinState) -> u64 {
         match coin {
+            CoinState::C10 => 10,
             CoinState::C50 => 50,
             CoinState::C100 => 100,
             CoinState::C200 => 200,
@@ -61,6 +63,7 @@ fn CoinStateView(
     #[prop(optional, into)] disabled: Signal<bool>,
 ) -> impl IntoView {
     let icon = Signal::derive(move || match coin() {
+        CoinState::C10 => C10Icon,
         CoinState::C50 => C50Icon,
         CoinState::C100 => C100Icon,
         CoinState::C200 => C200Icon,
@@ -104,70 +107,83 @@ fn HNButton(
 #[component]
 fn HNButtonOverlay(
     post: PostDetails,
+    prev_post: Option<PostDetails>,
     coin: RwSignal<CoinState>,
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
 ) -> impl IntoView {
-    let (is_connected, _, _) =
-        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
-    let place_bet_action = Action::new(
-        move |(canisters, bet_direction, bet_amount): &(Canisters<true>, VoteKind, u64)| {
-            let post_canister = post.canister_id;
-            let post_id = post.post_id;
-            let cans = canisters.clone();
-            let bet_amount = *bet_amount;
-            let bet_direction = *bet_direction;
-            let req = hon_worker_common::VoteRequest {
-                post_canister,
-                post_id,
-                vote_amount: bet_amount as u128,
-                direction: bet_direction.into(),
-            };
+    let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
 
+    let place_bet_action = Action::new(move |(bet_direction, bet_amount): &(VoteKind, u64)| {
+        let post_canister = post.canister_id;
+        let post_id = post.post_id;
+        let bet_amount = *bet_amount;
+        let bet_direction = *bet_direction;
+        let req = hon_worker_common::VoteRequest {
+            post_canister,
+            post_id,
+            vote_amount: bet_amount as u128,
+            direction: bet_direction.into(),
+        };
+        let prev_post = prev_post.as_ref().map(|p| (p.canister_id, p.post_id));
+
+        let post_mix = post.clone();
+        send_wrap(async move {
+            let cans = auth.auth_cans(expect_context()).await.ok()?;
             let identity = cans.identity();
             let sender = identity.sender().unwrap();
-            let sig = sign_vote_request(identity, req.clone());
+            let sig = sign_vote_request(identity, req.clone()).ok()?;
 
-            let post_mix = post.clone();
-            send_wrap(async move {
-                let sig = sig.ok()?;
-                let res = vote_with_cents_on_post(sender, req, sig).await;
-                match res {
-                    Ok(_) => {
-                        let is_logged_in = is_connected.get_untracked();
-                        let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-
-                        MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
-                            user_id: global.user_id,
-                            visitor_id: global.visitor_id,
-                            is_logged_in: global.is_logged_in,
-                            canister_id: global.canister_id,
-                            is_nsfw_enabled: global.is_nsfw_enabled,
-                            game_type: MixpanelPostGameType::HotOrNot,
-                            option_chosen: bet_direction,
-                            publisher_user_id: post_mix.poster_principal.to_text(),
-                            video_id: post_mix.uid.clone(),
-                            view_count: post_mix.views,
-                            like_count: post_mix.likes,
-                            stake_amount: bet_amount,
-                            is_game_enabled: true,
-                            stake_type: StakeType::Cents,
-                            conclusion: GameConclusion::Pending,
-                            won_amount: None,
-                        });
-                        Some(())
-                    }
-                    Err(e) => {
-                        log::error!("{e}");
-                        None
-                    }
+            let res = vote_with_cents_on_post(sender, req, sig, prev_post).await;
+            match res {
+                Ok(res) => {
+                    let is_logged_in = is_connected.get_untracked();
+                    let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
+                    let game_conclusion = match res.game_result {
+                        GameResult::Win { .. } => GameConclusion::Win,
+                        GameResult::Loss { .. } => GameConclusion::Loss,
+                    };
+                    let win_loss_amount = match res.game_result.clone() {
+                        GameResult::Win { win_amt } => {
+                            TokenBalance::new((win_amt + bet_amount).into(), 0).humanize()
+                        }
+                        GameResult::Loss { lose_amt } => {
+                            TokenBalance::new((lose_amt + 0u64).into(), 0).humanize()
+                        }
+                    };
+                    MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
+                        is_nsfw: post_mix.is_nsfw,
+                        user_id: global.user_id,
+                        visitor_id: global.visitor_id,
+                        is_logged_in: global.is_logged_in,
+                        canister_id: global.canister_id,
+                        is_nsfw_enabled: global.is_nsfw_enabled,
+                        game_type: MixpanelPostGameType::HotOrNot,
+                        option_chosen: bet_direction.into(),
+                        publisher_user_id: post_mix.poster_principal.to_text(),
+                        video_id: post_mix.uid.clone(),
+                        view_count: post_mix.views,
+                        like_count: post_mix.likes,
+                        stake_amount: bet_amount,
+                        is_game_enabled: true,
+                        stake_type: StakeType::Sats,
+                        conclusion: game_conclusion,
+                        won_loss_amount: win_loss_amount,
+                        creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
+                    });
+                    Some(())
                 }
-            })
-        },
-    );
+                Err(e) => {
+                    log::error!("{e}");
+                    None
+                }
+            }
+        })
+    });
     let place_bet_res = place_bet_action.value();
     Effect::new(move |_| {
-        if place_bet_res().flatten().is_some() {
+        if place_bet_res.get().flatten().is_some() {
             refetch_bet.notify();
         }
     });
@@ -183,47 +199,27 @@ fn HNButtonOverlay(
         }
     });
 
+    Effect::new(move |_| {
+        let Some(bet_direction) = bet_direction() else {
+            return;
+        };
+        let bet_amount = coin.get_untracked().into();
+        place_bet_action.dispatch((bet_direction, bet_amount));
+    });
+
     view! {
-        <AuthCansProvider let:canisters>
-
-            {
-                Effect::new(move |_| {
-                    let Some(bet_direction) = bet_direction() else {
-                        return;
-                    };
-                    let bet_amount = coin.get_untracked().into();
-                    place_bet_action.dispatch((canisters.clone(), bet_direction, bet_amount));
-                });
-            }
-
-        </AuthCansProvider>
-
-        <div class="flex justify-center w-full touch-manipulation">
-            <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
-                <Icon attr:class="justify-self-end text-2xl text-white" icon=icondata::AiUpOutlined />
-            </button>
-        </div>
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot />
-            <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
-                <CoinStateView
-                    disabled=running
-                    class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-lg"
-                    coin
-                />
-
-            </button>
+            <div class:grayscale=running>
+                <Icon attr:class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-lg" icon=C10Icon />
+            </div>
             <HNButton disabled=running bet_direction kind=VoteKind::Not />
         </div>
         // Bottom row: Hot <down arrow> Not
         // most of the CSS is for alignment with above icons
         <div class="flex gap-6 justify-center items-center pt-2 w-full text-base font-medium text-center md:text-lg lg:text-xl touch-manipulation">
             <p class="w-14 md:w-16 lg:w-18">Hot</p>
-            <div class="flex justify-center w-12 md:w-14 lg:w-16">
-                <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_prev())>
-                    <Icon attr:class="text-2xl text-white" icon=icondata::AiDownOutlined />
-                </button>
-            </div>
+            <div class="flex justify-center w-12 md:w-14 lg:w-16"></div>
             <p class="w-14 md:w-16 lg:w-18">Not</p>
         </div>
         <ShadowBg />
@@ -263,7 +259,7 @@ fn LostBadge() -> impl IntoView {
 #[component]
 fn HNWonLost(game_result: GameResult, vote_amount: u64) -> impl IntoView {
     let won = matches!(game_result, GameResult::Win { .. });
-    let creator_reward = (vote_amount * 2) / 10;
+    let creator_reward = (vote_amount * crate::consts::CREATOR_COMMISION_PERCENT) / 100;
     let message = match game_result {
         GameResult::Win { win_amt } => format!(
             "You received {} SATS, {} SATS went to the creator.",
@@ -277,6 +273,7 @@ fn HNWonLost(game_result: GameResult, vote_amount: u64) -> impl IntoView {
     };
     let bet_amount = vote_amount;
     let coin = match bet_amount {
+        10 => CoinState::C10,
         50 => CoinState::C50,
         100 => CoinState::C100,
         200 => CoinState::C200,
@@ -288,7 +285,7 @@ fn HNWonLost(game_result: GameResult, vote_amount: u64) -> impl IntoView {
 
     view! {
         <div class="flex gap-6 justify-center items-center p-4 w-full bg-transparent rounded-xl shadow-sm">
-            <div class="relative flex-shrink-0 drop-shadow-lg">
+            <div class="relative shrink-0 drop-shadow-lg">
                 <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin />
             </div>
 
@@ -318,6 +315,7 @@ pub fn HNUserParticipation(
     post: PostDetails,
     participation: GameInfo,
     refetch_bet: Trigger,
+    audio_ref: NodeRef<Audio>,
 ) -> impl IntoView {
     let (_, _) = (post, refetch_bet); // not sure if i will need these later
     let (vote_amount, game_result) = match participation {
@@ -332,6 +330,40 @@ pub fn HNUserParticipation(
     let vote_amount: u64 = vote_amount
         .try_into()
         .expect("We only allow voting with 200 max, so this is alright");
+    let won = matches!(game_result, GameResult::Win { .. });
+
+    fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
+        #[cfg(not(feature = "hydrate"))]
+        {
+            _ = audio_ref;
+        }
+        #[cfg(feature = "hydrate")]
+        {
+            use wasm_bindgen::JsValue;
+            use web_sys::js_sys::Reflect;
+
+            let window = window();
+            let nav = window.navigator();
+            if Reflect::has(&nav, &JsValue::from_str("vibrate")).unwrap_or_default() {
+                nav.vibrate_with_duration(200);
+            } else {
+                log::debug!("browser does not support vibrate");
+            }
+            let Some(audio) = audio_ref.get() else {
+                return;
+            };
+            if won {
+                audio.set_current_time(0.);
+                audio.set_volume(0.5);
+                _ = audio.play();
+            }
+        }
+    }
+
+    Effect::new(move |_| {
+        play_win_sound_and_vibrate(audio_ref, won);
+    });
+
     view! {
         <HNWonLost game_result vote_amount />
         <ShadowBg />
@@ -350,50 +382,29 @@ fn LoaderWithShadowBg() -> impl IntoView {
 fn ShadowBg() -> impl IntoView {
     view! {
         <div
-            class="absolute bottom-0 left-0 h-2/5 w-dvw -z-[1]"
+            class="absolute bottom-0 left-0 h-2/5 w-dvw -z-1"
             style="background: linear-gradient(to bottom, #00000000 0%, #00000099 45%, #000000a8 100%, #000000cc 100%, #000000a8 100%);"
         ></div>
     }
 }
 
 #[component]
-pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
+pub fn HNGameOverlay(
+    post: PostDetails,
+    prev_post: Option<PostDetails>,
+    win_audio_ref: NodeRef<Audio>,
+) -> impl IntoView {
     let bet_direction = RwSignal::new(None::<VoteKind>);
-    let coin = RwSignal::new(CoinState::C50);
+    let coin = RwSignal::new(CoinState::C10);
 
     let refetch_bet = Trigger::new();
     let post = StoredValue::new(post);
 
-    // let create_bet_participation_outcome = move |canisters: Canisters<true>| {
-    //     // TODO: leptos 0.7, switch to `create_resource`
-    //     LocalResource::new(
-    //         // MockPartialEq is necessary
-    //         // See: https://github.com/leptos-rs/leptos/issues/2661
-    //         move || {
-    //             refetch_bet.track();
-    //             let cans = canisters.clone();
-    //             async move {
-    //                 let post = post.get_value();
-    //                 let user = cans.authenticated_user().await;
-    //                 let bet_participation = user
-    //                     .get_individual_hot_or_not_bet_placed_by_this_profile(
-    //                         post.canister_id,
-    //                         post.post_id,
-    //                     )
-    //                     .await?;
-    //                 Ok::<_, ServerFnError>(bet_participation.map(VoteDetails::from))
-    //             }
-    //         },
-    //     )
-    // };
-
-    let create_game_info = Resource::new(
-        move || (),
-        move |_| {
-            refetch_bet.track();
+    let auth = auth_state();
+    let create_game_info = auth.derive_resource(
+        move || refetch_bet.track(),
+        move |cans, _| {
             send_wrap(async move {
-                let cans = authenticated_canisters().await?;
-                let cans = Canisters::from_wire(cans, expect_context())?;
                 let post = post.get_value();
                 let game_info = cans
                     .fetch_game_with_sats_info(
@@ -405,6 +416,7 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
             })
         },
     );
+
     view! {
         <Suspense fallback=LoaderWithShadowBg>
 
@@ -417,12 +429,13 @@ pub fn HNGameOverlay(post: PostDetails) -> impl IntoView {
                         Some(
                             if let Some(participation) = participation {
                                 view! {
-                                    <HNUserParticipation post refetch_bet participation=participation.clone() />
+                                    <HNUserParticipation post refetch_bet participation=participation.clone() audio_ref=win_audio_ref />
                                 }.into_any()
                             } else {
                                 view! {
                                     <HNButtonOverlay
                                         post
+                                        prev_post=prev_post.clone()
                                         bet_direction
                                         coin
                                         refetch_bet

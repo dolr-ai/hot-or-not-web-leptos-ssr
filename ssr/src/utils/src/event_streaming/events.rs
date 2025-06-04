@@ -1,16 +1,9 @@
 use super::EventHistory;
 use candid::Principal;
-use codee::string::FromToStringCodec;
-use codee::string::JsonSerdeCodec;
-use consts::ACCOUNT_CONNECTED_STORE;
-use consts::USER_CANISTER_ID_STORE;
-use consts::USER_PRINCIPAL_STORE;
 use ic_agent::Identity;
 use leptos::html::Input;
 use leptos::prelude::Signal;
 use leptos::{ev, prelude::*};
-use leptos_use::storage::use_local_storage;
-use leptos_use::use_cookie;
 use leptos_use::{use_event_listener, use_timeout_fn, UseTimeoutFnReturn};
 use serde_json::json;
 use sns_validation::pbs::sns_pb::SnsInitPayload;
@@ -23,27 +16,8 @@ pub enum ProviderKind {
     #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
     Google,
 }
-/// The store for Authenticated canisters
-/// Do not use this for anything other than analytics
-pub fn auth_canisters_store() -> RwSignal<Option<Canisters<true>>> {
-    expect_context()
-}
 
 use circular_buffer::CircularBuffer;
-/// Prevents hydration bugs if the value in store is used to conditionally show views
-/// this is because the server will always get a `false` value and do rendering based on that
-pub fn account_connected_reader() -> (ReadSignal<bool>, Effect<LocalStorage>) {
-    let (read_account_connected, _, _) =
-        use_local_storage::<bool, FromToStringCodec>(ACCOUNT_CONNECTED_STORE);
-    let (is_connected, set_is_connected) = signal(false);
-
-    (
-        is_connected,
-        Effect::new(move |_| {
-            set_is_connected(read_account_connected());
-        }),
-    )
-}
 
 #[derive(Clone)]
 pub struct HistoryCtx {
@@ -113,9 +87,8 @@ impl HistoryCtx {
 }
 
 #[cfg(feature = "ga4")]
-use crate::event_streaming::{send_event_ssr_spawn, send_event_warehouse_ssr_spawn, send_user_id};
+use crate::event_streaming::{send_event_ssr_spawn, send_event_warehouse_ssr_spawn};
 use crate::token::nsfw::NSFWInfo;
-use crate::user::{user_details_can_store_or_ret, user_details_or_ret};
 use leptos::html::Video;
 use yral_canisters_common::{
     utils::{posts::PostDetails, profile::ProfileDetails},
@@ -152,28 +125,50 @@ pub enum AnalyticsEvent {
     TokenPumpedDumped(TokenPumpedDumped),
 }
 
+#[derive(Clone)]
+pub struct EventUserDetails {
+    pub details: ProfileDetails,
+    pub canister_id: Principal,
+}
+
+#[derive(Clone, Copy)]
+pub struct EventCtx {
+    pub is_connected: StoredValue<Box<dyn Fn() -> bool + Send + Sync>>,
+    pub user_details: StoredValue<Box<dyn Fn() -> Option<EventUserDetails> + Send + Sync>>,
+}
+
+impl EventCtx {
+    /// DO NOT USE THIS TO RENDER DOM
+    pub fn user_details(&self) -> Option<EventUserDetails> {
+        self.user_details.with_value(|c| c())
+    }
+
+    pub fn is_connected(&self) -> bool {
+        self.is_connected.with_value(|c| c())
+    }
+}
+
 #[derive(Default)]
 pub struct VideoWatched;
 
 impl VideoWatched {
     pub fn send_event(
         &self,
+        ctx: EventCtx,
         vid_details: Signal<Option<PostDetails>>,
         container_ref: NodeRef<Video>,
     ) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let (is_connected, _) = account_connected_reader();
-
             // video_viewed - analytics
             let (video_watched, set_video_watched) = signal(false);
             let (full_video_watched, set_full_video_watched) = signal(false);
 
-            let cans_store: RwSignal<Option<Canisters<true>>> = auth_canisters_store();
-
             let post_for_time = vid_details;
             let _ = use_event_listener(container_ref, ev::timeupdate, move |evt| {
-                let user = user_details_can_store_or_ret!(cans_store);
+                let Some(user) = ctx.user_details() else {
+                    return;
+                };
                 let post_o = post_for_time();
                 let post = post_o.as_ref();
 
@@ -197,7 +192,7 @@ impl VideoWatched {
                         json!({
                             "publisher_user_id": post.map(|p| p.poster_principal),
                             "user_id": user.details.principal,
-                            "is_loggedIn": is_connected(),
+                            "is_loggedIn": ctx.is_connected(),
                             "display_name": user.details.display_name.clone(),
                             "canister_id": user.canister_id,
                             "video_id": post.map(|p| p.uid.clone()),
@@ -233,7 +228,7 @@ impl VideoWatched {
                         json!({
                             "publisher_user_id": post.map(|p| p.poster_principal),
                             "user_id": user.details.principal,
-                            "is_loggedIn": is_connected(),
+                            "is_loggedIn": ctx.is_connected(),
                             "display_name": user.details.display_name,
                             "canister_id": user.canister_id,
                             "video_id": post.map(|p| p.uid.clone()),
@@ -259,7 +254,9 @@ impl VideoWatched {
             // video duration watched - warehousing
             let post_for_warehouse = vid_details;
             let _ = use_event_listener(container_ref, ev::pause, move |evt| {
-                let user = user_details_can_store_or_ret!(cans_store);
+                let Some(user) = ctx.user_details() else {
+                    return;
+                };
                 let post_o = post_for_warehouse();
                 let post = post_o.as_ref();
                 let nsfw_probability = post.map(|p| p.nsfw_probability);
@@ -282,7 +279,7 @@ impl VideoWatched {
                     json!({
                         "publisher_user_id": post.map(|p| p.poster_principal),
                         "user_id": user.details.principal,
-                        "is_loggedIn": is_connected(),
+                        "is_loggedIn": ctx.is_connected(),
                         "display_name": user.details.display_name.clone(),
                         "canister_id": user.canister_id,
                         "video_id": post.map(|p| p.uid.clone()),
@@ -313,12 +310,7 @@ impl VideoWatched {
 pub struct LikeVideo;
 
 impl LikeVideo {
-    pub fn send_event(
-        &self,
-        post_details: PostDetails,
-        likes: RwSignal<u64>,
-        cans_store: RwSignal<Option<Canisters<true>>>,
-    ) {
+    pub fn send_event(&self, ctx: EventCtx, post_details: PostDetails, likes: RwSignal<u64>) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             let publisher_user_id = post_details.poster_principal;
@@ -331,17 +323,18 @@ impl LikeVideo {
             let publisher_canister_id = post_details.canister_id;
             let nsfw_probability = post_details.nsfw_probability;
 
-            let (is_connected, _) = account_connected_reader();
             // like_video - analytics
 
-            let user = user_details_can_store_or_ret!(cans_store);
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
 
             let _ = send_event_ssr_spawn(
                 "like_video".to_string(),
                 json!({
                     "publisher_user_id":publisher_user_id,
                     "user_id": user.details.principal,
-                    "is_loggedIn": is_connected(),
+                    "is_loggedIn": ctx.is_connected(),
                     "display_name": user.details.display_name,
                     "canister_id": user.canister_id,
                     "video_id": video_id,
@@ -368,11 +361,7 @@ impl LikeVideo {
 pub struct ShareVideo;
 
 impl ShareVideo {
-    pub fn send_event(
-        &self,
-        post_details: PostDetails,
-        cans_store: RwSignal<Option<Canisters<true>>>,
-    ) {
+    pub fn send_event(&self, ctx: EventCtx, post_details: PostDetails) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             let publisher_user_id = post_details.poster_principal;
@@ -384,9 +373,9 @@ impl ShareVideo {
             let like_count = post_details.likes;
             let nsfw_probability = post_details.nsfw_probability;
 
-            let (is_connected, _) = account_connected_reader();
-
-            let user = user_details_can_store_or_ret!(cans_store);
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
 
             // share_video - analytics
             let _ = send_event_ssr_spawn(
@@ -394,7 +383,7 @@ impl ShareVideo {
                 json!({
                     "publisher_user_id":publisher_user_id,
                     "user_id": user.details.principal,
-                    "is_loggedIn": is_connected.get(),
+                    "is_loggedIn": ctx.is_connected(),
                     "display_name": user.details.display_name,
                     "canister_id": user.canister_id,
                     "video_id": video_id,
@@ -419,11 +408,13 @@ impl ShareVideo {
 pub struct VideoUploadInitiated;
 
 impl VideoUploadInitiated {
-    pub fn send_event(&self) {
+    pub fn send_event(&self, ctx: EventCtx) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // video_upload_initiated - analytics
-            let user = user_details_or_ret!();
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
             let _ = send_event_ssr_spawn(
                 "video_upload_initiated".to_string(),
                 json!({
@@ -444,15 +435,17 @@ pub struct VideoUploadUploadButtonClicked;
 impl VideoUploadUploadButtonClicked {
     pub fn send_event(
         &self,
+        ctx: EventCtx,
         hashtag_inp: NodeRef<Input>,
         is_nsfw: NodeRef<Input>,
         enable_hot_or_not: NodeRef<Input>,
-        cans_store: RwSignal<Option<Canisters<true>>>,
     ) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // video_upload_upload_button_clicked - analytics
-            let user = user_details_can_store_or_ret!(cans_store);
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
 
             let hashtag_count = hashtag_inp
                 .get_untracked()
@@ -489,11 +482,13 @@ impl VideoUploadUploadButtonClicked {
 pub struct VideoUploadVideoSelected;
 
 impl VideoUploadVideoSelected {
-    pub fn send_event(&self, cans_store: RwSignal<Option<Canisters<true>>>) {
+    pub fn send_event(&self, ctx: EventCtx) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // video_upload_video_selected - analytics
-            let user = user_details_can_store_or_ret!(cans_store);
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
 
             let _ = send_event_ssr_spawn(
                 "video_upload_video_selected".to_string(),
@@ -516,16 +511,18 @@ impl VideoUploadUnsuccessful {
     #[allow(clippy::too_many_arguments)]
     pub fn send_event(
         &self,
+        ctx: EventCtx,
         error: String,
         hashtags_len: usize,
         is_nsfw: bool,
         enable_hot_or_not: bool,
-        cans_store: RwSignal<Option<Canisters<true>>>,
     ) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // video_upload_unsuccessful - analytics
-            let user = user_details_can_store_or_ret!(cans_store);
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
 
             let _ = send_event_ssr_spawn(
                 "video_upload_unsuccessful".to_string(),
@@ -551,17 +548,19 @@ pub struct VideoUploadSuccessful;
 impl VideoUploadSuccessful {
     pub fn send_event(
         &self,
+        ctx: EventCtx,
         video_id: String,
         hashtags_len: usize,
         is_nsfw: bool,
         enable_hot_or_not: bool,
         post_id: u64,
-        cans_store: RwSignal<Option<Canisters<true>>>,
     ) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // video_upload_successful - analytics
-            let user = user_details_can_store_or_ret!(cans_store);
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
             let _ = send_event_ssr_spawn(
                 "video_upload_successful".to_string(),
                 json!({
@@ -587,12 +586,14 @@ impl VideoUploadSuccessful {
 pub struct Refer;
 
 impl Refer {
-    pub fn send_event(&self, logged_in: ReadSignal<bool>) {
+    pub fn send_event(&self, ctx: EventCtx) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // refer - analytics
 
-            let user = user_details_or_ret!();
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
             let details = user.details;
             let user_id = details.principal;
             let display_name = details.display_name;
@@ -606,7 +607,7 @@ impl Refer {
                 "refer".to_string(),
                 json!({
                     "user_id":user_id,
-                    "is_loggedIn": logged_in.get_untracked(),
+                    "is_loggedIn": ctx.is_connected(),
                     "display_name": display_name,
                     "canister_id": canister_id,
                     "refer_location": prev_site,
@@ -621,15 +622,13 @@ impl Refer {
 pub struct ReferShareLink;
 
 impl ReferShareLink {
-    pub fn send_event(
-        &self,
-        logged_in: ReadSignal<bool>,
-        cans_store: RwSignal<Option<Canisters<true>>>,
-    ) {
+    pub fn send_event(&self, ctx: EventCtx) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // refer_share_link - analytics
-            let user = user_details_can_store_or_ret!(cans_store);
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
             let details = user.details;
 
             let user_id = details.principal;
@@ -644,7 +643,7 @@ impl ReferShareLink {
                 "refer_share_link".to_string(),
                 json!({
                     "user_id":user_id,
-                    "is_loggedIn": logged_in.get_untracked(),
+                    "is_loggedIn": ctx.is_connected(),
                     "display_name": display_name,
                     "canister_id": canister_id,
                     "refer_location": prev_site,
@@ -669,8 +668,6 @@ impl LoginSuccessful {
                 anyhow::anyhow!("No sender found for login successful event")
             })?;
             let canister_id = canisters.user_canister();
-
-            let _ = send_user_id(user_id.to_string());
 
             // login_successful - analytics
             let _ = send_event_ssr_spawn(
@@ -718,11 +715,13 @@ impl LoginMethodSelected {
 pub struct LoginJoinOverlayViewed;
 
 impl LoginJoinOverlayViewed {
-    pub fn send_event(&self) {
+    pub fn send_event(&self, ctx: EventCtx) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // login_join_overlay_viewed - analytics
-            let user = user_details_or_ret!();
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
             let event_history: EventHistory = expect_context();
 
             let user_id = user.details.principal;
@@ -735,8 +734,6 @@ impl LoginJoinOverlayViewed {
                 })
                 .to_string(),
             );
-
-            let _ = send_user_id(user_id.to_string());
         }
     }
 }
@@ -768,10 +765,12 @@ impl LoginCta {
 pub struct LogoutClicked;
 
 impl LogoutClicked {
-    pub fn send_event(&self, cans_store: RwSignal<Option<Canisters<true>>>) {
+    pub fn send_event(&self, ctx: EventCtx) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let user = user_details_can_store_or_ret!(cans_store);
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
             let details = user.details;
             // logout_clicked - analytics
 
@@ -796,10 +795,12 @@ impl LogoutClicked {
 pub struct LogoutConfirmation;
 
 impl LogoutConfirmation {
-    pub fn send_event(&self, cans_store: RwSignal<Option<Canisters<true>>>) {
+    pub fn send_event(&self, ctx: EventCtx) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let user = user_details_can_store_or_ret!(cans_store);
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
             let details = user.details;
 
             let user_id = details.principal;
@@ -824,11 +825,13 @@ impl LogoutConfirmation {
 pub struct ErrorEvent;
 
 impl ErrorEvent {
-    pub fn send_event(&self, error_str: String, cans_store: RwSignal<Option<Canisters<true>>>) {
+    pub fn send_event(&self, ctx: EventCtx, error_str: String) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             let event_history: EventHistory = expect_context();
-            let user = user_details_can_store_or_ret!(cans_store);
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
             let details = user.details;
 
             let user_id = details.principal;
@@ -853,26 +856,22 @@ impl ErrorEvent {
 pub struct ProfileViewVideo;
 
 impl ProfileViewVideo {
-    pub fn send_event(
-        &self,
-        post_details: PostDetails,
-        cans_store: RwSignal<Option<Canisters<true>>>,
-    ) {
+    pub fn send_event(&self, ctx: EventCtx, post_details: PostDetails) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             let publisher_user_id = post_details.poster_principal;
             let video_id = post_details.uid.clone();
 
-            let (is_connected, _) = account_connected_reader();
-
-            let user = user_details_can_store_or_ret!(cans_store);
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
 
             let _ = send_event_ssr_spawn(
                 "profile_view_video".to_string(),
                 json!({
                     "publisher_user_id":publisher_user_id,
                     "user_id": user.details.principal,
-                    "is_loggedIn": is_connected(),
+                    "is_loggedIn": ctx.is_connected(),
                     "display_name": user.details.display_name,
                     "canister_id": user.canister_id,
                     "video_id": video_id,
@@ -888,14 +887,12 @@ impl ProfileViewVideo {
 pub struct TokenCreationStarted;
 
 impl TokenCreationStarted {
-    pub fn send_event(
-        &self,
-        sns_init_payload: SnsInitPayload,
-        cans_store: RwSignal<Option<Canisters<true>>>,
-    ) {
+    pub fn send_event(&self, ctx: EventCtx, sns_init_payload: SnsInitPayload) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let user = user_details_can_store_or_ret!(cans_store);
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
             let details = user.details;
 
             let user_id = details.principal;
@@ -1053,13 +1050,9 @@ impl TokensTransferred {
 pub struct PageVisit;
 
 impl PageVisit {
-    pub fn send_event(&self, canisters: Canisters<true>, pathname: String) {
+    pub fn send_event(&self, user_id: Principal, is_connected: bool, pathname: String) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let user_id = canisters.profile_details().principal;
-            let (is_connected, _) = account_connected_reader();
-            let is_connected = is_connected.get_untracked();
-
             let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
                 move |_| {
                     let _ = send_event_ssr_spawn(
@@ -1084,21 +1077,19 @@ impl PageVisit {
 pub struct CentsAdded;
 
 impl CentsAdded {
-    pub fn send_event(&self, payment_source: String, amount: u64) {
+    pub fn send_event(&self, ctx: EventCtx, payment_source: String, amount: u64) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let (canister_id, _, _) =
-                use_local_storage::<Option<Principal>, JsonSerdeCodec>(USER_CANISTER_ID_STORE);
-            let (user_id, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
-            let (is_connected, _) = account_connected_reader();
-            let is_connected = is_connected.get_untracked();
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
 
             let _ = send_event_ssr_spawn(
                 "cents_added".to_string(),
                 json!({
-                    "user_id": user_id,
-                    "canister_id": canister_id,
-                    "is_loggedin": is_connected,
+                    "user_id": user.details.principal,
+                    "canister_id": user.canister_id,
+                    "is_loggedin": ctx.is_connected(),
                     "amount_added": amount,
                     "payment_source": payment_source,
                 })
@@ -1112,21 +1103,18 @@ impl CentsAdded {
 pub struct CentsWithdrawn;
 
 impl CentsWithdrawn {
-    pub fn send_event(&self, amount_withdrawn: f64) {
+    pub fn send_event(&self, ctx: EventCtx, amount_withdrawn: f64) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let (canister_id, _, _) =
-                use_local_storage::<Option<Principal>, JsonSerdeCodec>(USER_CANISTER_ID_STORE);
-            let (user_id, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
-            let (is_connected, _) = account_connected_reader();
-            let is_connected = is_connected.get_untracked();
-
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
             let _ = send_event_ssr_spawn(
                 "cents_withdrawn".to_string(),
                 json!({
-                    "user_id": user_id,
-                    "canister_id": canister_id,
-                    "is_loggedin": is_connected,
+                    "user_id": user.details.principal,
+                    "canister_id": user.canister_id,
+                    "is_loggedin": ctx.is_connected(),
                     "amount_withdrawn": amount_withdrawn,
                 })
                 .to_string(),
@@ -1139,21 +1127,18 @@ impl CentsWithdrawn {
 pub struct SatsWithdrawn;
 
 impl SatsWithdrawn {
-    pub fn send_event(&self, amount_withdrawn: f64) {
+    pub fn send_event(&self, ctx: EventCtx, amount_withdrawn: f64) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let (canister_id, _, _) =
-                use_local_storage::<Option<Principal>, JsonSerdeCodec>(USER_CANISTER_ID_STORE);
-            let (user_id, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
-            let (is_connected, _) = account_connected_reader();
-            let is_connected = is_connected.get_untracked();
-
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
             let _ = send_event_ssr_spawn(
                 "sats_withdrawn".to_string(),
                 json!({
-                    "user_id": user_id,
-                    "canister_id": canister_id,
-                    "is_loggedin": is_connected,
+                    "user_id": user.details.principal,
+                    "canister_id": user.canister_id,
+                    "is_loggedin": ctx.is_connected(),
                     "amount_withdrawn": amount_withdrawn,
                 })
                 .to_string(),
@@ -1168,6 +1153,7 @@ pub struct TokenPumpedDumped;
 impl TokenPumpedDumped {
     pub fn send_event(
         &self,
+        ctx: EventCtx,
         token_name: String,
         token_root: Principal,
         direction: String,
@@ -1175,22 +1161,20 @@ impl TokenPumpedDumped {
     ) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let (canister_id, _, _) =
-                use_local_storage::<Option<Principal>, JsonSerdeCodec>(USER_CANISTER_ID_STORE);
-            let (user_id, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
-
-            let is_loggedin = account_connected_reader().0.get_untracked();
+            let Some(user) = ctx.user_details() else {
+                return;
+            };
 
             let _ = send_event_ssr_spawn(
                 "token_pumped_dumped".to_string(),
                 json!({
-                    "user_id": user_id,
-                    "canister_id": canister_id,
+                    "user_id": user.details.principal,
+                    "canister_id": user.canister_id,
                     "token_name": token_name,
                     "token_root": token_root.to_string(),
                     "direction": direction,
                     "count": count,
-                    "is_loggedin": is_loggedin,
+                    "is_loggedin": ctx.is_connected(),
                 })
                 .to_string(),
             );

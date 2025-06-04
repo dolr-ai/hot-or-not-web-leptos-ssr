@@ -9,9 +9,7 @@ use leptos_meta::*;
 use leptos_router::components::Redirect;
 use leptos_router::hooks::use_query_map;
 use leptos_use::storage::use_local_storage;
-use utils::event_streaming::events::auth_canisters_store;
 use utils::host::show_nsfw_content;
-use utils::mixpanel::mixpanel_events::*;
 use utils::{
     host::{show_cdao_page, show_pnd_page},
     ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw},
@@ -74,7 +72,7 @@ pub fn YralRootPage() -> impl IntoView {
         }
     });
 
-    let target_post = Resource::new(params, move |params_map| async move {
+    let target_post = Resource::new_blocking(params, move |params_map| async move {
         let nsfw_enabled = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
         if nsfw_enabled || show_nsfw_content() {
             get_top_post_id_global_nsfw_feed().await
@@ -83,39 +81,34 @@ pub fn YralRootPage() -> impl IntoView {
         }
     });
     let post_details_cache: PostDetailsCacheCtx = expect_context();
-    let (is_connected, _, _) =
-        use_local_storage::<bool, FromToStringCodec>(consts::ACCOUNT_CONNECTED_STORE);
 
     view! {
         <Title text="YRAL - Home" />
         <Suspense fallback=FullScreenSpinner>
             {move || {
-                target_post
-                    .get()
-                    .map(|u| {
-                        let url = match u {
-                            Ok(Some(post_item)) => {
-                                let canister_id = post_item.canister_id;
-                                let post_id = post_item.post_id;
-                                post_details_cache.post_details.update(|post_details| {
-                                    post_details.insert((canister_id, post_id), post_item.clone());
-                                });
+                let user_refer = params.get().get("user_refer").map(|s| s.to_string());
+                Suspend::new(async move {
+                let mut url = match target_post.await {
+                    Ok(Some(post_item)) => {
+                        let canister_id = post_item.canister_id;
+                        let post_id = post_item.post_id;
+                        post_details_cache.post_details.update(|post_details| {
+                            post_details.insert((canister_id, post_id), post_item.clone());
+                        });
 
-                                if let Some(cans) = auth_canisters_store().get_untracked() {
-                                    let is_logged_in = is_connected.get_untracked();
-                                    let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-                                    MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps { user_id:  global.user_id, visitor_id: global.visitor_id, is_logged_in: global.is_logged_in, canister_id: global.canister_id, is_nsfw_enabled: global.is_nsfw_enabled });
-                                }
+                        format!("/hot-or-not/{canister_id}/{post_id}")
+                    },
+                    Ok(None) => "/error?err=No Posts Found".to_string(),
+                    Err(e) => format!("/error?err={e}"),
+                };
 
-                                format!("/hot-or-not/{canister_id}/{post_id}")
-                            }
-                            Ok(None) => "/error?err=No Posts Found".to_string(),
-                            Err(e) => format!("/error?err={e}"),
-                        };
-                        view! { <Redirect path=url /> }
-                    })
-            }}
+                if let Some(user_refer) = user_refer {
+                    url.push_str(&format!("?user_refer={user_refer}"));
+                }
 
+                view! { <Redirect path=url /> }
+            })
+        }}
         </Suspense>
     }
     .into_any()

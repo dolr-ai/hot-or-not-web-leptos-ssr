@@ -27,7 +27,7 @@ pub static CF_BASE_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://api.cloudflare.com/client/v4/").unwrap());
 pub const NOTIFICATIONS_ENABLED_STORE: &str = "yral-notifications-enabled";
 pub const NSFW_TOGGLE_STORE: &str = "nsfw-enabled";
-pub const REFERRER_STORE: &str = "referrer";
+pub const REFERRER_COOKIE: &str = "referrer";
 pub const USER_CANISTER_ID_STORE: &str = "user-canister-id";
 pub const USER_PRINCIPAL_STORE: &str = "user-principal";
 pub const USER_ONBOARDING_STORE: &str = "user-onboarding";
@@ -35,10 +35,12 @@ pub const USER_INTERNAL_STORE: &str = "user-internal";
 
 pub static OFF_CHAIN_AGENT_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev").unwrap());
+
+pub static ANALYTICS_SERVER_URL: Lazy<Url> =
+    Lazy::new(|| Url::parse("https://marketing-analytics-server.fly.dev").unwrap());
 pub static OFF_CHAIN_AGENT_GRPC_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev:443").unwrap()); // pr-91-yral-dapp-off-chain-agent https://icp-off-chain-agent.fly.dev:443
                                                                                   // G-6W5Q2MRX0E to test locally | G-PLNNETMSLM
-pub static GTAG_MEASUREMENT_ID: Lazy<&str> = Lazy::new(|| "G-PLNNETMSLM");
 pub static DOWNLOAD_UPLOAD_SERVICE: Lazy<Url> =
     Lazy::new(|| Url::parse("https://download-upload-service.fly.dev").unwrap());
 pub static ML_FEED_URL: Lazy<Url> =
@@ -62,7 +64,12 @@ pub const CF_KV_ML_CACHE_NAMESPACE_ID: &str = "ea145fc839bd42f9bf2d34b950ddbda5"
 pub const CLOUDFLARE_ACCOUNT_ID: &str = "a209c523d2d9646cc56227dbe6ce3ede";
 
 pub const NEW_USER_SIGNUP_REWARD: u64 = 1000;
-pub const REFERRAL_REWARD: u64 = 500;
+pub const REFERRAL_REWARD: u64 = 100; // Lowered referral amount from 500 to 100
+
+pub const MAX_WITHDRAWAL_PER_TXN: u64 = 2000;
+pub const MIN_WITHDRAWAL_PER_TXN: u64 = 1500;
+
+pub const AUTH_UTIL_COOKIES_MAX_AGE_MS: i64 = 400 * 24 * 60 * 60 * 1000; // 400 days
 
 pub mod social {
     pub const TELEGRAM_YRAL: &str = "https://t.me/+c-LTX0Cp-ENmMzI1";
@@ -91,3 +98,8 @@ pub mod google {
 }
 
 pub const UPLOAD_URL: &str = "https://yral-upload-video.go-bazzinga.workers.dev";
+
+pub const DOLR_AI_ROOT_CANISTER: &str = "67bll-riaaa-aaaaq-aaauq-cai";
+pub const DOLR_AI_LEDGER_CANISTER: &str = "6rdgd-kyaaa-aaaaq-aaavq-cai";
+pub const CKBTC_LEDGER_CANISTER: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
+pub const USDC_LEDGER_CANISTER: &str = "xevnm-gaaaa-aaaar-qafnq-cai";

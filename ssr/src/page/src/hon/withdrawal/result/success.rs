@@ -1,8 +1,15 @@
 use component::{back_btn::BackButton, title::TitleText};
 use leptos::prelude::*;
 use leptos_router::{hooks::use_query, params::Params};
+use state::canisters::auth_state;
 // use utils::event_streaming::events::SatsWithdrawn;
-use utils::{event_streaming::events::SatsWithdrawn, try_or_redirect_opt};
+use utils::{
+    event_streaming::events::SatsWithdrawn,
+    mixpanel::mixpanel_events::{
+        MixPanelEvent, MixpanelGlobalProps, MixpanelSatsToBtcConvertedProps,
+    },
+    try_or_redirect_opt,
+};
 use yral_canisters_common::utils::token::balance::TokenBalance;
 #[derive(Debug, PartialEq, Eq, Clone, Params)]
 struct SuccessParams {
@@ -18,14 +25,27 @@ pub fn Success() -> impl IntoView {
 
     let sats_value = formatted_sats.clone().parse::<f64>().unwrap_or(0.0);
 
+    let auth = auth_state();
+
     Effect::new(move |_| {
-        SatsWithdrawn.send_event(sats_value);
+        SatsWithdrawn.send_event(auth.event_ctx(), sats_value);
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
+            MixPanelEvent::track_sats_to_btc_converted(MixpanelSatsToBtcConvertedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                sats_converted: sats_value,
+                conversion_ratio: crate::consts::SATS_TO_BTC_CONVERSION_RATIO,
+            });
+        }
     });
 
     Some(view! {
         <div
             style:background-image="url('/img/pumpdump/onboarding-bg.webp')"
-            class="min-h-screen w-full flex flex-col text-white pt-2 pb-12 bg-black items-center relative max-md:bg-[length:271vw_100vh] md:bg-[length:max(100vw,100vh)] max-md:bg-[position:-51.2vh_-6vw]"
+            class="min-h-screen w-full flex flex-col text-white pt-2 pb-12 bg-black items-center relative max-md:bg-size-[271vw_100vh] md:bg-size-[max(100vw,100vh)] max-md:bg-position-[-51.2vh_-6vw]"
         >
             <div id="back-nav" class="flex flex-col items-center w-full gap-20 pb-16">
                 <TitleText justify_center=false>

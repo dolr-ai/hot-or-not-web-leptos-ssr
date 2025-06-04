@@ -2,8 +2,8 @@ mod validators;
 mod video_upload;
 use leptos_meta::*;
 
+use state::canisters::auth_state;
 use utils::{
-    event_streaming::events::auth_canisters_store,
     event_streaming::events::{VideoUploadInitiated, VideoUploadUploadButtonClicked},
     host::{show_cdao_page, show_pnd_page},
     web::FileWithUrl,
@@ -55,16 +55,13 @@ fn PreUploadView(
     let hashtag_inp = NodeRef::<Input>::new();
     let enable_hot_or_not = NodeRef::<Input>::new();
     let is_nsfw = NodeRef::<Input>::new();
-    let canister_store = auth_canisters_store();
-    VideoUploadInitiated.send_event();
+
+    let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
+    VideoUploadInitiated.send_event(ev_ctx);
 
     let on_submit = move || {
-        VideoUploadUploadButtonClicked.send_event(
-            hashtag_inp,
-            is_nsfw,
-            enable_hot_or_not,
-            canister_store,
-        );
+        VideoUploadUploadButtonClicked.send_event(ev_ctx, hashtag_inp, is_nsfw, enable_hot_or_not);
 
         let description = desc.get_untracked().unwrap().value();
         let hashtags = hashtags.get_untracked();
@@ -151,7 +148,7 @@ fn PreUploadView(
                     <HighlightedButton
                         on_click=move || on_submit()
                         disabled=disa
-                        classes="w-full mx-auto py-[12px] px-[20px] rounded-xl bg-gradient-to-r from-pink-300 to-pink-500 text-white font-light text-[17px] transition disabled:opacity-60 disabled:cursor-not-allowed".to_string()
+                        classes="w-full mx-auto py-[12px] px-[20px] rounded-xl bg-linear-to-r from-pink-300 to-pink-500 text-white font-light text-[17px] transition disabled:opacity-60 disabled:cursor-not-allowed".to_string()
                     >
                         "Upload"
                     </HighlightedButton>
