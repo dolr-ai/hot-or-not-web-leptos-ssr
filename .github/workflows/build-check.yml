@@ -7,7 +7,18 @@ on:
         default: false
         required: false
         type: boolean
+      erase_components:
+        description: 'Enable --cfg=erase_components for cargo leptos build. Default is true.'
+        required: false
+        type: boolean
+        default: true
   workflow_dispatch:
+    inputs:
+      erase_components:
+        description: 'Add --cfg=erase_components to cargo leptos build'
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build_check:
@@ -86,7 +97,13 @@ jobs:
           cargo --version
 
       - name: Build the Leptos project to output
-        run: cargo leptos build --release --lib-features release-lib --bin-features release-bin
+        run: |
+          CARGO_LEPTOS_ARGS="--release --lib-features release-lib --bin-features release-bin"
+          if [[ "${{ inputs.erase_components }}" == "true" ]]; then
+            CARGO_LEPTOS_ARGS="$CARGO_LEPTOS_ARGS --cfg=erase_components"
+          fi
+          echo "Running: cargo leptos build $CARGO_LEPTOS_ARGS"
+          cargo leptos build $CARGO_LEPTOS_ARGS
         env:
           RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
           LEPTOS_HASH_FILES: true
