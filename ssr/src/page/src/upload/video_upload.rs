@@ -256,7 +256,7 @@ async fn upload_video_part(
     let progress_signal_clone = progress_signal;
     let on_progress_callback = Closure::wrap(Box::new(move |event: ProgressEvent| {
         if event.length_computable() {
-            let progress = event.loaded() as f64 / event.total() as f64;
+            let progress = event.loaded() / event.total();
             progress_signal_clone.set(progress);
         }
     }) as Box<dyn FnMut(_)>);
@@ -269,7 +269,7 @@ async fn upload_video_part(
     let on_load_callback = Closure::wrap(Box::new(move || {
         if let Some(sender) = sender_onload_rc.borrow_mut().take() {
             match xhr_clone_onload.status() {
-                Ok(status) if status >= 200 && status < 300 => {
+                Ok(status) if (200..300).contains(&status) => {
                     progress_signal_onload.set(1.0);
                     let _ = sender.send(Ok(()));
                 }
@@ -298,10 +298,8 @@ async fn upload_video_part(
         if let Some(sender) = sender_onerror_rc.borrow_mut().take() {
             let status = xhr_clone_onerror.status().unwrap_or(0);
             let status_text = xhr_clone_onerror.status_text().unwrap_or_default();
-            let err_msg = format!(
-                "Upload XHR network error. Status: {}, Text: {}",
-                status, status_text
-            );
+            let err_msg =
+                format!("Upload XHR network error. Status: {status}, Text: {status_text}");
             let _ = sender.send(Err(ServerFnError::new(err_msg)));
         }
     }) as Box<dyn FnMut()>);
@@ -483,7 +481,7 @@ pub fn VideoUploader(
                             } else if publish_action.pending().get() {
                                 format!("{:.2}%", video_uploaded_base_width + metadata_publish_total_width * 0.7)
                             } else if uid.with(|u| u.is_some()) {
-                                format!("{:.2}%", video_uploaded_base_width)
+                                format!("{video_uploaded_base_width:.2}%")
                             } else {
                                 format!("{:.2}%", upload_file_actual_progress.get() * video_uploaded_base_width)
                             }
