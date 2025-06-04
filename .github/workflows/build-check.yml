@@ -8,14 +8,14 @@ on:
         required: false
         type: boolean
       erase_components:
-        description: 'Enable --cfg=erase_components for cargo leptos build. Default is true.'
+        description: 'Enable type erasure. Default is true.'
         required: false
         type: boolean
         default: true
   workflow_dispatch:
     inputs:
       erase_components:
-        description: 'Add --cfg=erase_components to cargo leptos build'
+        description: 'Enable type erasure.'
         required: false
         type: boolean
         default: true
