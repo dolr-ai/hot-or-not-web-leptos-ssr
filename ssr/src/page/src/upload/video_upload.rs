@@ -205,7 +205,7 @@ async fn upload_video_part(
     form_field_name: &str,
     file_blob: &Blob,
 ) -> Result<Message, ServerFnError> {
-    let get_url_endpoint = format!("{upload_base_url}/get_upload_url");
+    let get_url_endpoint = format!("{upload_base_url}/get_upload_url_v2");
     let response = Request::get(&get_url_endpoint).send().await?;
     if !response.ok() {
         return Err(ServerFnError::new(format!(

@@ -157,11 +157,11 @@ fn ReferView() -> impl IntoView {
     Refer.send_event(auth_state.event_ctx());
 
     view! {
-        <div class="flex flex-col w-full h-full items-center text-white gap-10">
+        <div class="flex flex-col w-full h-full items-center text-white gap-5">
             <div class="absolute inset-x-0 top-0 z-0 w-full max-w-md mx-auto" style="filter: blur(1.5px);">
                 <img src="/img/common/refer-bg.webp" class="w-full object-cover" />
             </div>
-            <div style="height: 19rem;" class="flex z-[1] relative justify-center w-full items-center gap-4 overflow-visible">
+            <div style="height: 14rem;" class="flex z-[1] relative justify-center w-full items-center gap-4 overflow-visible">
                 <img class="shrink-0 h-32 select-none" src="/img/common/wallet.webp" />
                 <img src="/img/common/bitcoin.webp" class="absolute top-8 left-5 size-6" style="filter: blur(1px); transform: rotate(30deg);" />
                 <img src="/img/common/bitcoin.webp" class="absolute top-16 right-3 size-6" style="filter: blur(1px); transform: rotate(40deg);" />
@@ -177,7 +177,7 @@ fn ReferView() -> impl IntoView {
                     <ReferCode />
                 </Show>
             </div>
-            <div class="flex flex-col w-full z-[1] items-center gap-8 mt-4 pb-5">
+            <div class="flex flex-col w-full z-[1] items-center gap-6 mt-2 pb-5">
                 <span class="font-xl font-semibold">How it works?</span>
                 <div class="flex flex-row gap-4 text-center">
                     <WorkButton
@@ -207,7 +207,7 @@ pub fn ReferEarn() -> impl IntoView {
     view! {
         <Title text=page_title.clone() />
 
-        <div class="flex flex-col items-center min-w-dvw min-h-dvh bg-black pt-2 pb-12 gap-6">
+        <div class="flex flex-col items-center min-w-dvw min-h-dvh bg-black pt-2 pb-12">
             <TitleText justify_center=false>
                 <div class="flex flex-row justify-between">
                     <BackButton fallback="/menu".to_string() />
