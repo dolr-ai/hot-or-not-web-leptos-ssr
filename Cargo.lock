@@ -3333,7 +3333,7 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
 dependencies = [
  "candid",
  "ic-agent",
@@ -7489,7 +7489,7 @@ checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
 dependencies = [
  "candid",
  "humantime",
@@ -9389,7 +9389,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
 dependencies = [
  "anyhow",
  "candid",
@@ -9404,7 +9404,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
 dependencies = [
  "candid",
  "ciborium",
@@ -9437,7 +9437,7 @@ dependencies = [
 [[package]]
 name = "yral-grpc-traits"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
 dependencies = [
  "serde",
 ]
@@ -9516,7 +9516,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
 dependencies = [
  "candid",
  "ic-agent",
@@ -9531,7 +9531,7 @@ dependencies = [
 [[package]]
 name = "yral-qstash-types"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
 dependencies = [
  "candid",
  "serde",
@@ -9552,7 +9552,7 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-did-files-to-remove-coyn-functions#49e839adcd55b15a03b02fd3e88532f96ce8c286"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
 dependencies = [
  "ic-agent",
  "k256",

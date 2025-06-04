@@ -182,18 +182,18 @@ sentry-tower = { version = "0.37.0", features = ["axum", "axum-matched-path"] }
 # ===
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], branch = "feat/update-did-files-to-remove-coyn-functions", version = "0.1.0" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "feat/update-did-files-to-remove-coyn-functions" }
-yral-grpc-traits = { git = "https://github.com/dolr-ai/yral-common.git", branch = "feat/update-did-files-to-remove-coyn-functions" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "feat/update-did-files-to-remove-coyn-functions" }
-yral-qstash-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "feat/update-did-files-to-remove-coyn-functions" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "feat/update-did-files-to-remove-coyn-functions", features = [
+], branch = "master", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-grpc-traits = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-qstash-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "feat/update-did-files-to-remove-coyn-functions" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], branch = "feat/update-did-files-to-remove-coyn-functions", version = "0.1.0" }
+], branch = "master", version = "0.1.0" }
 google-cloud-alloydb-v1 = "0.2.0"
 yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adbf4be5cb62a26f2a90032261321bf1df33f08b", default-features = false }
 
