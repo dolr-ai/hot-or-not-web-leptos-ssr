@@ -4,8 +4,9 @@ use component::buttons::HighlightedLinkButton;
 use component::modal::Modal;
 use component::notification_nudge::NotificationNudge;
 use consts::UPLOAD_URL;
+use futures::channel::oneshot;
 use gloo::net::http::Request;
-use leptos::web_sys::{Blob, FormData};
+use leptos::web_sys::{Blob, FormData, ProgressEvent};
 use leptos::{
     ev::durationchange,
     html::{Input, Video},
@@ -16,6 +17,8 @@ use leptos_use::use_event_listener;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use state::canisters::{auth_state, unauth_canisters};
+use std::cell::RefCell;
+use std::rc::Rc;
 use utils::mixpanel::mixpanel_events::*;
 use utils::{
     event_streaming::events::{
@@ -24,6 +27,7 @@ use utils::{
     try_or_redirect_opt,
     web::FileWithUrl,
 };
+use wasm_bindgen::{closure::Closure, JsCast};
 
 #[component]
 pub fn DropBox() -> impl IntoView {
@@ -43,6 +47,7 @@ pub fn DropBox() -> impl IntoView {
 pub fn PreVideoUpload(
     file_blob: RwSignal<Option<FileWithUrl>, LocalStorage>,
     uid: RwSignal<Option<String>, LocalStorage>,
+    upload_file_actual_progress: WriteSignal<f64>,
 ) -> impl IntoView {
     let file_ref = NodeRef::<Input>::new();
     let file = RwSignal::new_local(None::<FileWithUrl>);
@@ -69,20 +74,27 @@ pub fn PreVideoUpload(
         });
     }
 
-    let upload_action: Action<(), _> = Action::new_local(move |_| async move {
-        let message = try_or_redirect_opt!(upload_video_part(
-            UPLOAD_URL,
-            "file",
-            file_blob.get_untracked().unwrap().file.as_ref(),
-        )
-        .await
-        .inspect_err(|e| {
-            VideoUploadUnsuccessful.send_event(ev_ctx, e.to_string(), 0, false, true);
-        }));
+    let upload_action: Action<(), _> = Action::new_local(move |_| {
+        let captured_progress_signal = upload_file_actual_progress;
+        async move {
+            #[cfg(feature = "hydrate")]
+            {
+                let message = try_or_redirect_opt!(upload_video_part(
+                    UPLOAD_URL,
+                    "file",
+                    file_blob.get_untracked().unwrap().file.as_ref(),
+                    captured_progress_signal,
+                )
+                .await
+                .inspect_err(|e| {
+                    VideoUploadUnsuccessful.send_event(ev_ctx, e.to_string(), 0, false, true);
+                }));
 
-        uid.set(message.data.and_then(|m| m.uid));
+                uid.set(message.data.and_then(|m| m.uid));
+            }
 
-        Some(())
+            Some(())
+        }
     });
 
     _ = use_event_listener(video_ref, durationchange, move |_| {
@@ -199,10 +211,12 @@ pub struct SerializablePostDetailsFromFrontend {
     pub creator_consent_for_inclusion_in_hot_or_not: bool,
 }
 
+#[cfg(feature = "hydrate")]
 async fn upload_video_part(
     upload_base_url: &str,
     form_field_name: &str,
     file_blob: &Blob,
+    progress_signal: WriteSignal<f64>,
 ) -> Result<Message, ServerFnError> {
     let get_url_endpoint = format!("{upload_base_url}/get_upload_url");
     let response = Request::get(&get_url_endpoint).send().await?;
@@ -230,23 +244,99 @@ async fn upload_video_part(
             ServerFnError::new(format!("Failed to append blob to FormData: {js_value:?}"))
         })?;
 
-    let upload_response = Request::post(&upload_url).body(form)?.send().await?;
+    let (tx, rx) = oneshot::channel();
+    let xhr = web_sys::XmlHttpRequest::new()
+        .map_err(|e| ServerFnError::new(format!("Failed to create XHR: {e:?}")))?;
+    let xhr_upload = xhr
+        .upload()
+        .map_err(|e| ServerFnError::new(format!("Failed to get XHR upload: {e:?}")))?;
 
-    if !upload_response.ok() {
-        return Err(ServerFnError::new(format!(
-            "Upload request failed: status {} {}",
-            upload_response.status(),
-            upload_response.status_text()
-        )));
+    let sender_rc = Rc::new(RefCell::new(Some(tx)));
+
+    let progress_signal_clone = progress_signal;
+    let on_progress_callback = Closure::wrap(Box::new(move |event: ProgressEvent| {
+        if event.length_computable() {
+            let progress = event.loaded() as f64 / event.total() as f64;
+            progress_signal_clone.set(progress);
+        }
+    }) as Box<dyn FnMut(_)>);
+    xhr_upload.set_onprogress(Some(on_progress_callback.as_ref().unchecked_ref()));
+    on_progress_callback.forget();
+
+    let sender_onload_rc = sender_rc.clone();
+    let progress_signal_onload = progress_signal;
+    let xhr_clone_onload = xhr.clone();
+    let on_load_callback = Closure::wrap(Box::new(move || {
+        if let Some(sender) = sender_onload_rc.borrow_mut().take() {
+            match xhr_clone_onload.status() {
+                Ok(status) if status >= 200 && status < 300 => {
+                    progress_signal_onload.set(1.0);
+                    let _ = sender.send(Ok(()));
+                }
+                Ok(status) => {
+                    let err_msg = format!(
+                        "Upload XHR failed: status {} {}",
+                        status,
+                        xhr_clone_onload.status_text().unwrap_or_default()
+                    );
+                    let _ = sender.send(Err(ServerFnError::new(err_msg)));
+                }
+                Err(_) => {
+                    let _ = sender.send(Err(ServerFnError::new(
+                        "Upload XHR failed to get status".to_string(),
+                    )));
+                }
+            }
+        }
+    }) as Box<dyn FnMut()>);
+    xhr.set_onload(Some(on_load_callback.as_ref().unchecked_ref()));
+    on_load_callback.forget();
+
+    let sender_onerror_rc = sender_rc.clone();
+    let xhr_clone_onerror = xhr.clone();
+    let on_error_callback = Closure::wrap(Box::new(move || {
+        if let Some(sender) = sender_onerror_rc.borrow_mut().take() {
+            let status = xhr_clone_onerror.status().unwrap_or(0);
+            let status_text = xhr_clone_onerror.status_text().unwrap_or_default();
+            let err_msg = format!(
+                "Upload XHR network error. Status: {}, Text: {}",
+                status, status_text
+            );
+            let _ = sender.send(Err(ServerFnError::new(err_msg)));
+        }
+    }) as Box<dyn FnMut()>);
+    xhr.set_onerror(Some(on_error_callback.as_ref().unchecked_ref()));
+    on_error_callback.forget();
+
+    let sender_ontimeout_rc = sender_rc.clone();
+    let on_timeout_callback = Closure::wrap(Box::new(move || {
+        if let Some(sender) = sender_ontimeout_rc.borrow_mut().take() {
+            let _ = sender.send(Err(ServerFnError::new("Upload XHR timeout".to_string())));
+        }
+    }) as Box<dyn FnMut()>);
+    xhr.set_ontimeout(Some(on_timeout_callback.as_ref().unchecked_ref()));
+    on_timeout_callback.forget();
+
+    xhr.open("POST", &upload_url)
+        .map_err(|e| ServerFnError::new(format!("XHR open failed: {e:?}")))?;
+
+    xhr.send_with_opt_form_data(Some(&form))
+        .map_err(|e| ServerFnError::new(format!("XHR send failed: {e:?}")))?;
+
+    match rx.await {
+        Ok(Ok(())) => Ok(upload_message),
+        Ok(Err(e)) => Err(e),
+        Err(_) => Err(ServerFnError::new(
+            "XHR future cancelled or sender dropped".to_string(),
+        )),
     }
-
-    Ok(upload_message)
 }
 
 #[component]
 pub fn VideoUploader(
     params: UploadParams,
     uid: RwSignal<Option<String>, LocalStorage>,
+    upload_file_actual_progress: ReadSignal<f64>,
 ) -> impl IntoView {
     let file_blob = params.file_blob;
     let hashtags = params.hashtags;
@@ -360,6 +450,9 @@ pub fn VideoUploader(
         current_uid_val
     });
 
+    let video_uploaded_base_width = 200.0 / 3.0;
+    let metadata_publish_total_width = 100.0 / 3.0;
+
     view! {
         <div class="flex flex-col-reverse lg:flex-row w-full gap-4 lg:gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
             <NotificationNudge pop_up=notification_nudge />
@@ -386,15 +479,13 @@ pub fn VideoUploader(
                         class="bg-linear-to-r from-[#EC55A7] to-[#E2017B] h-2.5 rounded-full transition-width duration-500 ease-in-out"
                         style:width=move || {
                             if published.get() {
-                                "100%"
+                                "100%".to_string()
                             } else if publish_action.pending().get() {
-                                "90%"
-                            } else if uid.with(|u| u.is_some()) && !publish_action.pending().get() && !published.get() {
-                                "50%"
-                            } else if uid.with(|u| u.is_none()) {
-                                "25%"
+                                format!("{:.2}%", video_uploaded_base_width + metadata_publish_total_width * 0.7)
+                            } else if uid.with(|u| u.is_some()) {
+                                format!("{:.2}%", video_uploaded_base_width)
                             } else {
-                                "0%"
+                                format!("{:.2}%", upload_file_actual_progress.get() * video_uploaded_base_width)
                             }
                         }
                     ></div>
