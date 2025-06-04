@@ -509,7 +509,7 @@ pub fn SatsAirdropPopup(
                     <Icon icon=icondata::ChCross />
                 </button>
                 <div class="flex flex-col items-center gap-16 justify-center p-12">
-                        <img src=img_src.clone() class="w-full" />
+                        <img src=img_src class="w-full" />
                     <div class="flex flex-col items-center gap-6">
                         {
                             if claimed.get() {
