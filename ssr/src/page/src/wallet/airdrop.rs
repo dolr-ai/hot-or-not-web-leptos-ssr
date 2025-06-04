@@ -4,7 +4,8 @@ use candid::{Nat, Principal};
 use component::{
     back_btn::BackButton,
     buttons::{HighlightedButton, HighlightedLinkButton},
-    spinner::{SpinnerCircle, SpinnerCircleStyled},
+    overlay::ShadowOverlay,
+    spinner::{Spinner, SpinnerCircle, SpinnerCircleStyled},
 };
 use consts::SATS_AIRDROP_LIMIT_RANGE;
 use hon_worker_common::{ClaimRequest, VerifiableClaimRequest, WORKER_URL};
@@ -476,5 +477,82 @@ pub fn AnimatedTick() -> impl IntoView {
                 </div>
             </div>
         </div>
+    }
+}
+
+#[component]
+pub fn SatsAirdropPopup(
+    show: RwSignal<bool>,
+    claimed: RwSignal<bool>,
+    amount_claimed: u64,
+    error: RwSignal<bool>,
+) -> impl IntoView {
+    let img_src = move || {
+        if claimed.get() {
+            "/img/airdrop/sats-airdrop-success.webp"
+        } else if error.get() {
+            "/img/airdrop/sats-airdrop-failed.webp"
+        } else {
+            "/img/airdrop/sats-airdrop.webp"
+        }
+    };
+
+    view! {
+        <ShadowOverlay show=show >
+            <div style="background: url('/img/common/refer-bg.webp')" class="overflow-hidden bg-center bg-cover max-w-md mx-auto items-center py-16 cursor-auto bg-neutral-900 rounded-md relative">
+                <div class="absolute z-0 bottom-1/3 -left-10 size-96" style="background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);"></div>
+                <div class="absolute z-0 top-8 -right-10 size-44" style="background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);"></div>
+                <button
+                    on:click=move |_| show.set(false)
+                    class="text-white rounded-full flex items-center justify-center text-center size-6 p-2 text-lg md:text-xl bg-neutral-600 absolute z-1 top-4 right-4"
+                >
+                    <Icon icon=icondata::ChCross />
+                </button>
+                <div class="flex flex-col items-center gap-16 justify-center p-12">
+                        <img src=img_src.clone() class="w-full" />
+                    <div class="flex flex-col items-center gap-6">
+                        {
+                            if claimed.get() {
+                                view! {
+                                    <div class="text-center">
+                                        <span class="font-semibold">{amount_claimed} "Bitcoin (SATS)"</span>" credited in your wallet"
+                                    </div>
+                                    <HighlightedButton
+                                        alt_style=false
+                                        disabled=false
+                                        on_click=move || { show.set(false) }
+                                    >
+                                        "Keep Playing"
+                                    </HighlightedButton>
+                                }.into_any()
+
+                            } else if error.get() {
+                                view! {
+                                    <div class="text-center">
+                                        "Claim for "<span class="font-semibold">"Bitcoin (SATS)"</span> "failed"
+                                     </div>
+                                     <HighlightedButton
+                                        alt_style=true
+                                        disabled=false
+                                        on_click=move || { show.set(false) }
+                                    >
+                                        "Try again"
+                                    </HighlightedButton>
+                                }.into_any()
+                            } else {
+                                view! {
+                                    <div class="text-center">
+                                        "Claim for "<span class="font-semibold">"Bitcoin (SATS)"</span> "is being processed"
+                                    </div>
+                                    <SpinnerCircle />
+                                }.into_any()
+                            }
+                        }
+                    </div>
+                </div>
+
+
+            </div>
+        </ShadowOverlay>
     }
 }
