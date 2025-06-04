@@ -170,7 +170,7 @@ fn ReferView() -> impl IntoView {
             <div style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%); height:29rem" class="absolute z-0 inset-x-0 top-16"></div>
 
             <div class="flex flex-col w-full z-[1] items-center gap-4 text-center">
-                <span class="font-bold text-xl md:text-2xl">Invite & get Bitcoin <span style="color: #A3A3A3">"("{REFERRAL_REWARD} "SATS)"</span></span>
+                <span class="font-bold text-xl md:text-2xl">Invite & get Bitcoin <span style="color: #A3A3A3">"("{REFERRAL_REWARD} " SATS)"</span></span>
             </div>
             <div class="flex flex-col w-full z-[1] gap-2 px-4 text-white items-center">
                 <Show when=logged_in fallback=|| view! { <ConnectLogin cta_location="refer" /> }>
