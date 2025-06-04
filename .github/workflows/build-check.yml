@@ -98,12 +98,13 @@ jobs:
 
       - name: Build the Leptos project to output
         run: |
-          CARGO_LEPTOS_ARGS="--release --lib-features release-lib --bin-features release-bin"
+          RUSTFLAGS_VALUE=""
           if [[ "${{ inputs.erase_components }}" == "true" ]]; then
-            CARGO_LEPTOS_ARGS="$CARGO_LEPTOS_ARGS --cfg=erase_components"
+            RUSTFLAGS_VALUE="--cfg=erase_components"
           fi
-          echo "Running: cargo leptos build $CARGO_LEPTOS_ARGS"
-          cargo leptos build $CARGO_LEPTOS_ARGS
+          echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
+          export RUSTFLAGS="$RUSTFLAGS_VALUE"
+          cargo leptos build --release --lib-features release-lib --bin-features release-bin
         env:
           RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
           LEPTOS_HASH_FILES: true
