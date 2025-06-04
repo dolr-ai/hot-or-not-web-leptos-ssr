@@ -87,7 +87,7 @@ impl HistoryCtx {
 }
 
 #[cfg(feature = "ga4")]
-use crate::event_streaming::{send_event_ssr_spawn, send_event_warehouse_ssr_spawn, send_user_id};
+use crate::event_streaming::{send_event_ssr_spawn, send_event_warehouse_ssr_spawn};
 use crate::token::nsfw::NSFWInfo;
 use leptos::html::Video;
 use yral_canisters_common::{
@@ -669,8 +669,6 @@ impl LoginSuccessful {
             })?;
             let canister_id = canisters.user_canister();
 
-            let _ = send_user_id(user_id.to_string());
-
             // login_successful - analytics
             let _ = send_event_ssr_spawn(
                 "login_successful".to_string(),
@@ -736,8 +734,6 @@ impl LoginJoinOverlayViewed {
                 })
                 .to_string(),
             );
-
-            let _ = send_user_id(user_id.to_string());
         }
     }
 }

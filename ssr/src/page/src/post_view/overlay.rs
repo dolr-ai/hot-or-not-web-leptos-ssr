@@ -147,7 +147,11 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
 }
 
 #[component]
-pub fn VideoDetailsOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> impl IntoView {
+pub fn VideoDetailsOverlay(
+    post: PostDetails,
+    prev_post: Option<PostDetails>,
+    win_audio_ref: NodeRef<Audio>,
+) -> impl IntoView {
     let show_share = RwSignal::new(false);
     let show_report = RwSignal::new(false);
     let show_nsfw_permission = RwSignal::new(false);
@@ -420,7 +424,7 @@ pub fn VideoDetailsOverlay(post: PostDetails, win_audio_ref: NodeRef<Audio>) -> 
                     </button>
                 </div>
                 <div class="w-full bg-transparent pointer-events-auto">
-                    <HNGameOverlay post=post_c win_audio_ref />
+                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref />
                 </div>
             </div>
         </div>

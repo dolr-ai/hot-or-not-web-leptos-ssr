@@ -156,6 +156,7 @@ pub fn LoginProviders(
         // Capture the context signal setter
         send_wrap(async move {
             let referrer = auth.referrer_store.get_untracked();
+
             auth.set_new_identity(id.clone(), true);
 
             let canisters = Canisters::authenticate_with_network(id, referrer).await?;

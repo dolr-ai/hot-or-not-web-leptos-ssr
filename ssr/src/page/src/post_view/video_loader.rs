@@ -17,7 +17,7 @@ use component::show_any::ShowAny;
 use component::{
     feed_popup::FeedPopUp, onboarding_flow::OnboardingPopUp, video_player::VideoPlayer,
 };
-use consts::USER_ONBOARDING_STORE;
+use consts::{REFERRAL_REWARD, USER_ONBOARDING_STORE};
 use utils::event_streaming::events::VideoWatched;
 use utils::{bg_url, mp4_url};
 
@@ -29,8 +29,25 @@ pub fn BgView(
     idx: usize,
     children: Children,
 ) -> impl IntoView {
-    let post = Memo::new(move |_| video_queue.with(|q| q.get_index(idx).cloned()));
-    let uid = move || post().as_ref().map(|q| q.uid.clone()).unwrap_or_default();
+    let post_with_prev = Memo::new(move |_| {
+        video_queue.with(|q| {
+            let cur_post = q.get_index(idx).cloned();
+            let prev_post = if idx > 0 {
+                q.get_index(idx - 1).cloned()
+            } else {
+                None
+            };
+            (cur_post, prev_post)
+        })
+    });
+
+    let uid = move || {
+        post_with_prev()
+            .0
+            .as_ref()
+            .map(|q| q.uid.clone())
+            .unwrap_or_default()
+    };
 
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
@@ -67,16 +84,24 @@ pub fn BgView(
             }>
                 <FeedPopUp
                     on_dismiss=move |_| set_show_refer_login_popup.set(false)
-                    header_text="Claim Your Referral
-                    Rewards Now!"
-                    body_text="Signup now to receive 500 SATS as referral rewards."
+                    header_text="Claim Your Referral Rewards Now!".to_string()
+                    body_text=format!("Signup now to receive {} SATS as referral rewards.", REFERRAL_REWARD)
                     login_text="Sign Up"
                 />
             </ShowAny>
             <ShowAny when=move || { show_onboarding_popup.get() }>
                 <OnboardingPopUp onboard_on_click=set_onboarded />
             </ShowAny>
-            {move || post().map(|post| view! { <VideoDetailsOverlay post win_audio_ref /> })}
+            {move || {
+                let (post, prev_post) = post_with_prev.get();
+                Some(view! {
+                    <VideoDetailsOverlay
+                        post=post?
+                        prev_post
+                        win_audio_ref
+                    />
+                 })
+            }}
             {children()}
         </div>
     }

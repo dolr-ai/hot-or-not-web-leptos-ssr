@@ -6,8 +6,8 @@ use crate::connect::ConnectLogin;
 #[component]
 pub fn FeedPopUp<F: Fn(MouseEvent) + 'static>(
     on_dismiss: F,
-    header_text: &'static str,
-    body_text: &'static str,
+    header_text: String,
+    body_text: String,
     login_text: &'static str,
 ) -> impl IntoView {
     view! {

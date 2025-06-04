@@ -94,6 +94,7 @@ axum-extra = { version = "0.10.1", features = [
     "cookie",
     "cookie-signed",
     "cookie-private",
+    "typed-header",
 ] }
 openidconnect = { version = "3.5.0" }
 dotenv = { version = "0.15.0" }

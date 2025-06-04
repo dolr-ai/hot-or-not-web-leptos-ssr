@@ -94,16 +94,16 @@ impl Default for AuthState {
             );
         let referrer_query = use_query::<Referrer>();
         let referrer_principal = Signal::derive(move || {
-            let referrer = referrer_query()
+            let referrer_query_val = referrer_query()
                 .ok()
                 .and_then(|r| Principal::from_text(r.user_refer).ok());
 
-            let referrer_cookie = referrer_cookie.get_untracked();
-            if let Some(ref_princ) = referrer_cookie {
+            let referrer_cookie_val = referrer_cookie.get_untracked();
+            if let Some(ref_princ) = referrer_query_val {
+                set_referrer_cookie(Some(ref_princ));
                 Some(ref_princ)
             } else {
-                set_referrer_cookie(referrer);
-                referrer
+                referrer_cookie_val
             }
         });
 

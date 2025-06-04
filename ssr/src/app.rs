@@ -127,21 +127,11 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <script fetchpriority="low" type="module" src="/js/sentry-init.js" async></script>
                 <script fetchpriority="low" type="module" src="/js/mixpanel-init.js" async></script>
-                <Script async_="true">
-                    {r#"
-                    (function(w,d,s,l,i){
-                    w[l]=w[l]||[];
-                    w[l].push({'gtm.start': new Date().getTime(),event:'gtm.js'});
-                    var f=d.getElementsByTagName(s)[0], 
-                    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';
-                    j.async=true;
-                    j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;
-                    f.parentNode.insertBefore(j,f);
-                    })(window,document,'script','dataLayer','GTM-MNBWSPVJ');
-                    "#}
-                </Script>
+
                 <AutoReload options=options.clone() />
                 <HashedStylesheet id="leptos" options=options.clone() />
+                <Meta property="og:title" content="DOLR AI" />
+                <Meta property="og:image" content="/img/common/refer-earn.webp" />
                 <HydrationScripts options />
                 <MetaTags />
             </head>
@@ -188,10 +178,8 @@ pub fn App() -> impl IntoView {
     }
 
     // Analytics
-    let enable_ga4_script = RwSignal::new(false);
     #[cfg(feature = "ga4")]
     {
-        enable_ga4_script.set(true);
         provide_context(EventHistory::default());
     }
 
@@ -217,22 +205,6 @@ pub fn App() -> impl IntoView {
         // App manifest
         <Link rel="manifest" href=format!("/{}/manifest.json", app_state.asset_path()) />
 
-        // GA4 Global Site Tag (gtag.js) - Google Analytics
-        // G-6W5Q2MRX0E to test locally | G-PLNNETMSLM
-        <Show when=enable_ga4_script>
-            <Script
-                async_="true"
-                src=concat!("https://www.googletagmanager.com/gtag/js?id=", "G-PLNNETMSLM")
-            />
-            <Script>
-                {r#"
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', 'G-PLNNETMSLM');
-                "#}
-            </Script>
-        </Show>
 
         <Router>
             <main class="bg-black" id="body">
