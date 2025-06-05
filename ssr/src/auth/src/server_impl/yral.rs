@@ -23,7 +23,7 @@ use openidconnect::{
 };
 use serde::{Deserialize, Serialize};
 use web_time::Duration;
-use yral_canisters_client::individual_user_template::{Result9, SessionType};
+use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::{utils::time::current_epoch, Canisters};
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
@@ -255,7 +255,7 @@ pub async fn migrate_identity_to_yral_auth(
                 return Err(ServerFnError::new("Failed to lookup session type for user"));
             }
             match user_canister.get_session_type().await {
-                Ok(Result9::Ok(session_type)) => {
+                Ok(Result7::Ok(session_type)) => {
                     break session_type != SessionType::RegisteredSession
                 }
                 e => {
