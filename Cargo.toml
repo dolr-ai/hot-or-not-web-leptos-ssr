@@ -83,7 +83,6 @@ web-sys = { version = "0.3", features = [
     "Window",
     "Document",
     "Worker",
-    "CanvasRenderingContext2d",
 ] }
 circular-buffer = "0.1.7"
 redb = { version = "2.0.0" }
