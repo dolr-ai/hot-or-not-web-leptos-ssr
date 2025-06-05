@@ -5,15 +5,12 @@ pub mod consts;
 pub mod err;
 pub mod faq;
 pub mod hon;
-pub mod icpump;
-pub mod leaderboard;
 pub mod logout;
 pub mod menu;
 pub mod notifs;
 pub mod post_view;
 pub mod privacy;
 pub mod profile;
-pub mod pumpdump;
 pub mod refer_earn;
 pub mod root;
 pub mod scrolling_post_view;
@@ -27,3 +24,5 @@ pub mod view_profile_redirect;
 pub mod wallet;
 #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
 pub mod yral_auth_redirect;
+
+pub mod pumpdump;

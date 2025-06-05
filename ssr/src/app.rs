@@ -1,24 +1,18 @@
-use component::content_upload::AuthorizedUserToSeedContent;
-use page::about_us::AboutUs;
-use page::hon;
-use page::icpump::ai::ICPumpAi;
-use page::icpump::ICPumpLanding;
-use page::post_view::PostDetailsCacheCtx;
-use page::pumpdump::{withdrawal, PndProfilePage};
-use page::token::context::IcpumpSunsetPopupCtx;
-use state::app_type::AppType;
-// use crate::page::wallet::TestIndex;
 use crate::error_template::{AppError, ErrorTemplate};
+use component::content_upload::AuthorizedUserToSeedContent;
 use component::{base_route::BaseRoute, nav::NavBar};
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::hooks::use_location;
 use leptos_router::{components::*, path, MatchNestedRoutes};
+use page::about_us::AboutUs;
+use page::{hon, pumpdump};
+use page::post_view::PostDetailsCacheCtx;
+use page::root::YralRootPage;
 use page::terms_android::TermsAndroid;
 use page::terms_ios::TermsIos;
 use page::{
     err::ServerErrorPage,
-    leaderboard::Leaderboard,
     logout::Logout,
     menu::Menu,
     post_view::{single_post::SinglePost, PostView, PostViewCtx},
@@ -27,19 +21,14 @@ use page::{
         profile_post::ProfilePost, LoggedInUserProfileView, ProfilePostsContext, ProfileView,
     },
     refer_earn::ReferEarn,
-    root::RootPage,
     settings::Settings,
     terms::TermsOfService,
-    token::{
-        create::{CreateToken, CreateTokenCtx, CreateTokenSettings},
-        create_token_faq::CreateTokenFAQ,
-        info::TokenInfo,
-        transfer::TokenTransfer,
-    },
+    token::{info::TokenInfo, transfer::TokenTransfer},
     upload::UploadPostPage,
     wallet::Wallet,
 };
 use state::app_state::AppState;
+use state::app_type::AppType;
 use state::{audio_state::AudioState, content_seed_client::ContentSeedClient};
 use utils::event_streaming::events::HistoryCtx;
 use utils::event_streaming::EventHistory;
@@ -98,11 +87,6 @@ pub fn App() -> impl IntoView {
     let app_state = AppState::from_type(&app_type);
     provide_context(app_state.clone());
 
-    let show_icpump_sunset_popup = RwSignal::new(true);
-    provide_context(IcpumpSunsetPopupCtx {
-        show: show_icpump_sunset_popup,
-    });
-
     // Existing context providers
     provide_context(Canisters::default());
     provide_context(ContentSeedClient::default());
@@ -110,7 +94,6 @@ pub fn App() -> impl IntoView {
     provide_context(ProfilePostsContext::default());
     provide_context(AuthorizedUserToSeedContent::default());
     provide_context(AudioState::default());
-    provide_context(CreateTokenCtx::default());
     provide_context(PostDetailsCacheCtx::default());
 
     // History Tracking
@@ -159,7 +142,7 @@ pub fn App() -> impl IntoView {
                 <Routes fallback=|| view! { <NotFound /> }.into_view()>
                     // auth redirect routes exist outside main context
                     <GoogleAuthRedirectHandlerRoute />
-                    <Route path=path!("/") view=RootPage />
+                    <Route path=path!("/") view=YralRootPage />
                     <ParentRoute path=path!("") view=BaseRoute>
                         <Route path=path!("/hot-or-not/withdraw") view=hon::withdrawal::HonWithdrawal />
                         <Route
@@ -173,7 +156,6 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/hot-or-not/:canister_id/:post_id") view=PostView />
                         <Route path=path!("/post/:canister_id/:post_id") view=SinglePost />
                         <Route path=path!("/profile/:canister_id/post/:post_id") view=ProfilePost />
-                        <Route path=path!("/pnd/profile") view=PndProfilePage />
                         <Route path=path!("/upload") view=UploadPostPage />
                         <Route path=path!("/error") view=ServerErrorPage />
                         <Route path=path!("/menu") view=Menu />
@@ -186,38 +168,24 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/about-us") view=AboutUs />
                         <Route path=path!("/wallet/:id") view=Wallet />
                         <Route path=path!("/wallet") view=Wallet />
-                        <Route path=path!("/leaderboard") view=Leaderboard />
                         <Route path=path!("/logout") view=Logout />
-                        <Route path=path!("/token/create") view=CreateToken />
-                        <Route path=path!("/token/create/settings") view=CreateTokenSettings />
-                        <Route path=path!("/token/create/faq") view=CreateTokenFAQ />
                         <Route
                             path=path!("/token/info/:token_root/:key_principal")
                             view=TokenInfo
                         />
                         <Route path=path!("/token/info/:token_root") view=TokenInfo />
                         <Route path=path!("/token/transfer/:token_root") view=TokenTransfer />
-                        <Route path=path!("/board") view=ICPumpLanding />
-                        <Route path=path!("/icpump-ai") view=ICPumpAi />
-                        <Route path=path!("/pnd/withdraw") view=withdrawal::PndWithdrawal />
+                        <Route path=path!("/pnd/withdraw") view=pumpdump::withdrawal::PndWithdrawal />
                         <Route
                             path=path!("/pnd/withdraw/success")
-                            view=withdrawal::result::Success
+                            view=pumpdump::withdrawal::result::Success
                         />
                         <Route
                             path=path!("/pnd/withdraw/failure")
-                            view=withdrawal::result::Failure
+                            view=pumpdump::withdrawal::result::Failure
                         />
                         <Route path=path!("/terms-ios") view=TermsIos />
                         <Route path=path!("/terms-android") view=TermsAndroid />
-
-                    // {
-                    // #[cfg(any(feature = "local-bin", feature = "local-lib"))]
-                    // view! {
-                    // <Route path=path!("/pnd/test/:token_root") view=crate::page::pumpdump::PndTest />
-                    // }
-                    // }
-                    // <Route path="/test" view=TestIndex/>
                     </ParentRoute>
                 </Routes>
 

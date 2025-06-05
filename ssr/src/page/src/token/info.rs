@@ -11,7 +11,6 @@ use leptos_router::hooks::use_query;
 use leptos_router::params::Params;
 use state::canisters::auth_state;
 use utils::send_wrap;
-use utils::token::icpump::IcpumpTokenInfo;
 use utils::web::copy_to_clipboard;
 
 use crate::wallet::transactions::Transactions;
@@ -90,7 +89,6 @@ fn TokenInfoInner(
     ));
 
     let decimals = meta.decimals;
-    let blur_active = RwSignal::new(meta.is_nsfw);
 
     view! {
         <div class="w-dvw min-h-dvh bg-neutral-800  flex flex-col gap-4">
@@ -107,29 +105,9 @@ fn TokenInfoInner(
                             <div class="flex flex-row gap-2 items-center">
                                 <div class="relative">
                                     <img
-                                        class=move || format!("object-cover h-14 w-14 md:w-18 md:h-18 rounded-full cursor-pointer {}",
-                                            if blur_active() { "blur-md" } else { "" }
-                                        )
+                                        class="object-cover h-14 w-14 md:w-18 md:h-18 rounded-full cursor-pointer"
                                         src=meta.logo_b64
-                                        on:click=move |_| {
-                                            if meta.is_nsfw {
-                                                blur_active.update(|b| *b = !*b);
-                                            }
-                                        }
                                     />
-                                    <ShowAny when=move || blur_active()>
-                                        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
-                                            on:click=move |_| {
-                                                if meta.is_nsfw {
-                                                    blur_active.update(|b| *b = !*b);
-                                                }
-                                            }>
-                                            <Icon
-                                            attr:class="w-6 h-6 text-white/80"
-                                                icon=icondata::AiEyeInvisibleOutlined
-                                            />
-                                        </div>
-                                    </ShowAny>
                                 </div>
                                 <span class="text-base md:text-lg font-semibold text-white">
                                     {meta.name}
@@ -242,11 +220,7 @@ pub fn TokenInfo() -> impl IntoView {
                 };
 
                 let meta = cans
-                    .token_metadata_by_root_type(
-                        &IcpumpTokenInfo,
-                        key_principal,
-                        params.token_root.clone(),
-                    )
+                    .token_metadata_by_root_type(key_principal, params.token_root.clone())
                     .await
                     .ok()
                     .flatten();
@@ -296,7 +270,7 @@ pub fn TokenInfo() -> impl IntoView {
     );
 
     view! {
-        <Title text="ICPump - Token Info" />
+        <Title text="YRAL - Token Info" />
         <Suspense fallback=FullScreenSpinner>
             {move || {
                 token_metadata_fetch.get()

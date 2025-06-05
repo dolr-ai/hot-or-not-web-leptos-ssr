@@ -18,7 +18,6 @@ pub mod server {
 pub mod server {
 
     use auth::server_impl::store::KVStoreImpl;
-    use utils::token::{icpump::ICPumpSearchGrpcChannel, nsfw::ICPumpNSFWGrpcChannel};
 
     use axum::extract::FromRef;
     use axum_extra::extract::cookie::Key;
@@ -47,12 +46,8 @@ pub mod server {
         pub yral_auth_migration_key: jsonwebtoken::EncodingKey,
         #[cfg(feature = "ga4")]
         pub grpc_offchain_channel: tonic::transport::Channel,
-        #[cfg(feature = "firestore")]
-        pub firestore_db: firestore::FirestoreDb,
         #[cfg(feature = "qstash")]
         pub qstash: utils::qstash::QStashClient,
-        pub grpc_icpump_search_channel: ICPumpSearchGrpcChannel,
-        pub grpc_nsfw_channel: ICPumpNSFWGrpcChannel,
         #[cfg(feature = "alloydb")]
         pub alloydb: super::alloydb::AlloyDbInstance,
         #[cfg(feature = "alloydb")]

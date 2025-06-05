@@ -1,3 +1,4 @@
+pub mod action_btn;
 pub mod airdrop_logo;
 pub mod auth_providers;
 pub mod back_btn;

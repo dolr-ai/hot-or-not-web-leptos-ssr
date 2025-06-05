@@ -13,7 +13,6 @@ use server_fn::codec::Json;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::mixpanel::mixpanel_events::*;
 use utils::send_wrap;
-use utils::token::icpump::IcpumpTokenInfo;
 use utils::{event_streaming::events::TokensTransferred, web::paste_from_clipboard};
 
 use leptos_use::use_event_listener;
@@ -345,11 +344,7 @@ pub fn TokenTransfer() -> impl IntoView {
                 return Ok::<_, ServerFnError>(None);
             };
             let meta = cans
-                .token_metadata_by_root_type(
-                    &IcpumpTokenInfo,
-                    Some(cans.user_principal()),
-                    params.token_root.clone(),
-                )
+                .token_metadata_by_root_type(Some(cans.user_principal()), params.token_root.clone())
                 .await
                 .ok()
                 .flatten();
@@ -359,7 +354,7 @@ pub fn TokenTransfer() -> impl IntoView {
     });
 
     view! {
-        <Title text="ICPump - Token transfer" />
+        <Title text="YRAL - Token transfer" />
         <Suspense fallback=FullScreenSpinner>
         {move || Suspend::new(async move {
             let res = token_metadata_fetch.await;
