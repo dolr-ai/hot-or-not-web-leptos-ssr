@@ -446,16 +446,16 @@ pub fn TokenCard(
             </div>
 
             <div class="flex gap-4 justify-between items-center p-2">
-                <ActionButton label="Send".to_string() href=format!("/token/transfer/{root}")>
+                <ActionButtonLink label="Send".to_string() href=format!("/token/transfer/{root}")>
                     <SendIcon class="w-full h-full" />
-                </ActionButton>
-                <ActionButton label="Buy/Sell".to_string() href="#".to_string() disabled=true>
-                    <Icon attr:class="w-full h-full" icon=ArrowLeftRightIcon />
-                </ActionButton>
-                <ActionButtonLink disabled=airdrop_disabled on:click=move |_|{airdrop_action.dispatch(());} label="Airdrop".to_string()>
-                    <Icon attr:class="h-full w-full" icon=AirdropIcon />
                 </ActionButtonLink>
-                <ActionButton label="Share".to_string() href="#".to_string()>
+                <ActionButtonLink label="Buy/Sell".to_string() href="#".to_string() disabled=true>
+                    <Icon attr:class="w-full h-full" icon=ArrowLeftRightIcon />
+                </ActionButtonLink>
+                <ActionButton disabled=airdrop_disabled on:click=move |_|{airdrop_action.dispatch(());} label="Airdrop".to_string()>
+                    <Icon attr:class="h-full w-full" icon=AirdropIcon />
+                </ActionButton>
+                <ActionButtonLink label="Share".to_string() href="#".to_string()>
                     <Icon
                     attr:class="w-full h-full"
                         icon=ShareIcon
@@ -464,10 +464,10 @@ pub fn TokenCard(
                             share_link.set(share_link_coin.clone())
                         }
                     />
-                </ActionButton>
-                <ActionButton label="Details".to_string() href=details.link>
+                </ActionButtonLink>
+                <ActionButtonLink label="Details".to_string() href=details.link>
                     <Icon attr:class="w-4 h-4" icon=ChevronRightIcon />
-                </ActionButton>
+                </ActionButtonLink>
             </div>
             <PopupOverlay show=pop_up>
                 <ShareContent
@@ -561,7 +561,7 @@ pub fn PageSelector(page: RwSignal<u64>, end_of_list: RwSignal<bool>) -> impl In
 }
 
 #[component]
-pub fn ActionButton(
+pub fn ActionButtonLink(
     href: String,
     label: String,
     children: Children,
@@ -592,7 +592,7 @@ pub fn ActionButton(
 }
 
 #[component]
-pub fn ActionButtonLink(
+pub fn ActionButton(
     label: String,
     children: Children,
     #[prop(optional, into)] disabled: Signal<bool>,

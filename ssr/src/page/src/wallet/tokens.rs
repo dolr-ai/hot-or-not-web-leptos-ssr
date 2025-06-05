@@ -748,22 +748,22 @@ fn WalletCardOptions(
 
     Some(view! {
         <div class="flex items-center justify-around">
-            <ActionButton disabled=is_utility_token href=format!("/token/transfer/{root}") label="Send".to_string()>
+            <ActionButtonLink disabled=is_utility_token href=format!("/token/transfer/{root}") label="Send".to_string()>
                 <SendIcon class="h-full w-full" />
-            </ActionButton>
-            <ActionButton disabled=true href="#".to_string() label="Buy/Sell".to_string()>
-                <Icon attr:class="h-6 w-6" icon=ArrowLeftRightIcon />
-            </ActionButton>
-            <ActionButtonLink disabled=airdrop_disabled on:click=move |_|{airdrop_action.dispatch(());} label="Airdrop".to_string()>
-                <Icon attr:class="h-6 w-6" icon=AirdropIcon />
             </ActionButtonLink>
+            <ActionButtonLink disabled=true href="#".to_string() label="Buy/Sell".to_string()>
+                <Icon attr:class="h-6 w-6" icon=ArrowLeftRightIcon />
+            </ActionButtonLink>
+            <ActionButton disabled=airdrop_disabled on:click=move |_|{airdrop_action.dispatch(());} label="Airdrop".to_string()>
+                <Icon attr:class="h-6 w-6" icon=AirdropIcon />
+            </ActionButton>
 
-            <ActionButton disabled=is_utility_token href="#".to_string() label="Share".to_string()>
+            <ActionButtonLink disabled=is_utility_token href="#".to_string() label="Share".to_string()>
                 <Icon attr:class="h-6 w-6" icon=ShareIcon on:click=move |_| {pop_up.set(true); share_link.set(share_link_coin.clone())}/>
-            </ActionButton>
-            <ActionButton disabled=is_utility_token href=format!("/token/info/{root}/{user_principal}") label="Details".to_string()>
+            </ActionButtonLink>
+            <ActionButtonLink disabled=is_utility_token href=format!("/token/info/{root}/{user_principal}") label="Details".to_string()>
                 <Icon attr:class="h-6 w-6" icon=ChevronRightIcon />
-            </ActionButton>
+            </ActionButtonLink>
         </div>
     })
 }
