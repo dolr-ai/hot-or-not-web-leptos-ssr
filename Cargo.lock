@@ -3249,6 +3249,7 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70#9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70"
 dependencies = [
  "candid",
  "ic-agent",
@@ -7312,6 +7313,7 @@ checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70#9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70"
 dependencies = [
  "candid",
  "humantime",
@@ -9156,6 +9158,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70#9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70"
 dependencies = [
  "anyhow",
  "candid",
@@ -9170,6 +9173,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70#9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70"
 dependencies = [
  "candid",
  "ciborium",
@@ -9202,6 +9206,7 @@ dependencies = [
 [[package]]
 name = "yral-grpc-traits"
 version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70#9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70"
 dependencies = [
  "serde",
 ]
@@ -9280,6 +9285,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70#9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70"
 dependencies = [
  "candid",
  "ic-agent",
@@ -9305,6 +9311,7 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70#9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70"
 dependencies = [
  "ic-agent",
  "k256",

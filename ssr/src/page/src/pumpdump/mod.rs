@@ -1,2 +1,2 @@
-pub mod withdrawal;
 pub mod model;
+pub mod withdrawal;

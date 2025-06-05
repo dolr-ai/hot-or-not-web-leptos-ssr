@@ -6,7 +6,6 @@ use leptos_meta::*;
 use leptos_router::hooks::use_location;
 use leptos_router::{components::*, path, MatchNestedRoutes};
 use page::about_us::AboutUs;
-use page::{hon, pumpdump};
 use page::post_view::PostDetailsCacheCtx;
 use page::root::YralRootPage;
 use page::terms_android::TermsAndroid;
@@ -27,6 +26,7 @@ use page::{
     upload::UploadPostPage,
     wallet::Wallet,
 };
+use page::{hon, pumpdump};
 use state::app_state::AppState;
 use state::app_type::AppType;
 use state::{audio_state::AudioState, content_seed_client::ContentSeedClient};
