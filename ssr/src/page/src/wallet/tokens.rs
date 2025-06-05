@@ -492,20 +492,39 @@ pub fn FastWalletCard(
         user_principal,
     });
     
-    let airdropper: Option<Box<dyn AirdroppableImpl + 'static>> = display_info.then(|| match display_info.name.as_str() {
-        s if s == SATS_TOKEN_NAME => Box::new(AirdropSats) as Airdropper,
+    let airdropper: Option<Box<dyn AirdroppableImpl + 'static>> = (|| match display_info.name.as_str() {
+        s if s == SATS_TOKEN_NAME => Some(Box::new(AirdropSats) as Airdropper),
         _ => unimplemented!("Airdrop not implemented for this token"),
-    });
+    })();
 
+    // airdrop popup state
     let show_airdrop_popup = RwSignal::new(false);
+    let airdrop_amount_claimed: RwSignal<u64> = RwSignal::new(0);
     let error_claiming_airdrop = RwSignal::new(false);
-    let is_airdrop_claimed = airdropper.as_ref().map(|a| a.is_airdrop_claimed(user_principal));
+    
+    // fetch airdrop claim info
+    let is_airdrop_claimed = RwSignal::new(false);
+    if let Some(airdropper) = &airdropper {
+        is_airdrop_claimed.set(airdropper.is_airdrop_claimed(user_principal).unwrap_or(true));
+    }
+
+    // action to claim airdrop
     let claim_airdrop = Action::new_local(move |&()| {
         let auth = auth_state();
+        let airdrop_amount_claimed = airdrop_amount_claimed.clone();
+        let error_claiming_airdrop = error_claiming_airdrop.clone();
         async move {
             show_airdrop_popup.set(true);
-            airdropper.as_ref().unwrap().claim_airdrop(auth).await?;
-            Ok::<_, ServerFnError>(())
+            match airdropper.as_ref().unwrap().claim_airdrop(auth) {
+                Ok(amount) => {
+                    airdrop_amount_claimed.set(amount);
+                    error_claiming_airdrop.set(false);
+                }
+                Err(_) => {
+                    error_claiming_airdrop.set(true);
+                }
+            }
+            Ok(())
         }
     });
     
@@ -547,7 +566,6 @@ pub fn FastWalletCard(
                 {move || Suspend::new(async move {
                     // withdraw section wont show in case of error
                     // error logs are captured by sentry
-                    // let airdroppable 
 
                     let withdrawal_state = withdrawal_state.await.inspect_err(|err| log::error!("withdrawal state loading error: {err:?}")).ok().flatten();
                     let withdrawal_state = withdrawal_state?;
@@ -616,9 +634,6 @@ pub fn WalletCard(
         user_principal,
     });
 
-    // let airdrop_popup = RwSignal::new(false);
-    // let buffer_signal = RwSignal::new(false);
-    // let claimed = RwSignal::new(is_airdrop_claimed);
     let is_connected = auth_state().is_logged_in_with_oauth();
     let show_login = use_context()
         .map(|ShowLoginSignal(show_login)| show_login)
@@ -641,15 +656,37 @@ pub fn WalletCard(
         _ => unimplemented!("Airdrop not implemented for this token"),
     });
 
-    let enable_airdrop = airdropper.as_ref().map(|a| a.is_airdrop_claimed(user_principal));
-    let claim_airdrop = airdropper.as_ref().map(|a| a.claim_airdrop(auth_state()));
-
+    // airdrop popup state
     let show_airdrop_popup = RwSignal::new(false);
-    let is_airdrop_claimed = RwSignal::new(is_airdrop_claimed);
+    let airdrop_amount_claimed: RwSignal<u64> = RwSignal::new(0);
     let error_claiming_airdrop = RwSignal::new(false);
+     
+    // fetch airdrop claim info
+    let is_airdrop_claimed = RwSignal::new(false);
+    if let Some(airdropper) = &airdropper {
+        is_airdrop_claimed.set(airdropper.is_airdrop_claimed(user_principal).unwrap_or(true));
+    }
+ 
+    // action to claim airdrop
+    let claim_airdrop = Action::new_local(move |&()| {
+         let auth = auth_state();
+         let airdrop_amount_claimed = airdrop_amount_claimed.clone();
+         let error_claiming_airdrop = error_claiming_airdrop.clone();
+         async move {
+             show_airdrop_popup.set(true);
+             match airdropper.as_ref().unwrap().claim_airdrop(auth) {
+                 Ok(amount) => {
+                     airdrop_amount_claimed.set(amount);
+                     error_claiming_airdrop.set(false);
+                 }
+                 Err(_) => {
+                     error_claiming_airdrop.set(true);
+                 }
+             }
+             Ok(())
+         }
+    });
 
-
-    let buffer_signal = RwSignal::new(false);
     let (is_withdrawable, withdraw_message, withdrawable_balance) =
         match (token_metadata.withdrawable_state, withdrawer.as_ref()) {
             (Some(ref state), Some(w)) => match w.details(state.clone()) {
@@ -713,7 +750,7 @@ pub fn WalletCard(
                 })}
             </div>
 
-            <WalletCardOptions pop_up=pop_up.write_only() share_link=share_link.write_only() airdrop_popup buffer_signal claimed/>
+            <WalletCardOptions pop_up=pop_up.write_only() share_link=share_link.write_only() airdrop_claimed=is_airdrop_claimed claim_airdrop/>
 
             <PopupOverlay show=pop_up >
                 <ShareContent
@@ -733,12 +770,11 @@ fn WalletCardOptions(
     pop_up: WriteSignal<bool>,
     share_link: WriteSignal<String>,
     airdrop_claimed: RwSignal<bool>,
-    claim_airdrop: Action<(), Result<u64, ServerFnError>>,
+    claim_airdrop: Action<(), Result<(), ServerFnError>>,
 ) -> impl IntoView {
     let WalletCardOptionsContext {
         is_utility_token,
         root,
-        token_owner,
         user_principal,
         ..
     } = use_context()?;
