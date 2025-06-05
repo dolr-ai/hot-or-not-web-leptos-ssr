@@ -6,6 +6,7 @@ use leptos_meta::*;
 use leptos_router::hooks::use_location;
 use leptos_router::{components::*, path, MatchNestedRoutes};
 use page::about_us::AboutUs;
+use page::leaderboard::Leaderboard;
 use page::post_view::PostDetailsCacheCtx;
 use page::root::YralRootPage;
 use page::terms_android::TermsAndroid;
@@ -168,6 +169,7 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/about-us") view=AboutUs />
                         <Route path=path!("/wallet/:id") view=Wallet />
                         <Route path=path!("/wallet") view=Wallet />
+                        <Route path=path!("/leaderboard") view=Leaderboard />
                         <Route path=path!("/logout") view=Logout />
                         <Route
                             path=path!("/token/info/:token_root/:key_principal")
