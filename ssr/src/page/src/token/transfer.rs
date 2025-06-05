@@ -16,7 +16,6 @@ use utils::send_wrap;
 use utils::{event_streaming::events::TokensTransferred, web::paste_from_clipboard};
 
 use leptos_use::use_event_listener;
-use yral_canisters_client::sns_root::ListSnsCanistersArg;
 use yral_canisters_common::utils::token::balance::TokenBalance;
 use yral_canisters_common::utils::token::TokenMetadata;
 use yral_canisters_common::{Canisters, CanistersAuthWire};
@@ -164,40 +163,14 @@ fn TokenTransferInner(
             let cans = Canisters::from_wire(cans_wire.clone(), base)?;
 
             let destination = destination_res.get_untracked().unwrap().unwrap();
-            // let amt = amt_res.get_untracked().unwrap().unwrap();
-
-            // let user = cans.authenticated_user().await;
-            // let res = user
-            //     .transfer_token_to_user_canister(root, destination, None, amt)
-            //     .await
-            //     .map_err(|e| e.to_string())?;
-            // if let Result22::Err(e) = res {
-            //     return Err(format!("{e:?}"));
-            // }
-
-            // Ok(())
 
             let amt = amt_res.get_untracked().unwrap().unwrap();
 
             match root {
-                RootType::Other(root) => {
-                    let root_canister = cans.sns_root(root).await;
-                    println!("{root}");
-                    let sns_cans = root_canister
-                        .list_sns_canisters(ListSnsCanistersArg {})
-                        .await
-                        .unwrap();
-                    let ledger_canister = sns_cans.ledger.unwrap();
-                    log::debug!("ledger_canister: {ledger_canister:?}");
-
-                    transfer_token_to_user_principal(
-                        cans_wire.clone(),
-                        destination,
-                        ledger_canister,
-                        root,
-                        amt.clone(),
-                    )
-                    .await?;
+                RootType::Other(_) => {
+                    return Err(ServerFnError::new(
+                        "Creator tokens cannot be transferred from Yral",
+                    ))
                 }
                 RootType::BTC { ledger, .. } => {
                     cans.transfer_ck_token_to_user_principal(destination, ledger, amt.clone())

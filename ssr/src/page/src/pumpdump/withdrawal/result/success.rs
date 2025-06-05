@@ -29,7 +29,7 @@ pub fn Success() -> impl IntoView {
 
     Some(view! {
         <div
-            style:background-image="url('/img/pumpdump/onboarding-bg.webp')"
+            style:background-image="url('/img/yral/onboarding-bg.webp')"
             class="min-h-screen w-full flex flex-col text-white pt-2 pb-12 bg-black items-center relative max-md:bg-size-[271vw_100vh] md:bg-size-[max(100vw,100vh)] max-md:bg-position-[-51.2vh_-6vw]"
         >
             <div id="back-nav" class="flex flex-col items-center w-full gap-20 pb-16">
@@ -42,7 +42,7 @@ pub fn Success() -> impl IntoView {
             <div class="w-full">
                 <div class="max-w-md w-full mx-auto px-4 mt-4 pb-6 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                     <div class="w-full flex flex-col gap-12 items-center">
-                        <img class="max-w-44" src="/img/pumpdump/cents-stack.webp" />
+                        <img class="max-w-44" src="/img/yral/cents-stack.webp" />
                         <div class="flex flex-col gap-8 w-full px-5">
                             <div class="flex flex-col gap-2 items-center">
                                 <span class="font-bold text-lg">

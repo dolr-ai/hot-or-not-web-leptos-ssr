@@ -63,7 +63,6 @@ wasm-bindgen-futures = { workspace = true }
 testcontainers = { workspace = true, optional = true }
 yral-testcontainers = { workspace = true, optional = true }
 sns-validation = { workspace = true }
-yral-grpc-traits = { workspace = true }
 js-sys = { workspace = true }
 tonic = { workspace = true }
 prost = { workspace = true }

@@ -162,30 +162,28 @@ yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adb
 # ===
 # Uncomment the below lines for testing out yral-common changes locally
 # ===
-# sns-validation = { path = "../yral-common/sns-validation" }
-# yral-grpc-traits = { path = "../yral-common/grpc-traits" }
-# yral-types = { path = "../yral-common/types" }
-# yral-canisters-client = { path = "../yral-common/canisters-client", features = [
-#     "full",
-# ] }
-# yral-canisters-common = { path = "../yral-common/canisters-common" }
-# hon-worker-common = { path = "../yral-common/hon-worker-common", features = [
-#     "client",
-# ], version = "0.1.0" }
-# yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features = [
-#     "client",
-# ], version = "0.1.0" }
-# # ===
-yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common", features = [
-    "client",
-], rev = "9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70", version = "0.1.0" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", rev = "9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70" }
-yral-grpc-traits = { git = "https://github.com/dolr-ai/yral-common.git", rev = "9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", rev = "9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev = "9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70", features = [
+sns-validation = { path = "../yral-common/sns-validation" }
+yral-types = { path = "../yral-common/types" }
+yral-canisters-client = { path = "../yral-common/canisters-client", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70" }
-hon-worker-common = { git = "https://github.com/dolr-ai/yral-common", features = [
+yral-canisters-common = { path = "../yral-common/canisters-common" }
+hon-worker-common = { path = "../yral-common/hon-worker-common", features = [
     "client",
-], rev = "9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70", version = "0.1.0" }
+], version = "0.1.0" }
+yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features = [
+    "client",
+], version = "0.1.0" }
+# # ===
+# yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common", features = [
+#     "client",
+# ], rev = "9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70", version = "0.1.0" }
+# sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", rev = "9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70" }
+# yral-types = { git = "https://github.com/dolr-ai/yral-common.git", rev = "9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70" }
+# yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev = "9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70", features = [
+#     "full",
+# ] }
+# yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70" }
+# hon-worker-common = { git = "https://github.com/dolr-ai/yral-common", features = [
+#     "client",
+# ], rev = "9b918b40ac7e2eeefb1c3b53151ed6b59a3c3e70", version = "0.1.0" }
