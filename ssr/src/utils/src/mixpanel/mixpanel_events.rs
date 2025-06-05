@@ -142,12 +142,13 @@ impl MixpanelGlobalProps {
         let (device_id, set_device_id, _) =
             use_local_storage::<String, FromToStringCodec>(DEVICE_ID);
 
-        if device_id.get_untracked().is_empty() {
+        let device_id_value = device_id.get_untracked();
+        if device_id_value.is_empty() {
             let new_device_id = uuid::Uuid::new_v4().to_string();
             set_device_id.set(new_device_id.clone());
             new_device_id
         } else {
-            device_id.get_untracked()
+            device_id_value
         }
     }
 
