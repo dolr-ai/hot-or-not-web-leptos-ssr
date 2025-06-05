@@ -1,7 +1,7 @@
 use auth::logout_identity;
 use codee::string::FromToStringCodec;
 use component::loading::Loading;
-use consts::NOTIFICATIONS_ENABLED_STORE;
+use consts::{DEVICE_ID, NOTIFICATIONS_ENABLED_STORE};
 use leptos::prelude::*;
 use leptos_router::components::Redirect;
 use leptos_use::storage::use_local_storage;
@@ -19,6 +19,8 @@ pub fn Logout() -> impl IntoView {
     let (_, set_notifs_enabled, _) =
         use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
 
+    let (_, set_device_id, _) = use_local_storage::<String, FromToStringCodec>(DEVICE_ID);
+
     view! {
         <Loading text="Logging out...".to_string()>
             <Suspense>
@@ -28,6 +30,7 @@ pub fn Logout() -> impl IntoView {
                         Ok(id) => {
                             auth.set_new_identity(id, false);
                             set_notifs_enabled(false);
+                            set_device_id(uuid::Uuid::new_v4().to_string());
                             LogoutConfirmation.send_event(ev_ctx);
                             view! {
                                 <Redirect path="/menu" />
