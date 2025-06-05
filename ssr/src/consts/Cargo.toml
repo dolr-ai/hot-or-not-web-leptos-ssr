@@ -140,7 +140,6 @@ mock-referral-history = ["dep:rand_chacha", "k256/arithmetic"]
 mock-history = ["mock-referral-history", "mock-wallet-history"]
 oauth-ssr = ["dep:openidconnect"]
 oauth-hydrate = []
-local-auth = []
 redis-kv = []
 cloudflare = ["dep:gob-cloudflare"]
 backend-admin = []
@@ -171,7 +170,6 @@ release-lib = [
 local-bin = [
     "ssr",
     "redis-kv",
-    "local-auth",
     "backend-admin",
     "dep:testcontainers",
     "dep:yral-testcontainers",
@@ -182,7 +180,6 @@ local-bin = [
 local-lib = [
     "hydrate",
     "redis-kv",
-    "local-auth",
     "backend-admin",
     "yral-canisters-common/local",
 ]

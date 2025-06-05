@@ -1,7 +1,5 @@
 #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-pub mod google;
-#[cfg(feature = "local-auth")]
-pub mod local_storage;
+pub mod yral;
 use candid::Principal;
 use consts::NEW_USER_SIGNUP_REWARD;
 use consts::REFERRAL_REWARD;
@@ -198,16 +196,9 @@ pub fn LoginProviders(
             <img class="h-32 w-32 object-contain my-8" src="/img/yral/logo.webp" />
             <span class="text-md">Continue with</span>
             <div class="flex flex-col w-full gap-4 items-center">
-
-                {
-                    #[cfg(feature = "local-auth")]
-                    view! {
-                        <local_storage::LocalStorageProvider></local_storage::LocalStorageProvider>
-                    }
-                }
                 {
                     #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-                    view! { <google::GoogleAuthProvider></google::GoogleAuthProvider> }
+                    view! { <yral::YralAuthProvider/> }
                 }
                 <div id="tnc" class="text-white text-center">
                     By continuing you agree to our <a class="text-primary-600 underline" href="/terms-of-service">Terms of Service</a>
@@ -231,7 +222,7 @@ mod server_fn_impl {
         use hon_worker_common::WORKER_URL;
         use leptos::prelude::*;
         use state::server::HonWorkerJwt;
-        use yral_canisters_client::individual_user_template::{Result22, Result9};
+        use yral_canisters_client::individual_user_template::{Result15, Result7};
 
         pub async fn issue_referral_rewards_impl(
             worker_req: ReferralReqWithSignature,
@@ -266,7 +257,7 @@ mod server_fn_impl {
             let user = admin_cans.individual_user_for(user_canister).await;
             if matches!(
                 user.get_session_type().await?,
-                Result9::Ok(SessionType::RegisteredSession)
+                Result7::Ok(SessionType::RegisteredSession)
             ) {
                 return Ok(false);
             }
@@ -274,8 +265,8 @@ mod server_fn_impl {
                 .await
                 .map_err(ServerFnError::from)
                 .and_then(|res| match res {
-                    Result22::Ok(_) => Ok(()),
-                    Result22::Err(e) => Err(ServerFnError::new(format!(
+                    Result15::Ok(_) => Ok(()),
+                    Result15::Err(e) => Err(ServerFnError::new(format!(
                         "failed to mark user as registered {e}"
                     ))),
                 })?;

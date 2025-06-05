@@ -1,3 +1,6 @@
+// TEMP
+#![allow(dead_code)]
+
 #[cfg(feature = "ssr")]
 pub mod server_impl;
 
@@ -6,7 +9,6 @@ use ic_agent::{
     identity::{Delegation, Secp256k1Identity, SignedDelegation},
     Identity,
 };
-use k256::elliptic_curve::JwkEcKey;
 use leptos::prelude::*;
 use leptos::{server, server_fn::codec::Json};
 use rand_chacha::rand_core::OsRng;
@@ -16,6 +18,12 @@ use yral_canisters_common::utils::time::current_epoch;
 
 use consts::auth::DELEGATION_MAX_AGE;
 use yral_types::delegated_identity::DelegatedIdentityWire;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct AnonymousIdentity {
+    pub identity: DelegatedIdentityWire,
+    pub refresh_token: String,
+}
 
 fn delegate_identity_with_max_age(
     from: &impl Identity,
@@ -56,23 +64,24 @@ pub fn delegate_short_lived_identity(from: &impl Identity) -> DelegatedIdentityW
 }
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
-pub struct RefreshToken {
+pub struct RefreshTokenLegacy {
     principal: Principal,
     expiry_epoch_ms: u128,
 }
 
 /// Generate an anonymous identity if refresh token is not set
 #[server]
-pub async fn generate_anonymous_identity_if_required() -> Result<Option<JwkEcKey>, ServerFnError> {
+pub async fn generate_anonymous_identity_if_required(
+) -> Result<Option<AnonymousIdentity>, ServerFnError> {
     server_impl::generate_anonymous_identity_if_required_impl().await
 }
 
 /// this server function is purely a side effect and only sets the refresh token cookie
 #[server(endpoint = "set_anonymous_identity_cookie", input = Json, output = Json)]
 pub async fn set_anonymous_identity_cookie(
-    anonymous_identity: JwkEcKey,
+    refresh_jwt: Option<String>,
 ) -> Result<(), ServerFnError> {
-    server_impl::set_anonymous_identity_cookie_impl(anonymous_identity).await
+    server_impl::set_anonymous_identity_cookie_impl(refresh_jwt).await
 }
 
 /// Extract the identity from refresh token,
@@ -85,29 +94,4 @@ pub async fn extract_identity() -> Result<Option<DelegatedIdentityWire>, ServerF
 #[server]
 pub async fn logout_identity() -> Result<DelegatedIdentityWire, ServerFnError> {
     server_impl::logout_identity_impl().await
-}
-
-#[cfg(feature = "oauth-ssr")]
-pub mod core_clients {
-    #[derive(Clone)]
-    pub struct CoreClients {
-        pub google_oauth: openidconnect::core::CoreClient,
-        pub hotornot_google_oauth: openidconnect::core::CoreClient,
-        pub icpump_google_oauth: openidconnect::core::CoreClient,
-        pub pumpdump_google_oauth: openidconnect::core::CoreClient,
-    }
-
-    impl CoreClients {
-        pub fn get_oauth_client(&self, host: &str) -> openidconnect::core::CoreClient {
-            if host == "hotornot.wtf" {
-                self.hotornot_google_oauth.clone()
-            } else if host == "icpump.fun" {
-                self.icpump_google_oauth.clone()
-            } else if host == "pumpdump.wtf" {
-                self.pumpdump_google_oauth.clone()
-            } else {
-                self.google_oauth.clone()
-            }
-        }
-    }
 }

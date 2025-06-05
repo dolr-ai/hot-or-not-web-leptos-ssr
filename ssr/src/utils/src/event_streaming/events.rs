@@ -11,10 +11,8 @@ use wasm_bindgen::JsCast;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProviderKind {
-    #[cfg(feature = "local-auth")]
-    LocalStorage,
     #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-    Google,
+    YralAuth,
 }
 
 use circular_buffer::CircularBuffer;
@@ -698,10 +696,8 @@ impl LoginMethodSelected {
                 "login_method_selected".to_string(),
                 json!({
                     "login_method": match prov {
-                        #[cfg(feature = "local-auth")]
-                        ProviderKind::LocalStorage => "local_storage",
                         #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-                        ProviderKind::Google => "google",
+                        ProviderKind::YralAuth => "yral",
                     },
                     "attempt_count": 1,
                 })

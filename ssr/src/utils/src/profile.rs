@@ -2,7 +2,7 @@ use candid::Principal;
 use ic_agent::AgentError;
 use indexmap::IndexSet;
 use leptos::prelude::*;
-use yral_canisters_client::individual_user_template::Result8;
+use yral_canisters_client::individual_user_template::Result6;
 
 use yral_canisters_common::{
     cursored_data::{CursoredDataProvider, PageEntry},
@@ -51,8 +51,8 @@ impl CursoredDataProvider for PostsProvider {
             .get_posts_of_this_user_profile_with_pagination_cursor(start as u64, limit as u64)
             .await?;
         let posts = match posts {
-            Result8::Ok(v) => v,
-            Result8::Err(_) => {
+            Result6::Ok(v) => v,
+            Result6::Err(_) => {
                 log::warn!("failed to get posts");
                 return Ok(PageEntry {
                     data: vec![],

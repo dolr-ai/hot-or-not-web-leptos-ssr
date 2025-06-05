@@ -100,48 +100,38 @@ pub fn ProfileTokens(user_canister: Principal, user_principal: Principal) -> imp
                     </div>
                 }
             }>
-                {move || {
-                    token_list_res.get()
-                        .map(|res| res.unwrap_or((vec![], false)))
-                        .map(|(tokens, is_native_profile)| {
-                            let empty = tokens.is_empty();
+                {move || Suspend::new(async move {
+                    let (tokens, is_native_profile) = token_list_res.await.unwrap_or((vec![], false));
+                    let is_empty = tokens.is_empty();
+                    view! {
+                        {tokens.into_iter().map(|(token, is_airdrop_claimed)| view! {
+                            <WalletCard
+                                user_principal
+                                token_metadata=token
+                                is_airdrop_claimed=is_airdrop_claimed.unwrap_or(true)
+                            />
+                        }).collect_view()}
+                        {is_empty.then(|| {
                             view! {
-                                {tokens
-                                    .into_iter()
-                                    .map(|(token, is_airdrop_claimed)| {
-                                        view! {
-                                            <WalletCard
-                                                user_principal
-                                                token_metadata=token
-                                                is_airdrop_claimed=is_airdrop_claimed.unwrap_or(true)
-                                            />
-                                        }
-                                    })
-                                    .collect_view()}
-                                {empty
-                                    .then(|| {
-                                        view! {
-                                            <CreateYourToken header_text=if is_native_profile {
-                                                "Create your own"
-                                            } else {
-                                                "They have not created any"
-                                            } />
-                                        }
-                                    })}
-                                {is_native_profile
-                                    .then(|| {
-                                        view! {
-                                            <a
-                                                href="/token/create"
-                                                class="text-xl bg-primary-600 py-4 w-2/3 md:w-1/2 lg:w-1/3 rounded-full text-center text-white"
-                                            >
-                                                Create
-                                            </a>
-                                        }
-                                    })}
+                                <CreateYourToken header_text=if is_native_profile {
+                                    "Create your own"
+                                } else {
+                                    "They have not created any"
+                                } />
                             }
-                        })
-                }}
+                        })}
+                        {is_native_profile.then(|| {
+                            view! {
+                                <a
+                                    href="/token/create"
+                                    class="text-xl bg-primary-600 py-4 w-2/3 md:w-1/2 lg:w-1/3 rounded-full text-center text-white"
+                                >
+                                    Create
+                                </a>
+                            }
+                        })}
+                    }
+                })}
             </Suspense>
         </div>
     }

@@ -1,5 +1,3 @@
-mod history;
-
 use candid::Principal;
 use consts::{NEW_USER_SIGNUP_REWARD, REFERRAL_REWARD};
 use gloo::timers::callback::Timeout;

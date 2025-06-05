@@ -8,7 +8,7 @@ describe('Profile page tests', function () {
 
     it('profile page', async function (browser) {
         browser.element.findByText('Login', {timeout: 10000}).waitUntil('visible').click()
-        browser.element.findByText('Google Sign-In').waitUntil('visible')
+        browser.element.findByText('Yral Sign-In').waitUntil('visible')
         browser.percySnapshot('SignIn Modal')
     })
 

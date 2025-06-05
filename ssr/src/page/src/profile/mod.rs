@@ -7,7 +7,7 @@ mod speculation;
 mod tokens;
 
 use candid::Principal;
-use component::connect::ConnectLogin;
+use component::{connect::ConnectLogin, spinner::FullScreenSpinner};
 use indexmap::IndexSet;
 use leptos::prelude::*;
 use leptos_icons::*;
@@ -31,7 +31,7 @@ pub struct ProfilePostsContext {
     queue_end: RwSignal<bool>,
 }
 
-#[derive(Params, PartialEq)]
+#[derive(Params, PartialEq, Clone)]
 struct ProfileParams {
     id: String,
 }
@@ -151,10 +151,47 @@ fn ProfileViewInner(user: ProfileDetails, user_canister: Principal) -> impl Into
     }
     .into_any()
 }
+
+#[component]
+fn ProfilePageTitle() -> impl IntoView {
+    let app_state = use_context::<AppState>();
+    let page_title = app_state.unwrap().name.to_owned() + " - Profile";
+    view! {
+        <Title text=page_title />
+    }
+}
+
+#[component]
+pub fn LoggedInUserProfileView() -> impl IntoView {
+    let tab_params = use_params::<TabsParam>();
+    let tab = move || tab_params.get().map(|p| p.tab).ok();
+    let auth = auth_state();
+
+    view! {
+        <ProfilePageTitle />
+        <Suspense fallback=FullScreenSpinner>
+            {move || Suspend::new(async move {
+                let principal = auth.user_principal.await;
+                match principal {
+                    Ok(principal) => view! {
+                        {move || tab().map(|tab| {
+                            view! {
+                                <Redirect path=format!("/profile/{principal}/{tab}") />
+                            }
+                        })}
+                    }.into_any(),
+                    Err(_) => view! {
+                        <Redirect path="/" />
+                    }.into_any(),
+                }
+            })}
+        </Suspense>
+    }
+}
+
 #[component]
 pub fn ProfileView() -> impl IntoView {
     let params = use_params::<ProfileParams>();
-    let tab_params = use_params::<TabsParam>();
 
     let param_principal = move || {
         params.with(|p| {
@@ -164,75 +201,55 @@ pub fn ProfileView() -> impl IntoView {
     };
 
     let auth = auth_state();
-    let profile_info_res = auth.derive_resource(param_principal, move |cans, principal| {
+    let cans = unauth_canisters();
+    let user_details = Resource::new(param_principal, move |profile_principal| {
+        let cans = cans.clone();
         send_wrap(async move {
-            let user_principal = cans.user_principal();
-
-            let Some(principal) = principal else {
+            let profile_principal =
+                profile_principal.ok_or_else(|| ServerFnError::new("Invalid principal"))?;
+            if let Some(user_can) = auth
+                .auth_cans_if_available(cans.clone())
+                .filter(|can| can.user_principal() == profile_principal)
+            {
                 return Ok::<_, ServerFnError>((
-                    None::<(ProfileDetails, Principal)>,
-                    Some(user_principal),
+                    user_can.profile_details(),
+                    user_can.user_canister(),
                 ));
-            };
-            if user_principal == principal {
-                let details = cans.profile_details();
-                let user_canister = cans.user_canister();
-                return Ok((Some((details, user_canister)), None));
             }
-            let canisters = unauth_canisters();
-            let Some(user_canister) = canisters
-                .get_individual_canister_by_user_principal(principal)
+
+            let user_canister = cans
+                .get_individual_canister_by_user_principal(profile_principal)
                 .await?
-            else {
-                return Err(ServerFnError::new("Failed to get user canister"));
-            };
-            let user = canisters.individual_user(user_canister).await;
+                .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
+            let user = cans.individual_user(user_canister).await;
             let user_details = user.get_profile_details().await?;
-            Ok((Some((user_details.into(), user_canister)), None))
+
+            Ok::<_, ServerFnError>((ProfileDetails::from(user_details), user_canister))
         })
     });
 
-    let app_state = use_context::<AppState>();
-    let page_title = app_state.unwrap().name.to_owned() + " - Profile";
     view! {
-        <Title text=page_title />
-        <Suspense>
-            {move || {
-                profile_info_res.get().map(|res| {
-                    match res {
-                        Ok((None, Some(user_principal))) => {
-                            if let Ok(TabsParam { tab }) = tab_params() {
-                                view! {
-                                    <Redirect path=format!(
-                                        "/profile/{}/{}",
-                                        user_principal,
-                                        tab,
-                                    ) />
-                                }.into_any()
-                            } else {
-                                view! { <Redirect path="/" /> }.into_any()
-                            }
-                        }
-                        Err(_) => view! { <Redirect path="/" /> }.into_any(),
-                        Ok((Some((user_details, user_canister)), None)) => {
-                            view! {
-                                <ProfileComponent user_details=Some((
-                                    user_details,
-                                    user_canister,
-                                )) />
-                            }.into_any()
-                        }
-                        _ => view! { <Redirect path="/" /> }.into_any(),
-                    }
-                })
-            }}
+        <ProfilePageTitle />
+        <Suspense fallback=FullScreenSpinner>
+            {move || Suspend::new(async move {
+                let res = user_details.await;
+
+                match res {
+                    Ok((user, user_canister)) => view! {
+                        <ProfileComponent user user_canister />
+                    }.into_any(),
+                    _ => view! {
+                        <Redirect path="/" />
+                    }.into_any(),
+                }
+            })}
         </Suspense>
     }
     .into_any()
 }
 
 #[component]
-pub fn ProfileComponent(user_details: Option<(ProfileDetails, Principal)>) -> impl IntoView {
+pub fn ProfileComponent(user: ProfileDetails, user_canister: Principal) -> impl IntoView {
     let ProfilePostsContext {
         video_queue,
         start_index,
@@ -246,9 +263,7 @@ pub fn ProfileComponent(user_details: Option<(ProfileDetails, Principal)>) -> im
         *idx = 0;
     });
 
-    if let Some((user, user_canister)) = user_details.clone() {
-        view! { <ProfileViewInner user user_canister /> }.into_any()
-    } else {
-        view! { <Redirect path="/" /> }.into_any()
+    view! {
+        <ProfileViewInner user user_canister />
     }
 }

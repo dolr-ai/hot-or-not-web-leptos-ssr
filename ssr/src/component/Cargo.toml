@@ -175,7 +175,6 @@ oauth-hydrate = [
     "utils/oauth-hydrate",
     "state/oauth-hydrate",
 ]
-local-auth = ["consts/local-auth", "utils/local-auth", "state/local-auth"]
 redis-kv = ["consts/redis-kv", "utils/redis-kv", "state/redis-kv"]
 cloudflare = [
     "dep:gob-cloudflare",
@@ -232,7 +231,6 @@ release-lib = [
 local-bin = [
     "ssr",
     "redis-kv",
-    "local-auth",
     "backend-admin",
     "dep:testcontainers",
     "dep:yral-testcontainers",
@@ -245,7 +243,6 @@ local-bin = [
 local-lib = [
     "hydrate",
     "redis-kv",
-    "local-auth",
     "backend-admin",
     "yral-canisters-common/local",
     "consts/local-lib",
