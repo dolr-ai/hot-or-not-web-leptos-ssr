@@ -141,7 +141,7 @@ impl MixpanelGlobalProps {
     pub fn get_device_id() -> String {
         let (device_id, set_device_id, _) =
             use_local_storage::<String, FromToStringCodec>(DEVICE_ID);
-
+        // Extracting the device ID value
         let device_id_value = device_id.get_untracked();
         if device_id_value.is_empty() {
             let new_device_id = uuid::Uuid::new_v4().to_string();
