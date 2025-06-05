@@ -7,7 +7,7 @@ use yral_canisters_common::Canisters;
 #[component]
 pub fn TestAirdrop() -> impl IntoView {
     let auth = auth_state();
-    let fetch_claim_status = Action::new_local(move |&()| async move {
+    let fetch_claim_status: Action<(), Result<bool, ServerFnError>> = Action::new_local(move |&()| async move {
         let cans_wire = auth.cans_wire().await.unwrap();
         let cans = Canisters::from_wire(cans_wire.clone(), expect_context()).unwrap();
         let is_airdrop_claimed = is_airdrop_claimed(cans.user_principal()).await?;

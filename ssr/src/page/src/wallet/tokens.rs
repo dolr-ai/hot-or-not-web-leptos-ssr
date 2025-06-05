@@ -248,6 +248,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
         <div class="flex flex-col w-full gap-2 mb-2 items-center pb-10">
             {tokens.into_iter().map(|token_type| {
                 let display_info: TokenDisplayInfo = token_type.into();
+                let display_info = display_info.clone();
                 let balance = balance(token_type);
                 let withdrawal_state = withdrawal_state(token_type);
                 let is_utility_token = token_type.is_utility_token();
@@ -347,15 +348,13 @@ impl WithdrawImpl for WithdrawSats {
     }
 }
 
-
-
-
 trait AirdroppableImpl {
-    fn claim_airdrop(&self, auth: AuthState) -> Result<u64, ServerFnError>;
+    async fn claim_airdrop(&self, auth: AuthState) -> Result<u64, ServerFnError>;
 
-    fn is_airdrop_claimed(&self, user_principal: Principal) -> Result<bool, ServerFnError>;
+    async fn is_airdrop_claimed(&self, user_principal: Principal) -> Result<bool, ServerFnError>;
 }
 
+#[derive(Clone)]
 struct AirdropSats;
 
 impl AirdroppableImpl for AirdropSats {
@@ -373,13 +372,13 @@ impl AirdroppableImpl for AirdropSats {
         Ok::<_, ServerFnError>(res)
     }
 
-    async fn is_airdrop_claimed(&self, user_principal: Principal) -> bool {
-        let claimed = is_airdrop_claimed(user_principal).await;
-        Ok::<bool, ServerFnError>(claimed)
+    async fn is_airdrop_claimed(&self, user_principal: Principal) -> Result<bool, ServerFnError> {
+        let claimed = is_airdrop_claimed(user_principal).await?;
+        Ok(claimed)
     }
 }
 
-type Airdropper = Box<dyn AirdroppableImpl>;
+type Airdropper = AirdropSats;
 
 #[derive(Debug, Clone)]
 pub struct TokenDisplayInfo {
@@ -460,7 +459,7 @@ pub fn FastWalletCard(
         symbol,
         logo,
         token_root_canister,
-    } = display_info;
+    } = display_info.clone();
 
     let root: String = token_root_canister
         .map(|r| r.to_text())
@@ -491,11 +490,14 @@ pub fn FastWalletCard(
         token_owner: None,
         user_principal,
     });
+
     
-    let airdropper: Option<Box<dyn AirdroppableImpl + 'static>> = (|| match display_info.name.as_str() {
-        s if s == SATS_TOKEN_NAME => Some(Box::new(AirdropSats) as Airdropper),
-        _ => unimplemented!("Airdrop not implemented for this token"),
-    })();
+    let display_info = display_info.clone();
+    let airdropper: Option<Airdropper> = if display_info.name == SATS_TOKEN_NAME {
+        Some(AirdropSats)
+    } else {
+        None
+    };
 
     // airdrop popup state
     let show_airdrop_popup = RwSignal::new(false);
@@ -503,19 +505,35 @@ pub fn FastWalletCard(
     let error_claiming_airdrop = RwSignal::new(false);
     
     // fetch airdrop claim info
-    let is_airdrop_claimed = RwSignal::new(false);
-    if let Some(airdropper) = &airdropper {
-        is_airdrop_claimed.set(airdropper.is_airdrop_claimed(user_principal).unwrap_or(true));
-    }
+    let is_airdrop_claimed = RwSignal::new(true);
+
+    let update_claimed = Action::new(move |_: &()| {
+        let airdropper = airdropper.clone();
+        async move {
+            let claimed = if let Some(airdropper) = &airdropper {
+                airdropper.is_airdrop_claimed(user_principal).await.unwrap_or(true)
+            } else {
+                true
+            };
+            is_airdrop_claimed.set(claimed);
+        }
+    });
+
+    
+    Effect::new(move |_| {
+        update_claimed.dispatch(());
+    });
+    
 
     // action to claim airdrop
     let claim_airdrop = Action::new_local(move |&()| {
         let auth = auth_state();
         let airdrop_amount_claimed = airdrop_amount_claimed.clone();
         let error_claiming_airdrop = error_claiming_airdrop.clone();
+        let airdropper = airdropper.clone();
         async move {
             show_airdrop_popup.set(true);
-            match airdropper.as_ref().unwrap().claim_airdrop(auth) {
+            match airdropper.as_ref().unwrap().claim_airdrop(auth).await {
                 Ok(amount) => {
                     airdrop_amount_claimed.set(amount);
                     error_claiming_airdrop.set(false);
@@ -651,42 +669,6 @@ pub fn WalletCard(
         nav(withdraw_url, Default::default());
     };
 
-    let airdropper: Option<Box<dyn AirdroppableImpl + 'static>> = show_withdraw_button.then(|| match token_metadata.name.as_str() {
-        s if s == SATS_TOKEN_NAME => Box::new(AirdropSats) as Airdropper,
-        _ => unimplemented!("Airdrop not implemented for this token"),
-    });
-
-    // airdrop popup state
-    let show_airdrop_popup = RwSignal::new(false);
-    let airdrop_amount_claimed: RwSignal<u64> = RwSignal::new(0);
-    let error_claiming_airdrop = RwSignal::new(false);
-     
-    // fetch airdrop claim info
-    let is_airdrop_claimed = RwSignal::new(false);
-    if let Some(airdropper) = &airdropper {
-        is_airdrop_claimed.set(airdropper.is_airdrop_claimed(user_principal).unwrap_or(true));
-    }
- 
-    // action to claim airdrop
-    let claim_airdrop = Action::new_local(move |&()| {
-         let auth = auth_state();
-         let airdrop_amount_claimed = airdrop_amount_claimed.clone();
-         let error_claiming_airdrop = error_claiming_airdrop.clone();
-         async move {
-             show_airdrop_popup.set(true);
-             match airdropper.as_ref().unwrap().claim_airdrop(auth) {
-                 Ok(amount) => {
-                     airdrop_amount_claimed.set(amount);
-                     error_claiming_airdrop.set(false);
-                 }
-                 Err(_) => {
-                     error_claiming_airdrop.set(true);
-                 }
-             }
-             Ok(())
-         }
-    });
-
     let (is_withdrawable, withdraw_message, withdrawable_balance) =
         match (token_metadata.withdrawable_state, withdrawer.as_ref()) {
             (Some(ref state), Some(w)) => match w.details(state.clone()) {
@@ -705,6 +687,59 @@ pub fn WalletCard(
 
         _ => token_metadata.name.to_owned(),
     };
+    
+    let airdropper: Option<Airdropper> = if token_metadata.name == SATS_TOKEN_NAME {
+        Some(AirdropSats)
+    } else {
+        None
+    };
+
+    // airdrop popup state
+    let show_airdrop_popup = RwSignal::new(false);
+    let airdrop_amount_claimed: RwSignal<u64> = RwSignal::new(0);
+    let error_claiming_airdrop = RwSignal::new(false);
+    
+    // fetch airdrop claim info
+    let is_airdrop_claimed = RwSignal::new(true);
+
+    let update_claimed = Action::new(move |_: &()| {
+        let airdropper = airdropper.clone();
+        async move {
+            let claimed = if let Some(airdropper) = &airdropper {
+                airdropper.is_airdrop_claimed(user_principal).await.unwrap_or(true)
+            } else {
+                true
+            };
+            is_airdrop_claimed.set(claimed);
+        }
+    });
+
+    
+    Effect::new(move |_| {
+        update_claimed.dispatch(());
+    });
+    
+
+    // action to claim airdrop
+    let claim_airdrop = Action::new_local(move |&()| {
+        let auth = auth_state();
+        let airdrop_amount_claimed = airdrop_amount_claimed.clone();
+        let error_claiming_airdrop = error_claiming_airdrop.clone();
+        let airdropper = airdropper.clone();
+        async move {
+            show_airdrop_popup.set(true);
+            match airdropper.as_ref().unwrap().claim_airdrop(auth).await {
+                Ok(amount) => {
+                    airdrop_amount_claimed.set(amount);
+                    error_claiming_airdrop.set(false);
+                }
+                Err(_) => {
+                    error_claiming_airdrop.set(true);
+                }
+            }
+            Ok(())
+        }
+    });
 
     view! {
         <div node_ref=_ref class="flex flex-col gap-4 bg-neutral-900/90 rounded-lg w-full font-kumbh text-white p-4">
