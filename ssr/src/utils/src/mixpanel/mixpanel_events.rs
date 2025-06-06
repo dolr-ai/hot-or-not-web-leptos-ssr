@@ -15,6 +15,7 @@ use yral_canisters_common::utils::vote::VoteKind;
 use yral_canisters_common::Canisters;
 
 use crate::event_streaming::events::EventCtx;
+use crate::event_streaming::events::HistoryCtx;
 
 #[wasm_bindgen]
 extern "C" {
@@ -76,6 +77,13 @@ async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
     Ok(())
 }
 
+fn parse_query_params(url_str: &str) -> Vec<(String, String)> {
+    let url = reqwest::Url::parse(url_str).expect("Invalid URL");
+    url.query_pairs()
+        .map(|(k, v)| (k.into_owned(), v.into_owned()))
+        .collect()
+}
+
 /// Generic helper: serializes `props` and calls Mixpanel.track
 pub fn track_event<T>(event_name: &str, props: T)
 where
@@ -94,7 +102,22 @@ where
     } else {
         props.get("visitor_id").and_then(Value::as_str).into()
     };
-    props["current_url"] = window().location().href().ok().into();
+    let current_url = window().location().href().ok();
+    let history = expect_context::<HistoryCtx>();
+    if let Some(url) = current_url {
+        props["current_url"] = url.clone().into();
+        let params = parse_query_params(&url);
+        let utms: Vec<(String, String)> = params
+            .iter()
+            .filter(|f| f.0.contains("utm"))
+            .cloned()
+            .collect();
+        history.push_utm(utms.clone());
+        props["$current_url"] = url.into();
+    }
+    for (key, value) in history.utm.get_untracked() {
+        props[key] = value.into();
+    }
     spawn_local(async {
         let res = track_event_server_fn(props).await;
         match res {

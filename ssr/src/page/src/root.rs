@@ -80,6 +80,19 @@ pub fn YralRootPage() -> impl IntoView {
             get_top_post_id_global_clean_feed().await
         }
     });
+
+    let store_utms = Resource::new_blocking(
+        || (),
+        move |_| async move {
+            let utm = params.get_untracked().to_query_string();
+            if utm.contains("utm") {
+                Some(utm)
+            } else {
+                None
+            }
+        },
+    );
+
     let post_details_cache: PostDetailsCacheCtx = expect_context();
 
     view! {
@@ -88,6 +101,7 @@ pub fn YralRootPage() -> impl IntoView {
             {move || {
                 let user_refer = params.get().get("user_refer").map(|s| s.to_string());
                 Suspend::new(async move {
+                let utms = store_utms.await;
                 let mut url = match target_post.await {
                     Ok(Some(post_item)) => {
                         let canister_id = post_item.canister_id;
@@ -104,6 +118,9 @@ pub fn YralRootPage() -> impl IntoView {
 
                 if let Some(user_refer) = user_refer {
                     url.push_str(&format!("?user_refer={user_refer}"));
+                }
+                if let Some(utms) = utms {
+                    url.push_str(&format!("{}{utms}", if url.contains('?') { "&" } else { "" }));
                 }
 
                 view! { <Redirect path=url /> }

@@ -3,7 +3,7 @@ use candid::Principal;
 use ic_agent::Identity;
 use leptos::html::Input;
 use leptos::prelude::Signal;
-use leptos::{ev, prelude::*};
+use leptos::{ev, logging, prelude::*};
 use leptos_use::{use_event_listener, use_timeout_fn, UseTimeoutFnReturn};
 use serde_json::json;
 use sns_validation::pbs::sns_pb::SnsInitPayload;
@@ -20,12 +20,14 @@ use circular_buffer::CircularBuffer;
 #[derive(Clone)]
 pub struct HistoryCtx {
     pub history: RwSignal<CircularBuffer<3, String>>,
+    pub utm: RwSignal<Vec<(String, String)>>,
 }
 
 impl Default for HistoryCtx {
     fn default() -> Self {
         Self {
             history: RwSignal::new(CircularBuffer::<3, String>::new()),
+            utm: RwSignal::new(Vec::new()),
         }
     }
 }
@@ -34,6 +36,7 @@ impl HistoryCtx {
     pub fn new() -> Self {
         Self {
             history: RwSignal::new(CircularBuffer::<3, String>::new()),
+            utm: RwSignal::new(Vec::new()),
         }
     }
 
@@ -47,6 +50,19 @@ impl HistoryCtx {
 
     pub fn push(&self, url: &str) {
         self.history.update(move |h| h.push_back(url.to_string()));
+    }
+
+    pub fn push_utm(&self, utm: Vec<(String, String)>) {
+        if utm.is_empty() {
+            return;
+        }
+        let utm = utm
+            .iter()
+            .filter(|(k, _)| k.contains("utm"))
+            .cloned()
+            .collect();
+        logging::log!("Pushing UTM parameters: {:?}", &utm);
+        self.utm.set(utm);
     }
 
     pub fn back(&self, fallback: &str) -> String {
