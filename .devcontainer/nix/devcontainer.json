@@ -1,12 +1,12 @@
 {
     "name": "Nix dev container",
-    "image": "mcr.microsoft.com/devcontainers/base:alpine",
+    "image": "mcr.microsoft.com/devcontainers/base:debian",
 
     "features": {
         "ghcr.io/devcontainers/features/nix:1": {
             "extraNixConfig": "experimental-features = nix-command flakes",
             "packages": "nixfmt-unstable,nixd,direnv"
-        }
+        },
     },
 
     "customizations": {
