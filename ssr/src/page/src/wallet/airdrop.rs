@@ -16,7 +16,7 @@ use state::canisters::{auth_state, unauth_canisters};
 use state::server::HonWorkerJwt;
 use utils::event_streaming::events::CentsAdded;
 use utils::host::get_host;
-use yral_canisters_client::individual_user_template::{Result9, SessionType};
+use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::{
     utils::token::{TokenMetadata, TokenOwner},
     Canisters,
@@ -72,7 +72,7 @@ pub async fn claim_sats_airdrop(
     }
 
     let sess = user.get_session_type().await?;
-    if !matches!(sess, Result9::Ok(SessionType::RegisteredSession)) {
+    if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
         log::error!("Not allowed to claim due to invalid session: {sess:?}");
         return Err(ServerFnError::new("Not allowed to claim"));
     }
