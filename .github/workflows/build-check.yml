@@ -76,8 +76,8 @@ jobs:
       - name: lint check
         run: |
           objcopy --version
-          # removing cargo fmt requirement as its buggy: https://github.com/rust-lang/cargo/issues/15506
-          # cargo fmt --check
+          # TODO: check this - removing cargo fmt requirement as its buggy: https://github.com/rust-lang/cargo/issues/15506
+          cargo fmt --check
           cargo clippy --no-deps --all-features --release -- -Dwarnings
 
       - name: Print Rust and Cargo version
@@ -88,7 +88,7 @@ jobs:
       - name: Build the Leptos project to output
         run: cargo leptos build --release --lib-features release-lib --bin-features release-bin
         env:
-          RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
+          RUSTUP_TOOLCHAIN: "nightly-2025-05-09"
           LEPTOS_HASH_FILES: true
           LEPTOS_TAILWIND_VERSION: v4.1.7
       - run: touch .empty
