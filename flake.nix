@@ -31,6 +31,11 @@
                             tailwindcss_4
                             pkg-config
                         ];
+                        shellHook = ''
+                                export LD_LIBRARY_PATH=${pkgs.openssl.out}/lib:$LD_LIBRARY_PATH
+                                git submodule update --init --recursive
+                                COOKIE_KEY=1267b291500365c42043e04bc69cf24a31495bd8936fc8d6794283675e288fad755971922d45cf1ca0b438df4fc847f39cb0b2aceb3a45673eff231cddb88dc9
+                        '';
                     };
                 }
         );
