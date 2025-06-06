@@ -5,7 +5,6 @@ use leptos_meta::*;
 use state::canisters::auth_state;
 use utils::{
     event_streaming::events::{VideoUploadInitiated, VideoUploadUploadButtonClicked},
-    host::{show_cdao_page, show_pnd_page},
     web::FileWithUrl,
 };
 
@@ -15,7 +14,6 @@ use leptos::{
 };
 
 use component::buttons::HighlightedButton;
-use leptos_router::components::Redirect;
 use validators::{description_validator, hashtags_validator};
 use video_upload::{PreVideoUpload, VideoUploader};
 
@@ -160,12 +158,7 @@ fn PreUploadView(
 }
 
 #[component]
-pub fn CreatorDaoCreatePage() -> impl IntoView {
-    view! { <Redirect path="/token/create" /> }
-}
-
-#[component]
-pub fn YralUploadPostPage() -> impl IntoView {
+pub fn UploadPostPage() -> impl IntoView {
     let trigger_upload = RwSignal::new_local(None::<UploadParams>);
     let uid = RwSignal::new_local(None);
 
@@ -184,14 +177,5 @@ pub fn YralUploadPostPage() -> impl IntoView {
                 </Show>
             </div>
         </div>
-    }
-}
-
-#[component]
-pub fn UploadPostPage() -> impl IntoView {
-    if show_cdao_page() || show_pnd_page() {
-        view! { <CreatorDaoCreatePage /> }.into_any()
-    } else {
-        view! { <YralUploadPostPage /> }.into_any()
     }
 }

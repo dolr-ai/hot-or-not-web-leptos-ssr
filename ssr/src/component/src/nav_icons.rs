@@ -98,24 +98,3 @@ icon_gen!(
         <path d="M21.6902 22.1791C21.5102 22.1791 21.3302 22.1091 21.2002 21.9791L19.3402 20.1191C19.0702 19.8491 19.0702 19.4091 19.3402 19.1291C19.6102 18.8591 20.0502 18.8591 20.3302 19.1291L22.1902 20.9891C22.4602 21.2591 22.4602 21.6991 22.1902 21.9791C22.0502 22.1091 21.8702 22.1791 21.6902 22.1791Z" fill="white" style="fill:white;fill-opacity:1;"/>
     </g>"###
 );
-
-icon_gen!(
-    ICPumpAiIcon,
-    view_box = "0 0 25 25",
-    r###"<g>
-        <path d="M20.1845 14.5851C14.6228 16.4225 12.7707 18.2749 10.9332 23.8364C10.782 24.2936 10.1355 24.2936 9.98435 23.8364C8.14686 18.2746 6.29446 16.4226 0.733049 14.5851C0.275833 14.4339 0.275833 13.7874 0.733049 13.6362C6.29478 11.7987 8.1468 9.94632 9.98435 4.3849C10.1355 3.92769 10.782 3.92769 10.9332 4.3849C12.7707 9.94663 14.6231 11.7987 20.1845 13.6362C20.6417 13.7874 20.6417 14.4339 20.1845 14.5851Z" fill="url(#paint0_linear_234_3427)" style=""/>
-        <path d="M24.2185 5.45136C21.4383 6.36951 20.5116 7.29624 19.5922 10.0776C19.5173 10.3063 19.194 10.3063 19.1178 10.0776C18.1997 7.29744 17.2729 6.37077 14.4915 5.45136C14.2629 5.37639 14.2629 5.05314 14.4915 4.97694C17.2717 4.05879 18.1984 3.13206 19.1178 0.350658C19.1928 0.122046 19.516 0.122046 19.5922 0.350658C20.5104 3.13086 21.4371 4.05753 24.2185 4.97694C24.4471 5.05191 24.4471 5.37516 24.2185 5.45136Z" fill="url(#paint1_linear_234_3427)" style=""/>
-        <defs>
-        <linearGradient id="paint0_linear_234_3427" x1="19.4087" y1="6.69899" x2="7.3823" y2="21.9418" gradientUnits="userSpaceOnUse">
-        <stop stop-color="#FF78C1" style="stop-color:#FF78C1;stop-color:color(display-p3 1.0000 0.4701 0.7574);stop-opacity:1;"/>
-        <stop offset="0.509385" stop-color="#E2017B" style="stop-color:#E2017B;stop-color:color(display-p3 0.8863 0.0039 0.4824);stop-opacity:1;"/>
-        <stop offset="1" stop-color="#5F0938" style="stop-color:#5F0938;stop-color:color(display-p3 0.3734 0.0335 0.2178);stop-opacity:1;"/>
-        </linearGradient>
-        <linearGradient id="paint1_linear_234_3427" x1="23.8306" y1="1.50787" x2="17.8166" y2="9.13024" gradientUnits="userSpaceOnUse">
-        <stop stop-color="#FF78C1" style="stop-color:#FF78C1;stop-color:color(display-p3 1.0000 0.4701 0.7574);stop-opacity:1;"/>
-        <stop offset="0.509385" stop-color="#E2017B" style="stop-color:#E2017B;stop-color:color(display-p3 0.8863 0.0039 0.4824);stop-opacity:1;"/>
-        <stop offset="1" stop-color="#5F0938" style="stop-color:#5F0938;stop-color:color(display-p3 0.3734 0.0335 0.2178);stop-opacity:1;"/>
-        </linearGradient>
-        </defs>
-    </g>"###
-);

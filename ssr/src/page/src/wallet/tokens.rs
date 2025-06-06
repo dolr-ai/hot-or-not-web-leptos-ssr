@@ -19,9 +19,9 @@
 //!
 //! This will ensure we keep the near instant loading time while also fetching items dynmically.
 
-use crate::icpump::{ActionButton, ActionButtonLink};
 use crate::wallet::airdrop::AirdropPopup;
 use candid::{Nat, Principal};
+use component::action_btn::{ActionButton, ActionButtonLink};
 use component::icons::information_icon::Information;
 use component::icons::padlock_icon::{PadlockClose, PadlockOpen};
 use component::icons::{
@@ -36,6 +36,7 @@ use component::tooltip::Tooltip;
 use consts::{
     CKBTC_LEDGER_CANISTER, DOLR_AI_LEDGER_CANISTER, DOLR_AI_ROOT_CANISTER, USDC_LEDGER_CANISTER,
 };
+use hon_worker_common::WithdrawalState;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_icons::*;
@@ -50,7 +51,6 @@ use yral_canisters_common::utils::token::{
 };
 use yral_canisters_common::{Canisters, CENT_TOKEN_NAME};
 use yral_canisters_common::{SATS_TOKEN_NAME, SATS_TOKEN_SYMBOL};
-use yral_pump_n_dump_common::WithdrawalState;
 
 use super::ShowLoginSignal;
 
@@ -169,7 +169,7 @@ impl From<TokenType> for TokenDisplayInfo {
             TokenType::Cents => Self {
                 name: CENT_TOKEN_NAME.into(),
                 symbol: CENT_TOKEN_NAME.into(),
-                logo: "/img/pumpdump/cents.webp".into(),
+                logo: "/img/yral/cents.webp".into(),
                 token_root_canister: None,
             },
             TokenType::Dolr => Self {

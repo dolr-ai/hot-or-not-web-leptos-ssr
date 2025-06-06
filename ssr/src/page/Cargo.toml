@@ -63,27 +63,22 @@ wasm-bindgen-futures = { workspace = true }
 testcontainers = { workspace = true, optional = true }
 yral-testcontainers = { workspace = true, optional = true }
 sns-validation = { workspace = true }
-yral-grpc-traits = { workspace = true }
 js-sys = { workspace = true }
-tonic-web-wasm-client = { workspace = true }
 tonic = { workspace = true }
 prost = { workspace = true }
 priority-queue = { workspace = true }
 rust_decimal = { workspace = true }
-firestore = { workspace = true, optional = true }
 speedate = { workspace = true, optional = true }
 urlencoding = { workspace = true }
 yral-types = { workspace = true }
-yral-qstash-types = { workspace = true }
 yral-canisters-client = { workspace = true }
 yral-canisters-common = { workspace = true }
 hon-worker-common = { workspace = true }
-pulldown-cmark = { workspace = true }
+yral-pump-n-dump-common = { workspace = true }
 ic-certification = { workspace = true }
 ciborium = { workspace = true }
 yral-metadata-client = { workspace = true }
 yral-metadata-types = { workspace = true }
-yral-pump-n-dump-common = { workspace = true }
 uuid = { workspace = true, features = ["v4", "js"] }
 regex = { workspace = true, optional = true }
 tonic-build = { workspace = true }
@@ -212,14 +207,6 @@ mock-wallet-history = [
     "component/mock-wallet-history",
     "state/mock-wallet-history",
 ]
-firestore = [
-    "dep:firestore",
-    "speedate",
-    "consts/firestore",
-    "utils/firestore",
-    "component/firestore",
-    "state/firestore",
-]
 qstash = ["consts/qstash", "utils/qstash", "component/qstash", "state/qstash"]
 alloydb = ["state/alloydb"]
 release-bin = [
@@ -230,13 +217,12 @@ release-bin = [
     "backend-admin",
     "oauth-ssr",
     "ga4",
-    "firestore",
     "qstash",
     "consts/release-bin",
     "utils/release-bin",
     "component/release-bin",
     "state/release-bin",
-    "alloydb"
+    "alloydb",
 ]
 release-lib = [
     "hydrate",

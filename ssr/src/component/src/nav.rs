@@ -6,7 +6,6 @@ use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_router::hooks::use_location;
 use leptos_use::{use_cookie_with_options, UseCookieOptions};
-use state::app_type::AppType;
 
 #[derive(Clone)]
 struct NavItem {
@@ -22,65 +21,6 @@ enum NavItemRenderData {
         href: Signal<String>,
     },
     Upload,
-}
-
-fn pnd_nav_items() -> Vec<NavItem> {
-    let cur_location = use_location();
-    let path = cur_location.pathname;
-    let (user_principal, _) = use_cookie_with_options::<Principal, FromToStringCodec>(
-        USER_PRINCIPAL_STORE,
-        UseCookieOptions::default()
-            .path("/")
-            .max_age(AUTH_UTIL_COOKIES_MAX_AGE_MS),
-    );
-    let home_path = RwSignal::new("/".to_string());
-    vec![
-        NavItem {
-            render_data: NavItemRenderData::Icon {
-                icon: HomeSymbol,
-                filled_icon: Some(HomeSymbolFilled),
-                href: home_path.into(),
-            },
-            cur_selected: Signal::derive(move || matches!(path.get().as_str(), "/")),
-        },
-        NavItem {
-            render_data: NavItemRenderData::Icon {
-                icon: TokenSymbol,
-                filled_icon: Some(TokenSymbolFilled),
-                href: "/board".into(),
-            },
-            cur_selected: Signal::derive(move || matches!(path.get().as_str(), "/board")),
-        },
-        NavItem {
-            render_data: NavItemRenderData::Upload,
-            cur_selected: Signal::derive(move || matches!(path.get().as_str(), "/token/create")),
-        },
-        NavItem {
-            render_data: NavItemRenderData::Icon {
-                icon: WalletSymbol,
-                filled_icon: Some(WalletSymbolFilled),
-                href: "/wallet".into(),
-            },
-            cur_selected: Signal::derive(move || {
-                if path.get().starts_with("/pnd/withdraw") {
-                    return true;
-                }
-                // is selected only if the user is viewing their own wallet
-                let Some(user_principal) = user_principal.get() else {
-                    return false;
-                };
-                path.get().starts_with(&format!("/wallet/{user_principal}"))
-            }),
-        },
-        NavItem {
-            render_data: NavItemRenderData::Icon {
-                icon: MenuSymbol,
-                filled_icon: None,
-                href: "/menu".into(),
-            },
-            cur_selected: Signal::derive(move || matches!(path.get().as_str(), "/menu")),
-        },
-    ]
 }
 
 fn yral_nav_items() -> Vec<NavItem> {
@@ -148,68 +88,8 @@ fn yral_nav_items() -> Vec<NavItem> {
     ]
 }
 
-fn icpump_nav_items() -> Vec<NavItem> {
-    let cur_location = use_location();
-    let path = cur_location.pathname;
-    let (user_principal, _) = use_cookie_with_options::<Principal, FromToStringCodec>(
-        USER_PRINCIPAL_STORE,
-        UseCookieOptions::default()
-            .path("/")
-            .max_age(AUTH_UTIL_COOKIES_MAX_AGE_MS),
-    );
-    let home_path = RwSignal::new("/".to_string());
-    vec![
-        NavItem {
-            render_data: NavItemRenderData::Icon {
-                icon: HomeSymbol,
-                filled_icon: Some(HomeSymbolFilled),
-                href: home_path.into(),
-            },
-            cur_selected: Signal::derive(move || matches!(path.get().as_str(), "/board")),
-        },
-        NavItem {
-            render_data: NavItemRenderData::Icon {
-                icon: WalletSymbol,
-                filled_icon: Some(WalletSymbolFilled),
-                href: "/wallet".into(),
-            },
-            cur_selected: Signal::derive(move || {
-                // is selected only if the user is viewing their own wallet
-                let Some(user_principal) = user_principal.get() else {
-                    return false;
-                };
-                path.get().starts_with(&format!("/wallet/{user_principal}"))
-            }),
-        },
-        NavItem {
-            render_data: NavItemRenderData::Upload,
-            cur_selected: Signal::derive(move || matches!(path.get().as_str(), "/token/create")),
-        },
-        NavItem {
-            render_data: NavItemRenderData::Icon {
-                icon: ICPumpAiIcon,
-                filled_icon: None,
-                href: "/icpump-ai".into(),
-            },
-            cur_selected: Signal::derive(move || matches!(path.get().as_str(), "/icpump-ai")),
-        },
-        NavItem {
-            render_data: NavItemRenderData::Icon {
-                icon: MenuSymbol,
-                filled_icon: None,
-                href: "/menu".into(),
-            },
-            cur_selected: Signal::derive(move || matches!(path.get().as_str(), "/menu")),
-        },
-    ]
-}
-
 fn get_nav_items() -> Vec<NavItem> {
-    match AppType::select() {
-        AppType::YRAL | AppType::HotOrNot => yral_nav_items(),
-        AppType::ICPump => icpump_nav_items(),
-        AppType::Pumpdump => pnd_nav_items(),
-    }
+    yral_nav_items()
 }
 
 #[component]

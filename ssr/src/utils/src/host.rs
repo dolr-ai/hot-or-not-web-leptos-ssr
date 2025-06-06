@@ -30,12 +30,6 @@ pub fn get_host() -> String {
     }
 }
 
-// TODO: migrate to AppType
-pub fn show_cdao_page() -> bool {
-    let host = get_host();
-    show_cdao_condition(host)
-}
-
 #[cfg(feature = "ssr")]
 pub fn is_host_or_origin_from_preview_domain(uri: &str) -> bool {
     use regex::Regex;
@@ -50,26 +44,6 @@ pub fn is_host_or_origin_from_preview_domain(uri: &str) -> bool {
 pub fn show_preview_component() -> bool {
     let host = get_host();
     host.contains("dolr-ai-hot-or-not-web-leptos-ssr.fly.dev")
-}
-
-pub fn show_cdao_condition(host: String) -> bool {
-    host == "icpump.fun"
-    // || host == "localhost:3000"
-    // || host == "hot-or-not-web-leptos-ssr-staging.fly.dev"
-    // || host.contains("yral-dapp-hot-or-not-web-leptos-ssr.fly.dev") // Use this when testing icpump changes
-}
-
-// TODO: migrate to AppType
-pub fn show_pnd_page() -> bool {
-    let host = get_host();
-    show_pnd_condition(&host)
-}
-
-pub fn show_pnd_condition(host: &str) -> bool {
-    host == "pumpdump.wtf" || host == "www.pumpdump.wtf"
-    // || host.contains("localhost")
-    // || host.contains("dolr-ai-hot-or-not-web-leptos-ssr.fly.dev")
-    // || host.contains("hot-or-not-web-leptos-ssr-staging.fly.dev") // Use this when testing icpump changes
 }
 
 // TODO: migrate to AppType

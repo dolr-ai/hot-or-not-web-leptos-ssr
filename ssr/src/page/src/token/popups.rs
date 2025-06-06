@@ -3,8 +3,6 @@ use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use yral_canisters_common::utils::token::balance::TokenBalance;
 
-use crate::token::create::CreateTokenCtx;
-
 #[component]
 fn SuccessPopup<ImgIV: IntoView, Img: Fn() -> ImgIV, TxtIV: IntoView, Txt: Fn() -> TxtIV>(
     img: Img,
@@ -19,39 +17,6 @@ fn SuccessPopup<ImgIV: IntoView, Img: Fn() -> ImgIV, TxtIV: IntoView, Txt: Fn() 
                 {previous_text}
             </GradientLinkButton>
         </div>
-    }
-}
-
-#[component]
-fn CreateTokenSuccessPopup(
-    #[prop(into)] token_name: String,
-    #[prop(into)] img_url: String,
-) -> impl IntoView {
-    CreateTokenCtx::reset();
-    let profile_url = "/profile/tokens";
-    view! {
-        <SuccessPopup
-            img=move || {
-                view! {
-                    <img
-                        class="relative w-20 h-20 rounded-full border-2 border-primary-600 object-conver"
-                        style="height:15rem; width:15rem"
-                        src=img_url.clone()
-                    />
-                }
-            }
-
-            text=move || {
-                view! {
-                    Token
-                    <span class="text-primary-600">{format!(" {token_name} ")}</span>
-                    successfully created!
-                }
-            }
-
-            previous_link=profile_url
-            previous_text="Back to profile"
-        />
     }
 }
 
@@ -88,71 +53,6 @@ fn ErrorPopup<HeadIV: IntoView, Head: Fn() -> HeadIV>(
                 {previous_text}
             </a>
         </div>
-    }
-}
-
-#[component]
-fn CreateTokenErrorPopup(
-    error: String,
-    token_name: Signal<String>,
-    close_popup: WriteSignal<bool>,
-) -> impl IntoView {
-    let profile_url = String::from("/profile/tokens");
-
-    view! {
-        <ErrorPopup
-            error
-            header=move || {
-                let token_name = token_name;
-                view! {
-                    Token
-                    <span class="text-primary-600">
-                        {move || format!(" {} ", token_name.with(|t| t.clone()))}
-                    </span>
-                    creation failed!
-                }
-            }
-
-            previous_link=profile_url
-            previous_text="Back to profile"
-            close_popup
-        />
-    }
-}
-
-#[component]
-pub fn TokenCreationPopup(
-    creation_action: Action<(), Result<(), String>>,
-    #[prop(into)] token_name: Signal<String>,
-    #[prop(into)] img_url: Signal<String>,
-) -> impl IntoView {
-    let close_popup = RwSignal::new(false);
-    view! {
-        <ActionTrackerPopup
-            action=creation_action
-            loading_message="Token creation in progress"
-            modal=move |res| match res {
-                Ok(_) => {
-                    Either::Left(view! {
-                        <CreateTokenSuccessPopup
-                            img_url=img_url.get_untracked().clone()
-                            token_name=token_name.get_untracked().clone()
-                        />
-                    })
-                }
-                Err(e) => {
-                    Either::Right(view! {
-                        <CreateTokenErrorPopup
-                            close_popup=close_popup.write_only()
-                            error=e
-                            token_name=token_name
-                        />
-                    })
-                }
-            }
-
-            close=close_popup
-        />
     }
 }
 

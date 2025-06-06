@@ -1,18 +1,13 @@
 #[cfg(feature = "local-bin")]
 pub mod containers;
 
-use std::{
-    env,
-    fs::OpenOptions,
-    io::{BufWriter, Write},
-};
+use std::env;
 
 use auth::server_impl::store::KVStoreImpl;
 use axum_extra::extract::cookie::Key;
 use leptos::prelude::*;
 use leptos_axum::AxumRouteListing;
 use state::server::AppState;
-use utils::token::{icpump::ICPumpSearchGrpcChannel, nsfw::ICPumpNSFWGrpcChannel};
 use yral_canisters_common::Canisters;
 
 #[cfg(feature = "cloudflare")]
@@ -81,36 +76,6 @@ fn init_yral_auth_migration_key() -> jsonwebtoken::EncodingKey {
     enc_key
 }
 
-#[cfg(feature = "firestore")]
-async fn init_firestoredb() -> firestore::FirestoreDb {
-    use firestore::{FirestoreDb, FirestoreDbOptions};
-
-    // firestore-rs needs the service account key to be in a file
-    let sa_key_file = env::var("HON_GOOGLE_SERVICE_ACCOUNT").expect("HON_GOOGLE_SERVICE_ACCOUNT");
-    let file = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open("hon_google_service_account.json")
-        .expect("create file");
-
-    let mut f = BufWriter::new(file);
-    f.write_all(sa_key_file.as_bytes()).expect("write file");
-    f.flush().expect("flush file");
-
-    env::set_var(
-        "GOOGLE_APPLICATION_CREDENTIALS",
-        "hon_google_service_account.json",
-    );
-
-    let options = FirestoreDbOptions::new("hot-or-not-feed-intelligence".to_string())
-        .with_database_id("ic-pump-fun".to_string());
-
-    FirestoreDb::with_options(options)
-        .await
-        .expect("failed to create db")
-}
-
 #[cfg(feature = "ga4")]
 async fn init_grpc_offchain_channel() -> tonic::transport::Channel {
     use consts::OFF_CHAIN_AGENT_GRPC_URL;
@@ -124,37 +89,6 @@ async fn init_grpc_offchain_channel() -> tonic::transport::Channel {
         .connect()
         .await
         .expect("Couldn't connect to off-chain agent")
-}
-
-async fn init_grpc_icpump_search_channel() -> ICPumpSearchGrpcChannel {
-    use consts::ICPUMP_SEARCH_GRPC_URL;
-    use tonic::transport::{Channel, ClientTlsConfig};
-
-    let tls_config = ClientTlsConfig::new().with_webpki_roots();
-    let off_chain_agent_url = ICPUMP_SEARCH_GRPC_URL;
-    let channel = Channel::from_static(off_chain_agent_url)
-        .tls_config(tls_config)
-        .expect("Couldn't update TLS config for off-chain agent")
-        .connect()
-        .await
-        .expect("Couldn't connect to off-chain agent");
-
-    ICPumpSearchGrpcChannel { channel }
-}
-
-async fn init_grpc_nsfw_channel() -> ICPumpNSFWGrpcChannel {
-    use consts::NSFW_SERVER_URL;
-    use tonic::transport::{Channel, ClientTlsConfig};
-
-    let tls_config = ClientTlsConfig::new().with_webpki_roots();
-    let channel = Channel::from_static(NSFW_SERVER_URL)
-        .tls_config(tls_config)
-        .expect("Couldn't update TLS config for nsfw agent")
-        .connect()
-        .await
-        .expect("Couldn't connect to nsfw agent");
-
-    ICPumpNSFWGrpcChannel { channel }
 }
 
 #[cfg(feature = "backend-admin")]
@@ -293,12 +227,8 @@ impl AppStateBuilder {
             yral_auth_migration_key: init_yral_auth_migration_key(),
             #[cfg(feature = "ga4")]
             grpc_offchain_channel: init_grpc_offchain_channel().await,
-            #[cfg(feature = "firestore")]
-            firestore_db: init_firestoredb().await,
             #[cfg(feature = "qstash")]
             qstash: init_qstash_client(),
-            grpc_icpump_search_channel: init_grpc_icpump_search_channel().await,
-            grpc_nsfw_channel: init_grpc_nsfw_channel().await,
             #[cfg(feature = "alloydb")]
             alloydb: init_alloydb_client().await,
             #[cfg(feature = "alloydb")]

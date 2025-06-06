@@ -19,8 +19,6 @@ use state::app_state::AppState;
 use state::canisters::auth_state;
 use state::canisters::unauth_canisters;
 use state::content_seed_client::ContentSeedClient;
-use utils::host::show_cdao_page;
-use utils::host::show_pnd_page;
 use utils::send_wrap;
 use yral_canisters_common::utils::profile::ProfileDetails;
 
@@ -104,15 +102,7 @@ fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
             <span class="text-white text-ellipsis line-clamp-1 text-xl">
                 {user_details.display_name_or_fallback()}
             </span>
-            <a class="text-primary-600 text-md" href={
-                if show_pnd_page(){
-                    "/pnd/profile".to_string()
-                } else if show_cdao_page(){
-                    "/profile/token".to_string()
-                }else{
-                    "/profile/posts".to_string()
-                }
-            }>
+            <a class="text-primary-600 text-md" href="/profile/posts">
                 View Profile
             </a>
         </div>

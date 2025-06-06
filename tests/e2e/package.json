@@ -15,8 +15,5 @@
     "@percy/nightwatch": "^2.2.0",
     "nightwatch": "^3.9.0"
   },
-  "dependencies": {
-    "@grpc/grpc-js": "^1.12.5",
-    "@grpc/proto-loader": "^0.7.13"
-  }
+  "dependencies": {}
 }

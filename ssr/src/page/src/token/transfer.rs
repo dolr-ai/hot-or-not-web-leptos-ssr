@@ -13,7 +13,6 @@ use server_fn::codec::Json;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::mixpanel::mixpanel_events::*;
 use utils::send_wrap;
-use utils::token::icpump::IcpumpTokenInfo;
 use utils::{event_streaming::events::TokensTransferred, web::paste_from_clipboard};
 
 use leptos_use::use_event_listener;
@@ -165,25 +164,13 @@ fn TokenTransferInner(
             let cans = Canisters::from_wire(cans_wire.clone(), base)?;
 
             let destination = destination_res.get_untracked().unwrap().unwrap();
-            // let amt = amt_res.get_untracked().unwrap().unwrap();
-
-            // let user = cans.authenticated_user().await;
-            // let res = user
-            //     .transfer_token_to_user_canister(root, destination, None, amt)
-            //     .await
-            //     .map_err(|e| e.to_string())?;
-            // if let Result22::Err(e) = res {
-            //     return Err(format!("{e:?}"));
-            // }
-
-            // Ok(())
 
             let amt = amt_res.get_untracked().unwrap().unwrap();
 
             match root {
                 RootType::Other(root) => {
                     let root_canister = cans.sns_root(root).await;
-                    println!("{root}");
+                    log::debug!("{root}");
                     let sns_cans = root_canister
                         .list_sns_canisters(ListSnsCanistersArg {})
                         .await
@@ -345,11 +332,7 @@ pub fn TokenTransfer() -> impl IntoView {
                 return Ok::<_, ServerFnError>(None);
             };
             let meta = cans
-                .token_metadata_by_root_type(
-                    &IcpumpTokenInfo,
-                    Some(cans.user_principal()),
-                    params.token_root.clone(),
-                )
+                .token_metadata_by_root_type(Some(cans.user_principal()), params.token_root.clone())
                 .await
                 .ok()
                 .flatten();
@@ -359,7 +342,7 @@ pub fn TokenTransfer() -> impl IntoView {
     });
 
     view! {
-        <Title text="ICPump - Token transfer" />
+        <Title text="YRAL - Token transfer" />
         <Suspense fallback=FullScreenSpinner>
         {move || Suspend::new(async move {
             let res = token_metadata_fetch.await;

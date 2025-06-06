@@ -8,86 +8,80 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 axum = { workspace = true, optional = true }
-console_error_panic_hook = {workspace = true}
-console_log = {workspace = true}
+console_error_panic_hook = { workspace = true }
+console_log = { workspace = true }
 leptos = { workspace = true, features = ["nightly"] }
-leptos_axum = {workspace = true, optional = true}
-leptos_meta = { workspace = true, optional = true}
-leptos_router = { workspace = true, optional = true}
-log = {workspace = true}
-simple_logger = {workspace = true}
-tokio = {workspace = true, optional = true}
+leptos_axum = { workspace = true, optional = true }
+leptos_meta = { workspace = true, optional = true }
+leptos_router = { workspace = true, optional = true }
+log = { workspace = true }
+simple_logger = { workspace = true }
+tokio = { workspace = true, optional = true }
 tower = { workspace = true, optional = true }
-tower-http = {workspace = true, optional = true }
-wasm-bindgen = {workspace = true}
-thiserror = {workspace = true}
+tower-http = { workspace = true, optional = true }
+wasm-bindgen = { workspace = true }
+thiserror = { workspace = true }
 tracing = { workspace = true, optional = true }
-http = {workspace = true}
+http = { workspace = true }
 serde.workspace = true
 candid.workspace = true
-ic-agent = {workspace = true}
-ic-base-types = {workspace = true}
-icp-ledger = {workspace = true}
-serde-wasm-bindgen = {workspace = true}
-futures = {workspace = true}
-leptos-use = {workspace = true}
-codee = {workspace = true}
-reqwest = {workspace = true}
+ic-agent = { workspace = true }
+ic-base-types = { workspace = true }
+icp-ledger = { workspace = true }
+serde-wasm-bindgen = { workspace = true }
+futures = { workspace = true }
+leptos-use = { workspace = true }
+codee = { workspace = true }
+reqwest = { workspace = true }
 serde_bytes.workspace = true
-hex = {workspace = true}
-leptos_icons = {workspace = true}
-icondata = {workspace = true}
-gloo = {workspace = true}
-once_cell = {workspace = true}
+hex = { workspace = true }
+leptos_icons = { workspace = true }
+icondata = { workspace = true }
+gloo = { workspace = true }
+once_cell = { workspace = true }
 web-time.workspace = true
-k256 = {workspace = true}
-icondata_core = {workspace = true}
-serde_json = {workspace = true}
-crc32fast = {workspace = true}
-uts2ts = {workspace = true}
-rand_chacha ={workspace = true, optional = true}
-web-sys = {workspace = true, optional = true}
-circular-buffer = {workspace = true}
-redb = {workspace = true, optional = true}
-enum_dispatch = {workspace = true, optional = true}
-axum-extra = {workspace = true, optional = true}
-openidconnect = {workspace = true, optional = true}
-dotenv = {workspace = true, optional = true}
-redis = {workspace = true, optional = true}
-bb8 = {workspace = true, optional = true}
-bb8-redis = {workspace = true, optional = true}
-gob-cloudflare = {workspace = true, optional = true}
-gloo-utils = {workspace = true}
-hmac = {workspace = true, optional = true}
-wasm-bindgen-futures = {workspace = true}
-testcontainers = {workspace = true, optional = true}
-yral-testcontainers = {workspace = true, optional = true}
-sns-validation ={workspace = true}
-yral-grpc-traits = {workspace = true}
-js-sys = {workspace = true}
-tonic-web-wasm-client = {workspace = true}
-tonic = {workspace = true}
-prost = {workspace = true}
-priority-queue = {workspace = true}
-rust_decimal = {workspace = true}
-firestore = {workspace = true, optional = true}
-speedate ={workspace = true, optional = true}
-urlencoding = {workspace = true}
-yral-types = {workspace = true}
-yral-qstash-types = {workspace = true}
-yral-canisters-client = {workspace = true}
-yral-canisters-common = {workspace = true}
-pulldown-cmark = {workspace = true}
-ic-certification = {workspace = true}
-ciborium ={workspace = true}
-yral-metadata-client = {workspace = true, optional = true}
-yral-metadata-types = {workspace = true, optional = true}
-yral-pump-n-dump-common = {workspace = true}
+k256 = { workspace = true }
+icondata_core = { workspace = true }
+serde_json = { workspace = true }
+crc32fast = { workspace = true }
+uts2ts = { workspace = true }
+rand_chacha = { workspace = true, optional = true }
+web-sys = { workspace = true, optional = true }
+circular-buffer = { workspace = true }
+redb = { workspace = true, optional = true }
+enum_dispatch = { workspace = true, optional = true }
+axum-extra = { workspace = true, optional = true }
+openidconnect = { workspace = true, optional = true }
+dotenv = { workspace = true, optional = true }
+redis = { workspace = true, optional = true }
+bb8 = { workspace = true, optional = true }
+bb8-redis = { workspace = true, optional = true }
+gob-cloudflare = { workspace = true, optional = true }
+gloo-utils = { workspace = true }
+hmac = { workspace = true, optional = true }
+wasm-bindgen-futures = { workspace = true }
+testcontainers = { workspace = true, optional = true }
+yral-testcontainers = { workspace = true, optional = true }
+sns-validation = { workspace = true }
+js-sys = { workspace = true }
+tonic = { workspace = true }
+prost = { workspace = true }
+priority-queue = { workspace = true }
+rust_decimal = { workspace = true }
+speedate = { workspace = true, optional = true }
+urlencoding = { workspace = true }
+yral-types = { workspace = true }
+yral-canisters-client = { workspace = true }
+yral-canisters-common = { workspace = true }
+ic-certification = { workspace = true }
+ciborium = { workspace = true }
+yral-metadata-client = { workspace = true, optional = true }
+yral-metadata-types = { workspace = true, optional = true }
 uuid = { workspace = true, features = ["v4", "js"] }
-regex = {workspace = true, optional = true}
-tonic-build = {workspace = true}
-anyhow = {workspace = true}
-send_wrapper = {workspace = true}
+regex = { workspace = true, optional = true }
+tonic-build = { workspace = true }
+anyhow = { workspace = true }
+send_wrapper = { workspace = true }
 google-cloud-alloydb-v1 = { workspace = true, optional = true }
 jsonwebtoken = { workspace = true, optional = true }
 
@@ -97,8 +91,8 @@ auth.workspace = true
 utils.workspace = true
 
 [build-dependencies]
-tonic-build = {workspace = true}
-anyhow = {workspace = true}
+tonic-build = { workspace = true }
+anyhow = { workspace = true }
 
 [features]
 hydrate = [
@@ -146,7 +140,7 @@ ssr = [
     "dep:regex",
     "auth/ssr",
     "consts/ssr",
-    "utils/ssr"
+    "utils/ssr",
 ]
 # Fetch mock referral history instead of history via canister
 mock-referral-history = ["dep:rand_chacha", "k256/arithmetic"]
@@ -160,7 +154,6 @@ cloudflare = ["dep:gob-cloudflare"]
 backend-admin = []
 ga4 = []
 mock-wallet-history = ["dep:rand_chacha"]
-firestore = ["dep:firestore", "speedate"]
 qstash = []
 alloydb = ["dep:google-cloud-alloydb-v1"]
 release-bin = [
@@ -171,9 +164,8 @@ release-bin = [
     "backend-admin",
     "oauth-ssr",
     "ga4",
-    "firestore",
     "qstash",
-    "alloydb"
+    "alloydb",
 ]
 release-lib = [
     "hydrate",

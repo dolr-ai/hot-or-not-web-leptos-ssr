@@ -1,23 +1,15 @@
 use leptos::prelude::window;
 
-use utils::host::show_pnd_condition;
-
 #[derive(Clone, Debug, PartialEq)]
 pub enum AppType {
     YRAL,
     HotOrNot,
-    ICPump,
-    Pumpdump,
 }
 
 impl AppType {
     pub fn from_host(host: &str) -> Self {
         if host.contains("hotornot") {
             AppType::HotOrNot
-        } else if host.contains("icpump") {
-            AppType::ICPump
-        } else if show_pnd_condition(host) {
-            AppType::Pumpdump
         } else {
             AppType::YRAL
         }
