@@ -1,11 +1,9 @@
 use std::cmp::Ordering;
 
-use codee::string::FromToStringCodec;
 use indexmap::IndexSet;
 use leptos::ev;
 use leptos::html::Audio;
 use leptos::{html::Video, prelude::*};
-use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::mixpanel::mixpanel_events::*;
@@ -14,10 +12,8 @@ use yral_canisters_client::individual_user_template::PostViewDetailsFromFrontend
 
 use crate::post_view::BetEligiblePostCtx;
 use component::show_any::ShowAny;
-use component::{
-    feed_popup::FeedPopUp, onboarding_flow::OnboardingPopUp, video_player::VideoPlayer,
-};
-use consts::{REFERRAL_REWARD, USER_ONBOARDING_STORE};
+use component::{feed_popup::FeedPopUp, video_player::VideoPlayer};
+use consts::REFERRAL_REWARD;
 use utils::event_streaming::events::VideoWatched;
 use utils::{bg_url, mp4_url};
 
@@ -56,19 +52,7 @@ pub fn BgView(
     let onboarding_eligible_post_context = BetEligiblePostCtx::default();
     provide_context(onboarding_eligible_post_context.clone());
 
-    let (show_onboarding_popup, set_show_onboarding_popup) = signal(false);
-    let (is_onboarded, set_onboarded, _) =
-        use_local_storage::<bool, FromToStringCodec>(USER_ONBOARDING_STORE);
-
     let win_audio_ref = NodeRef::<Audio>::new();
-
-    Effect::new(move |_| {
-        if onboarding_eligible_post_context.can_place_bet.get() && (!is_onboarded.get()) {
-            set_show_onboarding_popup.update(|show| *show = true);
-        } else {
-            set_show_onboarding_popup.update(|show| *show = false);
-        }
-    });
 
     view! {
         <div class="bg-transparent w-full h-full relative overflow-hidden">
@@ -88,9 +72,6 @@ pub fn BgView(
                     body_text=format!("Signup now to receive {} SATS as referral rewards.", REFERRAL_REWARD)
                     login_text="Sign Up"
                 />
-            </ShowAny>
-            <ShowAny when=move || { show_onboarding_popup.get() }>
-                <OnboardingPopUp onboard_on_click=set_onboarded />
             </ShowAny>
             {move || {
                 let (post, prev_post) = post_with_prev.get();
