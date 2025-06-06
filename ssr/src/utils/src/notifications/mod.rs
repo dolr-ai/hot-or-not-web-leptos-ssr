@@ -1,6 +1,11 @@
+use candid::Principal;
 use leptos::prelude::ServerFnError;
+use serde_json::json;
 use wasm_bindgen::prelude::*;
-use yral_metadata_types::DeviceRegistrationToken;
+use yral_metadata_types::{
+    AndroidConfig, AndroidNotification, ApnsConfig, ApnsFcmOptions, DeviceRegistrationToken,
+    NotificationPayload, SendNotificationReq, WebpushConfig, WebpushFcmOptions,
+};
 
 pub mod device_id;
 
@@ -50,4 +55,96 @@ pub async fn get_device_registeration_token() -> Result<DeviceRegistrationToken,
         return Err(ServerFnError::new("Notification permission not granted"));
     }
     get_fcm_token().await
+}
+
+const METADATA_SERVER_URL: &str = "https://yral-metadata.fly.dev";
+
+#[derive(Clone)]
+pub struct NotificationClient {
+    api_key: String,
+}
+
+pub enum NotificationType {
+    Liked(Principal, u64),
+}
+impl NotificationClient {
+    pub fn new(api_key: String) -> Self {
+        Self { api_key }
+    }
+
+    pub async fn send_notification(
+        &self,
+        liked_by: Principal,
+        post_id: u64,
+        creator: Principal,
+        creator_cans: Principal,
+    ) {
+        let client = reqwest::Client::new();
+        let url = format!(
+            "{}/notifications/{}/send",
+            METADATA_SERVER_URL,
+            creator.to_text()
+        );
+
+        let res = client
+            .post(&url)
+            .bearer_auth(&self.api_key)
+            .json(&SendNotificationReq{
+                notification: Some(NotificationPayload{
+                    title: Some("Liked your post".to_string()),
+                    body: Some(format!("{} liked your post", liked_by.to_text())),
+                    image: Some("https://yral.com/img/yral/android-chrome-384x384.png".to_string()),
+                }),
+                android: Some(AndroidConfig{
+                    notification: Some(AndroidNotification{
+                        icon: Some("https://yral.com/img/yral/android-chrome-384x384.png".to_string()),
+                        image: Some("https://yral.com/img/yral/android-chrome-384x384.png".to_string()),
+                        click_action: Some(format!("https://yral.com/hot-or-not/{}/{}", creator_cans.to_text(), post_id)),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }),
+                webpush: Some(WebpushConfig{
+                    fcm_options: Some(WebpushFcmOptions{
+                        link: Some(format!("https://yral.com/hot-or-not/{}/{}", creator_cans.to_text(), post_id)),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }),
+                apns: Some(ApnsConfig{
+                    fcm_options: Some(ApnsFcmOptions{
+                        image: Some("https://yral.com/img/yral/android-chrome-384x384.png".to_string()),
+                        ..Default::default()
+                    }),
+                    payload: Some(json!({
+                        "aps": {
+                            "alert": {
+                                "title": "Liked your post".to_string(),
+                                "body": format!("{} liked your post", liked_by.to_text()),
+                            },
+                            "sound": "default",
+                        },
+                        "url": format!("https://yral.com/hot-or-not/{}/{}", creator_cans.to_text(), post_id)
+                    })),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            })
+            .send()
+            .await;
+
+        match res {
+            Ok(response) => {
+                if response.status().is_success() {
+                } else {
+                    if let Ok(body) = response.text().await {
+                        log::error!("Response body: {}", body);
+                    }
+                }
+            }
+            Err(req_err) => {
+                log::error!("Error sending notification request for video: {}", req_err);
+            }
+        }
+    }
 }
