@@ -45,8 +45,6 @@ use utils::event_streaming::events::HistoryCtx;
 use utils::event_streaming::EventHistory;
 use yral_canisters_common::Canisters;
 
-mod test;
-
 #[component]
 fn NotFound() -> impl IntoView {
     let mut outside_errors = Errors::default();
@@ -212,8 +210,6 @@ pub fn App() -> impl IntoView {
                         />
                         <Route path=path!("/terms-ios") view=TermsIos />
                         <Route path=path!("/terms-android") view=TermsAndroid />
-
-                        <Route path=path!("/test_airdrop") view=test::TestAirdrop />
 
                     // {
                     // #[cfg(any(feature = "local-bin", feature = "local-lib"))]
