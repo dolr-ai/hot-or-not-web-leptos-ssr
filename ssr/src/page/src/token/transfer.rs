@@ -16,6 +16,7 @@ use utils::send_wrap;
 use utils::{event_streaming::events::TokensTransferred, web::paste_from_clipboard};
 
 use leptos_use::use_event_listener;
+use yral_canisters_client::sns_root::ListSnsCanistersArg;
 use yral_canisters_common::utils::token::balance::TokenBalance;
 use yral_canisters_common::utils::token::TokenMetadata;
 use yral_canisters_common::{Canisters, CanistersAuthWire};
@@ -167,10 +168,24 @@ fn TokenTransferInner(
             let amt = amt_res.get_untracked().unwrap().unwrap();
 
             match root {
-                RootType::Other(_) => {
-                    return Err(ServerFnError::new(
-                        "Creator tokens cannot be transferred from Yral",
-                    ))
+                RootType::Other(root) => {
+                    let root_canister = cans.sns_root(root).await;
+                    log::debug!("{root}");
+                    let sns_cans = root_canister
+                        .list_sns_canisters(ListSnsCanistersArg {})
+                        .await
+                        .unwrap();
+                    let ledger_canister = sns_cans.ledger.unwrap();
+                    log::debug!("ledger_canister: {ledger_canister:?}");
+
+                    transfer_token_to_user_principal(
+                        cans_wire.clone(),
+                        destination,
+                        ledger_canister,
+                        root,
+                        amt.clone(),
+                    )
+                    .await?;
                 }
                 RootType::BTC { ledger, .. } => {
                     cans.transfer_ck_token_to_user_principal(destination, ledger, amt.clone())

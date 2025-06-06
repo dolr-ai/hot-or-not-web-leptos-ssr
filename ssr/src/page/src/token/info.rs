@@ -227,7 +227,33 @@ pub fn TokenInfo() -> impl IntoView {
 
                 let token_root = &params.token_root;
                 let res = match (meta, token_root) {
-                    (Some(_), RootType::Other(_)) => None,
+                    (Some(m), RootType::Other(root)) => {
+                        let Some(token_owner) = m.token_owner.clone() else {
+                            return Ok(Some(TokenInfoResponse {
+                                meta: m,
+                                root: token_root.clone(),
+                                key_principal,
+                                is_user_principal: Some(cans.user_principal()) == key_principal,
+                                is_token_viewer_airdrop_claimed: true,
+                            }));
+                        };
+                        let is_airdrop_claimed = cans
+                            .get_airdrop_status(
+                                token_owner.canister_id,
+                                *root,
+                                cans.user_principal(),
+                            )
+                            .await
+                            .unwrap_or(true);
+
+                        Some(TokenInfoResponse {
+                            meta: m,
+                            root: token_root.clone(),
+                            key_principal,
+                            is_user_principal: Some(cans.user_principal()) == key_principal,
+                            is_token_viewer_airdrop_claimed: is_airdrop_claimed,
+                        })
+                    }
                     (Some(m), _) => Some(TokenInfoResponse {
                         meta: m,
                         root: token_root.clone(),
