@@ -1114,8 +1114,8 @@ dependencies = [
  "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
- "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
+ "yral-metadata-client 0.1.0 (git+https://github.com/dolr-ai/yral-metadata?branch=master)",
+ "yral-metadata-types 0.1.0 (git+https://github.com/dolr-ai/yral-metadata?branch=master)",
  "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
@@ -1281,8 +1281,8 @@ dependencies = [
  "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
- "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
+ "yral-metadata-client 0.1.0 (git+https://github.com/dolr-ai/yral-metadata?branch=master)",
+ "yral-metadata-types 0.1.0 (git+https://github.com/dolr-ai/yral-metadata?branch=master)",
  "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
@@ -2946,7 +2946,7 @@ dependencies = [
 [[package]]
 name = "gob-cloudflare"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/gob-cloudflare?rev=c847ba87ecc73a33520b24bd62503420d7e23e3e#c847ba87ecc73a33520b24bd62503420d7e23e3e"
+source = "git+https://github.com/dolr-ai/gob-cloudflare?rev=c847ba87ecc73a33520b24bd62503420d7e23e3e#c847ba87ecc73a33520b24bd62503420d7e23e3e"
 dependencies = [
  "bytes",
  "reqwest 0.12.19",
@@ -3350,12 +3350,13 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
+source = "git+https://github.com/dolr-ai/yral-common?branch=master#e6b96f73ea4411918f1e1dad7740162eddcc0294"
 dependencies = [
  "candid",
  "ic-agent",
  "num-bigint",
  "serde",
+ "serde_with",
  "thiserror 2.0.12",
  "url",
  "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
@@ -3468,8 +3469,8 @@ dependencies = [
  "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
- "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
+ "yral-metadata-client 0.1.0 (git+https://github.com/dolr-ai/yral-metadata?branch=master)",
+ "yral-metadata-types 0.1.0 (git+https://github.com/dolr-ai/yral-metadata?branch=master)",
  "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
@@ -5592,9 +5593,9 @@ dependencies = [
  "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
- "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
- "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
+ "yral-metadata-client 0.1.0 (git+https://github.com/dolr-ai/yral-metadata?branch=master)",
+ "yral-metadata-types 0.1.0 (git+https://github.com/dolr-ai/yral-metadata?branch=master)",
  "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
@@ -7558,7 +7559,7 @@ checksum = "8917285742e9f3e1683f0a9c4e6b57960b7314d0b08d30d1ecd426713ee2eee9"
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
+source = "git+https://github.com/dolr-ai/yral-common?branch=master#e6b96f73ea4411918f1e1dad7740162eddcc0294"
 dependencies = [
  "candid",
  "humantime",
@@ -7707,8 +7708,8 @@ dependencies = [
  "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
- "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
+ "yral-metadata-client 0.1.0 (git+https://github.com/dolr-ai/yral-metadata?branch=master)",
+ "yral-metadata-types 0.1.0 (git+https://github.com/dolr-ai/yral-metadata?branch=master)",
  "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
@@ -8826,8 +8827,8 @@ dependencies = [
  "yral-canisters-client",
  "yral-canisters-common",
  "yral-grpc-traits",
- "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
- "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
+ "yral-metadata-client 0.1.0 (git+https://github.com/dolr-ai/yral-metadata?branch=master)",
+ "yral-metadata-types 0.1.0 (git+https://github.com/dolr-ai/yral-metadata?branch=master)",
  "yral-pump-n-dump-common",
  "yral-qstash-types",
  "yral-testcontainers",
@@ -9500,7 +9501,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
+source = "git+https://github.com/dolr-ai/yral-common?branch=master#e6b96f73ea4411918f1e1dad7740162eddcc0294"
 dependencies = [
  "anyhow",
  "candid",
@@ -9515,7 +9516,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
+source = "git+https://github.com/dolr-ai/yral-common?branch=master#e6b96f73ea4411918f1e1dad7740162eddcc0294"
 dependencies = [
  "candid",
  "ciborium",
@@ -9548,7 +9549,7 @@ dependencies = [
 [[package]]
 name = "yral-grpc-traits"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
+source = "git+https://github.com/dolr-ai/yral-common?branch=master#e6b96f73ea4411918f1e1dad7740162eddcc0294"
 dependencies = [
  "serde",
 ]
@@ -9560,6 +9561,17 @@ source = "git+https://github.com/yral-dapp/yral-identity.git?rev=156bc0e7a4bc3d9
 dependencies = [
  "candid",
  "ic-agent",
+ "serde",
+ "thiserror 1.0.69",
+ "web-time",
+]
+
+[[package]]
+name = "yral-identity"
+version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b#adbf4be5cb62a26f2a90032261321bf1df33f08b"
+dependencies = [
+ "candid",
  "serde",
  "thiserror 1.0.69",
  "web-time",
@@ -9580,13 +9592,13 @@ dependencies = [
 [[package]]
 name = "yral-metadata-client"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-metadata?branch=master#597c12e55a3390a20dc9c66d0b487283ea92cca0"
+source = "git+https://github.com/dolr-ai/yral-metadata?branch=master#597c12e55a3390a20dc9c66d0b487283ea92cca0"
 dependencies = [
  "ic-agent",
  "reqwest 0.12.19",
  "thiserror 1.0.69",
  "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity.git?rev=156bc0e7a4bc3d9a3b4faab4b9b3048e88a0c701)",
- "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
+ "yral-metadata-types 0.1.0 (git+https://github.com/dolr-ai/yral-metadata?branch=master)",
 ]
 
 [[package]]
@@ -9604,7 +9616,7 @@ dependencies = [
 [[package]]
 name = "yral-metadata-types"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-metadata?branch=master#597c12e55a3390a20dc9c66d0b487283ea92cca0"
+source = "git+https://github.com/dolr-ai/yral-metadata?branch=master#597c12e55a3390a20dc9c66d0b487283ea92cca0"
 dependencies = [
  "candid",
  "serde",
@@ -9629,7 +9641,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
+source = "git+https://github.com/dolr-ai/yral-common?branch=master#e6b96f73ea4411918f1e1dad7740162eddcc0294"
 dependencies = [
  "candid",
  "ic-agent",
@@ -9644,7 +9656,7 @@ dependencies = [
 [[package]]
 name = "yral-qstash-types"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
+source = "git+https://github.com/dolr-ai/yral-common?branch=master#e6b96f73ea4411918f1e1dad7740162eddcc0294"
 dependencies = [
  "candid",
  "serde",
@@ -9654,7 +9666,7 @@ dependencies = [
 [[package]]
 name = "yral-testcontainers"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-testcontainers?rev=7438ba7cb281e7f195cf81f2a8532f63ce005771#7438ba7cb281e7f195cf81f2a8532f63ce005771"
+source = "git+https://github.com/dolr-ai/yral-testcontainers?rev=7438ba7cb281e7f195cf81f2a8532f63ce005771#7438ba7cb281e7f195cf81f2a8532f63ce005771"
 dependencies = [
  "anyhow",
  "gix",
@@ -9665,7 +9677,7 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#ac96048895149797561a9cd459d536669e4e565f"
+source = "git+https://github.com/dolr-ai/yral-common?branch=master#e6b96f73ea4411918f1e1dad7740162eddcc0294"
 dependencies = [
  "ic-agent",
  "k256",
