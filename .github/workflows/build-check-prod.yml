@@ -29,7 +29,7 @@ jobs:
       - name: Rust Setup
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "nightly-2025-05-09"
+          toolchain: "nightly-2025-01-09"
           targets: "wasm32-unknown-unknown"
           components: "clippy,rustfmt"
           override: true
@@ -73,6 +73,9 @@ jobs:
           packages: protobuf-compiler pkg-config libssl-dev
           version: 1.0
 
+      - name: Install clippy
+        run: rustup component add --toolchain nightly-2025-05-09-x86_64-unknown-linux-gnu clippy
+
       - name: lint check
         run: |
           cargo fmt --check
@@ -86,7 +89,7 @@ jobs:
       - name: Build the Leptos project to output
         run: cargo leptos build --release --lib-features release-lib --bin-features release-bin
         env:
-          RUSTUP_TOOLCHAIN: "nightly-2025-05-09"
+          RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
           LEPTOS_HASH_FILES: true
           LEPTOS_TAILWIND_VERSION: v4.1.7
       - name: Setup Sentry CLI

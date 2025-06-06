@@ -8,14 +8,14 @@ on:
         required: false
         type: boolean
       erase_components:
-        description: 'Enable type erasure. Default is false.'
+        description: "Enable type erasure. Default is false."
         required: false
         default: false
         type: boolean
   workflow_dispatch:
     inputs:
       erase_components:
-        description: 'Enable type erasure.'
+        description: "Enable type erasure."
         required: false
         default: false
         type: boolean
@@ -40,7 +40,7 @@ jobs:
       - name: Rust Setup
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "nightly-2025-05-09"
+          toolchain: "nightly-2025-01-09"
           targets: "wasm32-unknown-unknown"
           components: "clippy,rustfmt"
           override: true
@@ -83,7 +83,7 @@ jobs:
         with:
           packages: protobuf-compiler pkg-config libssl-dev
           version: 1.0
-          
+
       - name: Install clippy
         run: rustup component add --toolchain nightly-2025-05-09-x86_64-unknown-linux-gnu clippy
 
@@ -108,7 +108,7 @@ jobs:
           echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
           RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release --lib-features release-lib --bin-features release-bin
         env:
-          RUSTUP_TOOLCHAIN: "nightly-2025-05-09"
+          RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
           LEPTOS_HASH_FILES: true
           LEPTOS_TAILWIND_VERSION: v4.1.7
       - run: touch .empty
