@@ -9,16 +9,14 @@ on:
         type: boolean
       erase_components:
         description: 'Enable type erasure. Default is true.'
-        required: false
+        required: true
         type: boolean
-        default: true
   workflow_dispatch:
     inputs:
       erase_components:
         description: 'Enable type erasure.'
-        required: false
+        required: true
         type: boolean
-        default: true
 
 jobs:
   build_check:
@@ -103,8 +101,7 @@ jobs:
             RUSTFLAGS_VALUE="--cfg=erase_components"
           fi
           echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
-          export RUSTFLAGS="$RUSTFLAGS_VALUE"
-          cargo leptos build --release --lib-features release-lib --bin-features release-bin
+          RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release --lib-features release-lib --bin-features release-bin
         env:
           RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
           LEPTOS_HASH_FILES: true
