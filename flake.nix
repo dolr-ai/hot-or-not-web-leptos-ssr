@@ -28,6 +28,8 @@
                             cargo-leptos
                             protobuf_21
                             mold
+                            tailwindcss_4
+                            pkg-config
                         ];
                     };
                 }
