@@ -1,7 +1,7 @@
 name: deploy preview
 on:
   pull_request:
-    types: [opened, reopened, synchronize, closed]
+    types: [opened, reopened, synchronize, closed, labeled, unlabeled]
 permissions:
   deployments: write
   pull-requests: read
