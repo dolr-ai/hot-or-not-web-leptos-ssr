@@ -498,7 +498,7 @@ pub fn FastWalletCard(
     let airdropper_c = airdropper.clone();
     let airdropper_c2 = airdropper_c.clone();
 
-    let update_claimed = Action::new(move |_: &()| {
+    let update_claimed = Action::new_local(move |_: &()| {
         let airdropper = airdropper_c.clone();
         async move {
             let claimed = if let Some(airdropper) = &airdropper {
@@ -695,7 +695,7 @@ pub fn WalletCard(
     let airdropper_c = airdropper.clone();
     let airdropper_c2 = airdropper_c.clone();
 
-    let update_claimed = Action::new(move |_: &()| {
+    let update_claimed = Action::new_local(move |_: &()| {
         let airdropper = airdropper_c.clone();
         async move {
             let claimed = if let Some(airdropper) = &airdropper {
