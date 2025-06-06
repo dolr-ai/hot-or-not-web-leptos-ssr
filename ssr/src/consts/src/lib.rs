@@ -55,8 +55,8 @@ pub const CLOUDFLARE_ACCOUNT_ID: &str = "a209c523d2d9646cc56227dbe6ce3ede";
 pub const NEW_USER_SIGNUP_REWARD: u64 = 1000;
 pub const REFERRAL_REWARD: u64 = 100; // Lowered referral amount from 500 to 100
 
+pub const MIN_WITHDRAWAL_PER_TXN: u64 = 500;
 pub const MAX_WITHDRAWAL_PER_TXN: u64 = 2000;
-pub const MIN_WITHDRAWAL_PER_TXN: u64 = 1500;
 
 pub const AUTH_UTIL_COOKIES_MAX_AGE_MS: i64 = 400 * 24 * 60 * 60 * 1000; // 400 days
 

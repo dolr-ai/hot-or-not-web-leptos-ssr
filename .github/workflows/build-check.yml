@@ -7,7 +7,18 @@ on:
         default: false
         required: false
         type: boolean
+      erase_components:
+        description: "Enable type erasure. Default is false."
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
+    inputs:
+      erase_components:
+        description: "Enable type erasure."
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build_check:
@@ -74,13 +85,15 @@ jobs:
           version: 1.0
 
       - name: Install clippy
-        run: rustup component add --toolchain nightly-2025-05-09-x86_64-unknown-linux-gnu clippy
+        run: |
+          rustup component add --toolchain nightly-2025-05-09-x86_64-unknown-linux-gnu clippy
+          rustup component add --toolchain nightly-2025-05-09-x86_64-unknown-linux-gnu rustfmt
 
       - name: lint check
         run: |
           objcopy --version
-          # removing cargo fmt requirement as its buggy: https://github.com/rust-lang/cargo/issues/15506
-          # cargo fmt --check
+          # TODO: check this - removing cargo fmt requirement as its buggy: https://github.com/rust-lang/cargo/issues/15506
+          cargo fmt --check
           cargo clippy --no-deps --all-features --release -- -Dwarnings
 
       - name: Print Rust and Cargo version
@@ -89,7 +102,13 @@ jobs:
           cargo --version
 
       - name: Build the Leptos project to output
-        run: cargo leptos build --release --lib-features release-lib --bin-features release-bin
+        run: |
+          RUSTFLAGS_VALUE=""
+          if [[ "${{ inputs.erase_components }}" == "true" ]]; then
+            RUSTFLAGS_VALUE="--cfg=erase_components"
+          fi
+          echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
+          RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release --lib-features release-lib --bin-features release-bin
         env:
           RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
           LEPTOS_HASH_FILES: true
