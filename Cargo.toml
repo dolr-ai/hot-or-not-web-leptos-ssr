@@ -198,6 +198,7 @@ hon-worker-common = { git = "https://github.com/yral-dapp/yral-common", features
 ], branch = "feat/sats-airdrop", version = "0.1.0" }
 google-cloud-alloydb-v1 = "0.2.0"
 yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adbf4be5cb62a26f2a90032261321bf1df33f08b", default-features = false }
+jsonwebtoken = "9.3.1"
 
 
 # [patch.crates-io]

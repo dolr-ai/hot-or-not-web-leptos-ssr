@@ -1,9 +1,10 @@
 name: deploy preview
 on:
   pull_request:
-    types: [opened, reopened, synchronize, closed]
+    types: [opened, reopened, synchronize, closed, labeled, unlabeled]
 permissions:
   deployments: write
+  pull-requests: read
 
 env:
   FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
@@ -14,6 +15,7 @@ jobs:
     uses: ./.github/workflows/build-check.yml
     with:
       publish-artifact: true
+      erase_components: ${{ contains(github.event.pull_request.labels.*.name, 'type erasured') }}
     secrets: inherit
 
   destroy_preview:
@@ -63,11 +65,7 @@ jobs:
           flyctl secrets set BACKEND_ADMIN_IDENTITY="$BACKEND_ADMIN_IDENTITY" --app "$APP_NAME" --stage
           flyctl secrets set COOKIE_KEY="$COOKIE_KEY" --app "$APP_NAME" --stage
           flyctl secrets set REDIS_URL="$REDIS_URL" --app "$APP_NAME" --stage
-          flyctl secrets set GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET --app "$APP_NAME" --stage
           flyctl secrets set GRPC_AUTH_TOKEN="$GRPC_AUTH_TOKEN" --app "$APP_NAME" --stage
-          flyctl secrets set HOTORNOT_GOOGLE_CLIENT_SECRET="$HOTORNOT_GOOGLE_CLIENT_SECRET" --app "$APP_NAME" --stage
-          flyctl secrets set ICPUMPFUN_GOOGLE_CLIENT_SECRET="$ICPUMPFUN_GOOGLE_CLIENT_SECRET" --app "$APP_NAME" --stage
-          flyctl secrets set PUMPDUMP_GOOGLE_CLIENT_SECRET="$PUMPDUMP_GOOGLE_CLIENT_SECRET" --app "$APP_NAME" --stage
           flyctl secrets set "HON_GOOGLE_SERVICE_ACCOUNT=$HON_GOOGLE_SERVICE_ACCOUNT" --app "$APP_NAME" --stage
           flyctl secrets set QSTASH_TOKEN="$QSTASH_TOKEN" --app "$APP_NAME" --stage
           flyctl secrets set GA4_API_SECRET="$GA4_API_SECRET" --app "$APP_NAME" --stage
@@ -76,19 +74,18 @@ jobs:
           flyctl secrets set ALLOYDB_DB_PASSWORD="$ALLOYDB_DB_PASSWORD" --app "$APP_NAME" --stage
           flyctl secrets set ALLOYDB_SERVICE_ACCOUNT_JSON="$ALLOYDB_SERVICE_ACCOUNT_JSON" --app "$APP_NAME" --stage
           flyctl secrets set HON_WORKER_JWT="$HON_WORKER_JWT" --app "$APP_NAME" --stage
+          flyctl secrets set YRAL_AUTH_CLIENT_SECRET="$YRAL_AUTH_CLIENT_SECRET" --app "$APP_NAME" --stage
+          flyctl secrets set YRAL_AUTH_REDIRECT_URL="https://$APP_NAME.fly.dev/auth/google_redirect" --app "$APP_NAME" --stage
           flyctl secrets set ANALYTICS_SERVER_TOKEN="$ANALYTICS_SERVER_TOKEN" --app "$APP_NAME" --stage
+          flyctl secrets set YRAL_AUTH_MIGRATION_ES256_PEM="$YRAL_AUTH_MIGRATION_ES256_PEM" --app "$APP_NAME" --stage
           flyctl deploy --app $APP_NAME
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET }}
           BACKEND_ADMIN_IDENTITY: ${{ secrets.YRAL_WHITELISTED_BACKEND_GLOBAL_ADMIN_SECRET_KEY }}
           COOKIE_KEY: ${{ secrets.AUTH_SESSION_COOKIE_SIGNING_SECRET_KEY }}
           REDIS_URL: ${{ secrets.AUTH_FLY_IO_UPSTASH_REDIS_DATABASE_CONNECTION_STRING }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.STAGING_TEMPORARY_GOOGLE_CLIENT_SECRET }}
           FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
           GRPC_AUTH_TOKEN: ${{ secrets.OFF_CHAIN_AGENT_GRPC_AUTH_TOKEN }}
-          HOTORNOT_GOOGLE_CLIENT_SECRET: ${{ secrets.HOT_OR_NOT_WTF_DOMAIN_GOOGLE_LOGIN_AUTH_CLIENT_SECRET }}
-          ICPUMPFUN_GOOGLE_CLIENT_SECRET: ${{secrets.IC_PUMP_FUN_GOOGLE_AUTH_CLIENT_SECRET}}
-          PUMPDUMP_GOOGLE_CLIENT_SECRET: ${{secrets.PUMP_DUMP_WTF_DOMAIN_GOOGLE_LOGIN_AUTH_CLIENT_SECRET}}
           HON_GOOGLE_SERVICE_ACCOUNT: ${{ secrets.HOT_OR_NOT_FEED_INTELLIGENCE_FIREBASE_PROJECT_EVENTS_BQ_SERVICE_ACCOUNT_JSON_FOR_WEB_LEPTOS_SSR_APP }}
           QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
           GA4_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET }}
@@ -97,7 +94,9 @@ jobs:
           ALLOYDB_DB_PASSWORD: ${{ secrets.HOT_OR_NOT_ALLOYDB_DB_PASSWORD }}
           ALLOYDB_SERVICE_ACCOUNT_JSON: ${{ secrets.HOT_OR_NOT_ALLOYDB_SERVICE_ACCOUNT }}
           HON_WORKER_JWT: ${{ secrets.HOT_OR_NOT_WORKER_JWT }}
+          YRAL_AUTH_CLIENT_SECRET: ${{ secrets.YRAL_AUTH_V2_PREVIEW_SECRET_KEY }}
           ANALYTICS_SERVER_TOKEN: ${{ secrets.ANALYTICS_SERVER_TOKEN }}
+          YRAL_AUTH_MIGRATION_ES256_PEM: ${{ secrets.AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM }}
 
   e2e-tests:
     needs: preview

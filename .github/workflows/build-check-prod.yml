@@ -73,6 +73,11 @@ jobs:
           packages: protobuf-compiler pkg-config libssl-dev
           version: 1.0
 
+      - name: Install clippy
+        run: |
+          rustup component add --toolchain nightly-2025-05-09-x86_64-unknown-linux-gnu clippy
+          rustup component add --toolchain nightly-2025-05-09-x86_64-unknown-linux-gnu rustfmt
+
       - name: lint check
         run: |
           cargo fmt --check

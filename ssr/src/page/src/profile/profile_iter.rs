@@ -1,6 +1,5 @@
 use candid::Principal;
-use futures::stream::{FuturesOrdered, StreamExt, TryStreamExt};
-use yral_canisters_client::individual_user_template::{GetPostsOfUserProfileError, Result8};
+use yral_canisters_client::individual_user_template::{GetPostsOfUserProfileError, Result6};
 
 use yral_canisters_common::{utils::posts::PostDetails, Canisters, Error as CanistersError};
 
@@ -30,30 +29,6 @@ pub(crate) trait ProfVideoStream<const LIMIT: u64>: Sized {
     ) -> Result<PostsRes, CanistersError>;
 }
 
-pub struct ProfileVideoBetsStream;
-
-impl ProfVideoStream<10> for ProfileVideoBetsStream {
-    async fn fetch_next_posts<const AUTH: bool>(
-        cursor: FixedFetchCursor<10>,
-        canisters: &Canisters<AUTH>,
-        user_canister: Principal,
-    ) -> Result<PostsRes, CanistersError> {
-        let user = canisters.individual_user(user_canister).await;
-        let bets = user
-            .get_hot_or_not_bets_placed_by_this_profile_with_pagination_v_1(cursor.start)
-            .await?;
-        let end = bets.len() < 10;
-        let posts = bets
-            .into_iter()
-            .map(|bet| canisters.get_post_details(bet.canister_id, bet.post_id))
-            .collect::<FuturesOrdered<_>>()
-            .filter_map(|res| async { res.transpose() })
-            .try_collect::<Vec<_>>()
-            .await?;
-        Ok(PostsRes { posts, end })
-    }
-}
-
 pub struct ProfileVideoStream<const LIMIT: u64>;
 
 impl<const LIMIT: u64> ProfVideoStream<LIMIT> for ProfileVideoStream<LIMIT> {
@@ -67,7 +42,7 @@ impl<const LIMIT: u64> ProfVideoStream<LIMIT> for ProfileVideoStream<LIMIT> {
             .get_posts_of_this_user_profile_with_pagination_cursor(cursor.start, cursor.limit)
             .await?;
         match posts {
-            Result8::Ok(v) => {
+            Result6::Ok(v) => {
                 let end = v.len() < LIMIT as usize;
                 let posts = v
                     .into_iter()
@@ -75,7 +50,7 @@ impl<const LIMIT: u64> ProfVideoStream<LIMIT> for ProfileVideoStream<LIMIT> {
                     .collect::<Vec<_>>();
                 Ok(PostsRes { posts, end })
             }
-            Result8::Err(GetPostsOfUserProfileError::ReachedEndOfItemsList) => Ok(PostsRes {
+            Result6::Err(GetPostsOfUserProfileError::ReachedEndOfItemsList) => Ok(PostsRes {
                 posts: vec![],
                 end: true,
             }),

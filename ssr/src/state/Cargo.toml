@@ -89,6 +89,7 @@ tonic-build = {workspace = true}
 anyhow = {workspace = true}
 send_wrapper = {workspace = true}
 google-cloud-alloydb-v1 = { workspace = true, optional = true }
+jsonwebtoken = { workspace = true, optional = true }
 
 # workspace deps
 consts.workspace = true
@@ -152,9 +153,8 @@ mock-referral-history = ["dep:rand_chacha", "k256/arithmetic"]
 
 
 mock-history = ["mock-referral-history", "mock-wallet-history"]
-oauth-ssr = ["dep:openidconnect"]
+oauth-ssr = ["dep:openidconnect", "dep:jsonwebtoken"]
 oauth-hydrate = []
-local-auth = []
 redis-kv = []
 cloudflare = ["dep:gob-cloudflare"]
 backend-admin = []
@@ -187,7 +187,6 @@ release-lib = [
 local-bin = [
     "ssr",
     "redis-kv",
-    "local-auth",
     "backend-admin",
     "dep:testcontainers",
     "dep:yral-testcontainers",
@@ -198,7 +197,6 @@ local-bin = [
 local-lib = [
     "hydrate",
     "redis-kv",
-    "local-auth",
     "backend-admin",
     "yral-canisters-common/local",
 ]

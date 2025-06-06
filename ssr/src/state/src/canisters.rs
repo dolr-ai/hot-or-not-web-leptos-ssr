@@ -1,8 +1,8 @@
 use std::future::{Future, IntoFuture};
 
 use auth::{
-    delegate_identity, extract_identity, generate_anonymous_identity_if_required,
-    set_anonymous_identity_cookie,
+    extract_identity, generate_anonymous_identity_if_required, set_anonymous_identity_cookie,
+    AnonymousIdentity,
 };
 use candid::Principal;
 use codee::string::FromToStringCodec;
@@ -11,8 +11,6 @@ use consts::{
     USER_CANISTER_ID_STORE, USER_PRINCIPAL_STORE,
 };
 use futures::FutureExt;
-use ic_agent::identity::Secp256k1Identity;
-use k256::elliptic_curve::JwkEcKey;
 use leptos::prelude::*;
 use leptos_router::{hooks::use_query, params::Params};
 use leptos_use::{use_cookie_with_options, UseCookieOptions};
@@ -53,7 +51,7 @@ struct Referrer {
 
 #[derive(Copy, Clone)]
 pub struct AuthState {
-    _temp_identity_resource: OnceResource<Option<JwkEcKey>>,
+    _temp_identity_resource: OnceResource<Option<AnonymousIdentity>>,
     _temp_id_cookie_resource: LocalResource<()>,
     pub referrer_store: Signal<Option<Principal>>,
     is_logged_in_with_oauth: (Signal<Option<bool>>, WriteSignal<Option<bool>>),
@@ -64,6 +62,7 @@ pub struct AuthState {
     pub user_principal: Resource<Result<Principal, ServerFnError>>,
     user_principal_cookie: (Signal<Option<Principal>>, WriteSignal<Option<Principal>>),
     event_ctx: EventCtx,
+    pub user_identity: Resource<Result<DelegatedIdentityWire, ServerFnError>>,
 }
 
 impl Default for AuthState {
@@ -77,10 +76,9 @@ impl Default for AuthState {
         });
         let temp_id_cookie_resource = LocalResource::new(move || async move {
             let temp_identity = temp_identity_resource.await;
-            let Some(id) = temp_identity else {
-                return;
-            };
-            if let Err(e) = set_anonymous_identity_cookie(id).await {
+            if let Err(e) =
+                set_anonymous_identity_cookie(temp_identity.map(|id| id.refresh_token)).await
+            {
                 log::error!("Failed to set anonymous identity as cookie?! err {e}");
             }
         });
@@ -125,18 +123,14 @@ impl Default for AuthState {
                     return Ok::<_, ServerFnError>(id_wire);
                 }
 
-                let Some(jwk_key) = temp_identity else {
+                let Some(id) = temp_identity else {
                     let id_wire = extract_identity()
                         .await?
                         .ok_or_else(|| ServerFnError::new("No refresh cookie set?!"))?;
                     return Ok(id_wire);
                 };
 
-                let key = k256::SecretKey::from_jwk(&jwk_key)?;
-                let id = Secp256k1Identity::from_private_key(key);
-                let id_wire = delegate_identity(&id);
-
-                Ok(id_wire)
+                Ok(id.identity)
             },
         );
 
@@ -239,6 +233,7 @@ impl Default for AuthState {
             user_canister,
             user_canister_id_cookie,
             event_ctx,
+            user_identity: user_identity_resource,
         }
     }
 }
