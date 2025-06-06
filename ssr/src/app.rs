@@ -23,7 +23,9 @@ use page::{
     menu::Menu,
     post_view::{single_post::SinglePost, PostView, PostViewCtx},
     privacy::PrivacyPolicy,
-    profile::{profile_post::ProfilePost, ProfilePostsContext, ProfileView},
+    profile::{
+        profile_post::ProfilePost, LoggedInUserProfileView, ProfilePostsContext, ProfileView,
+    },
     refer_earn::ReferEarn,
     root::RootPage,
     settings::Settings,
@@ -55,62 +57,8 @@ fn GoogleAuthRedirectHandlerRoute() -> impl MatchNestedRoutes + Clone {
     let path = path!("/auth/google_redirect");
     #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
     {
-        // if show_preview_component() {
-        //     use crate::page::preview_google_redirect::PreviewGoogleRedirectHandler;
-        //     view! { <Route path view=PreviewGoogleRedirectHandler/> }.into_inner()
-        // } else {
-
-        // }
-        use page::google_redirect::GoogleRedirectHandler;
-        view! { <Route path view=GoogleRedirectHandler /> }.into_inner()
-    }
-    #[cfg(not(any(feature = "oauth-ssr", feature = "oauth-hydrate")))]
-    {
-        view! { <Route path view=NotFound /> }.into_inner()
-    }
-}
-
-#[component(transparent)]
-fn GoogleAuthRedirectorRoute() -> impl MatchNestedRoutes + Clone {
-    let path = path!("/auth/perform_google_redirect");
-    #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-    {
-        // if show_preview_component() {
-        //     use crate::page::preview_google_redirect::PreviewGoogleRedirector;
-        //     view! { <Route path view=PreviewGoogleRedirector/> }.into_inner()
-        // } else {
-
-        // }
-        use page::google_redirect::GoogleRedirector;
-        view! { <Route path view=GoogleRedirector /> }.into_inner()
-    }
-    #[cfg(not(any(feature = "oauth-ssr", feature = "oauth-hydrate")))]
-    {
-        view! { <Route path view=NotFound /> }.into_inner()
-    }
-}
-
-#[component(transparent)]
-fn GooglePreviewAuthRedirectorRoute() -> impl MatchNestedRoutes + Clone {
-    let path = path!("/preview/auth/perform_google_redirect");
-    #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-    {
-        use page::preview_google_redirect::PreviewGoogleRedirector;
-        view! { <Route path view=PreviewGoogleRedirector /> }.into_inner()
-    }
-    #[cfg(not(any(feature = "oauth-ssr", feature = "oauth-hydrate")))]
-    {
-        view! { <Route path view=NotFound /> }.into_inner()
-    }
-}
-
-#[component(transparent)]
-fn GooglePreviewAuthRedirectHandlerRoute() -> impl MatchNestedRoutes + Clone {
-    let path = path!("/preview/auth/google_redirect");
-    #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-    {
-        use page::preview_google_redirect::PreviewGoogleRedirectHandler;
-        view! { <Route path view=PreviewGoogleRedirectHandler /> }.into_inner()
+        use page::yral_auth_redirect::YralAuthRedirectHandler;
+        view! { <Route path view=YralAuthRedirectHandler /> }.into_inner()
     }
     #[cfg(not(any(feature = "oauth-ssr", feature = "oauth-hydrate")))]
     {
@@ -211,9 +159,6 @@ pub fn App() -> impl IntoView {
                 <Routes fallback=|| view! { <NotFound /> }.into_view()>
                     // auth redirect routes exist outside main context
                     <GoogleAuthRedirectHandlerRoute />
-                    <GoogleAuthRedirectorRoute />
-                    <GooglePreviewAuthRedirectorRoute />
-                    <GooglePreviewAuthRedirectHandlerRoute />
                     <Route path=path!("/") view=RootPage />
                     <ParentRoute path=path!("") view=BaseRoute>
                         <Route path=path!("/hot-or-not/withdraw") view=hon::withdrawal::HonWithdrawal />
@@ -235,7 +180,7 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/settings") view=Settings />
                         <Route path=path!("/refer-earn") view=ReferEarn />
                         <Route path=path!("/profile/:id/:tab") view=ProfileView />
-                        <Route path=path!("/profile/:tab") view=ProfileView />
+                        <Route path=path!("/profile/:tab") view=LoggedInUserProfileView />
                         <Route path=path!("/terms-of-service") view=TermsOfService />
                         <Route path=path!("/privacy-policy") view=PrivacyPolicy />
                         <Route path=path!("/about-us") view=AboutUs />

@@ -11,7 +11,7 @@ use leptos_router::hooks::use_navigate;
 use log;
 use state::{canisters::auth_state, server::HonWorkerJwt};
 use utils::{send_wrap, try_or_redirect_opt};
-use yral_canisters_client::individual_user_template::{Result9, SessionType};
+use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::{utils::token::balance::TokenBalance, Canisters};
 use yral_identity::Signature;
 
@@ -67,7 +67,7 @@ async fn withdraw_sats_for_ckbtc(
     }
 
     let sess = user.get_session_type().await?;
-    if !matches!(sess, Result9::Ok(SessionType::RegisteredSession)) {
+    if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
         log::error!("Not allowed to withdraw due to invalid session: {sess:?}");
         return Err(ServerFnError::new("Not allowed to withdraw"));
     }

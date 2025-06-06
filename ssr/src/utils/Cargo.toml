@@ -157,7 +157,6 @@ mock-history = [
 ]
 oauth-ssr = ["dep:openidconnect", "consts/oauth-ssr"]
 oauth-hydrate = ["consts/oauth-hydrate"]
-local-auth = ["consts/local-auth"]
 redis-kv = ["consts/redis-kv"]
 cloudflare = ["dep:gob-cloudflare", "consts/cloudflare"]
 backend-admin = ["consts/backend-admin"]
@@ -190,7 +189,6 @@ release-lib = [
 local-bin = [
     "ssr",
     "redis-kv",
-    "local-auth",
     "backend-admin",
     "dep:testcontainers",
     "dep:yral-testcontainers",
@@ -201,7 +199,6 @@ local-bin = [
 local-lib = [
     "hydrate",
     "redis-kv",
-    "local-auth",
     "backend-admin",
     "yral-canisters-common/local",
     "consts/local-lib",

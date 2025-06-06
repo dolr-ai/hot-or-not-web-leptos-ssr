@@ -20,6 +20,7 @@ pub const GOBGOB_PROPIC_URL: &str = "https://imagedelivery.net/abXI9nS4DYYtyR1yF
 pub const GOBGOB_TOTAL_COUNT: u32 = 18557;
 pub const CF_WATERMARK_UID: &str = "b5588fa1516ca33a08ebfef06c8edb33";
 pub const ACCOUNT_CONNECTED_STORE: &str = "account-connected-1";
+pub const DEVICE_ID: &str = "device_id";
 pub static CF_BASE_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://api.cloudflare.com/client/v4/").unwrap());
 pub const NOTIFICATIONS_ENABLED_STORE: &str = "yral-notifications-enabled";
@@ -82,16 +83,16 @@ pub mod auth {
 
     /// Delegation Expiry, 7 days
     pub const DELEGATION_MAX_AGE: Duration = Duration::from_secs(60 * 60 * 24 * 7);
-    /// Refresh expiry, 30 days
-    pub const REFRESH_MAX_AGE: Duration = Duration::from_secs(60 * 60 * 24 * 30);
+    /// Refresh expiry, 29 days
+    pub const REFRESH_MAX_AGE: Duration = Duration::from_secs(60 * 60 * 24 * 29);
     pub const REFRESH_TOKEN_COOKIE: &str = "user-identity";
 }
 
 #[cfg(feature = "oauth-ssr")]
-pub mod google {
-    pub const GOOGLE_AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
-    pub const GOOGLE_TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
-    pub const GOOGLE_ISSUER_URL: &str = "https://accounts.google.com";
+pub mod yral_auth {
+    pub const YRAL_AUTH_AUTHORIZATION_URL: &str = "https://auth.yral.com/oauth/auth";
+    pub const YRAL_AUTH_TOKEN_URL: &str = "https://auth.yral.com/oauth/token";
+    pub const YRAL_AUTH_ISSUER_URL: &str = "https://auth.yral.com";
 }
 
 pub const UPLOAD_URL: &str = "https://yral-upload-video.go-bazzinga.workers.dev";

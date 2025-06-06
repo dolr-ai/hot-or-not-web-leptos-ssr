@@ -1,28 +1,36 @@
 use codee::string::FromToStringCodec;
 use consts::NOTIFICATIONS_ENABLED_STORE;
+use ic_agent::identity::DelegatedIdentity;
 use leptos::{ev, prelude::*};
-use leptos_icons::*;
 use leptos_use::{storage::use_local_storage, use_event_listener, use_interval_fn, use_window};
-use utils::{host::show_preview_component, icon_gen};
+use state::canisters::auth_state;
+use yral_canisters_common::yral_auth_login_hint;
 use yral_types::delegated_identity::DelegatedIdentityWire;
-pub type GoogleAuthMessage = Result<DelegatedIdentityWire, String>;
+
+pub type YralAuthMessage = Result<DelegatedIdentityWire, String>;
 
 use super::{LoginProvButton, LoginProvCtx, ProviderKind};
 
-icon_gen!(
-    GoogleLogoSymbol,
-    view_box = "0 0 48 48",
-    r###"<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path>"###
-);
+#[server]
+async fn yral_auth_login_url(login_hint: String) -> Result<String, ServerFnError> {
+    use auth::server_impl::yral::yral_auth_url_impl;
+    use auth::server_impl::yral::YralOAuthClient;
+
+    let oauth2: YralOAuthClient = expect_context();
+
+    let url = yral_auth_url_impl(oauth2, login_hint, None).await?;
+
+    Ok(url)
+}
 
 #[component]
-pub fn GoogleAuthProvider() -> impl IntoView {
+pub fn YralAuthProvider() -> impl IntoView {
     let ctx: LoginProvCtx = expect_context();
     let current_text = move || {
-        if ctx.processing.get() == Some(ProviderKind::Google) {
+        if ctx.processing.get() == Some(ProviderKind::YralAuth) {
             "Signing In..."
         } else {
-            "Google Sign-In"
+            "Yral Sign-In"
         }
     };
     let done_guard = RwSignal::new(false);
@@ -32,27 +40,52 @@ pub fn GoogleAuthProvider() -> impl IntoView {
     let (_, set_notifs_enabled, _) =
         use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
 
+    let auth = auth_state();
+
+    let open_yral_auth = Action::new_unsync_local(
+        move |(target, origin): &(leptos::web_sys::Window, String)| {
+            let target = target.clone();
+            let origin = origin.clone();
+
+            let url_fut = async move {
+                let id_wire = auth.user_identity.await?;
+                let id = DelegatedIdentity::try_from(id_wire)?;
+                let login_hint = yral_auth_login_hint(&id)?;
+
+                yral_auth_login_url(login_hint).await
+            };
+
+            async move {
+                let url = match url_fut.await {
+                    Ok(url) => url,
+                    Err(e) => {
+                        format!("{origin}/error?err={e}")
+                    }
+                };
+                target
+                    .location()
+                    .replace(&url)
+                    .expect("Failed to open Yral Auth?!");
+            }
+        },
+    );
+
     let on_click = move || {
         let window = window();
         let origin = window.origin();
-        let redirect_uri = if show_preview_component() {
-            format!("{origin}/preview/auth/perform_google_redirect")
-        } else {
-            format!("{origin}/auth/perform_google_redirect")
-        };
-        // Open a popup window with the redirect URL
-        let target = window
-            .open_with_url(&redirect_uri)
-            .transpose()
-            .and_then(|w| w.ok())
-            .unwrap();
+
+        // open a target window
+        let target = window.open().transpose().and_then(|w| w.ok()).unwrap();
+
+        // load yral auth url in background
+        open_yral_auth.dispatch_local((target.clone(), origin.clone()));
 
         // Check if the target window was closed by the user
         let target_c = target.clone();
         let pause = use_interval_fn(
             move || {
                 // Target window was closed by user
-                if target.closed().unwrap_or_default() && !done_guard.try_get().unwrap_or(true) {
+                if target_c.closed().unwrap_or_default() && !done_guard.try_get().unwrap_or(true) {
                     ctx.set_processing.try_set(None);
                 }
             },
@@ -68,7 +101,7 @@ pub fn GoogleAuthProvider() -> impl IntoView {
                 log::warn!("received invalid message: {:?}", msg.data());
                 return;
             };
-            let res = match serde_json::from_str::<GoogleAuthMessage>(&data)
+            let res = match serde_json::from_str::<YralAuthMessage>(&data)
                 .map_err(|e| e.to_string())
                 .and_then(|r| r)
             {
@@ -81,7 +114,7 @@ pub fn GoogleAuthProvider() -> impl IntoView {
             };
             done_guard.set(true);
             (pause.pause)();
-            _ = target_c.close();
+            _ = target.close();
             ctx.set_processing.set(None);
             set_notifs_enabled.set(false);
             ctx.login_complete.set(res);
@@ -90,17 +123,14 @@ pub fn GoogleAuthProvider() -> impl IntoView {
 
     view! {
         <LoginProvButton
-            prov=ProviderKind::Google
+            prov=ProviderKind::YralAuth
             class="flex flex-row justify-center items-center justify-between gap-2 rounded-full bg-neutral-600 pr-4"
             on_click=move |ev| {
                 ev.stop_propagation();
                 on_click()
             }
         >
-
-            <div class="grid grid-cols-1 place-items-center bg-white p-2 rounded-full">
-                <Icon attr:class="text-xl rounded-full" icon=GoogleLogoSymbol />
-            </div>
+            <img class="w-9 h-9 rounded-full" src="/img/yral/logo.webp" />
             <span class="text-white">{current_text}</span>
         </LoginProvButton>
     }
