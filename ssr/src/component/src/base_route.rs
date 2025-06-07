@@ -1,3 +1,5 @@
+use std::env;
+
 use consts::auth::REFRESH_MAX_AGE;
 use leptos::{ev, prelude::*};
 use leptos_router::components::Outlet;
@@ -11,6 +13,7 @@ use utils::event_streaming::events::PageVisit;
 use utils::mixpanel::mixpanel_events::{
     MixPanelEvent, MixpanelGlobalProps, MixpanelPageViewedProps,
 };
+use utils::notifications::NotificationClient;
 use utils::sentry::{set_sentry_user, set_sentry_user_canister};
 
 #[derive(Clone)]
@@ -54,6 +57,11 @@ fn CtxProvider(children: Children) -> impl IntoView {
         let user_principal = user_principal.and_then(|c| c.ok()).map(|c| c.to_text());
         set_sentry_user(user_principal);
     });
+
+    let notification_client =
+        NotificationClient::new(env::var("YRAL_METADATA_USER_NOTIFICATION_API_KEY").unwrap());
+
+    provide_context(notification_client);
 
     // migrates account connected local storage to cookie
     let (_, set_new_account_connected_store) = use_cookie_with_options::<bool, FromToStringCodec>(
