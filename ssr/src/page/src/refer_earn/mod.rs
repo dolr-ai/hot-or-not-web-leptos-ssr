@@ -1,6 +1,7 @@
 use candid::Principal;
-use consts::{NEW_USER_SIGNUP_REWARD, REFERRAL_REWARD};
+use consts::NEW_USER_SIGNUP_REWARD;
 use gloo::timers::callback::Timeout;
+use hon_worker_common::limits::REFERRAL_REWARD;
 use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_icons::*;

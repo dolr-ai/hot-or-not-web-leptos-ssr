@@ -2,7 +2,7 @@
 pub mod yral;
 use candid::Principal;
 use consts::NEW_USER_SIGNUP_REWARD;
-use consts::REFERRAL_REWARD;
+use hon_worker_common::limits::REFERRAL_REWARD;
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
 use ic_agent::Identity;
@@ -80,6 +80,7 @@ pub async fn handle_user_login(
                 referrer: referrer_principal,
                 referee: user_principal,
                 referee_canister: canisters.user_canister(),
+                amount: REFERRAL_REWARD,
             };
             let sig = sign_referral_request(canisters.identity(), req.clone())?;
             issue_referral_rewards(ReferralReqWithSignature {
