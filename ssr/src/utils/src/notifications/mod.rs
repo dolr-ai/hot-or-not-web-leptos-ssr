@@ -82,7 +82,7 @@ impl NotificationClient {
 
         let res = client
             .post(&url)
-            .bearer_auth(&std::env::var("YRAL_METADATA_NOTIFICATION_API_KEY").unwrap())
+            .bearer_auth(std::env::var("YRAL_METADATA_NOTIFICATION_API_KEY").expect("YRAL_METADATA_NOTIFICATION_API_KEY is not set"))
             .json(&SendNotificationReq{
                 notification: Some(NotificationPayload{
                     title: Some("Liked your post".to_string()),
