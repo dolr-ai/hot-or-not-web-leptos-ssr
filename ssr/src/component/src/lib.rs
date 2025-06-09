@@ -1,3 +1,4 @@
+pub mod action_btn;
 pub mod airdrop_logo;
 pub mod auth_providers;
 pub mod back_btn;
@@ -32,7 +33,5 @@ pub mod social;
 pub mod spinner;
 pub mod title;
 pub mod toggle;
-pub mod token_confetti_symbol;
-pub mod token_logo_sanitize;
 pub mod tooltip;
 pub mod video_player;

@@ -276,16 +276,6 @@ fn pop_up_button_href(host: String, pathname: String) -> PopUpButtonTextRedirect
             href: "/wallet".to_string(),
             text: "View Wallet".to_string(),
         }
-    } else if host.contains("icpump") {
-        PopUpButtonTextRedirection {
-            href: "/".to_string(),
-            text: "Explore more Tokens".to_string(),
-        }
-    } else if host.contains("pumpdump") {
-        PopUpButtonTextRedirection {
-            href: "/play".to_string(),
-            text: "Continue Playing".to_string(),
-        }
     } else if host.contains("yral") {
         PopUpButtonTextRedirection {
             href: "/".to_string(),
