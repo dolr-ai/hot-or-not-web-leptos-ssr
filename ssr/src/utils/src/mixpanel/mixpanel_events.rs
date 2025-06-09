@@ -77,11 +77,12 @@ async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
     Ok(())
 }
 
-fn parse_query_params(url_str: &str) -> Vec<(String, String)> {
-    let url = reqwest::Url::parse(url_str).expect("Invalid URL");
-    url.query_pairs()
+fn parse_query_params(url_str: &str) -> Result<Vec<(String, String)>, String> {
+    let url = reqwest::Url::parse(url_str).map_err(|e| format!("Failed to parse url: {e:?}"))?;
+    Ok(url
+        .query_pairs()
         .map(|(k, v)| (k.into_owned(), v.into_owned()))
-        .collect()
+        .collect())
 }
 
 /// Generic helper: serializes `props` and calls Mixpanel.track
@@ -106,7 +107,7 @@ where
     let history = expect_context::<HistoryCtx>();
     if let Some(url) = current_url {
         props["current_url"] = url.clone().into();
-        let params = parse_query_params(&url);
+        let params = parse_query_params(&url).unwrap_or_default();
         let utms: Vec<(String, String)> = params
             .iter()
             .filter(|f| f.0.contains("utm"))

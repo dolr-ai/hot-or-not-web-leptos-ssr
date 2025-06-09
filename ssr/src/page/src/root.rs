@@ -86,7 +86,7 @@ pub fn YralRootPage() -> impl IntoView {
         move |_| async move {
             let utm = params.get_untracked().to_query_string();
             if utm.contains("utm") {
-                Some(utm)
+                Some(utm.replace("?", ""))
             } else {
                 None
             }
@@ -120,7 +120,7 @@ pub fn YralRootPage() -> impl IntoView {
                     url.push_str(&format!("?user_refer={user_refer}"));
                 }
                 if let Some(utms) = utms {
-                    url.push_str(&format!("{}{utms}", if url.contains('?') { "&" } else { "" }));
+                    url.push_str(&format!("{}{utms}", if url.contains('?') { "&" } else { "?" }));
                 }
 
                 view! { <Redirect path=url /> }

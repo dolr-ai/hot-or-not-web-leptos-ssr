@@ -3,7 +3,7 @@ use candid::Principal;
 use ic_agent::Identity;
 use leptos::html::Input;
 use leptos::prelude::Signal;
-use leptos::{ev, logging, prelude::*};
+use leptos::{ev, prelude::*};
 use leptos_use::{use_event_listener, use_timeout_fn, UseTimeoutFnReturn};
 use serde_json::json;
 use sns_validation::pbs::sns_pb::SnsInitPayload;
@@ -61,7 +61,6 @@ impl HistoryCtx {
             .filter(|(k, _)| k.contains("utm"))
             .cloned()
             .collect();
-        logging::log!("Pushing UTM parameters: {:?}", &utm);
         self.utm.set(utm);
     }
 
