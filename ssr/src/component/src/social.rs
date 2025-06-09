@@ -1,7 +1,6 @@
 use super::ic_symbol::IcSymbol;
 use leptos::prelude::*;
 use leptos_icons::*;
-use utils::host::show_pnd_page;
 
 #[component]
 fn FollowItem(#[prop(into)] href: String, #[prop(into)] icon: icondata::Icon) -> impl IntoView {
@@ -18,20 +17,8 @@ fn FollowItem(#[prop(into)] href: String, #[prop(into)] icon: icondata::Icon) ->
 
 pub fn domain_specific_href(base: &str) -> &'static str {
     match base {
-        "TELEGRAM" => {
-            if show_pnd_page() {
-                consts::social::TELEGRAM_PND
-            } else {
-                consts::social::TELEGRAM_YRAL
-            }
-        }
-        "TWITTER" => {
-            if show_pnd_page() {
-                consts::social::TWITTER_PND
-            } else {
-                consts::social::TWITTER_YRAL
-            }
-        }
+        "TELEGRAM" => consts::social::TELEGRAM_YRAL,
+        "TWITTER" => consts::social::TWITTER_YRAL,
         "DISCORD" => consts::social::DISCORD, // Same for both
         "IC_WEBSITE" => consts::social::IC_WEBSITE, // Same for both
         _ => panic!("Unknown base name"),

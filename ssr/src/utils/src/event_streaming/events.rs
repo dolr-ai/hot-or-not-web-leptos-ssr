@@ -102,7 +102,6 @@ impl HistoryCtx {
 
 #[cfg(feature = "ga4")]
 use crate::event_streaming::{send_event_ssr_spawn, send_event_warehouse_ssr_spawn};
-use crate::token::nsfw::NSFWInfo;
 use leptos::html::Video;
 use yral_canisters_common::{
     utils::{posts::PostDetails, profile::ProfileDetails},
@@ -129,14 +128,10 @@ pub enum AnalyticsEvent {
     ErrorEvent(ErrorEvent),
     ProfileViewVideo(ProfileViewVideo),
     TokenCreationStarted(TokenCreationStarted),
-    TokenCreationCompleted(TokenCreationCompleted),
-    TokenCreationFailed(TokenCreationFailed),
-    TokensClaimedFromNeuron(TokensClaimedFromNeuron),
     TokensTransferred(TokensTransferred),
     PageVisit(PageVisit),
     CentsAdded(CentsAdded),
     CentsWithdrawn(CentsWithdrawn),
-    TokenPumpedDumped(TokenPumpedDumped),
 }
 
 #[derive(Clone)]
@@ -927,111 +922,6 @@ impl TokenCreationStarted {
 }
 
 #[derive(Default)]
-pub struct TokenCreationCompleted;
-
-impl TokenCreationCompleted {
-    pub async fn send_event(
-        &self,
-        sns_init_payload: SnsInitPayload,
-        token_root: Principal,
-        profile_details: ProfileDetails,
-        canister_id: Principal,
-        nsfw_info: NSFWInfo,
-    ) {
-        #[cfg(all(feature = "ssr", feature = "ga4"))]
-        {
-            use crate::event_streaming::send_event_ssr;
-
-            let user_id = profile_details.principal;
-
-            let link = format!("/token/info/{token_root}");
-
-            // token_creation_completed - analytics
-            let _ = send_event_ssr(
-                "token_creation_completed".to_string(),
-                json!({
-                    "user_id": user_id,
-                    "canister_id": canister_id,
-                    "token_name": sns_init_payload.token_name,
-                    "token_symbol": sns_init_payload.token_symbol,
-                    "name": sns_init_payload.name,
-                    "description": sns_init_payload.description,
-                    "logo": sns_init_payload.logo,
-                    "link": link,
-                    "is_nsfw": nsfw_info.is_nsfw,
-                    "nsfw_ec": nsfw_info.nsfw_ec,
-                    "nsfw_gore": nsfw_info.nsfw_gore,
-                    "csam_detected": nsfw_info.csam_detected,
-                })
-                .to_string(),
-            )
-            .await;
-        }
-    }
-}
-
-#[derive(Default)]
-pub struct TokenCreationFailed;
-
-impl TokenCreationFailed {
-    pub async fn send_event(
-        &self,
-        error_str: String,
-        sns_init_payload: SnsInitPayload,
-        profile_details: ProfileDetails,
-        canister_id: Principal,
-    ) {
-        #[cfg(all(feature = "ssr", feature = "ga4"))]
-        {
-            use crate::event_streaming::send_event_ssr;
-            let user_id = profile_details.principal;
-
-            // token_creation_failed - analytics
-            let _ = send_event_ssr(
-                "token_creation_failed".to_string(),
-                json!({
-                    "user_id": user_id,
-                    "canister_id": canister_id,
-                    "token_name": sns_init_payload.token_name,
-                    "token_symbol": sns_init_payload.token_symbol,
-                    "name": sns_init_payload.name,
-                    "description": sns_init_payload.description,
-                    "error": error_str
-                })
-                .to_string(),
-            )
-            .await;
-        }
-    }
-}
-
-#[derive(Default)]
-pub struct TokensClaimedFromNeuron;
-
-impl TokensClaimedFromNeuron {
-    pub fn send_event(&self, amount: u64, cans_store: Canisters<true>) {
-        #[cfg(all(feature = "hydrate", feature = "ga4"))]
-        {
-            let details = cans_store.profile_details();
-
-            let user_id = details.principal;
-            let canister_id = cans_store.user_canister();
-
-            // tokens_claimed_from_neuron - analytics
-            let _ = send_event_ssr_spawn(
-                "tokens_claimed_from_neuron".to_string(),
-                json!({
-                    "user_id": user_id,
-                    "canister_id": canister_id,
-                    "amount": amount
-                })
-                .to_string(),
-            );
-        }
-    }
-}
-
-#[derive(Default)]
 pub struct TokensTransferred;
 
 impl TokensTransferred {
@@ -1152,41 +1042,6 @@ impl SatsWithdrawn {
                     "canister_id": user.canister_id,
                     "is_loggedin": ctx.is_connected(),
                     "amount_withdrawn": amount_withdrawn,
-                })
-                .to_string(),
-            );
-        }
-    }
-}
-
-#[derive(Default)]
-pub struct TokenPumpedDumped;
-
-impl TokenPumpedDumped {
-    pub fn send_event(
-        &self,
-        ctx: EventCtx,
-        token_name: String,
-        token_root: Principal,
-        direction: String,
-        count: u32,
-    ) {
-        #[cfg(all(feature = "hydrate", feature = "ga4"))]
-        {
-            let Some(user) = ctx.user_details() else {
-                return;
-            };
-
-            let _ = send_event_ssr_spawn(
-                "token_pumped_dumped".to_string(),
-                json!({
-                    "user_id": user.details.principal,
-                    "canister_id": user.canister_id,
-                    "token_name": token_name,
-                    "token_root": token_root.to_string(),
-                    "direction": direction,
-                    "count": count,
-                    "is_loggedin": ctx.is_connected(),
                 })
                 .to_string(),
             );

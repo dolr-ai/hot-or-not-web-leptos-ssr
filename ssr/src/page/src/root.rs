@@ -1,5 +1,4 @@
 use crate::post_view::PostDetailsCacheCtx;
-use crate::pumpdump::PumpNDump;
 use candid::Principal;
 use codee::string::FromToStringCodec;
 use component::spinner::FullScreenSpinner;
@@ -10,10 +9,7 @@ use leptos_router::components::Redirect;
 use leptos_router::hooks::use_query_map;
 use leptos_use::storage::use_local_storage;
 use utils::host::show_nsfw_content;
-use utils::{
-    host::{show_cdao_page, show_pnd_page},
-    ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw},
-};
+use utils::ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw};
 use yral_types::post::PostItem;
 
 #[server]
@@ -44,13 +40,6 @@ async fn get_top_post_id_global_nsfw_feed() -> Result<Option<PostItem>, ServerFn
     }
 
     Ok(None)
-}
-
-#[component]
-pub fn CreatorDaoRootPage() -> impl IntoView {
-    view! {
-        <Redirect path="/board".to_string() />
-    }
 }
 
 #[component]
@@ -129,15 +118,4 @@ pub fn YralRootPage() -> impl IntoView {
         </Suspense>
     }
     .into_any()
-}
-
-#[component]
-pub fn RootPage() -> impl IntoView {
-    if show_pnd_page() {
-        view! { <PumpNDump /> }.into_any()
-    } else if show_cdao_page() {
-        view! { <CreatorDaoRootPage /> }.into_any()
-    } else {
-        view! { <YralRootPage /> }.into_any()
-    }
 }
