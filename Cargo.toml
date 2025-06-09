@@ -83,6 +83,8 @@ web-sys = { version = "0.3", features = [
     "Window",
     "Document",
     "Worker",
+    "XmlHttpRequest",
+    "XmlHttpRequestUpload",
 ] }
 circular-buffer = "0.1.7"
 redb = { version = "2.0.0" }
@@ -176,13 +178,13 @@ yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adb
 # # ===
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], rev = "0be3d8c1a28f09403c63edd7c4e12941e64af84d", version = "0.1.0" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", rev = "0be3d8c1a28f09403c63edd7c4e12941e64af84d" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", rev = "0be3d8c1a28f09403c63edd7c4e12941e64af84d" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev = "0be3d8c1a28f09403c63edd7c4e12941e64af84d", features = [
+], branch = "master", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "0be3d8c1a28f09403c63edd7c4e12941e64af84d" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], rev = "0be3d8c1a28f09403c63edd7c4e12941e64af84d", version = "0.1.0" }
+], branch = "master", version = "0.1.0" }

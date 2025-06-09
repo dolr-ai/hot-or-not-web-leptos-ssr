@@ -4,8 +4,9 @@ use component::buttons::HighlightedLinkButton;
 use component::modal::Modal;
 use component::notification_nudge::NotificationNudge;
 use consts::UPLOAD_URL;
+use futures::channel::oneshot;
 use gloo::net::http::Request;
-use leptos::web_sys::{Blob, FormData};
+use leptos::web_sys::{Blob, FormData, ProgressEvent};
 use leptos::{
     ev::durationchange,
     html::{Input, Video},
@@ -16,6 +17,8 @@ use leptos_use::use_event_listener;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use state::canisters::{auth_state, unauth_canisters};
+use std::cell::RefCell;
+use std::rc::Rc;
 use utils::mixpanel::mixpanel_events::*;
 use utils::{
     event_streaming::events::{
@@ -24,6 +27,7 @@ use utils::{
     try_or_redirect_opt,
     web::FileWithUrl,
 };
+use wasm_bindgen::{closure::Closure, JsCast};
 
 #[component]
 pub fn DropBox() -> impl IntoView {
@@ -43,6 +47,7 @@ pub fn DropBox() -> impl IntoView {
 pub fn PreVideoUpload(
     file_blob: RwSignal<Option<FileWithUrl>, LocalStorage>,
     uid: RwSignal<Option<String>, LocalStorage>,
+    upload_file_actual_progress: WriteSignal<f64>,
 ) -> impl IntoView {
     let file_ref = NodeRef::<Input>::new();
     let file = RwSignal::new_local(None::<FileWithUrl>);
@@ -69,20 +74,27 @@ pub fn PreVideoUpload(
         });
     }
 
-    let upload_action: Action<(), _> = Action::new_local(move |_| async move {
-        let message = try_or_redirect_opt!(upload_video_part(
-            UPLOAD_URL,
-            "file",
-            file_blob.get_untracked().unwrap().file.as_ref(),
-        )
-        .await
-        .inspect_err(|e| {
-            VideoUploadUnsuccessful.send_event(ev_ctx, e.to_string(), 0, false, true);
-        }));
+    let upload_action: Action<(), _> = Action::new_local(move |_| {
+        let captured_progress_signal = upload_file_actual_progress;
+        async move {
+            #[cfg(feature = "hydrate")]
+            {
+                let message = try_or_redirect_opt!(upload_video_part(
+                    UPLOAD_URL,
+                    "file",
+                    file_blob.get_untracked().unwrap().file.as_ref(),
+                    captured_progress_signal,
+                )
+                .await
+                .inspect_err(|e| {
+                    VideoUploadUnsuccessful.send_event(ev_ctx, e.to_string(), 0, false, true);
+                }));
 
-        uid.set(message.data.and_then(|m| m.uid));
+                uid.set(message.data.and_then(|m| m.uid));
+            }
 
-        Some(())
+            Some(())
+        }
     });
 
     _ = use_event_listener(video_ref, durationchange, move |_| {
@@ -110,45 +122,44 @@ pub fn PreVideoUpload(
     });
 
     view! {
-            <label
-                for="dropzone-file"
-                class="w-[358px] h-[300px] sm:w-full sm:h-auto sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] bg-neutral-950 rounded-2xl border-2 border-dashed border-neutral-600 flex flex-col items-center justify-center cursor-pointer select-none p-0"
-            >
-                <Show when=move || { file.with(| file | file.is_none()) }>
-                    <div class="flex flex-1 flex-col items-center justify-center w-full h-full gap-6">
-                        <div class="text-white text-[16px] font-semibold leading-tight text-center">Upload a video to share with the world!</div>
-                        <div class="text-neutral-400 text-[13px] leading-tight text-center">Drag & Drop or select video file ( Max 60s )</div>
-                        <span class="inline-block px-6 py-2 border border-pink-300 text-pink-300 rounded-lg font-medium text-[15px] bg-transparent transition-colors duration-150 cursor-pointer select-none">Select File</span>
-                    </div>
-                </Show>
+        <label
+            for="dropzone-file"
+            class="w-[358px] h-[300px] sm:w-full sm:h-auto sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] bg-neutral-950 rounded-2xl border-2 border-dashed border-neutral-600 flex flex-col items-center justify-center cursor-pointer select-none p-0"
+        >
+            <Show when=move || { file.with(| file | file.is_none()) }>
+                <div class="flex flex-1 flex-col items-center justify-center w-full h-full gap-6">
+                    <div class="text-white text-[16px] font-semibold leading-tight text-center">Upload a video to share with the world!</div>
+                    <div class="text-neutral-400 text-[13px] leading-tight text-center">Drag & Drop or select video file ( Max 60s )</div>
+                    <span class="inline-block px-6 py-2 border border-pink-300 text-pink-300 rounded-lg font-medium text-[15px] bg-transparent transition-colors duration-150 cursor-pointer select-none">Select File</span>
+                </div>
+            </Show>
+            <Show when=move || { file.with(| file | file.is_some()) }>
                 <video
-        node_ref=video_ref
-        class="w-full h-full object-contain rounded-xl bg-black p-2"
-        playsinline
-        muted
-        autoplay
-        loop
-        oncanplay="this.muted=true"
-        src=move || file.with(| file | file.as_ref().map(| f | f.url.to_string()))
-        style:display=move || {
-            file.with(| file | file.as_ref().map(| _ | "block").unwrap_or("none"))
-        }
-    ></video>
-                <input
-                    on:click=move |_| modal_show.set(true)
-                    id="dropzone-file"
-                    node_ref=file_ref
-                    type="file"
-                    accept="video/*"
-                    class="hidden w-0 h-0"
-                />
-            </label>
-            <Modal show=modal_show>
-                <span class="text-lg md:text-xl text-white h-full items-center py-10 text-center w-full flex flex-col justify-center">
-                    Please ensure that the video is shorter than 60 seconds
-                </span>
-            </Modal>
-        }
+                    node_ref=video_ref
+                    class="w-full h-full object-contain rounded-xl bg-black p-2"
+                    playsinline
+                    muted
+                    autoplay
+                    loop
+                    oncanplay="this.muted=true"
+                    src=move || file.with(| file | file.as_ref().map(| f | f.url.to_string()))
+                ></video>
+            </Show>
+            <input
+                on:click=move |_| modal_show.set(true)
+                id="dropzone-file"
+                node_ref=file_ref
+                type="file"
+                accept="video/*"
+                class="hidden w-0 h-0"
+            />
+        </label>
+        <Modal show=modal_show>
+            <span class="text-lg md:text-xl text-white h-full items-center py-10 text-center w-full flex flex-col justify-center">
+                Please ensure that the video is shorter than 60 seconds
+            </span>
+        </Modal>
+    }
 }
 
 #[allow(dead_code)]
@@ -200,10 +211,12 @@ pub struct SerializablePostDetailsFromFrontend {
     pub creator_consent_for_inclusion_in_hot_or_not: bool,
 }
 
+#[cfg(feature = "hydrate")]
 async fn upload_video_part(
     upload_base_url: &str,
     form_field_name: &str,
     file_blob: &Blob,
+    progress_signal: WriteSignal<f64>,
 ) -> Result<Message, ServerFnError> {
     let get_url_endpoint = format!("{upload_base_url}/get_upload_url_v2");
     let response = Request::get(&get_url_endpoint).send().await?;
@@ -231,23 +244,97 @@ async fn upload_video_part(
             ServerFnError::new(format!("Failed to append blob to FormData: {js_value:?}"))
         })?;
 
-    let upload_response = Request::post(&upload_url).body(form)?.send().await?;
+    let (tx, rx) = oneshot::channel();
+    let xhr = web_sys::XmlHttpRequest::new()
+        .map_err(|e| ServerFnError::new(format!("Failed to create XHR: {e:?}")))?;
+    let xhr_upload = xhr
+        .upload()
+        .map_err(|e| ServerFnError::new(format!("Failed to get XHR upload: {e:?}")))?;
 
-    if !upload_response.ok() {
-        return Err(ServerFnError::new(format!(
-            "Upload request failed: status {} {}",
-            upload_response.status(),
-            upload_response.status_text()
-        )));
+    let sender_rc = Rc::new(RefCell::new(Some(tx)));
+
+    let progress_signal_clone = progress_signal;
+    let on_progress_callback = Closure::wrap(Box::new(move |event: ProgressEvent| {
+        if event.length_computable() {
+            let progress = event.loaded() / event.total();
+            progress_signal_clone.set(progress);
+        }
+    }) as Box<dyn FnMut(_)>);
+    xhr_upload.set_onprogress(Some(on_progress_callback.as_ref().unchecked_ref()));
+    on_progress_callback.forget();
+
+    let sender_onload_rc = sender_rc.clone();
+    let progress_signal_onload = progress_signal;
+    let xhr_clone_onload = xhr.clone();
+    let on_load_callback = Closure::wrap(Box::new(move || {
+        if let Some(sender) = sender_onload_rc.borrow_mut().take() {
+            match xhr_clone_onload.status() {
+                Ok(status) if (200..300).contains(&status) => {
+                    progress_signal_onload.set(1.0);
+                    let _ = sender.send(Ok(()));
+                }
+                Ok(status) => {
+                    let err_msg = format!(
+                        "Upload XHR failed: status {} {}",
+                        status,
+                        xhr_clone_onload.status_text().unwrap_or_default()
+                    );
+                    let _ = sender.send(Err(ServerFnError::new(err_msg)));
+                }
+                Err(_) => {
+                    let _ = sender.send(Err(ServerFnError::new(
+                        "Upload XHR failed to get status".to_string(),
+                    )));
+                }
+            }
+        }
+    }) as Box<dyn FnMut()>);
+    xhr.set_onload(Some(on_load_callback.as_ref().unchecked_ref()));
+    on_load_callback.forget();
+
+    let sender_onerror_rc = sender_rc.clone();
+    let xhr_clone_onerror = xhr.clone();
+    let on_error_callback = Closure::wrap(Box::new(move || {
+        if let Some(sender) = sender_onerror_rc.borrow_mut().take() {
+            let status = xhr_clone_onerror.status().unwrap_or(0);
+            let status_text = xhr_clone_onerror.status_text().unwrap_or_default();
+            let err_msg =
+                format!("Upload XHR network error. Status: {status}, Text: {status_text}");
+            let _ = sender.send(Err(ServerFnError::new(err_msg)));
+        }
+    }) as Box<dyn FnMut()>);
+    xhr.set_onerror(Some(on_error_callback.as_ref().unchecked_ref()));
+    on_error_callback.forget();
+
+    let sender_ontimeout_rc = sender_rc.clone();
+    let on_timeout_callback = Closure::wrap(Box::new(move || {
+        if let Some(sender) = sender_ontimeout_rc.borrow_mut().take() {
+            let _ = sender.send(Err(ServerFnError::new("Upload XHR timeout".to_string())));
+        }
+    }) as Box<dyn FnMut()>);
+    xhr.set_ontimeout(Some(on_timeout_callback.as_ref().unchecked_ref()));
+    on_timeout_callback.forget();
+
+    xhr.open("POST", &upload_url)
+        .map_err(|e| ServerFnError::new(format!("XHR open failed: {e:?}")))?;
+
+    xhr.send_with_opt_form_data(Some(&form))
+        .map_err(|e| ServerFnError::new(format!("XHR send failed: {e:?}")))?;
+
+    match rx.await {
+        Ok(Ok(())) => Ok(upload_message),
+        Ok(Err(e)) => Err(e),
+        Err(_) => Err(ServerFnError::new(
+            "XHR future cancelled or sender dropped".to_string(),
+        )),
     }
-
-    Ok(upload_message)
 }
 
 #[component]
 pub fn VideoUploader(
     params: UploadParams,
     uid: RwSignal<Option<String>, LocalStorage>,
+    upload_file_actual_progress: ReadSignal<f64>,
 ) -> impl IntoView {
     let file_blob = params.file_blob;
     let hashtags = params.hashtags;
@@ -270,8 +357,11 @@ pub fn VideoUploader(
         let hashtags = hashtags.clone();
         let hashtags_len = hashtags.len();
         let description = description.clone();
-        let uid = uid.get_untracked().unwrap();
+        log::info!("Publish action called");
+
         async move {
+            let uid_value = uid.get_untracked()?;
+
             let canisters = auth.auth_cans(unauth_cans).await.ok()?;
             let id = canisters.identity();
             let delegated_identity = delegate_short_lived_identity(id);
@@ -292,7 +382,7 @@ pub fn VideoUploader(
                             is_nsfw,
                             hashtags,
                             description,
-                            video_uid: uid.clone(),
+                            video_uid: uid_value.clone(),
                             creator_consent_for_inclusion_in_hot_or_not: enable_hot_or_not,
                         }
                     }));
@@ -312,7 +402,7 @@ pub fn VideoUploader(
                         is_logged_in: global.is_logged_in,
                         canister_id: global.canister_id,
                         is_nsfw_enabled: global.is_nsfw_enabled,
-                        video_id: uid.clone(),
+                        video_id: uid_value.clone(),
                         is_game_enabled: true,
                         creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
                         game_type: MixpanelPostGameType::HotOrNot,
@@ -334,7 +424,7 @@ pub fn VideoUploader(
 
             VideoUploadSuccessful.send_event(
                 ev_ctx,
-                uid,
+                uid_value.clone(),
                 hashtags_len,
                 is_nsfw,
                 enable_hot_or_not,
@@ -345,7 +435,21 @@ pub fn VideoUploader(
         }
     });
 
-    Effect::new(move |_| publish_action.dispatch(()));
+    Effect::new(move |prev_tracked_uid_val: Option<Option<String>>| {
+        let current_uid_val = uid.get();
+        let prev_uid_from_last_run: Option<String> = prev_tracked_uid_val.flatten();
+        if current_uid_val.is_some()
+            && (prev_uid_from_last_run.is_none() || prev_uid_from_last_run != current_uid_val)
+            && !publish_action.pending().get()
+            && !published.get()
+        {
+            publish_action.dispatch(());
+        }
+        current_uid_val
+    });
+
+    let video_uploaded_base_width = 200.0 / 3.0;
+    let metadata_publish_total_width = 100.0 / 3.0;
 
     view! {
         <div class="flex flex-col-reverse lg:flex-row w-full gap-4 lg:gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
@@ -373,11 +477,13 @@ pub fn VideoUploader(
                         class="bg-linear-to-r from-[#EC55A7] to-[#E2017B] h-2.5 rounded-full transition-width duration-500 ease-in-out"
                         style:width=move || {
                             if published.get() {
-                                "100%"
+                                "100%".to_string()
                             } else if publish_action.pending().get() {
-                                "50%"
+                                format!("{:.2}%", video_uploaded_base_width + metadata_publish_total_width * 0.7)
+                            } else if uid.with(|u| u.is_some()) {
+                                format!("{video_uploaded_base_width:.2}%")
                             } else {
-                                "0%"
+                                format!("{:.2}%", upload_file_actual_progress.get() * video_uploaded_base_width)
                             }
                         }
                     ></div>
@@ -388,7 +494,12 @@ pub fn VideoUploader(
                             "Upload complete!".to_string()
                         } else if publish_action.pending().get() {
                             "Processing video metadata...".to_string()
-                        } else {
+                        } else if uid.with(|u| u.is_none()) {
+                            "Uploading video file...".to_string()
+                        } else if uid.with(|u| u.is_some()) && !publish_action.pending().get() && !published.get() {
+                            "Video file uploaded. Waiting to publish metadata...".to_string()
+                        }
+                        else {
                             "Waiting to upload...".to_string()
                         }
                     }}
