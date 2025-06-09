@@ -65,14 +65,19 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
             if should_like {
                 likes.update(|l| *l += 1);
                 LikeVideo.send_event(ev_ctx, post_details.clone(), likes);
-                NotificationClient
-                    .send_liked_notification(
-                        canisters.user_principal(),
-                        post_details.post_id,
-                        post_details.poster_principal,
-                        post_details.canister_id,
-                    )
-                    .await;
+
+                #[cfg(feature = "ssr")]
+                {
+                    NotificationClient
+                        .send_liked_notification(
+                            canisters.user_principal(),
+                            post_details.post_id,
+                            post_details.poster_principal,
+                            post_details.canister_id,
+                        )
+                        .await;
+                }
+
                 let is_logged_in = is_logged_in.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
                 let is_hot_or_not = true;
