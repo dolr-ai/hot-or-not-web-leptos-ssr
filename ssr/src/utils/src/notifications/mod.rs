@@ -72,7 +72,7 @@ impl NotificationClient {
         Self { api_key }
     }
 
-    pub async fn send_notification(
+    pub async fn send_liked_notification(
         &self,
         liked_by: Principal,
         post_id: u64,

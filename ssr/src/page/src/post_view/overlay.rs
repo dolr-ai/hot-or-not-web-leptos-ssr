@@ -68,7 +68,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
                 likes.update(|l| *l += 1);
                 LikeVideo.send_event(ev_ctx, post_details.clone(), likes);
                 notification_client
-                    .send_notification(
+                    .send_liked_notification(
                         canisters.user_principal(),
                         post_details.post_id,
                         post_details.poster_principal,

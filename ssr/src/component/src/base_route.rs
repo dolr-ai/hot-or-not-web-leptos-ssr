@@ -59,7 +59,7 @@ fn CtxProvider(children: Children) -> impl IntoView {
     });
 
     let notification_client =
-        NotificationClient::new(env::var("YRAL_METADATA_USER_NOTIFICATION_API_KEY").unwrap());
+        NotificationClient::new(env::var("YRAL_METADATA_NOTIFICATION_API_KEY").unwrap());
 
     provide_context(notification_client);
 
