@@ -40,7 +40,7 @@ jobs:
       - name: Rust Setup
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "nightly-2025-05-10"
+          toolchain: "nightly-2025-01-09"
           targets: "wasm32-unknown-unknown"
           components: "clippy,rustfmt"
           override: true
@@ -95,6 +95,8 @@ jobs:
           # TODO: check this - removing cargo fmt requirement as its buggy: https://github.com/rust-lang/cargo/issues/15506
           cargo fmt --check
           cargo clippy --no-deps --all-features --release -- -Dwarnings
+        env:
+          RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
 
       - name: Print Rust and Cargo version
         run: |

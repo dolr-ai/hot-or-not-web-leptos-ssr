@@ -36,15 +36,14 @@ use consts::{
     CKBTC_LEDGER_CANISTER, DOLR_AI_LEDGER_CANISTER, DOLR_AI_ROOT_CANISTER, USDC_LEDGER_CANISTER,
 };
 use hon_worker_common::{sign_claim_request, ClaimRequest, WithdrawalState};
-use leptos::html;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::hooks::use_navigate;
-use state::canisters::{auth_state, unauth_canisters, AuthState};
+use state::canisters::{auth_state, unauth_canisters};
 use utils::host::get_host;
 use utils::send_wrap;
 use yral_canisters_common::utils::token::balance::TokenBalance;
-use yral_canisters_common::utils::token::{load_cents_balance, load_sats_balance, TokenMetadata};
+use yral_canisters_common::utils::token::{load_cents_balance, load_sats_balance};
 use yral_canisters_common::{Canisters, CENT_TOKEN_NAME};
 use yral_canisters_common::{SATS_TOKEN_NAME, SATS_TOKEN_SYMBOL};
 
@@ -341,7 +340,7 @@ impl WithdrawImpl for WithdrawSats {
 }
 
 trait AirdroppableImpl {
-    async fn claim_airdrop(&self, auth: AuthState) -> Result<u64, ServerFnError>;
+    async fn claim_airdrop(&self, auth: Canisters<true>) -> Result<u64, ServerFnError>;
 
     async fn is_airdrop_claimed(&self, user_principal: Principal) -> Result<bool, ServerFnError>;
 }
@@ -350,10 +349,7 @@ trait AirdroppableImpl {
 struct AirdropSats;
 
 impl AirdroppableImpl for AirdropSats {
-    async fn claim_airdrop(&self, auth: AuthState) -> Result<u64, ServerFnError> {
-        let cans_wire = auth.cans_wire().await.unwrap();
-        let cans = Canisters::from_wire(cans_wire.clone(), expect_context()).unwrap();
-
+    async fn claim_airdrop(&self, cans: Canisters<true>) -> Result<u64, ServerFnError> {
         let request = ClaimRequest {
             user_principal: cans.user_principal(),
         };
@@ -516,15 +512,18 @@ pub fn FastWalletCard(
         update_claimed.dispatch(());
     });
 
+    let auth = auth_state();
+    let base = unauth_canisters();
     // action to claim airdrop
     let claim_airdrop = Action::new_local(move |&()| {
-        let auth = auth_state();
+        let base = base.clone();
         let airdrop_amount_claimed = airdrop_amount_claimed;
         let error_claiming_airdrop = error_claiming_airdrop;
         let airdropper = airdropper_c2.clone();
         async move {
+            let cans = auth.auth_cans(base).await?;
             show_airdrop_popup.set(true);
-            match airdropper.as_ref().unwrap().claim_airdrop(auth).await {
+            match airdropper.as_ref().unwrap().claim_airdrop(cans).await {
                 Ok(amount) => {
                     airdrop_amount_claimed.set(amount);
                     error_claiming_airdrop.set(false);
@@ -582,200 +581,6 @@ pub fn FastWalletCard(
                     })
                 })}
                 </Suspense>
-            </div>
-
-            <WalletCardOptions pop_up=pop_up.write_only() share_link=share_link.write_only() airdrop_claimed=is_airdrop_claimed claim_airdrop/>
-
-            <PopupOverlay show=pop_up >
-                <ShareContent
-                    share_link=format!("{base_url}{}", share_link())
-                    message=share_message()
-                    show_popup=pop_up
-                />
-            </PopupOverlay>
-
-            <SatsAirdropPopup show=show_airdrop_popup amount_claimed={100} claimed={is_airdrop_claimed} error={error_claiming_airdrop}  />
-        </div>
-    }.into_any()
-}
-
-#[component]
-pub fn WalletCard(
-    user_principal: Principal,
-    token_metadata: TokenMetadata,
-    is_airdrop_claimed: bool,
-    #[prop(optional)] is_utility_token: bool,
-    #[prop(optional)] _ref: NodeRef<html::Div>,
-) -> impl IntoView {
-    let root: String = token_metadata
-        .root
-        .map(|r| r.to_text())
-        .unwrap_or(token_metadata.name.to_lowercase());
-
-    let is_cents = token_metadata.name == CENT_TOKEN_NAME;
-    let show_withdraw_button = token_metadata.withdrawable_state.is_some();
-    let withdrawer: Option<Box<dyn WithdrawImpl + 'static>> =
-        show_withdraw_button.then(|| match token_metadata.name.as_str() {
-            s if s == SATS_TOKEN_NAME => Box::new(WithdrawSats) as Withdrawer,
-            s if s == CENT_TOKEN_NAME => Box::new(WithdrawCents),
-            _ => unimplemented!("Withdrawing is not implemented for a token"),
-        });
-
-    let withdraw_url = withdrawer.as_ref().map(|w| w.withdraw_url());
-
-    let share_link = RwSignal::new("".to_string());
-
-    let symbol = token_metadata.symbol.clone();
-    let share_message = move || {
-        format!(
-        "Hey! Check out the token: {} I created on YRAL 👇 {}. I just minted my own token—come see and create yours! 🚀 #YRAL #TokenMinter",
-        token_metadata.symbol.clone(),
-        share_link.get(),
-    )
-    };
-    let pop_up = RwSignal::new(false);
-    let base_url = get_host();
-
-    provide_context(WalletCardOptionsContext {
-        is_utility_token,
-        root,
-        user_principal,
-    });
-
-    let is_connected = auth_state().is_logged_in_with_oauth();
-    let show_login = use_context()
-        .map(|ShowLoginSignal(show_login)| show_login)
-        .unwrap_or_else(|| RwSignal::new(false));
-    let nav = use_navigate();
-    let withdraw_handle = move |_| {
-        let Some(ref withdraw_url) = withdraw_url else {
-            return;
-        };
-        if !is_connected() {
-            show_login.set(true);
-            return;
-        }
-
-        nav(withdraw_url, Default::default());
-    };
-
-    let (is_withdrawable, withdraw_message, withdrawable_balance) =
-        match (token_metadata.withdrawable_state, withdrawer.as_ref()) {
-            (Some(ref state), Some(w)) => match w.details(state.clone()) {
-                WithdrawDetails::CanWithdraw { amount, message } => {
-                    (true, Some(message), Some(amount))
-                }
-                WithdrawDetails::CannotWithdraw { message } => (false, Some(message), None),
-            },
-            _ => Default::default(),
-        };
-    let withdraw_cta = withdrawer.as_ref().map(|w| w.withdraw_cta());
-
-    // overrides
-    let name = match token_metadata.name.to_lowercase().as_str() {
-        "btc" => "Bitcoin".to_string(),
-
-        _ => token_metadata.name.to_owned(),
-    };
-
-    let airdropper: Option<Airdropper> = if token_metadata.name == SATS_TOKEN_NAME {
-        Some(AirdropSats)
-    } else {
-        None
-    };
-
-    // airdrop popup state
-    let show_airdrop_popup = RwSignal::new(false);
-    let airdrop_amount_claimed: RwSignal<u64> = RwSignal::new(0);
-    let error_claiming_airdrop = RwSignal::new(false);
-
-    // fetch airdrop claim info
-    let is_airdrop_claimed = RwSignal::new(is_airdrop_claimed);
-    let airdropper_c = airdropper.clone();
-    let airdropper_c2 = airdropper_c.clone();
-
-    let update_claimed = Action::new_local(move |_: &()| {
-        let airdropper = airdropper_c.clone();
-        async move {
-            let claimed = if let Some(airdropper) = &airdropper {
-                airdropper
-                    .is_airdrop_claimed(user_principal)
-                    .await
-                    .unwrap_or(true)
-            } else {
-                true
-            };
-            is_airdrop_claimed.set(claimed);
-        }
-    });
-
-    Effect::new(move |_| {
-        update_claimed.dispatch(());
-    });
-
-    // action to claim airdrop
-    let claim_airdrop = Action::new_local(move |&()| {
-        let auth = auth_state();
-        let airdrop_amount_claimed = airdrop_amount_claimed;
-        let error_claiming_airdrop = error_claiming_airdrop;
-        let airdropper = airdropper_c2.clone();
-        async move {
-            show_airdrop_popup.set(true);
-            match airdropper.as_ref().unwrap().claim_airdrop(auth).await {
-                Ok(amount) => {
-                    airdrop_amount_claimed.set(amount);
-                    error_claiming_airdrop.set(false);
-                }
-                Err(_) => {
-                    error_claiming_airdrop.set(true);
-                }
-            }
-            Ok(())
-        }
-    });
-
-    view! {
-        <div node_ref=_ref class="flex flex-col gap-4 bg-neutral-900/90 rounded-lg w-full font-kumbh text-white p-4">
-            <div class="flex flex-col gap-4 p-3 rounded-sm bg-neutral-800/70">
-                <div class="w-full flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <img
-                            src=token_metadata.logo_b64.clone()
-                            alt=name.clone()
-                            class="w-8 h-8 rounded-full object-cover"
-                        />
-                        <div class="text-sm font-medium uppercase truncate">{name.clone()}</div>
-                    </div>
-                    <div class="flex flex-col items-end">
-                        {
-                            token_metadata.balance.map(|b| view! {
-                                <div class="text-lg font-medium">{b.humanize_float_truncate_to_dp(8)}</div>
-                            })
-                        }
-                        <div class="text-xs">{symbol}</div>
-                    </div>
-                </div>
-                {show_withdraw_button.then_some(view! {
-                    <div class="border-t border-neutral-700 flex flex-col pt-4 gap-2">
-                        {is_cents.then_some(view! {
-                            <div class="flex items-center">
-                                <Icon attr:class="text-neutral-300" icon=if is_withdrawable { PadlockOpen } else { PadlockClose } />
-                                <span class="text-neutral-400 text-xs mx-2">{withdraw_message}</span>
-                                <Tooltip icon=Information title="Withdrawal Tokens" description="Only Cents earned above your airdrop amount can be withdrawn." />
-                                <span class="ml-auto">{withdrawable_balance}</span>
-                            </div>
-                        })}
-                        <button
-                            class="rounded-lg px-5 py-2 text-sm text-center font-bold"
-                            class=(["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled"], !is_withdrawable)
-                            class=(["text-neutral-50", "bg-brand-gradient"], is_withdrawable)
-                            on:click=withdraw_handle
-                        >
-                            {withdraw_cta}
-                        </button>
-                    </div>
-
-                })}
             </div>
 
             <WalletCardOptions pop_up=pop_up.write_only() share_link=share_link.write_only() airdrop_claimed=is_airdrop_claimed claim_airdrop/>
