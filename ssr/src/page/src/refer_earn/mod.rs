@@ -1,5 +1,5 @@
 use candid::Principal;
-use consts::{NEW_USER_SIGNUP_REWARD, REFERRAL_REWARD};
+use consts::{NEW_USER_SIGNUP_REWARD, REFERRAL_REWARD_FRONTEND};
 use gloo::timers::callback::Timeout;
 use leptos::either::Either;
 use leptos::prelude::*;
@@ -81,7 +81,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
     });
     let refer_link_share = refer_link.clone();
     let handle_share = move || {
-        let text = format!("Join YRAL—the world's 1st social platform on BITCOIN\nGet FREE BITCOIN ({NEW_USER_SIGNUP_REWARD} SATS) Instantly\nAdditional BITCOIN ({REFERRAL_REWARD} SATS) when you log in using the link.");
+        let text = format!("Join YRAL—the world's 1st social platform on BITCOIN\nGet FREE BITCOIN ({NEW_USER_SIGNUP_REWARD} SATS) Instantly\nAdditional BITCOIN ({REFERRAL_REWARD_FRONTEND} SATS) when you log in using the link.");
         if share(&refer_link_share, &text).is_some() {
             return;
         }
@@ -168,7 +168,7 @@ fn ReferView() -> impl IntoView {
             <div style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%); height:29rem" class="absolute z-0 inset-x-0 top-16"></div>
 
             <div class="flex flex-col w-full z-[1] items-center gap-4 text-center">
-                <span class="font-bold text-xl md:text-2xl">Invite & get Bitcoin <span style="color: #A3A3A3">"("{REFERRAL_REWARD} " SATS)"</span></span>
+                <span class="font-bold text-xl md:text-2xl">Invite & get Bitcoin <span style="color: #A3A3A3">"("{REFERRAL_REWARD_FRONTEND} " SATS)"</span></span>
             </div>
             <div class="flex flex-col w-full z-[1] gap-2 px-4 text-white items-center">
                 <Show when=logged_in fallback=|| view! { <ConnectLogin cta_location="refer" /> }>
@@ -189,7 +189,7 @@ fn ReferView() -> impl IntoView {
                         head="STEP 2"
                     />
                     <WorkButton
-                        text=format!("You both earn Bitcoin ({REFERRAL_REWARD} SATS)")
+                        text=format!("You both earn Bitcoin ({REFERRAL_REWARD_FRONTEND} SATS)")
                         head="STEP 3"
                     />
                 </div>

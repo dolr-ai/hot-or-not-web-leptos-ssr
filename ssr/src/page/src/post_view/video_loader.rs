@@ -13,7 +13,7 @@ use yral_canisters_client::individual_user_template::PostViewDetailsFromFrontend
 use crate::post_view::BetEligiblePostCtx;
 use component::show_any::ShowAny;
 use component::{feed_popup::FeedPopUp, video_player::VideoPlayer};
-use consts::REFERRAL_REWARD;
+use consts::REFERRAL_REWARD_FRONTEND;
 use utils::event_streaming::events::VideoWatched;
 use utils::{bg_url, mp4_url};
 
@@ -69,7 +69,7 @@ pub fn BgView(
                 <FeedPopUp
                     on_dismiss=move |_| set_show_refer_login_popup.set(false)
                     header_text="Claim Your Referral Rewards Now!".to_string()
-                    body_text=format!("Signup now to receive {} SATS as referral rewards.", REFERRAL_REWARD)
+                    body_text=format!("Signup now to receive {} SATS as referral rewards.", REFERRAL_REWARD_FRONTEND)
                     login_text="Sign Up"
                 />
             </ShowAny>
