@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 
+use hon_worker_common::limits::REFERRAL_REWARD;
 use indexmap::IndexSet;
 use leptos::ev;
 use leptos::html::Audio;
@@ -13,7 +14,6 @@ use yral_canisters_client::individual_user_template::PostViewDetailsFromFrontend
 use crate::post_view::BetEligiblePostCtx;
 use component::show_any::ShowAny;
 use component::{feed_popup::FeedPopUp, video_player::VideoPlayer};
-use consts::REFERRAL_REWARD;
 use utils::event_streaming::events::VideoWatched;
 use utils::{bg_url, mp4_url};
 
