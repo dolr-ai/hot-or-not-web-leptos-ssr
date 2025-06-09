@@ -135,15 +135,14 @@ impl NotificationClient {
 
         match res {
             Ok(response) => {
-                if response.status().is_success() {
-                } else {
+                if !response.status().is_success() {
                     if let Ok(body) = response.text().await {
-                        log::error!("Response body: {}", body);
+                        log::error!("Response body: {body}");
                     }
                 }
             }
             Err(req_err) => {
-                log::error!("Error sending notification request for video: {}", req_err);
+                log::error!("Error sending notification request for video: {req_err}");
             }
         }
     }
