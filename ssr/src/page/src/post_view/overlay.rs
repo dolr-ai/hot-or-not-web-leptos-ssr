@@ -11,7 +11,7 @@ use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::host::show_nsfw_content;
-use utils::notifications::NotificationClient;
+use utils::notifications::{send_liked_notification, NotificationClient};
 use utils::{
     event_streaming::events::{LikeVideo, ShareVideo},
     report::ReportOption,
@@ -66,17 +66,16 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
                 likes.update(|l| *l += 1);
                 LikeVideo.send_event(ev_ctx, post_details.clone(), likes);
 
-                #[cfg(feature = "ssr")]
+                if let Err(e) = send_liked_notification(
+                    canisters.user_principal(),
+                    post_details.post_id,
+                    post_details.poster_principal,
+                    post_details.canister_id,
+                )
+                .await
                 {
-                    NotificationClient
-                        .send_liked_notification(
-                            canisters.user_principal(),
-                            post_details.post_id,
-                            post_details.poster_principal,
-                            post_details.canister_id,
-                        )
-                        .await;
-                }
+                    log::warn!("Error sending liked notification: {e:?}");
+                };
 
                 let is_logged_in = is_logged_in.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);

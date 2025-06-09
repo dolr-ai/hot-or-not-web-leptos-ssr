@@ -1,5 +1,5 @@
 use candid::Principal;
-use leptos::prelude::ServerFnError;
+use leptos::{prelude::ServerFnError, server};
 use serde_json::json;
 use wasm_bindgen::prelude::*;
 use yral_metadata_types::{
@@ -72,7 +72,7 @@ impl NotificationClient {
         post_id: u64,
         creator: Principal,
         creator_cans: Principal,
-    ) {
+    ) -> Result<(), ServerFnError> {
         let client = reqwest::Client::new();
         let url = format!(
             "{}/notifications/{}/send",
@@ -134,10 +134,27 @@ impl NotificationClient {
                         log::error!("Response body: {body}");
                     }
                 }
+
+                Ok(())
             }
             Err(req_err) => {
                 log::error!("Error sending notification request for video: {req_err}");
+                Err(ServerFnError::new(format!(
+                    "Error sending notification request for video: {req_err}"
+                )))
             }
         }
     }
+}
+
+#[server]
+pub async fn send_liked_notification(
+    liked_by: Principal,
+    post_id: u64,
+    creator: Principal,
+    creator_cans: Principal,
+) -> Result<(), ServerFnError> {
+    NotificationClient
+        .send_liked_notification(liked_by, post_id, creator, creator_cans)
+        .await
 }
