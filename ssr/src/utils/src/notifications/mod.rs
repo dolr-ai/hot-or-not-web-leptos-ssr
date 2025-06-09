@@ -60,18 +60,12 @@ pub async fn get_device_registeration_token() -> Result<DeviceRegistrationToken,
 const METADATA_SERVER_URL: &str = "https://yral-metadata.fly.dev";
 
 #[derive(Clone)]
-pub struct NotificationClient {
-    api_key: String,
-}
+pub struct NotificationClient;
 
 pub enum NotificationType {
     Liked(Principal, u64),
 }
 impl NotificationClient {
-    pub fn new(api_key: String) -> Self {
-        Self { api_key }
-    }
-
     pub async fn send_liked_notification(
         &self,
         liked_by: Principal,
@@ -88,7 +82,7 @@ impl NotificationClient {
 
         let res = client
             .post(&url)
-            .bearer_auth(&self.api_key)
+            .bearer_auth(&std::env::var("YRAL_METADATA_NOTIFICATION_API_KEY").unwrap())
             .json(&SendNotificationReq{
                 notification: Some(NotificationPayload{
                     title: Some("Liked your post".to_string()),

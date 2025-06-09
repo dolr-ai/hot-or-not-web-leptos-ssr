@@ -45,12 +45,10 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
     let auth = auth_state();
     let is_logged_in = auth.is_logged_in_with_oauth();
     let ev_ctx = auth.event_ctx();
-    let notification_client = expect_context::<NotificationClient>();
 
     let like_toggle = Action::new(move |&()| {
         let post_details = post.clone();
         let video_id = post.uid.clone();
-        let notification_client = notification_client.clone();
         send_wrap(async move {
             let Ok(canisters) = auth.auth_cans(unauth_canisters()).await else {
                 log::warn!("Trying to toggle like without auth");
@@ -67,7 +65,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
             if should_like {
                 likes.update(|l| *l += 1);
                 LikeVideo.send_event(ev_ctx, post_details.clone(), likes);
-                notification_client
+                NotificationClient
                     .send_liked_notification(
                         canisters.user_principal(),
                         post_details.post_id,
