@@ -118,7 +118,7 @@ tonic = { version = "0.12.0", default-features = false, features = [
     "codegen",
 ] }
 prost = "0.13.0"
-priority-queue = "2.1.0"
+priority-queue = "2.5.0"
 rust_decimal = "1.36"
 speedate = { version = "0.14.4" }
 urlencoding = "2.1.3"
