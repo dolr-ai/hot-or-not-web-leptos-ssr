@@ -49,15 +49,6 @@ pub static FALLBACK_USER_INDEX: Lazy<Principal> =
 
 pub const ICP_LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 
-pub const ICPUMP_LISTING_PAGE_SIZE: usize = 48;
-
-pub const CDAO_SWAP_PRE_READY_TIME_SECS: u64 = 150;
-
-pub const CDAO_SWAP_TIME_SECS: u64 = CDAO_SWAP_PRE_READY_TIME_SECS + 150;
-
-pub const ICPUMP_SEARCH_GRPC_URL: &str = "https://prod-yral-icpumpsearch.fly.dev:443";
-pub const NSFW_SERVER_URL: &str = "https://prod-yral-nsfw-classification.fly.dev:443";
-
 pub const CF_KV_ML_CACHE_NAMESPACE_ID: &str = "ea145fc839bd42f9bf2d34b950ddbda5";
 pub const CLOUDFLARE_ACCOUNT_ID: &str = "a209c523d2d9646cc56227dbe6ce3ede";
 
@@ -71,10 +62,8 @@ pub const AUTH_UTIL_COOKIES_MAX_AGE_MS: i64 = 400 * 24 * 60 * 60 * 1000; // 400 
 
 pub mod social {
     pub const TELEGRAM_YRAL: &str = "https://t.me/+c-LTX0Cp-ENmMzI1";
-    pub const TELEGRAM_PND: &str = "https://t.me/Pump_Dump_dapp";
     pub const DISCORD: &str = "https://discord.gg/GZ9QemnZuj";
     pub const TWITTER_YRAL: &str = "https://twitter.com/Yral_app";
-    pub const TWITTER_PND: &str = "https://x.com/dolr_ai";
     pub const IC_WEBSITE: &str = "https://vyatz-hqaaa-aaaam-qauea-cai.ic0.app";
 }
 
