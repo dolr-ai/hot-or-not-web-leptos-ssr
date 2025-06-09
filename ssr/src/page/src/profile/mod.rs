@@ -4,7 +4,6 @@ mod posts;
 mod profile_iter;
 pub mod profile_post;
 mod speculation;
-mod tokens;
 
 use candid::Principal;
 use component::{connect::ConnectLogin, spinner::FullScreenSpinner};
@@ -19,7 +18,6 @@ use state::{
     app_state::AppState,
     canisters::{auth_state, unauth_canisters},
 };
-use tokens::ProfileTokens;
 use utils::send_wrap;
 use yral_canisters_common::utils::{posts::PostDetails, profile::ProfileDetails};
 
@@ -48,13 +46,12 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
         param
             .get()
             .map(|t| t.tab)
-            .unwrap_or_else(move |_| "tokens".to_string())
+            .unwrap_or_else(move |_| "posts".to_string())
     });
 
     let current_tab = Memo::new(move |_| match tab.get().as_str() {
         "posts" => 0,
         "stakes" => 1,
-        "tokens" => 2,
         _ => 0,
     });
 
@@ -76,12 +73,6 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
             >
                 <Icon icon=icondata::BsTrophy />
             </a>
-            <a
-                class=move || tab_class(2)
-                href=move || format!("/profile/{user_principal}/tokens")
-            >
-                <Icon icon=icondata::AiDollarCircleOutlined />
-            </a>
         </div>
 
         <div class="flex flex-col gap-y-12 justify-center pb-12 w-11/12 sm:w-7/12">
@@ -90,9 +81,6 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
             </Show>
             <Show when=move || current_tab() == 1>
                 <ProfileSpeculations user_canister user_principal />
-            </Show>
-            <Show when=move || current_tab() == 2>
-                <ProfileTokens user_canister user_principal />
             </Show>
         </div>
     }

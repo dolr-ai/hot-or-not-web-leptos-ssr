@@ -80,7 +80,7 @@ fn BalanceDisplay(#[prop(into)] balance: Nat, #[prop(into)] withdrawable: Nat) -
         <div id="total-balance" class="self-center flex flex-col items-center gap-1">
             <span class="text-neutral-400 text-sm">Total Cent balance</span>
             <div class="flex items-center gap-3 min-h-14 py-0.5">
-                <img class="size-9" src="/img/pumpdump/cents.webp" alt="cents icon" />
+                <img class="size-9" src="/img/yral/cents.webp" alt="cents icon" />
                 <span class="font-bold text-4xl">{format_cents!(balance)}</span>
             </div>
         </div>

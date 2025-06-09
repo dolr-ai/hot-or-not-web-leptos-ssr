@@ -16,7 +16,6 @@ pub mod report;
 pub mod route;
 pub mod sentry;
 pub mod time;
-pub mod token;
 pub mod types;
 pub mod web;
 /// Wrapper for PartialEq that always returns false
