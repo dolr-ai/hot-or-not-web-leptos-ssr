@@ -2,7 +2,7 @@
 pub mod yral;
 use candid::Principal;
 use consts::NEW_USER_SIGNUP_REWARD;
-use consts::REFERRAL_REWARD;
+use hon_worker_common::limits::REFERRAL_REWARD;
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
 use ic_agent::Identity;
