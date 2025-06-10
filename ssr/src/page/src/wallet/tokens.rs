@@ -493,7 +493,7 @@ pub fn FastWalletCard(
     let airdropper_c = airdropper.clone();
     let airdropper_c2 = airdropper_c.clone();
 
-    let update_claimed = Action::new_local(move |_: &()| {
+    let update_claimed = Action::new_local(move |_| {
         let airdropper = airdropper_c.clone();
         async move {
             let claimed = if let Some(airdropper) = &airdropper {
@@ -508,7 +508,7 @@ pub fn FastWalletCard(
         }
     });
 
-    Effect::new(move |_| {
+    Effect::new(move || {
         update_claimed.dispatch(());
     });
 
@@ -522,6 +522,7 @@ pub fn FastWalletCard(
         let airdropper = airdropper_c2.clone();
         async move {
             let cans = auth.auth_cans(base).await?;
+            error_claiming_airdrop.set(false);
             show_airdrop_popup.set(true);
             match airdropper.as_ref().unwrap().claim_airdrop(cans).await {
                 Ok(amount) => {
@@ -593,7 +594,7 @@ pub fn FastWalletCard(
                 />
             </PopupOverlay>
 
-            <SatsAirdropPopup show=show_airdrop_popup amount_claimed={airdrop_amount_claimed.get()} claimed={is_airdrop_claimed} error={error_claiming_airdrop}  />
+            <SatsAirdropPopup show=show_airdrop_popup amount_claimed={airdrop_amount_claimed.get()} claimed={is_airdrop_claimed} error={error_claiming_airdrop} try_again=claim_airdrop />
         </div>
     }.into_any()
 }

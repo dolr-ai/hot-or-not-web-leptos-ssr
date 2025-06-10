@@ -474,6 +474,7 @@ pub fn SatsAirdropPopup(
     claimed: RwSignal<bool>,
     amount_claimed: u64,
     error: RwSignal<bool>,
+    try_again: Action<(), Result<(), ServerFnError>>,
 ) -> impl IntoView {
     let img_src = move || {
         if claimed.get() {
@@ -505,45 +506,47 @@ pub fn SatsAirdropPopup(
                         <Icon icon=icondata::ChCross />
                     </button>
                     <div class="flex z-[2] flex-col items-center gap-16 text-white justify-center p-12">
-                        <img src=img_src class=format!("{}", if claimed.get() { "w-48" } else { "w-full" }) />
+                        <img src=img_src class=format!("w-full {}", if claimed.get() { "p-8" } else { "" }) />
                         <div class="flex flex-col items-center gap-6">
                             {
-                                if claimed.get() {
-                                    view! {
-                                        <div class="text-center">
-                                            <span class="font-semibold">{amount_claimed} " Bitcoin (SATS)"</span>" credited in your wallet"
-                                        </div>
-                                        <HighlightedButton
-                                            alt_style=false
-                                            disabled=false
-                                            on_click=move || { show.set(false) }
-                                        >
-                                            "Keep Playing"
-                                        </HighlightedButton>
-                                    }.into_any()
+                                move || {
+                                    if claimed.get() {
+                                        view! {
+                                            <div class="text-center">
+                                                <span class="font-semibold">{amount_claimed} " Bitcoin (SATS)"</span>" credited in your wallet"
+                                            </div>
+                                            <HighlightedButton
+                                                alt_style=false
+                                                disabled=false
+                                                on_click=move || { show.set(false) }
+                                            >
+                                                "Keep Playing"
+                                            </HighlightedButton>
+                                        }.into_any()
 
-                                } else if error.get() {
-                                    view! {
-                                        <div class="text-center">
-                                            "Claim for "<span class="font-semibold">"Bitcoin (SATS)"</span> "failed"
-                                        </div>
-                                        <HighlightedButton
-                                            alt_style=true
-                                            disabled=false
-                                            on_click=move || { show.set(false) }
-                                        >
-                                            "Try again"
-                                        </HighlightedButton>
-                                    }.into_any()
-                                } else {
-                                    view! {
-                                        <div class="text-center">
-                                            "Claim for "<span class="font-semibold">"Bitcoin (SATS)"</span> "is being processed"
-                                        </div>
-                                        <div class="w-12 h-12">
-                                            <SpinnerCircle />
-                                        </div>
-                                    }.into_any()
+                                    } else if error.get() {
+                                        view! {
+                                            <div class="text-center">
+                                                "Claim for "<span class="font-semibold">"Bitcoin (SATS)"</span> "failed"
+                                            </div>
+                                            <HighlightedButton
+                                                alt_style=true
+                                                disabled=false
+                                                on_click=move || { try_again.dispatch(()); }
+                                            >
+                                                "Try again"
+                                            </HighlightedButton>
+                                        }.into_any()
+                                    } else {
+                                        view! {
+                                            <div class="text-center">
+                                                "Claim for "<span class="font-semibold">"Bitcoin (SATS)"</span> "is being processed"
+                                            </div>
+                                            <div class="w-12 h-12">
+                                                <SpinnerCircle />
+                                            </div>
+                                        }.into_any()
+                                    }
                                 }
                             }
                         </div>
