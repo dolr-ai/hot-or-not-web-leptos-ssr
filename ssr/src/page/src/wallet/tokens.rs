@@ -516,14 +516,21 @@ pub fn FastWalletCard(
 
     let auth = auth_state();
     let base = unauth_canisters();
+    let show_login = use_context()
+        .map(|ShowLoginSignal(show_login)| show_login)
+        .unwrap_or_else(|| RwSignal::new(false));
     // action to claim airdrop
-    let claim_airdrop = Action::new_local(move |&()| {
+    let claim_airdrop = Action::new_local(move |&is_connected: &bool| {
         let base = base.clone();
         let airdrop_amount_claimed = airdrop_amount_claimed;
         let error_claiming_airdrop = error_claiming_airdrop;
         let airdropper = airdropper_c2.clone();
         async move {
-            log::info!("claiming airdrop");
+            if !is_connected {
+                show_login.set(true);
+                return Ok(());
+            }
+
             let cans = auth.auth_cans(base).await?;
             error_claiming_airdrop.set(false);
             show_airdrop_popup.set(true);
@@ -611,7 +618,7 @@ fn WalletCardOptions(
     pop_up: WriteSignal<bool>,
     share_link: WriteSignal<String>,
     airdrop_claimed: RwSignal<bool>,
-    claim_airdrop: Action<(), Result<(), ServerFnError>>,
+    claim_airdrop: Action<bool, Result<(), ServerFnError>>,
 ) -> impl IntoView {
     let WalletCardOptionsContext {
         is_utility_token,
@@ -619,6 +626,7 @@ fn WalletCardOptions(
         user_principal,
         ..
     } = use_context()?;
+    let is_connected = auth_state().is_logged_in_with_oauth();
 
     let share_link_coin = format!("/token/info/{root}/{user_principal}");
 
@@ -630,7 +638,7 @@ fn WalletCardOptions(
             <ActionButtonLink disabled=true href="#".to_string() label="Buy/Sell".to_string()>
                 <Icon attr:class="h-6 w-6" icon=ArrowLeftRightIcon />
             </ActionButtonLink>
-            <ActionButton disabled=airdrop_claimed on:click=move |_|{claim_airdrop.dispatch(());} label="Airdrop".to_string()>
+            <ActionButton disabled=airdrop_claimed on:click=move |_|{claim_airdrop.dispatch(is_connected.get());} label="Airdrop".to_string()>
                 <Icon attr:class="h-6 w-6" icon=AirdropIcon />
             </ActionButton>
             <ActionButtonLink disabled=is_utility_token href="#".to_string() label="Share".to_string()>

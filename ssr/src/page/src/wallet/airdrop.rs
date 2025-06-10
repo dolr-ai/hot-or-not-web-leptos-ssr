@@ -470,7 +470,7 @@ pub fn SatsAirdropPopup(
     claimed: RwSignal<bool>,
     amount_claimed: RwSignal<u64>,
     error: RwSignal<bool>,
-    try_again: Action<(), Result<(), ServerFnError>>,
+    try_again: Action<bool, Result<(), ServerFnError>>,
 ) -> impl IntoView {
     let img_src = move || {
         if claimed.get() {
@@ -481,6 +481,8 @@ pub fn SatsAirdropPopup(
             "/img/airdrop/sats-airdrop.webp"
         }
     };
+
+    let is_connected = auth_state().is_logged_in_with_oauth();
 
     view! {
         <ShadowOverlay show=show >
@@ -528,7 +530,7 @@ pub fn SatsAirdropPopup(
                                             <HighlightedButton
                                                 alt_style=true
                                                 disabled=false
-                                                on_click=move || { try_again.dispatch(()); }
+                                                on_click=move || { try_again.dispatch(is_connected.get()); }
                                             >
                                                 "Try again"
                                             </HighlightedButton>
