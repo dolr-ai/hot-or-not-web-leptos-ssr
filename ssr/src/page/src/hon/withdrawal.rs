@@ -55,6 +55,19 @@ async fn withdraw_sats_for_ckbtc(
     // TODO: yral-auth-v2, we can do this verification with a JWT
     let cans: Canisters<false> = expect_context();
 
+    if req.amount < MIN_WITHDRAWAL_PER_TXN as u128 || req.amount > MAX_WITHDRAWAL_PER_TXN as u128 {
+        log::error!(
+            "Invalid withdraw amount, min amount: {}, max amount: {}, amount: {}",
+            MIN_WITHDRAWAL_PER_TXN,
+            MAX_WITHDRAWAL_PER_TXN,
+            req.amount
+        );
+        return Err(ServerFnError::new(format!(
+            "Invalid withdraw amount, min amount: {}, max amount: {}, amount: {}",
+            MIN_WITHDRAWAL_PER_TXN, MAX_WITHDRAWAL_PER_TXN, req.amount
+        )));
+    }
+
     let user = cans.individual_user(receiver_canister).await;
     let profile_owner = user.get_profile_details_v_2().await?;
     if profile_owner.principal_id != req.receiver {
