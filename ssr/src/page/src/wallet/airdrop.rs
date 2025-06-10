@@ -42,10 +42,12 @@ pub async fn is_airdrop_claimed(user_principal: Principal) -> Result<bool, Serve
         .unwrap()
         .as_millis();
 
-    let duration_24h = web_time::Duration::from_secs(24 * 60 * 60).as_millis();
-
     // user is blocked for 24h since last airdrop claim
-    let blocked_window = last_airdrop_timestamp..(last_airdrop_timestamp + duration_24h);
+    // let duration_24h = web_time::Duration::from_secs(24 * 60 * 60).as_millis();
+    // let blocked_window = last_airdrop_timestamp..(last_airdrop_timestamp + duration_24h);
+
+    let duration_1min = web_time::Duration::from_secs(60).as_millis();
+    let blocked_window = last_airdrop_timestamp..(last_airdrop_timestamp + duration_1min);
     Ok(blocked_window.contains(&now))
 }
 
@@ -64,7 +66,7 @@ pub async fn claim_sats_airdrop(
     let user = cans.individual_user(user_canister).await;
     let profile_owner = user.get_profile_details_v_2().await?;
     if profile_owner.principal_id != user_principal {
-        log::error!(
+        println!(
             "Not allowed to claim due to principal mismatch: owner={} != receiver={user_principal}",
             profile_owner.principal_id,
         );
@@ -73,14 +75,14 @@ pub async fn claim_sats_airdrop(
 
     let sess = user.get_session_type().await?;
     if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
-        log::error!("Not allowed to claim due to invalid session: {sess:?}");
+        println!("Not allowed to claim due to invalid session: {sess:?}");
         return Err(ServerFnError::new("Not allowed to claim"));
     }
 
     let is_airdrop_claimed = is_airdrop_claimed(user_principal).await?;
 
     if is_airdrop_claimed {
-        log::error!("Not allowed to claim as user has already claimed airdrop");
+        println!("Not allowed to claim as user has already claimed airdrop");
         return Err(ServerFnError::new("Not allowed to claim"));
     }
 
