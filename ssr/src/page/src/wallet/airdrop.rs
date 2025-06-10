@@ -489,7 +489,7 @@ pub fn SatsAirdropPopup(
     view! {
         <ShadowOverlay show=show >
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
-                <div class="overflow-hidden h-fit max-w-md items-center pt-16 cursor-auto bg-neutral-950 rounded-md relative">
+                <div class="overflow-hidden h-fit max-w-md items-center pt-16 cursor-auto bg-neutral-950 rounded-md w-full relative">
                     <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
                     <div
                         style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
@@ -527,7 +527,7 @@ pub fn SatsAirdropPopup(
                                     } else if error.get() {
                                         view! {
                                             <div class="text-center">
-                                                "Claim for "<span class="font-semibold">"Bitcoin (SATS)"</span> "failed"
+                                                "Claim for "<span class="font-semibold">"Bitcoin (SATS)"</span> " failed"
                                             </div>
                                             <HighlightedButton
                                                 alt_style=true
@@ -540,7 +540,7 @@ pub fn SatsAirdropPopup(
                                     } else {
                                         view! {
                                             <div class="text-center">
-                                                "Claim for "<span class="font-semibold">"Bitcoin (SATS)"</span> "is being processed"
+                                                "Claim for "<span class="font-semibold">"Bitcoin (SATS)"</span> " is being processed"
                                             </div>
                                             <div class="w-12 h-12">
                                                 <SpinnerCircle />
