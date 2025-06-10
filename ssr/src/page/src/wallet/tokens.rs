@@ -215,10 +215,14 @@ impl TokenType {
 #[component]
 pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl IntoView {
     let balance = |token_type: TokenType| {
-        OnceResource::new(async move {
-            let fetcher: BalanceFetcherType = token_type.into();
-            send_wrap(fetcher.fetch(unauth_canisters(), user_canister, user_principal)).await
-        })
+        Resource::new(
+            || (),
+            move |_| async move {
+                log::info!("fetching balance for: {:?}", token_type);
+                let fetcher: BalanceFetcherType = token_type.into();
+                send_wrap(fetcher.fetch(unauth_canisters(), user_canister, user_principal)).await
+            },
+        )
     };
 
     let withdrawal_state = |token_type: TokenType| {
@@ -355,9 +359,7 @@ impl AirdroppableImpl for AirdropSats {
         };
         let signature = sign_claim_request(cans.identity(), request.clone()).unwrap();
 
-        let res = claim_sats_airdrop(cans.user_canister(), request, signature).await?;
-
-        Ok::<_, ServerFnError>(res)
+        claim_sats_airdrop(cans.user_canister(), request, signature).await
     }
 
     async fn is_airdrop_claimed(&self, user_principal: Principal) -> Result<bool, ServerFnError> {
@@ -438,7 +440,7 @@ pub fn WithdrawSection(
 pub fn FastWalletCard(
     user_principal: Principal,
     display_info: TokenDisplayInfo,
-    balance: OnceResource<Result<TokenBalance, ServerFnError>>,
+    balance: Resource<Result<TokenBalance, ServerFnError>>,
     withdrawal_state: OnceResource<Result<Option<WithdrawalState>, ServerFnError>>,
     #[prop(optional)] is_utility_token: bool,
 ) -> impl IntoView {
@@ -531,6 +533,7 @@ pub fn FastWalletCard(
                     airdrop_amount_claimed.set(amount);
                     is_airdrop_claimed.set(true);
                     error_claiming_airdrop.set(false);
+                    balance.refetch();
                 }
                 Err(_) => {
                     log::error!("error claiming airdrop");
