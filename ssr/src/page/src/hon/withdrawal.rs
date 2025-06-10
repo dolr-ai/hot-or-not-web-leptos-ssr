@@ -10,7 +10,7 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
 use state::{canisters::auth_state, server::HonWorkerJwt};
-use utils::{send_wrap, try_or_redirect_opt};
+use utils::send_wrap;
 use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::{utils::token::balance::TokenBalance, Canisters};
 use yral_identity::Signature;
@@ -203,19 +203,19 @@ pub fn HonWithdrawal() -> impl IntoView {
             }
         }
     });
+
+    let balance: Nat = details_res
+        .get()
+        .and_then(|res| res.ok())
+        .map(|details| details.balance.into())
+        .unwrap_or_default();
+
     view! {
         <div class="min-h-screen w-full flex flex-col text-white pt-2 pb-12 bg-black items-center overflow-x-hidden">
             <Header />
             <div class="w-full">
                 <div class="flex flex-col items-center justify-center max-w-md mx-auto px-4 mt-4 pb-6">
-                    <Suspense>
-                    {move || {
-                        let balance: Nat = try_or_redirect_opt!(details_res.get()?).balance.into();
-                        Some(view! {
-                            <BalanceDisplay balance />
-                        })
-                    }}
-                    </Suspense>
+                    <BalanceDisplay balance=balance.clone() />
                     <div class="flex flex-col gap-5 mt-8 w-full">
                         <span class="text-sm">Choose how much to redeem:</span>
                         <div id="input-card" class="rounded-lg bg-neutral-900 p-3 flex flex-col gap-8">
@@ -241,7 +241,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                             }>
                             {move || {
                                 let can_withdraw = true; // all of the money can be withdrawn
-                                let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize || sats() > MAX_WITHDRAWAL_PER_TXN as usize;
+                                let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize || sats() > MAX_WITHDRAWAL_PER_TXN as usize || sats() > balance;
                                 let is_claiming = is_claiming();
                                 let message = if invalid_input {
                                     format!("Enter valid Amount. Min: {MIN_WITHDRAWAL_PER_TXN} Max: {MAX_WITHDRAWAL_PER_TXN}")
