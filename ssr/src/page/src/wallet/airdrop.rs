@@ -472,7 +472,7 @@ pub fn AnimatedTick() -> impl IntoView {
 pub fn SatsAirdropPopup(
     show: RwSignal<bool>,
     claimed: RwSignal<bool>,
-    amount_claimed: u64,
+    amount_claimed: RwSignal<u64>,
     error: RwSignal<bool>,
     try_again: Action<(), Result<(), ServerFnError>>,
 ) -> impl IntoView {
@@ -506,8 +506,8 @@ pub fn SatsAirdropPopup(
                         <Icon icon=icondata::ChCross />
                     </button>
                     <div class="flex z-[2] flex-col items-center gap-16 text-white justify-center p-12">
-                        <img src=img_src class=format!("w-full {}", if claimed.get() { "p-8" } else { "" }) />
-                        <div class="flex flex-col items-center gap-6">
+                        <img src=img_src class="h-60" />
+                        <div class="flex z-[2] flex-col items-center gap-6">
                             {
                                 move || {
                                     if claimed.get() {

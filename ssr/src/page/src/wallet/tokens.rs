@@ -594,7 +594,7 @@ pub fn FastWalletCard(
                 />
             </PopupOverlay>
 
-            <SatsAirdropPopup show=show_airdrop_popup amount_claimed={airdrop_amount_claimed.get()} claimed={is_airdrop_claimed} error={error_claiming_airdrop} try_again=claim_airdrop />
+            <SatsAirdropPopup show=show_airdrop_popup amount_claimed={airdrop_amount_claimed} claimed={is_airdrop_claimed} error={error_claiming_airdrop} try_again=claim_airdrop />
         </div>
     }.into_any()
 }
