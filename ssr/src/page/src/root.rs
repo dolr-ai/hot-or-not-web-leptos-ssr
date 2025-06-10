@@ -107,9 +107,11 @@ pub fn YralRootPage() -> impl IntoView {
 
                 if let Some(user_refer) = user_refer {
                     url.push_str(&format!("?user_refer={user_refer}"));
-                }
-                if let Some(utms) = utms {
-                    url.push_str(&format!("{}{utms}", if url.contains('?') { "&" } else { "?" }));
+                    if let Some(utms) = utms {
+                        url.push_str(&format!("&{utms}"));
+                    }
+                } else if let Some(utms) = utms {
+                    url.push_str(&format!("?{utms}"));
                 }
 
                 view! { <Redirect path=url /> }
