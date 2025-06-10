@@ -230,6 +230,34 @@ pub struct MixpanelPageViewedProps {
 }
 
 #[derive(Serialize)]
+pub struct MixpanelBottomNavigationProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub category_name: BottomNavigationCategory,
+}
+
+impl TryFrom<String> for BottomNavigationCategory {
+    type Error = ();
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value.contains("/profile/") {
+            return Ok(BottomNavigationCategory::Profile);
+        }
+        match value.as_str() {
+            "/upload" => Ok(BottomNavigationCategory::UploadVideo),
+            "/profile" => Ok(BottomNavigationCategory::Profile),
+            "/menu" => Ok(BottomNavigationCategory::Menu),
+            "/" => Ok(BottomNavigationCategory::Home),
+            "/wallet" => Ok(BottomNavigationCategory::Wallet),
+            _ => Err(()),
+        }
+    }
+}
+
+#[derive(Serialize)]
 pub struct MixpanelSignupSuccessProps {
     // #[serde(flatten)]
     pub user_id: Option<String>,
@@ -358,6 +386,23 @@ pub struct MixpanelVideoViewedProps {
 }
 
 #[derive(Serialize)]
+pub struct MixpanelVideoStartedProps {
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub video_id: String,
+    pub publisher_user_id: String,
+    pub game_type: MixpanelPostGameType,
+    pub like_count: u64,
+    pub view_count: u64,
+    pub is_nsfw: bool,
+    pub is_game_enabled: bool,
+}
+
+#[derive(Serialize)]
 pub struct MixpanelGamePlayedProps {
     // #[serde(flatten)]
     pub user_id: Option<String>,
@@ -393,6 +438,16 @@ pub enum GameConclusion {
 pub enum StakeType {
     Sats,
     Cents,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BottomNavigationCategory {
+    UploadVideo,
+    Profile,
+    Menu,
+    Home,
+    Wallet
 }
 
 #[derive(Serialize)]
@@ -452,8 +507,20 @@ impl MixPanelEvent {
         let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
             move |_| {
                 let props = p.clone();
+                let bottom_props: MixpanelPageViewedProps = props.clone();
+                let category = BottomNavigationCategory::try_from(props.page.clone());
+                if let Ok(category) = category {
+                    Self::track_bottom_navigation_clicked(MixpanelBottomNavigationProps {
+                        user_id: bottom_props.user_id,
+                        visitor_id: bottom_props.visitor_id,
+                        is_logged_in: bottom_props.is_logged_in,
+                        canister_id: bottom_props.canister_id,
+                        is_nsfw_enabled: bottom_props.is_nsfw_enabled,
+                        category_name: category,
+                    });
+                }
                 if props.page == "/" {
-                    let home_props = props.clone();
+                    let home_props: MixpanelPageViewedProps = props.clone();
                     Self::track_home_page_viewed(MixpanelHomePageViewedProps {
                         user_id: home_props.user_id,
                         visitor_id: home_props.visitor_id,
@@ -467,6 +534,10 @@ impl MixPanelEvent {
             10000.0,
         );
         start(());
+    }
+
+    fn track_bottom_navigation_clicked(p: MixpanelBottomNavigationProps) {
+        track_event("bottom_navigation_clicked", p);
     }
 
     pub fn track_signup_success(p: MixpanelSignupSuccessProps) {
@@ -503,6 +574,10 @@ impl MixPanelEvent {
 
     pub fn track_video_viewed(p: MixpanelVideoViewedProps) {
         track_event("video_viewed", p);
+    }
+
+    pub fn track_video_started(p: MixpanelVideoStartedProps) {
+        track_event("video_started", p);
     }
 
     pub fn track_game_played(p: MixpanelGamePlayedProps) {
