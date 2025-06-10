@@ -210,6 +210,8 @@ pub fn HonWithdrawal() -> impl IntoView {
         .map(|details| details.balance.into())
         .unwrap_or_default();
 
+    let zero = Nat::from(0_usize);
+
     view! {
         <div class="min-h-screen w-full flex flex-col text-white pt-2 pb-12 bg-black items-center overflow-x-hidden">
             <Header />
@@ -242,10 +244,10 @@ pub fn HonWithdrawal() -> impl IntoView {
                             {move || {
                                 let can_withdraw = true; // all of the money can be withdrawn
                                 let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize || sats() > MAX_WITHDRAWAL_PER_TXN as usize;
-                                let invalid_balance = sats() > balance || balance == 0;
+                                let invalid_balance = sats() > balance || balance == zero;
                                 let is_claiming = is_claiming();
                                 let message = if invalid_balance {
-                                    format!("Not enough balance")
+                                    "Not enough balance".to_string()
                                 } else if invalid_input {
                                     format!("Enter valid amount, min: {MIN_WITHDRAWAL_PER_TXN} max: {MAX_WITHDRAWAL_PER_TXN}")
                                 } else {
