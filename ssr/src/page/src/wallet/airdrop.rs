@@ -491,11 +491,11 @@ pub fn SatsAirdropPopup(
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
                 <div class="overflow-hidden h-fit max-w-md items-center pt-16 cursor-auto bg-neutral-950 rounded-md relative">
                     <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
-                    <div 
+                    <div
                         style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
-                        class=format!("absolute z-[1] -left-1/2 bottom-1/3 size-[32rem] {}", if error.get() { "saturate-0"} else {"saturate-100"}) >
+                        class=format!("absolute z-[1] -left-1/2 bottom-1/3 size-[32rem] {}", if error.get() {"saturate-0"} else {"saturate-100"}) >
                     </div>
-                    <div 
+                    <div
                         style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
                         class=format!("absolute z-[1] top-8 -right-1/3 size-72 {}", if error.get() { "saturate-0"} else {"saturate-100"}) >
                     </div>
