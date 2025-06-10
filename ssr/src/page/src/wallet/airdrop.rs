@@ -5,22 +5,16 @@ use component::{
     overlay::ShadowOverlay,
     spinner::{SpinnerCircle, SpinnerCircleStyled},
 };
-use consts::SATS_AIRDROP_LIMIT_RANGE;
-use hon_worker_common::{ClaimRequest, VerifiableClaimRequest, WORKER_URL};
+
+use hon_worker_common::{ClaimRequest, WORKER_URL};
 use leptos::prelude::*;
 use leptos_icons::Icon;
 use leptos_router::hooks::use_location;
-use rand::{rngs::SmallRng, Rng, SeedableRng};
 use reqwest::Url;
 use state::canisters::{auth_state, unauth_canisters};
-use state::server::HonWorkerJwt;
 use utils::event_streaming::events::CentsAdded;
 use utils::host::get_host;
-use yral_canisters_client::individual_user_template::{Result7, SessionType};
-use yral_canisters_common::{
-    utils::token::{TokenMetadata, TokenOwner},
-    Canisters,
-};
+use yral_canisters_common::utils::token::{TokenMetadata, TokenOwner};
 use yral_identity::Signature;
 
 pub async fn is_airdrop_claimed(user_principal: Principal) -> Result<bool, ServerFnError> {
@@ -43,21 +37,33 @@ pub async fn is_airdrop_claimed(user_principal: Principal) -> Result<bool, Serve
         .as_millis();
 
     // user is blocked for 24h since last airdrop claim
-    // let duration_24h = web_time::Duration::from_secs(24 * 60 * 60).as_millis();
-    // let blocked_window = last_airdrop_timestamp..(last_airdrop_timestamp + duration_24h);
+    let duration_24h = web_time::Duration::from_secs(24 * 60 * 60).as_millis();
+    let blocked_window = last_airdrop_timestamp..(last_airdrop_timestamp + duration_24h);
 
-    let duration_1min = web_time::Duration::from_secs(60).as_millis();
-    let blocked_window = last_airdrop_timestamp..(last_airdrop_timestamp + duration_1min);
     Ok(blocked_window.contains(&now))
 }
 
-#[server(input = server_fn::codec::Json)]
-pub async fn claim_sats_airdrop(
+// #[cfg(feature = "local-bin")]
+pub async fn claim_sats_airdrop_impl(
+    _user_canister: Principal,
+    _request: ClaimRequest,
+    _signature: Signature,
+) -> Result<u64, ServerFnError> {
+    Ok(100)
+}
+
+#[cfg(not(feature = "local-bin"))]
+pub async fn claim_sats_airdrop_impl(
     user_canister: Principal,
     request: ClaimRequest,
     signature: Signature,
 ) -> Result<u64, ServerFnError> {
-    use hon_worker_common::WORKER_URL;
+    use consts::SATS_AIRDROP_LIMIT_RANGE;
+    use hon_worker_common::{VerifiableClaimRequest, WORKER_URL};
+    use rand::{rngs::SmallRng, Rng, SeedableRng};
+    use state::server::HonWorkerJwt;
+    use yral_canisters_client::individual_user_template::{Result7, SessionType};
+    use yral_canisters_common::{utils::token::load_sats_balance, Canisters};
 
     // TODO: yral-auth-v2, we can do this verification with a JWT
     let cans: Canisters<false> = expect_context();
@@ -70,20 +76,28 @@ pub async fn claim_sats_airdrop(
             "Not allowed to claim due to principal mismatch: owner={} != receiver={user_principal}",
             profile_owner.principal_id,
         );
-        return Err(ServerFnError::new("Not allowed to claim"));
+        return Err(ServerFnError::new(
+            "Not allowed to claim: principal mismatch",
+        ));
+    }
+
+    let balance = load_sats_balance(user_principal).await?;
+    if balance.balance >= 50 {
+        println!("Not allowed to claimed because balance is not below <50");
+        return Err(ServerFnError::new("Not allowed to claim: balance >= 50"));
     }
 
     let sess = user.get_session_type().await?;
     if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
         println!("Not allowed to claim due to invalid session: {sess:?}");
-        return Err(ServerFnError::new("Not allowed to claim"));
+        return Err(ServerFnError::new("Not allowed to claim: not logged in"));
     }
 
     let is_airdrop_claimed = is_airdrop_claimed(user_principal).await?;
 
     if is_airdrop_claimed {
         println!("Not allowed to claim as user has already claimed airdrop");
-        return Err(ServerFnError::new("Not allowed to claim"));
+        return Err(ServerFnError::new("Not allowed to claim: already claimed"));
     }
 
     // small rng should be sufficient for this usecase
@@ -118,6 +132,15 @@ pub async fn claim_sats_airdrop(
     }
 
     Ok(amount)
+}
+
+#[server(input = server_fn::codec::Json)]
+pub async fn claim_sats_airdrop(
+    user_canister: Principal,
+    request: ClaimRequest,
+    signature: Signature,
+) -> Result<u64, ServerFnError> {
+    claim_sats_airdrop_impl(user_canister, request, signature).await
 }
 
 #[component]
