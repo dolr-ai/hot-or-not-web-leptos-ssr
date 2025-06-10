@@ -521,15 +521,19 @@ pub fn FastWalletCard(
         let error_claiming_airdrop = error_claiming_airdrop;
         let airdropper = airdropper_c2.clone();
         async move {
+            log::info!("claiming airdrop");
             let cans = auth.auth_cans(base).await?;
             error_claiming_airdrop.set(false);
             show_airdrop_popup.set(true);
             match airdropper.as_ref().unwrap().claim_airdrop(cans).await {
                 Ok(amount) => {
+                    log::info!("claimed airdrop amount: {}", amount);
                     airdrop_amount_claimed.set(amount);
+                    is_airdrop_claimed.set(true);
                     error_claiming_airdrop.set(false);
                 }
                 Err(_) => {
+                    log::error!("error claiming airdrop");
                     error_claiming_airdrop.set(true);
                 }
             }
