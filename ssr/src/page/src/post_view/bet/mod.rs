@@ -16,31 +16,45 @@ use yral_canisters_common::utils::{
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum CoinState {
+pub enum CoinState {
     C10,
+    C20,
     C50,
     C100,
     C200,
+}
+
+const BET_COIN_ENABLED_STATES: [CoinState; 2] = [CoinState::C10, CoinState::C20];
+const DEFAULT_BET_COIN_STATE: CoinState = CoinState::C20;
+
+fn next_coin_state(current: CoinState, next: CoinState) -> CoinState {
+    if BET_COIN_ENABLED_STATES.contains(&next) {
+        next
+    } else {
+        current
+    }
 }
 
 impl CoinState {
     #[allow(dead_code)]
     fn wrapping_next(self) -> Self {
         match self {
-            CoinState::C10 => CoinState::C50,
-            CoinState::C50 => CoinState::C100,
-            CoinState::C100 => CoinState::C200,
-            CoinState::C200 => CoinState::C10,
+            CoinState::C10 => next_coin_state(CoinState::C10, CoinState::C20),
+            CoinState::C20 => next_coin_state(CoinState::C20, CoinState::C50),
+            CoinState::C50 => next_coin_state(CoinState::C50, CoinState::C100),
+            CoinState::C100 => next_coin_state(CoinState::C100, CoinState::C200),
+            CoinState::C200 => next_coin_state(CoinState::C200, CoinState::C10),
         }
     }
 
     #[allow(dead_code)]
     fn wrapping_prev(self) -> Self {
         match self {
-            CoinState::C10 => CoinState::C200,
-            CoinState::C50 => CoinState::C10,
-            CoinState::C100 => CoinState::C50,
-            CoinState::C200 => CoinState::C100,
+            CoinState::C10 => next_coin_state(CoinState::C10, CoinState::C200),
+            CoinState::C20 => next_coin_state(CoinState::C20, CoinState::C10),
+            CoinState::C50 => next_coin_state(CoinState::C50, CoinState::C20),
+            CoinState::C100 => next_coin_state(CoinState::C100, CoinState::C50),
+            CoinState::C200 => next_coin_state(CoinState::C200, CoinState::C100),
         }
     }
 }
@@ -49,6 +63,7 @@ impl From<CoinState> for u64 {
     fn from(coin: CoinState) -> u64 {
         match coin {
             CoinState::C10 => 10,
+            CoinState::C20 => 20,
             CoinState::C50 => 50,
             CoinState::C100 => 100,
             CoinState::C200 => 200,
@@ -64,6 +79,7 @@ fn CoinStateView(
 ) -> impl IntoView {
     let icon = Signal::derive(move || match coin() {
         CoinState::C10 => C10Icon,
+        CoinState::C20 => C20Icon,
         CoinState::C50 => C50Icon,
         CoinState::C100 => C100Icon,
         CoinState::C200 => C200Icon,
@@ -208,18 +224,31 @@ fn HNButtonOverlay(
     });
 
     view! {
+        <div class="flex justify-center w-full touch-manipulation">
+            <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
+                <Icon attr:class="justify-self-end text-2xl text-white" icon=icondata::AiUpOutlined />
+            </button>
+        </div>
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot />
-            <div class:grayscale=running>
-                <Icon attr:class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-lg" icon=C10Icon />
-            </div>
+            <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
+            <CoinStateView
+                disabled=running
+                class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-lg"
+                coin
+            />
+            </button>
             <HNButton disabled=running bet_direction kind=VoteKind::Not />
         </div>
         // Bottom row: Hot <down arrow> Not
         // most of the CSS is for alignment with above icons
         <div class="flex gap-6 justify-center items-center pt-2 w-full text-base font-medium text-center md:text-lg lg:text-xl touch-manipulation">
             <p class="w-14 md:w-16 lg:w-18">Hot</p>
-            <div class="flex justify-center w-12 md:w-14 lg:w-16"></div>
+            <div class="flex justify-center w-12 md:w-14 lg:w-16">
+                <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_prev())>
+                    <Icon attr:class="text-2xl text-white" icon=icondata::AiDownOutlined />
+                </button>
+            </div>
             <p class="w-14 md:w-16 lg:w-18">Not</p>
         </div>
         <ShadowBg />
@@ -274,6 +303,7 @@ fn HNWonLost(game_result: GameResult, vote_amount: u64) -> impl IntoView {
     let bet_amount = vote_amount;
     let coin = match bet_amount {
         10 => CoinState::C10,
+        20 => CoinState::C20,
         50 => CoinState::C50,
         100 => CoinState::C100,
         200 => CoinState::C200,
@@ -395,7 +425,7 @@ pub fn HNGameOverlay(
     win_audio_ref: NodeRef<Audio>,
 ) -> impl IntoView {
     let bet_direction = RwSignal::new(None::<VoteKind>);
-    let coin = RwSignal::new(CoinState::C10);
+    let coin = RwSignal::new(DEFAULT_BET_COIN_STATE);
 
     let refetch_bet = Trigger::new();
     let post = StoredValue::new(post);
