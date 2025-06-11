@@ -268,7 +268,11 @@ pub fn HonWithdrawal() -> impl IntoView {
                                 >Please Wait</button>
                             }>
                             {move || {
-                                let balance = balance.get().map(|balance| balance.clone());
+                                let balance = if let Some(balance) = balance.get() {
+                                    balance
+                                } else {
+                                    Nat::from(0_usize)
+                                };
                                 let can_withdraw = true; // all of the money can be withdrawn
                                 let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize || sats() > MAX_WITHDRAWAL_PER_TXN as usize;
                                 let invalid_balance = sats() > balance || balance == zero;
