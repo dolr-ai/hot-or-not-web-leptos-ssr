@@ -6,18 +6,18 @@ let app = null;
 let messaging = null;
 
 const vapidKey =
-  "BHVXxI5mw_QCsR148ZO4CwxYrsi0EwqJ691arpO4zxa-EMxmrO7odRdX43vpoVQgRcalWVr7Y7sKH_DlWZbpcEI";
+  "BGVNVR0JA9emg1nqMp7-yUv9FRWqqqI5aaoIr5vuScgIZBNqxiaNKHbqJLoelPrwHby9i8193Z_l4UpsliPDHQI";
 
 function initializeFirebase() {
   if (!isInitialized) {
     app = initializeApp({
-      apiKey: "AIzaSyCc_3-30sOgNhpPprV-YDMSTebf4EAPNIo",
-      authDomain: "client-device-notification.firebaseapp.com",
-      projectId: "client-device-notification",
-      storageBucket: "client-device-notification.firebasestorage.app",
-      messagingSenderId: "257800168511",
-      appId: "1:257800168511:web:ce7840178c24f97e09048a",
-      measurementId: "G-WLPMS55C10"
+      apiKey: "AIzaSyBi3lnHvvPyPlhTk9kG1GZubc477V3q40M",
+      authDomain: "yral-mobile.firebaseapp.com",
+      projectId: "yral-mobile",
+      storageBucket: "yral-mobile.firebasestorage.app",
+      messagingSenderId: "1035262663512",
+      appId: "1:1035262663512:web:c995288e332798c51c232d",
+      measurementId: "G-V2WDJLV7E5"
     });
     messaging = getMessaging(app);
     isInitialized = true;

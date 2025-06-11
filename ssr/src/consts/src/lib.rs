@@ -24,6 +24,7 @@ pub const DEVICE_ID: &str = "device_id";
 pub static CF_BASE_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://api.cloudflare.com/client/v4/").unwrap());
 pub const NOTIFICATIONS_ENABLED_STORE: &str = "yral-notifications-enabled";
+pub const NOTIFICATION_MIGRATED_STORE: &str = "notifications-migrated";
 pub const NSFW_TOGGLE_STORE: &str = "nsfw-enabled";
 pub const REFERRER_COOKIE: &str = "referrer";
 pub const USER_CANISTER_ID_STORE: &str = "user-canister-id";
