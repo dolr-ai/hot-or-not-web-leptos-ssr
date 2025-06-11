@@ -203,12 +203,20 @@ pub fn HonWithdrawal() -> impl IntoView {
             }
         }
     });
-
-    let balance: Nat = details_res
-        .get()
-        .and_then(|res| res.ok())
-        .map(|details| details.balance.into())
-        .unwrap_or_default();
+    let balance = Resource::new(
+        move || details_res.get(),
+        |res| async move {
+            if let Some(res) = res {
+                let res = res.ok();
+                let balance = res
+                    .map(|details| details.balance.into())
+                    .unwrap_or_default();
+                balance
+            } else {
+                Nat::from(0_usize)
+            }
+        },
+    );
 
     let zero = Nat::from(0_usize);
 
@@ -217,7 +225,12 @@ pub fn HonWithdrawal() -> impl IntoView {
             <Header />
             <div class="w-full">
                 <div class="flex flex-col items-center justify-center max-w-md mx-auto px-4 mt-4 pb-6">
-                    <BalanceDisplay balance=balance.clone() />
+                    <Suspense>
+                        {move || {
+                            balance.get()
+                                .map(|balance| view! { <BalanceDisplay balance=balance.clone() /> })
+                        }}
+                    </Suspense>
                     <div class="flex flex-col gap-5 mt-8 w-full">
                         <span class="text-sm">Choose how much to redeem:</span>
                         <div id="input-card" class="rounded-lg bg-neutral-900 p-3 flex flex-col gap-8">
@@ -242,6 +255,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                                 >Please Wait</button>
                             }>
                             {move || {
+                                let balance = balance.get().map(|balance| balance.clone());
                                 let can_withdraw = true; // all of the money can be withdrawn
                                 let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize || sats() > MAX_WITHDRAWAL_PER_TXN as usize;
                                 let invalid_balance = sats() > balance || balance == zero;
