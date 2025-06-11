@@ -1,5 +1,9 @@
 {
-    "rust-analyzer.rustfmt.overrideCommand": ["leptosfmt", "--stdin", "--rustfmt"],
+    "rust-analyzer.rustfmt.overrideCommand": [
+        "leptosfmt",
+        "--stdin",
+        "--rustfmt"
+    ],
     "rust-analyzer.cargo.features": "all",
     "rust-analyzer.check.features": "all",
     "emmet.includeLanguages": {
@@ -20,4 +24,10 @@
     },
     "css.validate": false,
     "postman.settings.dotenv-detection-notification-visibility": false,
+    "terminal.integrated.profiles.linux": {
+        "nushell": {
+            "path": "/usr/local/bin/nu"
+        }
+    },
+    "terminal.integrated.defaultProfile.linux": "nushell",
 }
