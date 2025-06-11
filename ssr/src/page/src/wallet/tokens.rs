@@ -511,9 +511,7 @@ pub fn FastWalletCard(
     });
 
     Effect::new(move || {
-        if let Some(_) = airdropper {
-            update_claimed.dispatch(());
-        }
+        update_claimed.dispatch(());
     });
 
     let auth = auth_state();
