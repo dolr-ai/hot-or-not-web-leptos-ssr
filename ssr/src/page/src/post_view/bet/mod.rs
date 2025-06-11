@@ -27,34 +27,30 @@ pub enum CoinState {
 const BET_COIN_ENABLED_STATES: [CoinState; 2] = [CoinState::C10, CoinState::C20];
 const DEFAULT_BET_COIN_STATE: CoinState = CoinState::C20;
 
-fn next_coin_state(current: CoinState, next: CoinState) -> CoinState {
-    if BET_COIN_ENABLED_STATES.contains(&next) {
-        next
-    } else {
-        current
-    }
-}
-
 impl CoinState {
-    #[allow(dead_code)]
     fn wrapping_next(self) -> Self {
-        match self {
-            CoinState::C10 => next_coin_state(CoinState::C10, CoinState::C20),
-            CoinState::C20 => next_coin_state(CoinState::C20, CoinState::C50),
-            CoinState::C50 => next_coin_state(CoinState::C50, CoinState::C100),
-            CoinState::C100 => next_coin_state(CoinState::C100, CoinState::C200),
-            CoinState::C200 => next_coin_state(CoinState::C200, CoinState::C10),
+        let current_index = BET_COIN_ENABLED_STATES.iter().position(|&x| x == self);
+        match current_index {
+            Some(idx) => {
+                let next_idx = (idx + 1) % BET_COIN_ENABLED_STATES.len();
+                BET_COIN_ENABLED_STATES[next_idx]
+            }
+            None => DEFAULT_BET_COIN_STATE,
         }
     }
 
-    #[allow(dead_code)]
     fn wrapping_prev(self) -> Self {
-        match self {
-            CoinState::C10 => next_coin_state(CoinState::C10, CoinState::C200),
-            CoinState::C20 => next_coin_state(CoinState::C20, CoinState::C10),
-            CoinState::C50 => next_coin_state(CoinState::C50, CoinState::C20),
-            CoinState::C100 => next_coin_state(CoinState::C100, CoinState::C50),
-            CoinState::C200 => next_coin_state(CoinState::C200, CoinState::C100),
+        let current_index = BET_COIN_ENABLED_STATES.iter().position(|&x| x == self);
+        match current_index {
+            Some(idx) => {
+                let prev_idx = if idx == 0 {
+                    BET_COIN_ENABLED_STATES.len() - 1
+                } else {
+                    idx - 1
+                };
+                BET_COIN_ENABLED_STATES[prev_idx]
+            }
+            None => DEFAULT_BET_COIN_STATE,
         }
     }
 }
