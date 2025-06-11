@@ -53,14 +53,14 @@ impl HistoryCtx {
     }
 
     pub fn push_utm(&self, utm: Vec<(String, String)>) {
-        if utm.is_empty() {
-            return;
-        }
-        let utm = utm
+        let utm: Vec<(String, String)> = utm
             .iter()
             .filter(|(k, _)| k.contains("utm"))
             .cloned()
             .collect();
+        if utm.is_empty() {
+            return;
+        }
         self.utm.set(utm);
     }
 
