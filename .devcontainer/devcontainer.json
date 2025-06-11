@@ -1,0 +1,39 @@
+{
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // copilot
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        // docker
+        "ms-azuretools.vscode-containers",
+        // editor
+        "albert.TabOut",
+        // github
+        "mhutchie.git-graph",
+        "github.vscode-github-actions",
+        "GitHub.vscode-pull-request-github",
+        // rust
+        "fill-labs.dependi",
+        "tamasfe.even-better-toml",
+        "rust-lang.rust-analyzer",
+        "vadimcn.vscode-lldb",
+        // shell
+        "TheNuProjectContributors.vscode-nushell-lang",
+        // tailwindcss
+        "bradlc.vscode-tailwindcss"
+      ]
+    }
+  },
+  "features": {
+    "ghcr.io/eitsupi/devcontainer-features/nushell:0": {},
+    "ghcr.io/devcontainers/features/rust:1": {}
+  },
+  "hostRequirements": {
+    "cpus": 8
+  },
+  "postCreateCommand": "nu .devcontainer/setup.nu"
+}
