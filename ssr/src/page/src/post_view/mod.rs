@@ -268,7 +268,7 @@ pub fn PostView() -> impl IntoView {
             auth.event_ctx(),
             nsfw_enabled.get_untracked(),
         ) {
-            MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps {
+            MixPanelEvent::track_home_page_viewed(MixpanelBottomBarPageViewedProps {
                 user_id: global.user_id,
                 visitor_id: global.visitor_id,
                 is_logged_in: global.is_logged_in,

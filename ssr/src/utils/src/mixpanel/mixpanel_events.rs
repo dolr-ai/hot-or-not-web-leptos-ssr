@@ -1,3 +1,4 @@
+use candid::Principal;
 use codee::string::FromToStringCodec;
 use consts::DEVICE_ID;
 use consts::NSFW_TOGGLE_STORE;
@@ -152,6 +153,28 @@ pub struct MixpanelGlobalProps {
 }
 
 impl MixpanelGlobalProps {
+    pub fn new(
+        user_principal: Principal,
+        canister_id: Principal,
+        is_logged_in: bool,
+        is_nsfw_enabled: bool,
+    ) -> Self {
+        Self {
+            user_id: if is_logged_in {
+                Some(user_principal.to_text().clone())
+            } else {
+                None
+            },
+            visitor_id: if !is_logged_in {
+                Some(user_principal.to_text())
+            } else {
+                None
+            },
+            is_logged_in,
+            canister_id: canister_id.to_text(),
+            is_nsfw_enabled,
+        }
+    }
     /// Load global state (login, principal, NSFW toggle)
     pub fn try_get(cans: &Canisters<true>, is_logged_in: bool) -> Self {
         let (is_nsfw_enabled, _, _) =
@@ -248,7 +271,7 @@ impl MixpanelGlobalProps {
 }
 
 #[derive(Serialize)]
-pub struct MixpanelHomePageViewedProps {
+pub struct MixpanelBottomBarPageViewedProps {
     pub user_id: Option<String>,
     pub visitor_id: Option<String>,
     pub is_logged_in: bool,
@@ -276,19 +299,24 @@ pub struct MixpanelBottomNavigationProps {
     pub category_name: BottomNavigationCategory,
 }
 
+use std::convert::TryFrom;
+
 impl TryFrom<String> for BottomNavigationCategory {
     type Error = ();
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         if value.contains("/profile/") {
             return Ok(BottomNavigationCategory::Profile);
+        } else if value.contains("/wallet/") {
+            return Ok(BottomNavigationCategory::Wallet);
         }
+
         match value.as_str() {
+            "/" => Ok(BottomNavigationCategory::Home),
+            "/wallet" => Ok(BottomNavigationCategory::Wallet),
             "/upload" => Ok(BottomNavigationCategory::UploadVideo),
             "/profile" => Ok(BottomNavigationCategory::Profile),
             "/menu" => Ok(BottomNavigationCategory::Menu),
-            "/" => Ok(BottomNavigationCategory::Home),
-            "/wallet" => Ok(BottomNavigationCategory::Wallet),
             _ => Err(()),
         }
     }
@@ -477,7 +505,7 @@ pub enum StakeType {
     Cents,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum BottomNavigationCategory {
     UploadVideo,
@@ -536,29 +564,56 @@ impl MixPanelEvent {
     pub fn identify_user(user_id: &str) {
         let _ = identify(user_id);
     }
-    pub fn track_home_page_viewed(p: MixpanelHomePageViewedProps) {
+    pub fn track_home_page_viewed(p: MixpanelBottomBarPageViewedProps) {
         track_event("home_page_viewed", p);
+    }
+    pub fn track_wallet_page_viewed(p: MixpanelBottomBarPageViewedProps) {
+        track_event("wallet_page_viewed", p);
+    }
+    pub fn track_upload_page_viewed(p: MixpanelBottomBarPageViewedProps) {
+        track_event("wallet_page_viewed", p);
+    }
+    pub fn track_menu_page_viewed(p: MixpanelBottomBarPageViewedProps) {
+        track_event("menu_page_viewed", p);
     }
 
     pub fn track_page_viewed(p: MixpanelPageViewedProps) {
         let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
             move |_| {
                 let props = p.clone();
-                let bottom_props: MixpanelPageViewedProps = props.clone();
-                let category = BottomNavigationCategory::try_from(props.page.clone());
-                if let Ok(category) = category {
-                    Self::track_bottom_navigation_clicked(MixpanelBottomNavigationProps {
-                        user_id: bottom_props.user_id,
-                        visitor_id: bottom_props.visitor_id,
-                        is_logged_in: bottom_props.is_logged_in,
-                        canister_id: bottom_props.canister_id,
-                        is_nsfw_enabled: bottom_props.is_nsfw_enabled,
-                        category_name: category,
-                    });
-                }
                 if props.page == "/" {
                     let home_props: MixpanelPageViewedProps = props.clone();
-                    Self::track_home_page_viewed(MixpanelHomePageViewedProps {
+                    Self::track_home_page_viewed(MixpanelBottomBarPageViewedProps {
+                        user_id: home_props.user_id,
+                        visitor_id: home_props.visitor_id,
+                        is_logged_in: home_props.is_logged_in,
+                        canister_id: home_props.canister_id,
+                        is_nsfw_enabled: home_props.is_nsfw_enabled,
+                    });
+                }
+                if props.page.contains("wallet") {
+                    let home_props: MixpanelPageViewedProps = props.clone();
+                    Self::track_wallet_page_viewed(MixpanelBottomBarPageViewedProps {
+                        user_id: home_props.user_id,
+                        visitor_id: home_props.visitor_id,
+                        is_logged_in: home_props.is_logged_in,
+                        canister_id: home_props.canister_id,
+                        is_nsfw_enabled: home_props.is_nsfw_enabled,
+                    });
+                }
+                if props.page == "/menu" {
+                    let home_props: MixpanelPageViewedProps = props.clone();
+                    Self::track_wallet_page_viewed(MixpanelBottomBarPageViewedProps {
+                        user_id: home_props.user_id,
+                        visitor_id: home_props.visitor_id,
+                        is_logged_in: home_props.is_logged_in,
+                        canister_id: home_props.canister_id,
+                        is_nsfw_enabled: home_props.is_nsfw_enabled,
+                    });
+                }
+                if props.page == "/upload" {
+                    let home_props: MixpanelPageViewedProps = props.clone();
+                    Self::track_upload_page_viewed(MixpanelBottomBarPageViewedProps {
                         user_id: home_props.user_id,
                         visitor_id: home_props.visitor_id,
                         is_logged_in: home_props.is_logged_in,
@@ -573,7 +628,7 @@ impl MixPanelEvent {
         start(());
     }
 
-    fn track_bottom_navigation_clicked(p: MixpanelBottomNavigationProps) {
+    pub fn track_bottom_navigation_clicked(p: MixpanelBottomNavigationProps) {
         track_event("bottom_navigation_clicked", p);
     }
 
