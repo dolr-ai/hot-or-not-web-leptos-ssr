@@ -141,7 +141,7 @@ utils = { path = "./ssr/src/utils" }
 page = { path = "./ssr/src/page" }
 rand = { version = "0.9.0", default-features = false, features = ["small_rng"] }
 # need getrandom with wasm_js feature for generating random values in wasm32-unknown-unknown
-getrandom = { version = "0.3.3", default-feautres = false, features = ["wasm_js"] }
+getrandom = { version = "0.3.3", default-features = false, features = ["wasm_js"] }
 indexmap = "2.8.0"
 sentry-tracing = "0.37.0"
 tracing-log = "0.2.0"
@@ -184,13 +184,13 @@ yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adb
 # ===
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], branch = "master", version = "0.1.0" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev = "2816c2ffbbf50b9e28868282ff654241da1d243a", features = [
+], rev = "6c921793e42dd36b0fba76632bc2556e2b35048d", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", rev = "6c921793e42dd36b0fba76632bc2556e2b35048d" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", rev = "6c921793e42dd36b0fba76632bc2556e2b35048d" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev = "6c921793e42dd36b0fba76632bc2556e2b35048d", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "6c921793e42dd36b0fba76632bc2556e2b35048d" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], branch = "master", version = "0.1.0" }
+], rev = "6c921793e42dd36b0fba76632bc2556e2b35048d", version = "0.1.0" }
