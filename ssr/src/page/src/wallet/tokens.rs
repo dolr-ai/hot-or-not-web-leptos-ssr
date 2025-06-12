@@ -372,7 +372,9 @@ impl AirdroppableImpl for AirdropSats {
         user_principal: Principal,
         user_canister: Principal,
     ) -> Result<bool, ServerFnError> {
-        !is_user_eligible_for_sats_airdrop(user_canister, user_principal).await
+        is_user_eligible_for_sats_airdrop(user_canister, user_principal)
+            .await
+            .map(|eligible| !eligible)
     }
 }
 
