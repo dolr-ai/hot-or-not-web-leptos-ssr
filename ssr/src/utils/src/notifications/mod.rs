@@ -9,7 +9,7 @@ use yral_metadata_types::{
 
 pub mod device_id;
 
-#[wasm_bindgen(module = "/src/notifications/js/setup-firebase-messaging-inline.js")]
+#[wasm_bindgen(module = "/src/notifications/inline-js/setup-firebase-messaging-inline.js")]
 extern "C" {
     #[wasm_bindgen(catch, js_name = getToken)]
     pub async fn get_token() -> Result<JsValue, JsValue>;
