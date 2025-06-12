@@ -36,7 +36,9 @@
     // for clang required to build ring
     "ghcr.io/devcontainers-community/features/llvm": {},
     // build dependency
-    "ghcr.io/devcontainers-extra/features/protoc:1": {}
+    "ghcr.io/devcontainers-extra/features/protoc:1": {},
+    // common utils for pkg-config and openssl
+    "ghcr.io/devcontainers/features/common-utils:2": {}
   },
   "hostRequirements": {
     "cpus": 8
