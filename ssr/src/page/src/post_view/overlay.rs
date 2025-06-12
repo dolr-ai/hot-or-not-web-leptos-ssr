@@ -11,6 +11,7 @@ use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::host::show_nsfw_content;
+use utils::notifications::send_liked_notification;
 use utils::{
     event_streaming::events::{LikeVideo, ShareVideo},
     report::ReportOption,
@@ -48,7 +49,6 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
     let like_toggle = Action::new(move |&()| {
         let post_details = post.clone();
         let video_id = post.uid.clone();
-
         send_wrap(async move {
             let Ok(canisters) = auth.auth_cans(unauth_canisters()).await else {
                 log::warn!("Trying to toggle like without auth");
@@ -65,6 +65,18 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
             if should_like {
                 likes.update(|l| *l += 1);
                 LikeVideo.send_event(ev_ctx, post_details.clone(), likes);
+
+                if let Err(e) = send_liked_notification(
+                    canisters.user_principal(),
+                    post_details.post_id,
+                    post_details.poster_principal,
+                    post_details.canister_id,
+                )
+                .await
+                {
+                    log::warn!("Error sending liked notification: {e:?}");
+                };
+
                 let is_logged_in = is_logged_in.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
                 let is_hot_or_not = true;

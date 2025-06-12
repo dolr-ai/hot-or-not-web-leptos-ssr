@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
 
-use hon_worker_common::limits::REFERRAL_REWARD;
 use indexmap::IndexSet;
 use leptos::ev;
 use leptos::html::Audio;
@@ -12,8 +11,7 @@ use utils::send_wrap;
 use yral_canisters_client::individual_user_template::PostViewDetailsFromFrontend;
 
 use crate::post_view::BetEligiblePostCtx;
-use component::show_any::ShowAny;
-use component::{feed_popup::FeedPopUp, video_player::VideoPlayer};
+use component::video_player::VideoPlayer;
 use utils::event_streaming::events::VideoWatched;
 use utils::{bg_url, mp4_url};
 
@@ -45,10 +43,6 @@ pub fn BgView(
             .unwrap_or_default()
     };
 
-    let auth = auth_state();
-    let is_connected = auth.is_logged_in_with_oauth();
-    let (show_refer_login_popup, set_show_refer_login_popup) = signal(true);
-
     let onboarding_eligible_post_context = BetEligiblePostCtx::default();
     provide_context(onboarding_eligible_post_context.clone());
 
@@ -62,17 +56,6 @@ pub fn BgView(
                 style:background-image=move || format!("url({})", bg_url(uid()))
             ></div>
             <audio class="sr-only" node_ref=win_audio_ref preload="auto" src="/img/hotornot/chaching.m4a"/>
-            <ShowAny when=move || {
-                auth.referrer_store.get().is_some() && idx == 0 && !is_connected.get()
-                    && show_refer_login_popup.get()
-            }>
-                <FeedPopUp
-                    on_dismiss=move |_| set_show_refer_login_popup.set(false)
-                    header_text="Claim Your Referral Rewards Now!".to_string()
-                    body_text=format!("Signup now to receive {} SATS as referral rewards.", REFERRAL_REWARD)
-                    login_text="Sign Up"
-                />
-            </ShowAny>
             {move || {
                 let (post, prev_post) = post_with_prev.get();
                 Some(view! {
