@@ -50,6 +50,34 @@ pub async fn is_airdrop_claimed(user_principal: Principal) -> Result<bool, Serve
     Ok(blocked_window.contains(&now))
 }
 
+pub async fn validate_sats_airdrop_eligibility(
+    user_canister: Principal,
+    user_principal: Principal,
+) -> Result<(), ServerFnError> {
+    let cans = Canisters::default();
+    let user = cans.individual_user(user_canister).await;
+
+    let balance = load_sats_balance(user_principal).await?;
+    if balance.balance.ge(&MAX_BET_AMOUNT.into()) {
+        println!("Not allowed to claimed because balance is not below max bet amount");
+        return Err(ServerFnError::new(
+            "Not allowed to claim: balance >= max bet amount",
+        ));
+    }
+    let sess = user.get_session_type().await?;
+    if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
+        println!("Not allowed to claim due to invalid session: {sess:?}");
+        return Err(ServerFnError::new("Not allowed to claim: not logged in"));
+    }
+    let is_airdrop_claimed = is_airdrop_claimed(user_principal).await?;
+    if is_airdrop_claimed {
+        println!("Not allowed to claim as user has already claimed airdrop");
+        return Err(ServerFnError::new("Not allowed to claim: already claimed"));
+    }
+
+    Ok(())
+}
+
 #[server(input = server_fn::codec::Json)]
 pub async fn claim_sats_airdrop(
     user_canister: Principal,
@@ -69,23 +97,7 @@ pub async fn claim_sats_airdrop(
             "Not allowed to claim: principal mismatch",
         ));
     }
-    let balance = load_sats_balance(user_principal).await?;
-    if balance.balance.ge(&MAX_BET_AMOUNT.into()) {
-        println!("Not allowed to claimed because balance is not below max bet amount");
-        return Err(ServerFnError::new(
-            "Not allowed to claim: balance >= max bet amount",
-        ));
-    }
-    let sess = user.get_session_type().await?;
-    if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
-        println!("Not allowed to claim due to invalid session: {sess:?}");
-        return Err(ServerFnError::new("Not allowed to claim: not logged in"));
-    }
-    let is_airdrop_claimed = is_airdrop_claimed(user_principal).await?;
-    if is_airdrop_claimed {
-        println!("Not allowed to claim as user has already claimed airdrop");
-        return Err(ServerFnError::new("Not allowed to claim: already claimed"));
-    }
+    validate_sats_airdrop_eligibility(user_canister, user_principal).await?;
     let mut rng = SmallRng::from_os_rng();
     let amount = rng.random_range(SATS_AIRDROP_LIMIT_RANGE);
     let worker_req = VerifiableClaimRequest {
