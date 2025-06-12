@@ -248,7 +248,7 @@ pub fn VideoView(
         send_view_detail_action.dispatch((100, 0_u8));
         mixpanel_video_started_event.dispatch(());
     });
-    
+
     let _ = use_event_listener(_ref, ev::timeupdate, move |_evt| {
         let Some(video) = _ref.get() else {
             return;

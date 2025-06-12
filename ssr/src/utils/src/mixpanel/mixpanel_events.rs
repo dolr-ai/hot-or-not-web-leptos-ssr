@@ -484,7 +484,7 @@ pub enum BottomNavigationCategory {
     Profile,
     Menu,
     Home,
-    Wallet
+    Wallet,
 }
 
 #[derive(Serialize)]
