@@ -59,19 +59,16 @@ pub async fn validate_sats_airdrop_eligibility(
 
     let balance = load_sats_balance(user_principal).await?;
     if balance.balance.ge(&MAX_BET_AMOUNT.into()) {
-        println!("Not allowed to claimed because balance is not below max bet amount");
         return Err(ServerFnError::new(
             "Not allowed to claim: balance >= max bet amount",
         ));
     }
     let sess = user.get_session_type().await?;
     if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
-        println!("Not allowed to claim due to invalid session: {sess:?}");
         return Err(ServerFnError::new("Not allowed to claim: not logged in"));
     }
     let is_airdrop_claimed = is_airdrop_claimed(user_principal).await?;
     if is_airdrop_claimed {
-        println!("Not allowed to claim as user has already claimed airdrop");
         return Err(ServerFnError::new("Not allowed to claim: already claimed"));
     }
 
@@ -86,11 +83,8 @@ pub async fn is_user_eligible_for_sats_airdrop(
     let res = validate_sats_airdrop_eligibility(user_canister, user_principal).await;
 
     match res {
-        // all good
         Ok(_) => Ok(true),
-        // server error defined with new
         Err(ServerFnError::ServerError(..)) => Ok(false),
-        // Every other error must be reported back
         Err(err) => Err(err),
     }
 }
@@ -106,6 +100,7 @@ pub async fn claim_sats_airdrop(
     let user = cans.individual_user(user_canister).await;
     let profile_owner = user.get_profile_details_v_2().await?;
     if profile_owner.principal_id != user_principal {
+        // ideally should never happen unless its a hacking attempt
         println!(
             "Not allowed to claim due to principal mismatch: owner={} != receiver={user_principal}",
             profile_owner.principal_id,
