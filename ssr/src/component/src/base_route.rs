@@ -101,7 +101,10 @@ fn CtxProvider(children: Children) -> impl IntoView {
     let migrate_notification_proj = Action::new_local(move |_| async move {
         let metaclient: MetadataClient<false> = MetadataClient::default();
 
-        let cans = auth.auth_cans(expect_context()).await.unwrap();
+        let cans = auth
+            .auth_cans(use_context().unwrap_or_default())
+            .await
+            .unwrap();
         let token = get_fcm_token().await.unwrap();
 
         metaclient
