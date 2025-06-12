@@ -65,6 +65,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <script fetchpriority="low" type="module" src="/js/sentry-init.js" async></script>
                 <script fetchpriority="low" type="module" src="/js/mixpanel-init.js" async></script>
+                <script fetchpriority="low" type="module" src="/js/store-initial-url.js" async></script>
 
                 <AutoReload options=options.clone() />
                 <HashedStylesheet id="leptos" options=options.clone() />

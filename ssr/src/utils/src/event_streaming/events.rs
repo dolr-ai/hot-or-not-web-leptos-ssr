@@ -20,12 +20,14 @@ use circular_buffer::CircularBuffer;
 #[derive(Clone)]
 pub struct HistoryCtx {
     pub history: RwSignal<CircularBuffer<3, String>>,
+    pub utm: RwSignal<Vec<(String, String)>>,
 }
 
 impl Default for HistoryCtx {
     fn default() -> Self {
         Self {
             history: RwSignal::new(CircularBuffer::<3, String>::new()),
+            utm: RwSignal::new(Vec::new()),
         }
     }
 }
@@ -34,6 +36,7 @@ impl HistoryCtx {
     pub fn new() -> Self {
         Self {
             history: RwSignal::new(CircularBuffer::<3, String>::new()),
+            utm: RwSignal::new(Vec::new()),
         }
     }
 
@@ -47,6 +50,18 @@ impl HistoryCtx {
 
     pub fn push(&self, url: &str) {
         self.history.update(move |h| h.push_back(url.to_string()));
+    }
+
+    pub fn push_utm(&self, utm: Vec<(String, String)>) {
+        let utm: Vec<(String, String)> = utm
+            .iter()
+            .filter(|(k, _)| k.contains("utm"))
+            .cloned()
+            .collect();
+        if utm.is_empty() {
+            return;
+        }
+        self.utm.set(utm);
     }
 
     pub fn back(&self, fallback: &str) -> String {
