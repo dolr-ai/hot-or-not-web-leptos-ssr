@@ -14,6 +14,8 @@ pub use remote::*;
 use once_cell::sync::Lazy;
 use reqwest::Url;
 
+// TODO: make it consistent with the actual bet amount
+pub const MAX_BET_AMOUNT: usize = 20;
 pub const SATS_AIRDROP_LIMIT_RANGE: Range<u64> = 50..100;
 pub const CENTS_IN_E6S: u64 = 1_000_000;
 pub const CF_STREAM_BASE: &str = "https://customer-2p3jflss4r4hmpnz.cloudflarestream.com";

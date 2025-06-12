@@ -5,7 +5,7 @@ use component::{
     overlay::ShadowOverlay,
     spinner::{SpinnerCircle, SpinnerCircleStyled},
 };
-use consts::SATS_AIRDROP_LIMIT_RANGE;
+use consts::{MAX_BET_AMOUNT, SATS_AIRDROP_LIMIT_RANGE};
 use hon_worker_common::{ClaimRequest, VerifiableClaimRequest, WORKER_URL};
 use leptos::prelude::*;
 use leptos_icons::Icon;
@@ -70,9 +70,11 @@ pub async fn claim_sats_airdrop(
         ));
     }
     let balance = load_sats_balance(user_principal).await?;
-    if balance.balance.ge(&50usize.into()) {
-        println!("Not allowed to claimed because balance is not below <50");
-        return Err(ServerFnError::new("Not allowed to claim: balance >= 50"));
+    if balance.balance.ge(&MAX_BET_AMOUNT.into()) {
+        println!("Not allowed to claimed because balance is not below max bet amount");
+        return Err(ServerFnError::new(
+            "Not allowed to claim: balance >= max bet amount",
+        ));
     }
     let sess = user.get_session_type().await?;
     if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
