@@ -19,7 +19,7 @@
 //!
 //! This will ensure we keep the near instant loading time while also fetching items dynmically.
 
-use crate::wallet::airdrop::{claim_sats_airdrop, is_airdrop_claimed, SatsAirdropPopup};
+use crate::wallet::airdrop::{claim_sats_airdrop, SatsAirdropPopup};
 use candid::Principal;
 use component::action_btn::{ActionButton, ActionButtonLink};
 use component::icons::information_icon::Information;
@@ -47,6 +47,7 @@ use yral_canisters_common::utils::token::{load_cents_balance, load_sats_balance}
 use yral_canisters_common::{Canisters, CENT_TOKEN_NAME};
 use yral_canisters_common::{SATS_TOKEN_NAME, SATS_TOKEN_SYMBOL};
 
+use super::airdrop::is_user_eligible_for_sats_airdrop;
 use super::ShowLoginSignal;
 
 #[component]
@@ -250,7 +251,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
                 let is_utility_token = token_type.is_utility_token();
 
                 view! {
-                    <FastWalletCard user_principal display_info balance withdrawal_state is_utility_token />
+                    <FastWalletCard user_canister user_principal display_info balance withdrawal_state is_utility_token />
                 }
             }).collect_view()}
         </div>
@@ -346,7 +347,11 @@ impl WithdrawImpl for WithdrawSats {
 trait AirdroppableImpl {
     async fn claim_airdrop(&self, auth: Canisters<true>) -> Result<u64, ServerFnError>;
 
-    async fn is_airdrop_claimed(&self, user_principal: Principal) -> Result<bool, ServerFnError>;
+    async fn is_airdrop_claimed(
+        &self,
+        user_principal: Principal,
+        user_canister: Principal,
+    ) -> Result<bool, ServerFnError>;
 }
 
 #[derive(Clone)]
@@ -362,9 +367,12 @@ impl AirdroppableImpl for AirdropSats {
         claim_sats_airdrop(cans.user_canister(), request, signature).await
     }
 
-    async fn is_airdrop_claimed(&self, user_principal: Principal) -> Result<bool, ServerFnError> {
-        let claimed = is_airdrop_claimed(user_principal).await?;
-        Ok(claimed)
+    async fn is_airdrop_claimed(
+        &self,
+        user_principal: Principal,
+        user_canister: Principal,
+    ) -> Result<bool, ServerFnError> {
+        !is_user_eligible_for_sats_airdrop(user_canister, user_principal).await
     }
 }
 
@@ -439,6 +447,7 @@ pub fn WithdrawSection(
 #[component]
 pub fn FastWalletCard(
     user_principal: Principal,
+    user_canister: Principal,
     display_info: TokenDisplayInfo,
     balance: Resource<Result<TokenBalance, ServerFnError>>,
     withdrawal_state: OnceResource<Result<Option<WithdrawalState>, ServerFnError>>,
@@ -500,7 +509,7 @@ pub fn FastWalletCard(
         async move {
             let claimed = if let Some(airdropper) = &airdropper {
                 airdropper
-                    .is_airdrop_claimed(user_principal)
+                    .is_airdrop_claimed(user_principal, user_canister)
                     .await
                     .unwrap_or(true)
             } else {

@@ -79,6 +79,23 @@ pub async fn validate_sats_airdrop_eligibility(
 }
 
 #[server(input = server_fn::codec::Json)]
+pub async fn is_user_eligible_for_sats_airdrop(
+    user_canister: Principal,
+    user_principal: Principal,
+) -> Result<bool, ServerFnError> {
+    let res = validate_sats_airdrop_eligibility(user_canister, user_principal).await;
+
+    match res {
+        // all good
+        Ok(_) => Ok(true),
+        // server error defined with new
+        Err(ServerFnError::ServerError(..)) => Ok(false),
+        // Every other error must be reported back
+        Err(err) => Err(err),
+    }
+}
+
+#[server(input = server_fn::codec::Json)]
 pub async fn claim_sats_airdrop(
     user_canister: Principal,
     request: ClaimRequest,
