@@ -141,7 +141,15 @@ pub fn VideoView(
         vid.set_loop(true);
         if autoplay_at_render {
             vid.set_autoplay(true);
-            _ = vid.play();
+            let play_promise = vid.play();
+            if let Ok(promise) = play_promise {
+                log::info!("playing video");
+                wasm_bindgen_futures::spawn_local(async move {
+                    log::info!("playing video 2");
+                    let _ = wasm_bindgen_futures::JsFuture::from(promise).await;
+                    log::info!("playing video 3");
+                });
+            }
         }
         Some(())
     });
@@ -261,11 +269,20 @@ pub fn VideoViewForQueue(
             return;
         };
         if idx != current_idx() {
+            vid.set_autoplay(false);
             _ = vid.pause();
             return;
         }
         vid.set_autoplay(true);
-        _ = vid.play();
+        let play_promise = vid.play();
+        log::info!("playing video 1");
+        if let Ok(promise) = play_promise {
+            wasm_bindgen_futures::spawn_local(async move {
+                log::info!("playing video 4");
+                let _ = wasm_bindgen_futures::JsFuture::from(promise).await;
+                log::info!("playing video 5");
+            });
+        }
     });
 
     let post = Signal::derive(move || video_queue.with(|q| q.get_index(idx).cloned()));
