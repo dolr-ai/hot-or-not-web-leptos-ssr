@@ -82,6 +82,8 @@ jobs:
         run: |
           cargo fmt --check
           cargo clippy --no-deps --all-features --release -- -Dwarnings
+        env:
+          RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
 
       - name: Print Rust and Cargo version
         run: |
