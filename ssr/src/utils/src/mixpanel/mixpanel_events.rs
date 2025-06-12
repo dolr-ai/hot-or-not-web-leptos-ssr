@@ -2,6 +2,7 @@ use candid::Principal;
 use codee::string::FromToStringCodec;
 use consts::DEVICE_ID;
 use consts::NSFW_TOGGLE_STORE;
+use consts::REFERRAL_REWARD;
 use leptos::logging;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -277,6 +278,26 @@ pub struct MixpanelBottomBarPageViewedProps {
     pub is_logged_in: bool,
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
+}
+
+#[derive(Serialize)]
+pub struct MixpanelReferAndEarnPageViewedProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub referral_bonus: u64,
+}
+#[derive(Serialize)]
+pub struct MixpanelProfilePageViewedProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub is_own_profile: bool,
+    pub publisher_user_id: String,
 }
 
 #[derive(Serialize, Clone)]
@@ -571,10 +592,16 @@ impl MixPanelEvent {
         track_event("wallet_page_viewed", p);
     }
     pub fn track_upload_page_viewed(p: MixpanelBottomBarPageViewedProps) {
-        track_event("wallet_page_viewed", p);
+        track_event("upload_page_viewed", p);
     }
     pub fn track_menu_page_viewed(p: MixpanelBottomBarPageViewedProps) {
         track_event("menu_page_viewed", p);
+    }
+    pub fn track_refer_and_earn_page_viewed(p: MixpanelReferAndEarnPageViewedProps) {
+        track_event("refer_and_earn_page_viewed", p);
+    }
+    pub fn track_profile_page_viewed(p: MixpanelProfilePageViewedProps) {
+        track_event("profile_page_viewed", p);
     }
 
     pub fn track_page_viewed(p: MixpanelPageViewedProps) {
@@ -601,9 +628,20 @@ impl MixPanelEvent {
                         is_nsfw_enabled: home_props.is_nsfw_enabled,
                     });
                 }
+                if props.page == "/refer-earn" {
+                    let home_props: MixpanelPageViewedProps = props.clone();
+                    Self::track_refer_and_earn_page_viewed(MixpanelReferAndEarnPageViewedProps {
+                        user_id: home_props.user_id,
+                        visitor_id: home_props.visitor_id,
+                        is_logged_in: home_props.is_logged_in,
+                        canister_id: home_props.canister_id,
+                        is_nsfw_enabled: home_props.is_nsfw_enabled,
+                        referral_bonus: REFERRAL_REWARD,
+                    });
+                }
                 if props.page == "/menu" {
                     let home_props: MixpanelPageViewedProps = props.clone();
-                    Self::track_wallet_page_viewed(MixpanelBottomBarPageViewedProps {
+                    Self::track_menu_page_viewed(MixpanelBottomBarPageViewedProps {
                         user_id: home_props.user_id,
                         visitor_id: home_props.visitor_id,
                         is_logged_in: home_props.is_logged_in,
@@ -619,6 +657,24 @@ impl MixPanelEvent {
                         is_logged_in: home_props.is_logged_in,
                         canister_id: home_props.canister_id,
                         is_nsfw_enabled: home_props.is_nsfw_enabled,
+                    });
+                }
+                if props.page.contains("/profile/") {
+                    let home_props: MixpanelPageViewedProps = props.clone();
+                    let principal = if home_props.user_id.is_some() {
+                        home_props.user_id.clone().unwrap()
+                    } else {
+                        home_props.visitor_id.clone().unwrap()
+                    };
+                    let is_own_profile = props.page.contains(principal.as_str());
+                    Self::track_profile_page_viewed(MixpanelProfilePageViewedProps {
+                        user_id: home_props.user_id,
+                        visitor_id: home_props.visitor_id,
+                        is_logged_in: home_props.is_logged_in,
+                        canister_id: home_props.canister_id,
+                        is_nsfw_enabled: home_props.is_nsfw_enabled,
+                        is_own_profile,
+                        publisher_user_id: principal,
                     });
                 }
                 track_event("page_viewed", props);
