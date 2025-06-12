@@ -24,8 +24,8 @@ pub enum CoinState {
     C200,
 }
 
-const BET_COIN_ENABLED_STATES: [CoinState; 2] = [CoinState::C10, CoinState::C20];
-const DEFAULT_BET_COIN_STATE: CoinState = CoinState::C20;
+const BET_COIN_ENABLED_STATES: [CoinState; 2] = [CoinState::C50, CoinState::C100];
+const DEFAULT_BET_COIN_STATE: CoinState = CoinState::C50;
 
 impl CoinState {
     fn wrapping_next(self) -> Self {
