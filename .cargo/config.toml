@@ -1,5 +1,5 @@
 # Target-specific settings for native Linux platforms
-[target.'cfg(all(target_os = "linux", debug_assertions = true))']
+[target.'cfg(target_os = "linux")']
 rustflags = [
     "-C",
     "link-arg=-fuse-ld=mold",

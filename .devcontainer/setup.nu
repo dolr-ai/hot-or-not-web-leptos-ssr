@@ -6,12 +6,6 @@ mv ./cargo-binstall ~/.local/bin/cargo-binstall;
 chmod +x ~/.local/bin/cargo-binstall;
 rm cargo-binstall.tgz;
 
-rustc --version;
-
-sleep 5sec;
-
-cargo --version;
-
 # Install cargo-leptos with cargo binstall
 cargo binstall cargo-leptos --no-confirm;
 
