@@ -1,8 +1,8 @@
 use std::cmp::Ordering;
 
 use indexmap::IndexSet;
-use leptos::ev;
 use leptos::html::Audio;
+use leptos::{ev, logging};
 use leptos::{html::Video, prelude::*};
 use leptos_use::use_event_listener;
 use state::canisters::{auth_state, unauth_canisters};
@@ -278,25 +278,17 @@ pub fn VideoViewForQueue(
             _ = vid.pause();
             return;
         }
-        // if preload_auto.get() {
-        //     vid.set_preload("auto");
-        // }
-        // vid.set_autoplay(true);
-        // let navigator = web_sys::window().unwrap().navigator();
-        let play_promise = vid.play();
-        log::info!("playing video 1. idx: {:?}", idx);
-        if let Ok(promise) = play_promise {
+        vid.set_autoplay(true);
+        let promise = vid.play();
+        if let Ok(promise) = promise {
             wasm_bindgen_futures::spawn_local(async move {
-                log::info!("playing video 4. idx: {:?}", idx);
-                match wasm_bindgen_futures::JsFuture::from(promise).await {
-                    Ok(_) => log::info!("playing video 5 - success: {:?}", idx),
-                    Err(e) => {
-                        log::warn!("Video autoplay failed: {:?}. idx: {:?}", e, idx);
-                        // On iOS, we need user interaction for the first play
-                        // The video will play when user taps/scrolls to it
-                    }
+                let rr = wasm_bindgen_futures::JsFuture::from(promise).await;
+                if let Err(e) = rr {
+                    logging::error!("promise failed: {e:?}");
                 }
             });
+        } else {
+            logging::error!("Failed to play video");
         }
     });
 
