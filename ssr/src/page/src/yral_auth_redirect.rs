@@ -1,5 +1,6 @@
 use component::auth_providers::yral::YralAuthMessage;
 use component::loading::Loading;
+use consts::LoginProvider;
 use leptos::prelude::*;
 use leptos_router::hooks::use_query;
 use leptos_router::params::Params;
@@ -16,8 +17,9 @@ async fn yral_auth_redirector(login_hint: String) -> Result<(), ServerFnError> {
     use auth::server_impl::yral::YralOAuthClient;
 
     let oauth2: YralOAuthClient = expect_context();
+    let provider = LoginProvider::Google;
 
-    let url = yral_auth_url_impl(oauth2, login_hint, None).await?;
+    let url = yral_auth_url_impl(oauth2, login_hint, provider, None).await?;
     leptos_axum::redirect(&url);
     Ok(())
 }

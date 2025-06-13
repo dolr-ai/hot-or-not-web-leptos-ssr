@@ -5,7 +5,7 @@ use axum_extra::extract::{
     PrivateCookieJar, SignedCookieJar,
 };
 use candid::Principal;
-use consts::auth::REFRESH_MAX_AGE;
+use consts::{auth::REFRESH_MAX_AGE, LoginProvider};
 use leptos::prelude::*;
 use leptos_axum::{extract_with_state, ResponseOptions};
 use openidconnect::{
@@ -100,6 +100,7 @@ struct OAuthState {
 pub async fn yral_auth_url_impl(
     oauth2: YralOAuthClient,
     login_hint: String,
+    provider: LoginProvider,
     client_redirect_uri: Option<String>,
 ) -> Result<String, ServerFnError> {
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
@@ -118,6 +119,16 @@ pub async fn yral_auth_url_impl(
         .add_scope(Scope::new("openid".into()))
         .set_pkce_challenge(pkce_challenge)
         .set_login_hint(LoginHint::new(login_hint));
+
+    let mut oauth2_request = oauth2_request;
+    if provider != LoginProvider::Any {
+        let provider = match provider {
+            LoginProvider::Google => "google",
+            LoginProvider::Apple => "apple",
+            LoginProvider::Any => unreachable!(),
+        };
+        oauth2_request = oauth2_request.add_extra_param("provider", provider);
+    }
 
     let (auth_url, oauth_csrf_token, _) = oauth2_request.url();
 

@@ -82,6 +82,13 @@ pub mod auth {
     pub const REFRESH_TOKEN_COOKIE: &str = "user-identity";
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum LoginProvider {
+    Any,
+    Google,
+    Apple,
+}
+
 #[cfg(feature = "oauth-ssr")]
 pub mod yral_auth {
     pub const YRAL_AUTH_AUTHORIZATION_URL: &str = "https://auth.yral.com/oauth/auth";

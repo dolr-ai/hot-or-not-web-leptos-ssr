@@ -1,5 +1,5 @@
 use codee::string::FromToStringCodec;
-use consts::NOTIFICATIONS_ENABLED_STORE;
+use consts::{LoginProvider, NOTIFICATIONS_ENABLED_STORE};
 use ic_agent::identity::DelegatedIdentity;
 use leptos::{ev, prelude::*};
 use leptos_use::{storage::use_local_storage, use_event_listener, use_interval_fn, use_window};
@@ -12,13 +12,16 @@ pub type YralAuthMessage = Result<DelegatedIdentityWire, String>;
 use super::{LoginProvButton, LoginProvCtx, ProviderKind};
 
 #[server]
-async fn yral_auth_login_url(login_hint: String) -> Result<String, ServerFnError> {
+async fn yral_auth_login_url(
+    login_hint: String,
+    provider: LoginProvider,
+) -> Result<String, ServerFnError> {
     use auth::server_impl::yral::yral_auth_url_impl;
     use auth::server_impl::yral::YralOAuthClient;
 
     let oauth2: YralOAuthClient = expect_context();
 
-    let url = yral_auth_url_impl(oauth2, login_hint, None).await?;
+    let url = yral_auth_url_impl(oauth2, login_hint, provider, None).await?;
 
     Ok(url)
 }
@@ -51,8 +54,9 @@ pub fn YralAuthProvider() -> impl IntoView {
                 let id_wire = auth.user_identity.await?;
                 let id = DelegatedIdentity::try_from(id_wire)?;
                 let login_hint = yral_auth_login_hint(&id)?;
+                let provider = LoginProvider::Google;
 
-                yral_auth_login_url(login_hint).await
+                yral_auth_login_url(login_hint, provider).await
             };
 
             async move {
@@ -124,7 +128,7 @@ pub fn YralAuthProvider() -> impl IntoView {
     view! {
         <LoginProvButton
             prov=ProviderKind::YralAuth
-            class="flex flex-row justify-center items-center justify-between gap-2 rounded-full bg-neutral-600 pr-4"
+            class="flex flex-row items-center justify-between gap-2 rounded-full bg-neutral-600 pr-4"
             on_click=move |ev| {
                 ev.stop_propagation();
                 on_click()
