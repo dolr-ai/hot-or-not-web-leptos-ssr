@@ -121,6 +121,11 @@ where
         props.get("visitor_id").and_then(Value::as_str).into()
     };
     let current_url = window().location().href().ok();
+    let origin = window()
+        .location()
+        .origin()
+        .ok()
+        .unwrap_or_else(|| "unknown".to_string());
     #[cfg(feature = "hydrate")]
     {
         let history = expect_context::<HistoryCtx>();
@@ -134,8 +139,13 @@ where
         }
     }
     if let Some(url) = current_url {
-        props["current_url"] = url.clone().into();
-        props["$current_url"] = url.into();
+        if props["event"] == "home_page_viewed" {
+            props["current_url"] = origin.clone().into();
+            props["$current_url"] = origin.into();
+        } else {
+            props["current_url"] = url.clone().into();
+            props["$current_url"] = url.into();
+        }
     }
     spawn_local(async {
         let res = track_event_server_fn(props).await;
