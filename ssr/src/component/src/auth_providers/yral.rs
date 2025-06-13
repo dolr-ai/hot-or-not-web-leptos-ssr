@@ -9,7 +9,8 @@ use yral_types::delegated_identity::DelegatedIdentityWire;
 
 pub type YralAuthMessage = Result<DelegatedIdentityWire, String>;
 
-use super::{LoginProvButton, LoginProvCtx, LoginProvider, ProviderKind};
+use super::{LoginProvButton, LoginProvCtx, ProviderKind};
+use utils::event_streaming::events::LoginProvider;
 
 #[server]
 async fn yral_auth_login_url(
@@ -62,7 +63,7 @@ pub fn YralAuthProvider() -> impl IntoView {
                 let login_hint = yral_auth_login_hint(&id)?;
                 let provider = LoginProvider::Google;
 
-                yral_auth_login_url(login_hint, provider).await;
+                yral_auth_login_url(login_hint, provider).await
             };
 
             async move {
@@ -134,7 +135,7 @@ pub fn YralAuthProvider() -> impl IntoView {
     view! {
         <LoginProvButton
             prov=ProviderKind::YralAuth
-            class="flex flex-row justify-center items-center justify-between gap-2 rounded-full bg-neutral-600 pr-4"
+            class="flex flex-row items-center justify-between gap-2 rounded-full bg-neutral-600 pr-4"
             on_click=move |ev| {
                 ev.stop_propagation();
                 on_click()

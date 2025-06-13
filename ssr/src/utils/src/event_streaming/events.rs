@@ -15,7 +15,7 @@ pub enum ProviderKind {
     YralAuth,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum LoginProvider {
     #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
     Any,

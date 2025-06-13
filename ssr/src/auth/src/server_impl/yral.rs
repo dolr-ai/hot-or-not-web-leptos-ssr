@@ -118,8 +118,12 @@ pub async fn yral_auth_url_impl(
         )
         .add_scope(Scope::new("openid".into()))
         .set_pkce_challenge(pkce_challenge)
-        .set_login_hint(LoginHint::new(login_hint))
-        .add_extra_param("provider", provider.unwrap_or("".to_string()));
+        .set_login_hint(LoginHint::new(login_hint));
+
+    let mut oauth2_request = oauth2_request;
+    if let Some(provider) = provider {
+        oauth2_request = oauth2_request.add_extra_param("provider", provider);
+    }
 
     let (auth_url, oauth_csrf_token, _) = oauth2_request.url();
 
