@@ -219,7 +219,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
         Resource::new(
             || (),
             move |_| async move {
-                log::info!("fetching balance for: {:?}", token_type);
+                log::info!("fetching balance for: {token_type:?}");
                 let fetcher: BalanceFetcherType = token_type.into();
                 send_wrap(fetcher.fetch(unauth_canisters(), user_canister, user_principal)).await
             },
@@ -547,7 +547,7 @@ pub fn FastWalletCard(
             show_airdrop_popup.set(true);
             match airdropper.as_ref().unwrap().claim_airdrop(cans).await {
                 Ok(amount) => {
-                    log::info!("claimed airdrop amount: {}", amount);
+                    log::info!("claimed airdrop amount: {amount}");
                     airdrop_amount_claimed.set(amount);
                     is_airdrop_claimed.set(true);
                     error_claiming_airdrop.set(false);
