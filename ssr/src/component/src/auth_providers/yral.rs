@@ -1,3 +1,4 @@
+use auth::server_impl::yral::LoginProvider;
 use codee::string::FromToStringCodec;
 use consts::NOTIFICATIONS_ENABLED_STORE;
 use ic_agent::identity::DelegatedIdentity;
@@ -10,7 +11,6 @@ use yral_types::delegated_identity::DelegatedIdentityWire;
 pub type YralAuthMessage = Result<DelegatedIdentityWire, String>;
 
 use super::{LoginProvButton, LoginProvCtx, ProviderKind};
-use utils::event_streaming::events::LoginProvider;
 
 #[server]
 async fn yral_auth_login_url(
@@ -21,12 +21,6 @@ async fn yral_auth_login_url(
     use auth::server_impl::yral::YralOAuthClient;
 
     let oauth2: YralOAuthClient = expect_context();
-
-    let provider = match provider {
-        LoginProvider::Any => None,
-        LoginProvider::Google => Some("google".to_string()),
-        LoginProvider::Apple => Some("apple".to_string()),
-    };
 
     let url = yral_auth_url_impl(oauth2, login_hint, provider, None).await?;
 

@@ -1,3 +1,4 @@
+use auth::server_impl::yral::LoginProvider;
 use component::auth_providers::yral::YralAuthMessage;
 use component::loading::Loading;
 use leptos::prelude::*;
@@ -7,7 +8,7 @@ use leptos_router::params::Params;
 use openidconnect::CsrfToken;
 use serde::{Deserialize, Serialize};
 use server_fn::codec::Json;
-use utils::{event_streaming::events::LoginProvider, route::go_to_root};
+use utils::route::go_to_root;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
 #[server]

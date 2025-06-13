@@ -86,6 +86,13 @@ pub type YralOAuthClient = openidconnect::Client<
     CoreRevocationErrorResponse,
 >;
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum LoginProvider {
+    Any,
+    Google,
+    Apple,
+}
+
 pub fn token_verifier() -> CoreIdTokenVerifier<'static> {
     // TODO: use real impl
     CoreIdTokenVerifier::new_insecure_without_verification()
@@ -100,7 +107,7 @@ struct OAuthState {
 pub async fn yral_auth_url_impl(
     oauth2: YralOAuthClient,
     login_hint: String,
-    provider: Option<String>,
+    provider: LoginProvider,
     client_redirect_uri: Option<String>,
 ) -> Result<String, ServerFnError> {
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
@@ -121,7 +128,12 @@ pub async fn yral_auth_url_impl(
         .set_login_hint(LoginHint::new(login_hint));
 
     let mut oauth2_request = oauth2_request;
-    if let Some(provider) = provider {
+    if provider != LoginProvider::Any {
+        let provider = match provider {
+            LoginProvider::Google => "google",
+            LoginProvider::Apple => "apple",
+            LoginProvider::Any => unreachable!(),
+        };
         oauth2_request = oauth2_request.add_extra_param("provider", provider);
     }
 
