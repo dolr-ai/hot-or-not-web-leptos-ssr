@@ -100,6 +100,7 @@ struct OAuthState {
 pub async fn yral_auth_url_impl(
     oauth2: YralOAuthClient,
     login_hint: String,
+    provider: Option<String>,
     client_redirect_uri: Option<String>,
 ) -> Result<String, ServerFnError> {
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
@@ -117,7 +118,8 @@ pub async fn yral_auth_url_impl(
         )
         .add_scope(Scope::new("openid".into()))
         .set_pkce_challenge(pkce_challenge)
-        .set_login_hint(LoginHint::new(login_hint));
+        .set_login_hint(LoginHint::new(login_hint))
+        .add_extra_param("provider", provider.unwrap_or("".to_string()));
 
     let (auth_url, oauth_csrf_token, _) = oauth2_request.url();
 

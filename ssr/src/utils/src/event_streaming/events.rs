@@ -15,6 +15,14 @@ pub enum ProviderKind {
     YralAuth,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LoginProvider {
+    #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
+    Any,
+    Google,
+    Apple,
+}
+
 use circular_buffer::CircularBuffer;
 
 #[derive(Clone)]

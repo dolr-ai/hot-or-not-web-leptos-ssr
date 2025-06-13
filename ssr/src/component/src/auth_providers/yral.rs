@@ -9,16 +9,25 @@ use yral_types::delegated_identity::DelegatedIdentityWire;
 
 pub type YralAuthMessage = Result<DelegatedIdentityWire, String>;
 
-use super::{LoginProvButton, LoginProvCtx, ProviderKind};
+use super::{LoginProvButton, LoginProvCtx, LoginProvider, ProviderKind};
 
 #[server]
-async fn yral_auth_login_url(login_hint: String) -> Result<String, ServerFnError> {
+async fn yral_auth_login_url(
+    login_hint: String,
+    provider: LoginProvider,
+) -> Result<String, ServerFnError> {
     use auth::server_impl::yral::yral_auth_url_impl;
     use auth::server_impl::yral::YralOAuthClient;
 
     let oauth2: YralOAuthClient = expect_context();
 
-    let url = yral_auth_url_impl(oauth2, login_hint, None).await?;
+    let provider = match provider {
+        LoginProvider::Any => None,
+        LoginProvider::Google => Some("google".to_string()),
+        LoginProvider::Apple => Some("apple".to_string()),
+    };
+
+    let url = yral_auth_url_impl(oauth2, login_hint, provider, None).await?;
 
     Ok(url)
 }
@@ -51,8 +60,9 @@ pub fn YralAuthProvider() -> impl IntoView {
                 let id_wire = auth.user_identity.await?;
                 let id = DelegatedIdentity::try_from(id_wire)?;
                 let login_hint = yral_auth_login_hint(&id)?;
+                let provider = LoginProvider::Google;
 
-                yral_auth_login_url(login_hint).await
+                yral_auth_login_url(login_hint, provider).await;
             };
 
             async move {
