@@ -1,11 +1,11 @@
 mod server_impl;
 
 use crate::post_view::BetEligiblePostCtx;
-use component::{bullet_loader::BulletLoader, hn_icons::*, spinner::SpinnerFit};
+use component::{bullet_loader::BulletLoader, hn_icons::*, spinner::SpinnerFit, show_any::ShowAny};
 use hon_worker_common::{sign_vote_request, GameInfo, GameResult, WORKER_URL};
 use ic_agent::Identity;
 use leptos::html::Audio;
-use leptos::{either::Either, prelude::*};
+use leptos::prelude::*;
 use leptos_icons::*;
 use server_impl::vote_with_cents_on_post;
 use state::canisters::auth_state;
@@ -282,13 +282,25 @@ fn LostBadge() -> impl IntoView {
 }
 
 #[component]
-fn HNWonLost(game_result: GameResult, vote_amount: u64) -> impl IntoView {
+fn HNWonLost(
+    game_result: GameResult,
+    vote_amount: u64,
+    bet_direction: VoteKind,
+    wallet_balance: RwSignal<u64>,
+    show_ping: RwSignal<bool>,
+    show_tutorial: RwSignal<bool>,
+) -> impl IntoView {
     let won = matches!(game_result, GameResult::Win { .. });
     let creator_reward = (vote_amount * crate::consts::CREATOR_COMMISION_PERCENT) / 100;
-    let message = match game_result {
+    let bet_direction_text = match bet_direction {
+        VoteKind::Hot => "Hot",
+        VoteKind::Not => "Not",
+    };
+    let result_message = match game_result {
         GameResult::Win { win_amt } => format!(
-            "You received {} SATS, {} SATS went to the creator.",
+            "You won {} SATS, by betting on {}! {} SATS will go to the creator.",
             TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
+            bet_direction_text,
             creator_reward
         ),
         GameResult::Loss { lose_amt } => format!(
@@ -309,29 +321,43 @@ fn HNWonLost(game_result: GameResult, vote_amount: u64) -> impl IntoView {
         }
     };
 
+    let vote_kind_image = match bet_direction {
+        VoteKind::Hot => "/img/hotornot/hot-circular.svg",
+        VoteKind::Not => "/img/hotornot/not-circular.svg",
+    };
+
     view! {
-        <div class="flex gap-6 justify-center items-center p-4 w-full bg-transparent rounded-xl shadow-sm">
-            <div class="relative shrink-0 drop-shadow-lg">
-                <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin />
-            </div>
-
-            // <!-- Text and Badge Column -->
-            <div class="flex flex-col gap-2 w-full md:w-1/2 lg:w-1/3">
-                // <!-- Result Text -->
-                <div class="p-1 text-sm leading-snug text-white rounded-full">
-                    <p>
-                        {message}
-                    </p>
-
+        <div class="flex w-full flex-col gap-3 p-4">
+            <div class="flex gap-6 justify-center items-center w-full bg-transparent rounded-xl shadow-sm">
+                <div class="relative shrink-0 drop-shadow-lg">
+                    <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin />
+                    <img src=vote_kind_image class="absolute bottom-1 right-1 h-5 w-5" />
                 </div>
-                {if won {
-                    Either::Left(view! { <WinBadge /> })
-                } else {
-                    Either::Right(view! { <LostBadge /> })
-                }}
-
+                <div class="flex-1 p-1 text-xs md:text-sm font-semibold leading-snug text-white rounded-full">
+                    {result_message}
+                </div>
+                <button on:click=move |_| show_tutorial.set(true) class="relative shrink-0">
+                    <img src="/img/hotornot/question-mark.svg" class="h-8 w-8" />
+                    <ShowAny when=move || won && show_ping.get()>
+                        <span class="absolute top-1 right-1 ping rounded-full w-2 h-2 bg-red-500 text-red-500"></span>
+                    </ShowAny>
+                </button>
             </div>
-
+            {
+                if won {
+                    view! {
+                        <div style="background: #B38929" class="flex  items-center text-white text-sm font-semibold justify-center p-2 rounded-full">
+                            {format!("Total balance: {} SATS", wallet_balance.get())}
+                        </div>
+                    }.into_any()
+                } else {
+                    view! {
+                        <div style="background: #B38929" class="flex  items-center text-white text-sm font-semibold justify-center p-2 rounded-full">
+                            "You lost! 🥺"
+                        </div>
+                    }.into_any()
+                }
+            }
         </div>
     }
 }
@@ -386,12 +412,17 @@ pub fn HNUserParticipation(
         }
     }
 
+    let show_ping = RwSignal::new(false);
+    let show_tutorial = RwSignal::new(false);
+    let wallet_balance = RwSignal::new(0);
+    let bet_direction = VoteKind::Hot;
+
     Effect::new(move |_| {
         play_win_sound_and_vibrate(audio_ref, won);
     });
 
     view! {
-        <HNWonLost game_result vote_amount />
+        <HNWonLost game_result vote_amount bet_direction wallet_balance show_ping show_tutorial />
         <ShadowBg />
     }
 }
