@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 
 #[component]
-pub fn ActionButton(
+pub fn ActionButtonLink(
     href: String,
     label: String,
     children: Children,
@@ -32,7 +32,7 @@ pub fn ActionButton(
 }
 
 #[component]
-pub fn ActionButtonLink(
+pub fn ActionButton(
     label: String,
     children: Children,
     #[prop(optional, into)] disabled: Signal<bool>,

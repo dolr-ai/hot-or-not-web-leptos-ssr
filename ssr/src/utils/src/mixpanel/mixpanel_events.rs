@@ -15,6 +15,7 @@ use yral_canisters_common::utils::vote::VoteKind;
 use yral_canisters_common::Canisters;
 
 use crate::event_streaming::events::EventCtx;
+use crate::event_streaming::events::HistoryCtx;
 
 #[wasm_bindgen]
 extern "C" {
@@ -76,6 +77,29 @@ async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
     Ok(())
 }
 
+pub fn parse_query_params_utm() -> Result<Vec<(String, String)>, String> {
+    if let Some(storage) = window()
+        .local_storage()
+        .map_err(|e| format!("Failed to access localstorage: {e:?}"))?
+    {
+        if let Some(url_str) = storage
+            .get_item("initial_url")
+            .map_err(|e| format!("Failed to get utm from localstorage: {e:?}"))?
+        {
+            let url =
+                reqwest::Url::parse(&url_str).map_err(|e| format!("Failed to parse url: {e:?}"))?;
+            storage
+                .remove_item("initial_url")
+                .map_err(|e| format!("Failed to remove initial_url from localstorage: {e:?}"))?;
+            return Ok(url
+                .query_pairs()
+                .map(|(k, v)| (k.into_owned(), v.into_owned()))
+                .collect());
+        }
+    }
+    Ok(Vec::new())
+}
+
 /// Generic helper: serializes `props` and calls Mixpanel.track
 pub fn track_event<T>(event_name: &str, props: T)
 where
@@ -94,7 +118,20 @@ where
     } else {
         props.get("visitor_id").and_then(Value::as_str).into()
     };
-    props["current_url"] = window().location().href().ok().into();
+    let current_url = window().location().href().ok();
+    let history = expect_context::<HistoryCtx>();
+    if history.utm.get_untracked().is_empty() {
+        if let Ok(utms) = parse_query_params_utm() {
+            history.push_utm(utms);
+        }
+    }
+    if let Some(url) = current_url {
+        props["current_url"] = url.clone().into();
+        props["$current_url"] = url.into();
+    }
+    for (key, value) in history.utm.get_untracked() {
+        props[key] = value.into();
+    }
     spawn_local(async {
         let res = track_event_server_fn(props).await;
         match res {

@@ -2,15 +2,144 @@ use candid::{Nat, Principal};
 use component::{
     back_btn::BackButton,
     buttons::{HighlightedButton, HighlightedLinkButton},
+    overlay::ShadowOverlay,
     spinner::{SpinnerCircle, SpinnerCircleStyled},
 };
+use consts::{MAX_BET_AMOUNT, SATS_AIRDROP_LIMIT_RANGE};
+use hon_worker_common::{ClaimRequest, VerifiableClaimRequest, WORKER_URL};
 use leptos::prelude::*;
 use leptos_icons::Icon;
 use leptos_router::hooks::use_location;
-use state::canisters::{auth_state, unauth_canisters};
-use utils::event_streaming::events::CentsAdded;
-use utils::host::get_host;
-use yral_canisters_common::utils::token::{TokenMetadata, TokenOwner};
+use rand::{rngs::SmallRng, Rng, SeedableRng};
+use reqwest::Url;
+use state::{
+    canisters::{auth_state, unauth_canisters},
+    server::HonWorkerJwt,
+};
+use utils::{event_streaming::events::CentsAdded, host::get_host};
+use yral_canisters_client::individual_user_template::{Result7, SessionType};
+use yral_canisters_common::{
+    utils::token::{load_sats_balance, TokenMetadata, TokenOwner},
+    Canisters,
+};
+use yral_identity::Signature;
+
+pub async fn is_airdrop_claimed(user_principal: Principal) -> Result<bool, ServerFnError> {
+    let req_url: Url = WORKER_URL.parse().expect("url to be valid");
+    let req_url = req_url
+        .join(&format!("/last_airdrop_claimed_at/{user_principal}"))
+        .expect("url to be valid");
+
+    let response: Option<u64> = reqwest::get(req_url).await?.json().await?;
+
+    // user has never claimed airdrop before
+    let Some(last_airdrop_timestamp) = response else {
+        return Ok(false);
+    };
+    let last_airdrop_timestamp: u128 = last_airdrop_timestamp.into();
+
+    let now = web_time::SystemTime::now()
+        .duration_since(web_time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
+
+    // user is blocked for 24h since last airdrop claim
+    let duration_24h = web_time::Duration::from_secs(24 * 60 * 60).as_millis();
+    let blocked_window = last_airdrop_timestamp..(last_airdrop_timestamp + duration_24h);
+
+    Ok(blocked_window.contains(&now))
+}
+
+pub async fn validate_sats_airdrop_eligibility(
+    user_canister: Principal,
+    user_principal: Principal,
+) -> Result<(), ServerFnError> {
+    let cans = Canisters::default();
+    let user = cans.individual_user(user_canister).await;
+
+    let balance = load_sats_balance(user_principal).await?;
+    if balance.balance.ge(&MAX_BET_AMOUNT.into()) {
+        return Err(ServerFnError::new(
+            "Not allowed to claim: balance >= max bet amount",
+        ));
+    }
+    let sess = user.get_session_type().await?;
+    if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
+        return Err(ServerFnError::new("Not allowed to claim: not logged in"));
+    }
+    let is_airdrop_claimed = is_airdrop_claimed(user_principal).await?;
+    if is_airdrop_claimed {
+        return Err(ServerFnError::new("Not allowed to claim: already claimed"));
+    }
+
+    Ok(())
+}
+
+#[server(input = server_fn::codec::Json)]
+pub async fn is_user_eligible_for_sats_airdrop(
+    user_canister: Principal,
+    user_principal: Principal,
+) -> Result<bool, ServerFnError> {
+    let res = validate_sats_airdrop_eligibility(user_canister, user_principal).await;
+
+    match res {
+        Ok(_) => Ok(true),
+        Err(ServerFnError::ServerError(..)) => Ok(false),
+        Err(err) => Err(err),
+    }
+}
+
+#[server(input = server_fn::codec::Json)]
+pub async fn claim_sats_airdrop(
+    user_canister: Principal,
+    request: ClaimRequest,
+    signature: Signature,
+) -> Result<u64, ServerFnError> {
+    let cans: Canisters<false> = expect_context();
+    let user_principal = request.user_principal;
+    let user = cans.individual_user(user_canister).await;
+    let profile_owner = user.get_profile_details_v_2().await?;
+    if profile_owner.principal_id != user_principal {
+        // ideally should never happen unless its a hacking attempt
+        println!(
+            "Not allowed to claim due to principal mismatch: owner={} != receiver={user_principal}",
+            profile_owner.principal_id,
+        );
+        return Err(ServerFnError::new(
+            "Not allowed to claim: principal mismatch",
+        ));
+    }
+    validate_sats_airdrop_eligibility(user_canister, user_principal).await?;
+    let mut rng = SmallRng::from_os_rng();
+    let amount = rng.random_range(SATS_AIRDROP_LIMIT_RANGE);
+    let worker_req = VerifiableClaimRequest {
+        sender: user_principal,
+        amount,
+        request,
+        signature,
+    };
+    let req_url: Url = WORKER_URL.parse().expect("url to be valid");
+    let req_url = req_url
+        .join(&format!("/claim_airdrop/{user_principal}"))
+        .expect("url to be valid");
+    let client = reqwest::Client::new();
+    let jwt = expect_context::<HonWorkerJwt>();
+    let res = client
+        .post(req_url)
+        .json(&worker_req)
+        .header("Authorization", format!("Bearer {}", jwt.0))
+        .send()
+        .await?;
+    if !res.status().is_success() {
+        return Err(ServerFnError::new(format!(
+            "worker error[{}]: {}",
+            res.status().as_u16(),
+            res.text().await?
+        )));
+    }
+    Ok(amount)
+}
+
 #[component]
 pub fn AirdropPage(meta: TokenMetadata, airdrop_amount: u64) -> impl IntoView {
     let claimed = RwSignal::new(false);
@@ -358,5 +487,96 @@ pub fn AnimatedTick() -> impl IntoView {
                 </div>
             </div>
         </div>
+    }
+}
+
+#[component]
+pub fn SatsAirdropPopup(
+    show: RwSignal<bool>,
+    claimed: RwSignal<bool>,
+    amount_claimed: RwSignal<u64>,
+    error: RwSignal<bool>,
+    try_again: Action<bool, Result<(), ServerFnError>>,
+) -> impl IntoView {
+    let img_src = move || {
+        if claimed.get() {
+            "/img/airdrop/sats-airdrop-success.webp"
+        } else if error.get() {
+            "/img/airdrop/sats-airdrop-failed.webp"
+        } else {
+            "/img/airdrop/sats-airdrop.webp"
+        }
+    };
+
+    let is_connected = auth_state().is_logged_in_with_oauth();
+
+    view! {
+        <ShadowOverlay show=show >
+            <div class="px-4 py-6 w-full h-full flex items-center justify-center">
+                <div class="overflow-hidden h-fit max-w-md items-center pt-16 cursor-auto bg-neutral-950 rounded-md w-full relative">
+                    <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
+                    <div
+                        style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
+                        class=format!("absolute z-[1] -left-1/2 bottom-1/3 size-[32rem] {}", if error.get() {"saturate-0"} else {"saturate-100"}) >
+                    </div>
+                    <div
+                        style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
+                        class=format!("absolute z-[1] top-8 -right-1/3 size-72 {}", if error.get() { "saturate-0"} else {"saturate-100"}) >
+                    </div>
+                    <button
+                        on:click=move |_| show.set(false)
+                        class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[2] top-4 right-4"
+                    >
+                        <Icon icon=icondata::ChCross />
+                    </button>
+                    <div class="flex z-[2] flex-col items-center gap-16 text-white justify-center p-12">
+                        <img src=img_src class="h-60" />
+                        <div class="flex z-[2] flex-col items-center gap-6">
+                            {
+                                move || {
+                                    if claimed.get() {
+                                        view! {
+                                            <div class="text-center">
+                                                <span class="font-semibold">{amount_claimed} " Bitcoin (SATS)"</span>" credited in your wallet"
+                                            </div>
+                                            <HighlightedButton
+                                                alt_style=false
+                                                disabled=false
+                                                on_click=move || { show.set(false) }
+                                            >
+                                                "Keep Playing"
+                                            </HighlightedButton>
+                                        }.into_any()
+
+                                    } else if error.get() {
+                                        view! {
+                                            <div class="text-center">
+                                                "Claim for "<span class="font-semibold">"Bitcoin (SATS)"</span> " failed"
+                                            </div>
+                                            <HighlightedButton
+                                                alt_style=true
+                                                disabled=false
+                                                on_click=move || { try_again.dispatch(is_connected.get()); }
+                                            >
+                                                "Try again"
+                                            </HighlightedButton>
+                                        }.into_any()
+                                    } else {
+                                        view! {
+                                            <div class="text-center">
+                                                "Claim for "<span class="font-semibold">"Bitcoin (SATS)"</span> " is being processed"
+                                            </div>
+                                            <div class="w-12 h-12">
+                                                <SpinnerCircle />
+                                            </div>
+                                        }.into_any()
+                                    }
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </ShadowOverlay>
     }
 }

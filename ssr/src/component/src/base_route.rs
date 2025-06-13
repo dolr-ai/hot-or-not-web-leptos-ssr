@@ -4,14 +4,16 @@ use leptos_router::components::Outlet;
 use leptos_use::{use_cookie_with_options, use_event_listener, use_window, UseCookieOptions};
 
 use codee::string::FromToStringCodec;
-use consts::ACCOUNT_CONNECTED_STORE;
+use consts::{ACCOUNT_CONNECTED_STORE, NOTIFICATIONS_ENABLED_STORE, NOTIFICATION_MIGRATED_STORE};
 use leptos_use::storage::use_local_storage;
 use state::canisters::AuthState;
 use utils::event_streaming::events::PageVisit;
 use utils::mixpanel::mixpanel_events::{
     MixPanelEvent, MixpanelGlobalProps, MixpanelPageViewedProps,
 };
+use utils::notifications::get_fcm_token;
 use utils::sentry::{set_sentry_user, set_sentry_user_canister};
+use yral_metadata_client::MetadataClient;
 
 #[derive(Clone)]
 pub struct Notification(pub RwSignal<Option<serde_json::Value>>);
@@ -87,6 +89,42 @@ fn CtxProvider(children: Children) -> impl IntoView {
                 is_nsfw_enabled: global.is_nsfw_enabled,
                 page: pathname,
             });
+        }
+    });
+
+    let (notifs_enabled, _, _) =
+        use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
+
+    let (migrated, set_migrated, _) =
+        use_local_storage::<bool, FromToStringCodec>(NOTIFICATION_MIGRATED_STORE);
+
+    let migrate_notification_proj = Action::new_local(move |_| async move {
+        let metaclient: MetadataClient<false> = MetadataClient::default();
+
+        let cans = auth
+            .auth_cans(use_context().unwrap_or_default())
+            .await
+            .unwrap();
+        let token = get_fcm_token().await.unwrap();
+
+        metaclient
+            .register_device(cans.identity(), token)
+            .await
+            .inspect_err(|e| log::error!("Failed to migrate notification project: {e:?}"))
+            .unwrap();
+        log::info!("Migrated notification project");
+        set_migrated(true);
+    });
+
+    Effect::new(move |_| {
+        if !migrated.get()
+            && notifs_enabled.get()
+            && matches!(
+                leptos::web_sys::Notification::permission(),
+                leptos::web_sys::NotificationPermission::Granted
+            )
+        {
+            migrate_notification_proj.dispatch(());
         }
     });
 
