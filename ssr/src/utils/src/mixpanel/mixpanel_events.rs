@@ -123,16 +123,16 @@ where
         props.get("visitor_id").and_then(Value::as_str).into()
     };
     let current_url = window().location().href().ok();
+    if let Some(url) = current_url {
+        props["current_url"] = url.clone().into();
+        props["$current_url"] = url.into();
+    }
     let history = use_context::<HistoryCtx>();
     if let Some(history) = history {
         if history.utm.get_untracked().is_empty() {
             if let Ok(utms) = parse_query_params_utm() {
                 history.push_utm(utms);
             }
-        }
-        if let Some(url) = current_url {
-            props["current_url"] = url.clone().into();
-            props["$current_url"] = url.into();
         }
         for (key, value) in history.utm.get_untracked() {
             props[key] = value.into();
