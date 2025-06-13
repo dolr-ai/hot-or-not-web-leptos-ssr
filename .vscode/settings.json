@@ -24,10 +24,4 @@
     },
     "css.validate": false,
     "postman.settings.dotenv-detection-notification-visibility": false,
-    "terminal.integrated.profiles.linux": {
-        "nushell": {
-            "path": "/usr/local/bin/nu"
-        }
-    },
-    "terminal.integrated.defaultProfile.linux": "nushell",
 }
