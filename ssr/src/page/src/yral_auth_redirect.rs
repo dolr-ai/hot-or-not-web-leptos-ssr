@@ -1,6 +1,6 @@
-use auth::server_impl::yral::LoginProvider;
 use component::auth_providers::yral::YralAuthMessage;
 use component::loading::Loading;
+use consts::LoginProvider;
 use leptos::prelude::*;
 use leptos_router::hooks::use_query;
 use leptos_router::params::Params;

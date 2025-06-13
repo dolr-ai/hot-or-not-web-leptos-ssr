@@ -5,7 +5,7 @@ use axum_extra::extract::{
     PrivateCookieJar, SignedCookieJar,
 };
 use candid::Principal;
-use consts::auth::REFRESH_MAX_AGE;
+use consts::{auth::REFRESH_MAX_AGE, LoginProvider};
 use leptos::prelude::*;
 use leptos_axum::{extract_with_state, ResponseOptions};
 use openidconnect::{
@@ -85,13 +85,6 @@ pub type YralOAuthClient = openidconnect::Client<
     CoreRevocableToken,
     CoreRevocationErrorResponse,
 >;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub enum LoginProvider {
-    Any,
-    Google,
-    Apple,
-}
 
 pub fn token_verifier() -> CoreIdTokenVerifier<'static> {
     // TODO: use real impl

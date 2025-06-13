@@ -1,6 +1,5 @@
-use auth::server_impl::yral::LoginProvider;
 use codee::string::FromToStringCodec;
-use consts::NOTIFICATIONS_ENABLED_STORE;
+use consts::{LoginProvider, NOTIFICATIONS_ENABLED_STORE};
 use ic_agent::identity::DelegatedIdentity;
 use leptos::{ev, prelude::*};
 use leptos_use::{storage::use_local_storage, use_event_listener, use_interval_fn, use_window};
