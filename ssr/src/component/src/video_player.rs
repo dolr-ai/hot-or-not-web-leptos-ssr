@@ -23,12 +23,12 @@ pub fn VideoPlayer(
                 poster=view_bg_url
                 src=view_video_url
                 loop
-                autoplay
+                // autoplay
                 muted
                 playsinline
                 disablepictureinpicture
                 disableremoteplayback
-                preload="auto"
+                preload="none"
                 on:click=move |_| {
                     AudioState::toggle_mute();
 

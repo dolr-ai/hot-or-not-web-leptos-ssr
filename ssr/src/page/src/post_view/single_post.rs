@@ -46,7 +46,7 @@ fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
                 ></div>
                 <audio class="sr-only" node_ref=win_audio_ref preload="auto" src="/img/hotornot/chaching.m4a"/>
                 <VideoDetailsOverlay post=post.clone() prev_post=None win_audio_ref />
-                <VideoView post=Some(post) muted autoplay_at_render=true />
+                // <VideoView post=Some(post) autoplay_at_render=true />
             </div>
             <MuteIconOverlay show_mute_icon />
         </div>

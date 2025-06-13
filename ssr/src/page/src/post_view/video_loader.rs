@@ -77,177 +77,177 @@ pub fn VideoView(
     #[prop(into)] post: Signal<Option<PostDetails>>,
     #[prop(optional)] _ref: NodeRef<Video>,
     #[prop(optional)] autoplay_at_render: bool,
-    muted: RwSignal<bool>,
+    // muted: RwSignal<bool>,
 ) -> impl IntoView {
     let post_for_uid = post;
-    let post_for_mixpanel = post;
+    // let post_for_mixpanel = post;
     let uid = Memo::new(move |_| post_for_uid.with(|p| p.as_ref().map(|p| p.uid.clone())));
     let view_bg_url = move || uid().map(bg_url);
     let view_video_url = move || uid().map(mp4_url);
-    let mixpanel_video_muted = RwSignal::new(muted.get_untracked());
+    // let mixpanel_video_muted = RwSignal::new(muted.get_untracked());
 
-    let auth = auth_state();
-    let ev_ctx = auth.event_ctx();
+    // let auth = auth_state();
+    // let ev_ctx = auth.event_ctx();
 
-    let mixpanel_video_clicked_audio_state = Action::new(move |muted: &bool| {
-        let ret = async {};
-        if *muted == mixpanel_video_muted.get_untracked() {
-            return ret;
-        }
-        mixpanel_video_muted.set(*muted);
+    // let mixpanel_video_clicked_audio_state = Action::new(move |muted: &bool| {
+    //     let ret = async {};
+    //     if *muted == mixpanel_video_muted.get_untracked() {
+    //         return ret;
+    //     }
+    //     mixpanel_video_muted.set(*muted);
 
-        let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
-            return ret;
-        };
+    //     let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
+    //         return ret;
+    //     };
 
-        let post = post_for_mixpanel.get_untracked().unwrap();
-        let is_game_enabled = true;
+    //     let post = post_for_mixpanel.get_untracked().unwrap();
+    //     let is_game_enabled = true;
 
-        MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-            user_id: global.user_id,
-            visitor_id: global.visitor_id,
-            is_logged_in: global.is_logged_in,
-            canister_id: global.canister_id,
-            is_nsfw_enabled: global.is_nsfw_enabled,
-            publisher_user_id: post.poster_principal.to_text(),
-            like_count: post.likes,
-            view_count: post.views,
-            is_game_enabled,
-            video_id: post.uid,
-            is_nsfw: post.is_nsfw,
+    //     MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+    //         user_id: global.user_id,
+    //         visitor_id: global.visitor_id,
+    //         is_logged_in: global.is_logged_in,
+    //         canister_id: global.canister_id,
+    //         is_nsfw_enabled: global.is_nsfw_enabled,
+    //         publisher_user_id: post.poster_principal.to_text(),
+    //         like_count: post.likes,
+    //         view_count: post.views,
+    //         is_game_enabled,
+    //         video_id: post.uid,
+    //         is_nsfw: post.is_nsfw,
 
-            game_type: MixpanelPostGameType::HotOrNot,
-            cta_type: if *muted {
-                MixpanelVideoClickedCTAType::Mute
-            } else {
-                MixpanelVideoClickedCTAType::Unmute
-            },
-        });
-        ret
-    });
+    //         game_type: MixpanelPostGameType::HotOrNot,
+    //         cta_type: if *muted {
+    //             MixpanelVideoClickedCTAType::Mute
+    //         } else {
+    //             MixpanelVideoClickedCTAType::Unmute
+    //         },
+    //     });
+    //     ret
+    // });
 
     // Handles mute/unmute
-    Effect::new(move |_| {
-        let vid = _ref.get()?;
-        vid.set_muted(true);
-        if muted() {
-            vid.set_muted(true);
-        } else {
-            vid.set_muted(false);
-        }
-        mixpanel_video_clicked_audio_state.dispatch(muted());
-        Some(())
-    });
+    // Effect::new(move |_| {
+    //     let vid = _ref.get()?;
+    //     vid.set_muted(true);
+    //     if muted() {
+    //         vid.set_muted(true);
+    //     } else {
+    //         vid.set_muted(false);
+    //     }
+    //     mixpanel_video_clicked_audio_state.dispatch(muted());
+    //     Some(())
+    // });
 
-    Effect::new(move |_| {
-        let vid = _ref.get()?;
-        // the attributes in DOM don't seem to be working
-        vid.set_muted(muted.get_untracked());
-        vid.set_loop(true);
-        if autoplay_at_render {
-            // vid.set_autoplay(true);
-            let play_promise = vid.play();
-            if let Ok(promise) = play_promise {
-                log::info!("playing video");
-                wasm_bindgen_futures::spawn_local(async move {
-                    log::info!("playing video 2");
-                    let _ = wasm_bindgen_futures::JsFuture::from(promise).await;
-                    log::info!("playing video 3");
-                });
-            }
-        }
-        Some(())
-    });
+    // Effect::new(move |_| {
+    //     let vid = _ref.get()?;
+    //     // the attributes in DOM don't seem to be working
+    //     vid.set_muted(muted.get_untracked());
+    //     vid.set_loop(true);
+    //     if autoplay_at_render {
+    //         // vid.set_autoplay(true);
+    //         let play_promise = vid.play();
+    //         if let Ok(promise) = play_promise {
+    //             log::info!("playing video");
+    //             wasm_bindgen_futures::spawn_local(async move {
+    //                 log::info!("playing video 2");
+    //                 let _ = wasm_bindgen_futures::JsFuture::from(promise).await;
+    //                 log::info!("playing video 3");
+    //             });
+    //         }
+    //     }
+    //     Some(())
+    // });
 
     // Video views send to canister
     // 1. When video is paused -> partial video view
     // 2. When video is 95% done -> full view
-    let post_for_view = post;
-    let send_view_detail_action =
-        Action::new(move |(percentage_watched, watch_count): &(u8, u8)| {
-            let percentage_watched = *percentage_watched;
-            let watch_count = *watch_count;
-            let post_for_view = post_for_view;
+    // let post_for_view = post;
+    // let send_view_detail_action =
+    //     Action::new(move |(percentage_watched, watch_count): &(u8, u8)| {
+    //         let percentage_watched = *percentage_watched;
+    //         let watch_count = *watch_count;
+    //         let post_for_view = post_for_view;
 
-            send_wrap(async move {
-                let canisters = unauth_canisters();
+    //         send_wrap(async move {
+    //             let canisters = unauth_canisters();
 
-                let payload = match percentage_watched.cmp(&95) {
-                    Ordering::Less => {
-                        PostViewDetailsFromFrontend::WatchedPartially { percentage_watched }
-                    }
-                    _ => PostViewDetailsFromFrontend::WatchedMultipleTimes {
-                        percentage_watched,
-                        watch_count,
-                    },
-                };
+    //             let payload = match percentage_watched.cmp(&95) {
+    //                 Ordering::Less => {
+    //                     PostViewDetailsFromFrontend::WatchedPartially { percentage_watched }
+    //                 }
+    //                 _ => PostViewDetailsFromFrontend::WatchedMultipleTimes {
+    //                     percentage_watched,
+    //                     watch_count,
+    //                 },
+    //             };
 
-                let post = post_for_view.get_untracked();
-                let post_id = post.as_ref().map(|p| p.post_id).unwrap();
-                let canister_id = post.as_ref().map(|p| p.canister_id).unwrap();
-                let send_view_res = canisters
-                    .individual_user(canister_id)
-                    .await
-                    .update_post_add_view_details(post_id, payload)
-                    .await;
+    //             let post = post_for_view.get_untracked();
+    //             let post_id = post.as_ref().map(|p| p.post_id).unwrap();
+    //             let canister_id = post.as_ref().map(|p| p.canister_id).unwrap();
+    //             let send_view_res = canisters
+    //                 .individual_user(canister_id)
+    //                 .await
+    //                 .update_post_add_view_details(post_id, payload)
+    //                 .await;
 
-                if let Err(err) = send_view_res {
-                    log::warn!("failed to send view details: {err:?}");
-                }
-                Some(())
-            })
-        });
+    //             if let Err(err) = send_view_res {
+    //                 log::warn!("failed to send view details: {err:?}");
+    //             }
+    //             Some(())
+    //         })
+    //     });
 
-    let playing_started = RwSignal::new(false);
+    // let playing_started = RwSignal::new(false);
 
-    let _ = use_event_listener(_ref, ev::playing, move |_evt| {
-        let Some(_) = _ref.get() else {
-            return;
-        };
-        playing_started.set(true);
-        send_view_detail_action.dispatch((100, 0_u8));
-    });
+    // let _ = use_event_listener(_ref, ev::playing, move |_evt| {
+    //     let Some(_) = _ref.get() else {
+    //         return;
+    //     };
+    //     playing_started.set(true);
+    //     send_view_detail_action.dispatch((100, 0_u8));
+    // });
 
-    let mixpanel_send_view_event = Action::new(move |_| {
-        send_wrap(async move {
-            let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
-                return;
-            };
-            let post = post_for_view.get_untracked().unwrap();
-            let is_logged_in = ev_ctx.is_connected();
-            let is_game_enabled = true;
+    // let mixpanel_send_view_event = Action::new(move |_| {
+    //     send_wrap(async move {
+    //         let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
+    //             return;
+    //         };
+    //         let post = post_for_view.get_untracked().unwrap();
+    //         let is_logged_in = ev_ctx.is_connected();
+    //         let is_game_enabled = true;
 
-            MixPanelEvent::track_video_viewed(MixpanelVideoViewedProps {
-                publisher_user_id: post.poster_principal.to_text(),
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                video_id: post.uid,
-                view_count: post.views,
-                like_count: post.likes,
-                game_type: MixpanelPostGameType::HotOrNot,
-                is_nsfw: post.is_nsfw,
-                is_game_enabled,
-            });
-            playing_started.set(false);
-        })
-    });
+    //         MixPanelEvent::track_video_viewed(MixpanelVideoViewedProps {
+    //             publisher_user_id: post.poster_principal.to_text(),
+    //             user_id: global.user_id,
+    //             visitor_id: global.visitor_id,
+    //             is_logged_in,
+    //             canister_id: global.canister_id,
+    //             is_nsfw_enabled: global.is_nsfw_enabled,
+    //             video_id: post.uid,
+    //             view_count: post.views,
+    //             like_count: post.likes,
+    //             game_type: MixpanelPostGameType::HotOrNot,
+    //             is_nsfw: post.is_nsfw,
+    //             is_game_enabled,
+    //         });
+    //         playing_started.set(false);
+    //     })
+    // });
 
-    let _ = use_event_listener(_ref, ev::timeupdate, move |_evt| {
-        let Some(video) = _ref.get() else {
-            return;
-        };
-        // let duration = video.duration();
-        let current_time = video.current_time();
+    // let _ = use_event_listener(_ref, ev::timeupdate, move |_evt| {
+    //     let Some(video) = _ref.get() else {
+    //         return;
+    //     };
+    //     // let duration = video.duration();
+    //     let current_time = video.current_time();
 
-        if current_time >= 3.0 && playing_started() {
-            mixpanel_send_view_event.dispatch(());
-        }
-    });
+    //     if current_time >= 3.0 && playing_started() {
+    //         mixpanel_send_view_event.dispatch(());
+    //     }
+    // });
 
-    VideoWatched.send_event(ev_ctx, post, _ref);
+    // VideoWatched.send_event(ev_ctx, post, _ref);
 
     view! {
         <VideoPlayer
@@ -265,7 +265,7 @@ pub fn VideoViewForQueue(
     current_idx: RwSignal<usize>,
     idx: usize,
     muted: RwSignal<bool>,
-    // preload_auto: Memo<bool>,
+    preload_auto: Memo<bool>,
 ) -> impl IntoView {
     let container_ref = NodeRef::<Video>::new();
 
@@ -274,11 +274,20 @@ pub fn VideoViewForQueue(
         let Some(vid) = container_ref.get() else {
             return;
         };
+        vid.set_muted(true);
+        if muted() {
+            vid.set_muted(true);
+        } else {
+            vid.set_muted(false);
+        }
+        if preload_auto.get() {
+            vid.load();
+        }
+        vid.set_autoplay(true);
         if idx != current_idx() {
             _ = vid.pause();
             return;
         }
-        vid.set_autoplay(true);
         let promise = vid.play();
         if let Ok(promise) = promise {
             wasm_bindgen_futures::spawn_local(async move {
@@ -294,5 +303,5 @@ pub fn VideoViewForQueue(
 
     let post = Signal::derive(move || video_queue.with(|q| q.get_index(idx).cloned()));
 
-    view! { <VideoView post _ref=container_ref muted /> }.into_any()
+    view! { <VideoView post _ref=container_ref /> }.into_any()
 }
