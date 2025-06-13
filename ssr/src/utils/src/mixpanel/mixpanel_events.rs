@@ -111,6 +111,13 @@ where
     if let Ok(track_props) = track_props {
         let _ = track(event_name, track_props);
     }
+    send_event_to_server(event_name, props);
+}
+
+fn send_event_to_server<T>(event_name: &str, props: T)
+where
+    T: Serialize,
+{
     let mut props = serde_json::to_value(&props).unwrap();
     props["event"] = event_name.into();
     props["$device_id"] = MixpanelGlobalProps::get_device_id().into();
@@ -301,6 +308,15 @@ pub struct MixpanelReferAndEarnPageViewedProps {
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
     pub referral_bonus: u64,
+}
+#[derive(Serialize)]
+pub struct MixpanelVideoUploadFailureProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub error: String,
 }
 #[derive(Serialize)]
 pub struct MixpanelProfilePageViewedProps {
@@ -611,28 +627,31 @@ impl MixPanelEvent {
         track_event("home_page_viewed", p);
     }
     pub fn track_wallet_page_viewed(p: MixpanelBottomBarPageViewedProps) {
-        track_event("wallet_page_viewed", p);
+        send_event_to_server("wallet_page_viewed", p);
     }
     pub fn track_upload_page_viewed(p: MixpanelBottomBarPageViewedProps) {
-        track_event("upload_video_page_viewed", p);
+        send_event_to_server("upload_video_page_viewed", p);
     }
     pub fn track_menu_page_viewed(p: MixpanelBottomBarPageViewedProps) {
-        track_event("menu_page_viewed", p);
+        send_event_to_server("menu_page_viewed", p);
     }
     pub fn track_refer_and_earn_page_viewed(p: MixpanelReferAndEarnPageViewedProps) {
-        track_event("refer_and_earn_page_viewed", p);
+        send_event_to_server("refer_and_earn_page_viewed", p);
     }
     pub fn track_profile_page_viewed(p: MixpanelProfilePageViewedProps) {
-        track_event("profile_page_viewed", p);
+        send_event_to_server("profile_page_viewed", p);
     }
     pub fn track_withdraw_tokens_clicked(p: MixpanelWithdrawTokenClickedProps) {
-        track_event("withdraw_tokens_clicked", p);
+        send_event_to_server("withdraw_tokens_clicked", p);
     }
     pub fn track_referral_link_copied(p: MixpanelReferAndEarnPageViewedProps) {
-        track_event("referral_link_copied", p);
+        send_event_to_server("referral_link_copied", p);
     }
     pub fn track_share_invites_clicked(p: MixpanelReferAndEarnPageViewedProps) {
-        track_event("share_invites_clicked", p);
+        send_event_to_server("share_invites_clicked", p);
+    }
+    pub fn track_video_upload_error_shown(p: MixpanelVideoUploadFailureProps) {
+        send_event_to_server("video_upload_error_shown", p);
     }
 
     pub fn track_page_viewed(p: MixpanelPageViewedProps) {
@@ -716,7 +735,7 @@ impl MixPanelEvent {
     }
 
     pub fn track_bottom_navigation_clicked(p: MixpanelBottomNavigationProps) {
-        track_event("bottom_navigation_clicked", p);
+        send_event_to_server("bottom_navigation_clicked", p);
     }
 
     pub fn track_signup_success(p: MixpanelSignupSuccessProps) {
