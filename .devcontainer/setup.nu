@@ -1,3 +1,5 @@
+rustup install;
+
 # Install cargo binstall
 http get https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | save cargo-binstall.tgz;
 tar -xzf cargo-binstall.tgz;
@@ -14,3 +16,6 @@ cargo binstall leptosfmt --no-confirm;
 
 # Fetch git submodules for ml-feed protobuf contracts
 git submodule update --init --recursive;
+
+# Enable the env file
+cp .env.example .env;
