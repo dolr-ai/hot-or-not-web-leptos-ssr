@@ -175,7 +175,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                             cnt += 1;
                         }
                     });
-                    if cnt >= 25 {
+                    if cnt >= 10 {
                         break;
                     }
                 }
@@ -219,7 +219,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                         if video_queue
                             .with_untracked(|vq| vq.len())
                             .saturating_sub(current_idx.get_untracked())
-                            <= 25
+                            <= 10
                         {
                             video_queue.update(|vq| {
                                 let _ = vq.insert(post_detail);
@@ -250,7 +250,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
         })
     });
 
-    view! { <CommonPostViewWithUpdates initial_post fetch_video_action threshold_trigger_fetch=50 /> }.into_any()
+    view! { <CommonPostViewWithUpdates initial_post fetch_video_action threshold_trigger_fetch=10 /> }.into_any()
 }
 
 #[component]

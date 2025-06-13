@@ -21,8 +21,8 @@ codegen-units = 1
 
 [profile.prod-release]
 inherits = "release"
-debug = 1
-lto = true
+# debug = 1
+# lto = true
 
 # TODO: leaving this here as a reminder to be used once cargo-leptos solves the profile issue
 # [profile.preview-release]
@@ -141,7 +141,9 @@ utils = { path = "./ssr/src/utils" }
 page = { path = "./ssr/src/page" }
 rand = { version = "0.9.0", default-features = false, features = ["small_rng"] }
 # need getrandom with wasm_js feature for generating random values in wasm32-unknown-unknown
-getrandom = { version = "0.3.3", default-features = false, features = ["wasm_js"] }
+getrandom = { version = "0.3.3", default-features = false, features = [
+    "wasm_js",
+] }
 indexmap = "2.8.0"
 sentry-tracing = "0.37.0"
 tracing-log = "0.2.0"

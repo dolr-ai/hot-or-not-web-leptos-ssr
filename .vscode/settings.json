@@ -20,9 +20,4 @@
     },
     "css.validate": false,
     "postman.settings.dotenv-detection-notification-visibility": false,
-    "protoc": {
-        "options": [
-            "--proto_path=/usr/local/protobuf/bin/protoc"
-        ]
-    }
 }

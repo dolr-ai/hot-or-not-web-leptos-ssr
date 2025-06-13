@@ -358,37 +358,37 @@ pub fn HNUserParticipation(
         .expect("We only allow voting with 200 max, so this is alright");
     let won = matches!(game_result, GameResult::Win { .. });
 
-    fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
-        #[cfg(not(feature = "hydrate"))]
-        {
-            _ = audio_ref;
-        }
-        #[cfg(feature = "hydrate")]
-        {
-            use wasm_bindgen::JsValue;
-            use web_sys::js_sys::Reflect;
+    // fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
+    //     #[cfg(not(feature = "hydrate"))]
+    //     {
+    //         _ = audio_ref;
+    //     }
+    //     #[cfg(feature = "hydrate")]
+    //     {
+    //         use wasm_bindgen::JsValue;
+    //         use web_sys::js_sys::Reflect;
 
-            let window = window();
-            let nav = window.navigator();
-            if Reflect::has(&nav, &JsValue::from_str("vibrate")).unwrap_or_default() {
-                nav.vibrate_with_duration(200);
-            } else {
-                log::debug!("browser does not support vibrate");
-            }
-            let Some(audio) = audio_ref.get() else {
-                return;
-            };
-            if won {
-                audio.set_current_time(0.);
-                audio.set_volume(0.5);
-                _ = audio.play();
-            }
-        }
-    }
+    //         let window = window();
+    //         let nav = window.navigator();
+    //         if Reflect::has(&nav, &JsValue::from_str("vibrate")).unwrap_or_default() {
+    //             nav.vibrate_with_duration(200);
+    //         } else {
+    //             log::debug!("browser does not support vibrate");
+    //         }
+    //         let Some(audio) = audio_ref.get() else {
+    //             return;
+    //         };
+    //         if won {
+    //             audio.set_current_time(0.);
+    //             audio.set_volume(0.5);
+    //             _ = audio.play();
+    //         }
+    //     }
+    // }
 
-    Effect::new(move |_| {
-        play_win_sound_and_vibrate(audio_ref, won);
-    });
+    // Effect::new(move |_| {
+    //     play_win_sound_and_vibrate(audio_ref, won);
+    // });
 
     view! {
         <HNWonLost game_result vote_amount />

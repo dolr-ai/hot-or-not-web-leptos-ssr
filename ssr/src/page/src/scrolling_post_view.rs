@@ -94,12 +94,12 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                 recovering_state.set(false);
                             }
                         });
-                        let show_video = Memo::new(move |_| {
-                            queue_idx.abs_diff(current_idx()) <= 6
-                        });
+                        // let show_video = Memo::new(move |_| {
+                        //     queue_idx.abs_diff(current_idx()) <= 6
+                        // });
                         view! {
                             <div node_ref=container_ref class="snap-always snap-end w-full h-full">
-                                <Show when=show_video>
+                                // <Show when=show_video>
                                     <BgView video_queue idx=queue_idx>
                                         <VideoViewForQueue
                                             video_queue
@@ -108,7 +108,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                             muted
                                         />
                                     </BgView>
-                                </Show>
+                                // </Show>
                             </div>
                         }.into_any()
                     }
