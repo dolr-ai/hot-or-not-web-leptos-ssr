@@ -217,14 +217,10 @@ pub fn HonWithdrawal() -> impl IntoView {
         }
     });
     let balance = Resource::new(
-        move || details_res.get(),
+        move || details_res.get().map(|r| r.ok().map(|d| d.balance.into())),
         |res| async move {
             if let Some(res) = res {
-                let res = res.ok();
-                let balance = res
-                    .map(|details| details.balance.into())
-                    .unwrap_or_default();
-                balance
+                res.unwrap_or_default()
             } else {
                 Nat::from(0_usize)
             }
