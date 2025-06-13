@@ -284,14 +284,14 @@ pub fn VideoViewForQueue(
         // vid.set_autoplay(true);
         // let navigator = web_sys::window().unwrap().navigator();
         let play_promise = vid.play();
-        log::info!("playing video 1");
+        log::info!("playing video 1. idx: {:?}", idx);
         if let Ok(promise) = play_promise {
             wasm_bindgen_futures::spawn_local(async move {
-                log::info!("playing video 4");
+                log::info!("playing video 4. idx: {:?}", idx);
                 match wasm_bindgen_futures::JsFuture::from(promise).await {
-                    Ok(_) => log::info!("playing video 5 - success"),
+                    Ok(_) => log::info!("playing video 5 - success: {:?}", idx),
                     Err(e) => {
-                        log::warn!("Video autoplay failed: {:?}. This is expected on iOS.", e);
+                        log::warn!("Video autoplay failed: {:?}. idx: {:?}", e, idx);
                         // On iOS, we need user interaction for the first play
                         // The video will play when user taps/scrolls to it
                     }
