@@ -129,7 +129,12 @@ pub fn VideoView(
     // Handles mute/unmute
     Effect::new(move |_| {
         let vid = _ref.get()?;
-        vid.set_muted(muted());
+        vid.set_muted(true);
+        if muted() {
+            vid.set_muted(true);
+        } else {
+            vid.set_muted(false);
+        }
         mixpanel_video_clicked_audio_state.dispatch(muted());
         Some(())
     });
@@ -140,7 +145,7 @@ pub fn VideoView(
         vid.set_muted(muted.get_untracked());
         vid.set_loop(true);
         if autoplay_at_render {
-            vid.set_autoplay(true);
+            // vid.set_autoplay(true);
             let play_promise = vid.play();
             if let Ok(promise) = play_promise {
                 log::info!("playing video");
@@ -260,6 +265,7 @@ pub fn VideoViewForQueue(
     current_idx: RwSignal<usize>,
     idx: usize,
     muted: RwSignal<bool>,
+    // preload_auto: Memo<bool>,
 ) -> impl IntoView {
     let container_ref = NodeRef::<Video>::new();
 
@@ -269,18 +275,27 @@ pub fn VideoViewForQueue(
             return;
         };
         if idx != current_idx() {
-            vid.set_autoplay(false);
             _ = vid.pause();
             return;
         }
-        vid.set_autoplay(true);
+        // if preload_auto.get() {
+        //     vid.set_preload("auto");
+        // }
+        // vid.set_autoplay(true);
+        // let navigator = web_sys::window().unwrap().navigator();
         let play_promise = vid.play();
         log::info!("playing video 1");
         if let Ok(promise) = play_promise {
             wasm_bindgen_futures::spawn_local(async move {
                 log::info!("playing video 4");
-                let _ = wasm_bindgen_futures::JsFuture::from(promise).await;
-                log::info!("playing video 5");
+                match wasm_bindgen_futures::JsFuture::from(promise).await {
+                    Ok(_) => log::info!("playing video 5 - success"),
+                    Err(e) => {
+                        log::warn!("Video autoplay failed: {:?}. This is expected on iOS.", e);
+                        // On iOS, we need user interaction for the first play
+                        // The video will play when user taps/scrolls to it
+                    }
+                }
             });
         }
     });

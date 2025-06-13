@@ -106,6 +106,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                             current_idx
                                             idx=queue_idx
                                             muted
+                                            // preload_auto=show_video
                                         />
                                     </BgView>
                                 </Show>
