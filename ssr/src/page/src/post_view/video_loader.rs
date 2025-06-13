@@ -1,8 +1,8 @@
 use std::cmp::Ordering;
 
 use indexmap::IndexSet;
-use leptos::ev;
 use leptos::html::Audio;
+use leptos::{ev, logging};
 use leptos::{html::Video, prelude::*};
 use leptos_use::use_event_listener;
 use state::canisters::{auth_state, unauth_canisters};
@@ -265,7 +265,17 @@ pub fn VideoViewForQueue(
             return;
         }
         vid.set_autoplay(true);
-        _ = vid.play();
+        let promise = vid.play();
+        if let Ok(promise) = promise {
+            wasm_bindgen_futures::spawn_local(async move {
+                let rr = wasm_bindgen_futures::JsFuture::from(promise).await;
+                if let Err(e) = rr {
+                    logging::error!("promise failed: {e:?}");
+                }
+            });
+        } else {
+            logging::error!("Failed to play video");
+        }
     });
 
     let post = Signal::derive(move || video_queue.with(|q| q.get_index(idx).cloned()));
