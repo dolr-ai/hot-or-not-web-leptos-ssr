@@ -121,18 +121,21 @@ where
         props.get("visitor_id").and_then(Value::as_str).into()
     };
     let current_url = window().location().href().ok();
-    let history = expect_context::<HistoryCtx>();
-    if history.utm.get_untracked().is_empty() {
-        if let Ok(utms) = parse_query_params_utm() {
-            history.push_utm(utms);
+    #[cfg(feature = "hydrate")]
+    {
+        let history = expect_context::<HistoryCtx>();
+        if history.utm.get_untracked().is_empty() {
+            if let Ok(utms) = parse_query_params_utm() {
+                history.push_utm(utms);
+            }
+        }
+        for (key, value) in history.utm.get_untracked() {
+            props[key] = value.into();
         }
     }
     if let Some(url) = current_url {
         props["current_url"] = url.clone().into();
         props["$current_url"] = url.into();
-    }
-    for (key, value) in history.utm.get_untracked() {
-        props[key] = value.into();
     }
     spawn_local(async {
         let res = track_event_server_fn(props).await;
@@ -298,6 +301,15 @@ pub struct MixpanelProfilePageViewedProps {
     pub is_nsfw_enabled: bool,
     pub is_own_profile: bool,
     pub publisher_user_id: String,
+}
+#[derive(Serialize)]
+pub struct MixpanelWithdrawTokenClickedProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub token_clicked: StakeType,
 }
 
 #[derive(Serialize, Clone)]
@@ -592,7 +604,7 @@ impl MixPanelEvent {
         track_event("wallet_page_viewed", p);
     }
     pub fn track_upload_page_viewed(p: MixpanelBottomBarPageViewedProps) {
-        track_event("upload_page_viewed", p);
+        track_event("upload_video_page_viewed", p);
     }
     pub fn track_menu_page_viewed(p: MixpanelBottomBarPageViewedProps) {
         track_event("menu_page_viewed", p);
@@ -602,6 +614,15 @@ impl MixPanelEvent {
     }
     pub fn track_profile_page_viewed(p: MixpanelProfilePageViewedProps) {
         track_event("profile_page_viewed", p);
+    }
+    pub fn track_withdraw_tokens_clicked(p: MixpanelWithdrawTokenClickedProps) {
+        track_event("withdraw_tokens_clicked", p);
+    }
+    pub fn track_referral_link_copied(p: MixpanelReferAndEarnPageViewedProps) {
+        track_event("referral_link_copied", p);
+    }
+    pub fn track_share_invites_clicked(p: MixpanelReferAndEarnPageViewedProps) {
+        track_event("share_invites_clicked", p);
     }
 
     pub fn track_page_viewed(p: MixpanelPageViewedProps) {
@@ -679,7 +700,7 @@ impl MixPanelEvent {
                 }
                 track_event("page_viewed", props);
             },
-            10000.0,
+            10.0,
         );
         start(());
     }

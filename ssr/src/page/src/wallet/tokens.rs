@@ -44,6 +44,7 @@ use leptos_router::hooks::use_navigate;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::event_streaming::events::CentsAdded;
 use utils::host::get_host;
+use utils::mixpanel::mixpanel_events::*;
 use utils::send_wrap;
 use yral_canisters_common::utils::token::balance::TokenBalance;
 use yral_canisters_common::utils::token::{
@@ -369,12 +370,29 @@ pub fn WithdrawSection(
         .map(|ShowLoginSignal(show_login)| show_login)
         .unwrap_or_else(|| RwSignal::new(false));
     let nav = use_navigate();
+    let auth_state = auth_state();
+    let token_name_analytics = token_name.clone();
     let withdraw_handle = move |_| {
         if !is_connected() {
             show_login.set(true);
             return;
         }
-
+        let global = MixpanelGlobalProps::from_ev_ctx(auth_state.event_ctx());
+        if let Some(global) = global {
+            let token_clicked = match token_name_analytics.as_str() {
+                s if s == SATS_TOKEN_NAME => StakeType::Sats,
+                s if s == CENT_TOKEN_NAME => StakeType::Cents,
+                _ => unimplemented!("Withdrawing is not implemented for a token"),
+            };
+            MixPanelEvent::track_withdraw_tokens_clicked(MixpanelWithdrawTokenClickedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                token_clicked,
+            });
+        }
         nav(&withdraw_url, Default::default());
     };
 
