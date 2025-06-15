@@ -1,4 +1,4 @@
-use  super::EventHistory;
+use super::EventHistory;
 use candid::Principal;
 use ic_agent::Identity;
 use leptos::html::Input;
