@@ -41,13 +41,13 @@ pub fn TxnView(
     view! {
         <div
             node_ref=_ref
-            class="grid grid-cols-2 grid-rows-1 w-full py-3 border-b-2 border-white/10 justify-between"
+            class="grid grid-cols-2 grid-rows-1 justify-between py-3 w-full border-b-2 border-white/10"
         >
             <div class="flex flex-row gap-2">
                 {match direction {
                     TxnDirection::Added => {
                         view! {
-                            <div class="flex items-center justify-center w-7 h-7 lg:w-10 lg:h-10 rounded-md text-green-600 bg-green-600/5 text-lg lg:text-xl">
+                            <div class="flex justify-center items-center w-7 h-7 text-lg text-green-600 rounded-md lg:w-10 lg:h-10 lg:text-xl bg-green-600/5">
                                 <Icon icon=txn_info_to_icon(info.tag) />
                             </div>
                         }
@@ -55,7 +55,7 @@ pub fn TxnView(
                     }
                     TxnDirection::Deducted => {
                         view! {
-                            <div class="flex items-center justify-center w-7 h-7 lg:w-10 lg:h-10 rounded-md text-red-600 bg-red-600/5 text-lg lg:text-xl">
+                            <div class="flex justify-center items-center w-7 h-7 text-lg text-red-600 rounded-md lg:w-10 lg:h-10 lg:text-xl bg-red-600/5">
                                 <Icon icon=txn_info_to_icon(info.tag) />
                             </div>
                         }
@@ -63,14 +63,14 @@ pub fn TxnView(
                     }
                     TxnDirection::Transaction => {
                         view! {
-                            <div class="flex items-center justify-center w-7 h-7 lg:w-10 lg:h-10 rounded-md text-white bg-blue-600/5 text-lg lg:text-xl">
+                            <div class="flex justify-center items-center w-7 h-7 text-lg text-white rounded-md lg:w-10 lg:h-10 lg:text-xl bg-blue-600/5">
                                 <Icon icon=txn_info_to_icon(info.tag) />
                             </div>
                         }
                             .into_any()
                     }
                 }} <div class="flex flex-col">
-                    <span class="text-md md:text-lg font-semibold text-white">
+                    <span class="font-semibold text-white md:text-lg text-md">
                         {info.tag.to_text()}
                     </span>
                     {move || {
@@ -81,7 +81,7 @@ pub fn TxnView(
                                     Err(_) => {
                                         Some(
                                             view! {
-                                                <div class="text-sm md:text-md text-white/50">
+                                                <div class="text-sm text-white/50 md:text-md">
                                                     {format!("To: {to}")}
                                                 </div>
                                             }
@@ -96,7 +96,7 @@ pub fn TxnView(
                                     Err(_) => {
                                         Some(
                                             view! {
-                                                <div class="text-sm md:text-md text-white/50">
+                                                <div class="text-sm text-white/50 md:text-md">
                                                     {format!("From: {from}")}
                                                 </div>
                                             }
@@ -108,7 +108,7 @@ pub fn TxnView(
                             TxnInfoType::Received { from } => {
                                 Some(
                                     view! {
-                                        <div class="text-sm md:text-md text-white/50">
+                                        <div class="text-sm text-white/50 md:text-md">
                                             {format!("From: {from}")}
                                         </div>
                                     }
@@ -118,7 +118,7 @@ pub fn TxnView(
                             TxnInfoType::Sent { to } => {
                                 Some(
                                     view! {
-                                        <div class="text-sm md:text-md text-white/50">
+                                        <div class="text-sm text-white/50 md:text-md">
                                             {format!("To: {to}")}
                                         </div>
                                     }
@@ -129,10 +129,10 @@ pub fn TxnView(
                                 Some(
                                     view! {
                                         <div class="flex flex-col space-y-1">
-                                            <div class="text-sm md:text-md text-white/50">
+                                            <div class="text-sm text-white/50 md:text-md">
                                                 {format!("From: {from}")}
                                             </div>
-                                            <div class="text-sm md:text-md text-white/50">
+                                            <div class="text-sm text-white/50 md:text-md">
                                                 {format!("To: {to}")}
                                             </div>
                                         </div>
@@ -144,14 +144,14 @@ pub fn TxnView(
                     }}
                 </div>
             </div>
-            <div class="flex flex-col top-0 text-right">
+            <div class="flex top-0 flex-col text-right">
                 <span class=move || {
                     match direction {
                         TxnDirection::Added => "text-green-600 font-semibold",
                         _ => "text-white font-semibold",
                     }
                 }>{format!("{bal_res} {symbol}")}</span>
-                <span class="text-sm md:text-md text-white/50">
+                <span class="text-sm text-white/50 md:text-md">
                     {parse_ns_to_datetime(info.timestamp).ok()}
                 </span>
             </div>

@@ -11,7 +11,7 @@ fn SuccessPopup<ImgIV: IntoView, Img: Fn() -> ImgIV, TxtIV: IntoView, Txt: Fn() 
     #[prop(into)] previous_text: String,
 ) -> impl IntoView {
     view! {
-        <div class="flex flex-col items-center w-full h-full gap-6">
+        <div class="flex flex-col gap-6 items-center w-full h-full">
             {img()} <span class="text-base text-center text-neutral-400">{text()}</span>
             <GradientLinkButton href=previous_link() classes="w-3/4">
                 {previous_text}
@@ -29,26 +29,26 @@ fn ErrorPopup<HeadIV: IntoView, Head: Fn() -> HeadIV>(
     close_popup: WriteSignal<bool>,
 ) -> impl IntoView {
     view! {
-        <div class="flex flex-col items-center w-full h-full gap-6">
-            <div class="flex flex-row items-center justify-center bg-amber-100 text-orange-400 rounded-full p-3 text-2xl md:text-3xl">
+        <div class="flex flex-col gap-6 items-center w-full h-full">
+            <div class="flex flex-row justify-center items-center p-3 text-2xl text-orange-400 bg-amber-100 rounded-full md:text-3xl">
                 <Icon icon=icondata::BsExclamationTriangle />
             </div>
-            <span class="text-2xl md:text-3xl font-bold text-center">{header()}</span>
+            <span class="text-2xl font-bold text-center md:text-3xl">{header()}</span>
             <textarea
                 prop:value=error
                 disabled
                 rows=3
-                class="bg-black/10 text-xs md:text-sm text-red-500 w-full md:w-2/3 resize-none p-2"
+                class="p-2 w-full text-xs text-red-500 resize-none md:w-2/3 md:text-sm bg-black/10"
             ></textarea>
             <button
                 on:click=move |_| close_popup.set(true)
-                class="py-3 text-lg md:text-xl w-full rounded-full bg-primary-600 text-white text-center"
+                class="py-3 w-full text-lg text-center text-white rounded-full md:text-xl bg-primary-600"
             >
                 Retry
             </button>
             <a
                 href=previous_link
-                class="py-3 text-lg md:text-xl w-full rounded-full text-black text-center bg-white border border-black"
+                class="py-3 w-full text-lg text-center text-black bg-white rounded-full border border-black md:text-xl"
             >
                 {previous_text}
             </a>

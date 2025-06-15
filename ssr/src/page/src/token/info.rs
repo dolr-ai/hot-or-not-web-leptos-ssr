@@ -34,8 +34,8 @@ fn TokenField(
     };
     view! {
         <div class="flex flex-col gap-1 w-full">
-            <span class="text-white text-sm md:text-base">{label}</span>
-            <div class="bg-white/5 text-base md:text-lg text-white/50 px-2 py-4 rounded-xl w-full flex justify-between">
+            <span class="text-sm text-white md:text-base">{label}</span>
+            <div class="flex justify-between py-4 px-2 w-full text-base rounded-xl md:text-lg bg-white/5 text-white/50">
                 <div>{value}</div>
                 <ShowAny when=move || copy>
                     <button on:click=copy_clipboard.clone()>
@@ -53,7 +53,7 @@ fn TokenField(
 #[component]
 fn TokenDetails(meta: TokenMetadata) -> impl IntoView {
     view! {
-        <div class="flex flex-col w-full gap-6 p-4 rounded-xl bg-white/5">
+        <div class="flex flex-col gap-6 p-4 w-full rounded-xl bg-white/5">
             <TokenField label="Ledger Id" value=meta.ledger.to_text() copy=true />
             <TokenField label="Description" value=meta.description />
             <TokenField label="Symbol" value=meta.symbol />
@@ -91,25 +91,25 @@ fn TokenInfoInner(
     let decimals = meta.decimals;
 
     view! {
-        <div class="w-dvw min-h-dvh bg-neutral-800  flex flex-col gap-4">
+        <div class="flex flex-col gap-4 w-dvw min-h-dvh bg-neutral-800">
             <TitleText justify_center=false>
                 <div class="grid grid-cols-3 justify-start w-full">
                     <BackButton fallback="/wallet" />
-                    <span class="font-bold justify-self-center">Token details</span>
+                    <span class="justify-self-center font-bold">Token details</span>
                 </div>
             </TitleText>
-            <div class="flex flex-col w-full items-center px-8 md:px-10 gap-8">
-                <div class="flex flex-col justify-self-start w-full gap-6 md:gap-8 items-center">
-                    <div class="flex flex-col gap-4 w-full bg-white/5 p-4 drop-shadow-lg rounded-xl">
+            <div class="flex flex-col gap-8 items-center px-8 w-full md:px-10">
+                <div class="flex flex-col gap-6 justify-self-start items-center w-full md:gap-8">
+                    <div class="flex flex-col gap-4 p-4 w-full rounded-xl bg-white/5 drop-shadow-lg">
                         <div class="flex flex-row justify-between items-center">
                             <div class="flex flex-row gap-2 items-center">
                                 <div class="relative">
                                     <img
-                                        class="object-cover h-14 w-14 md:w-18 md:h-18 rounded-full cursor-pointer"
+                                        class="object-cover w-14 h-14 rounded-full cursor-pointer md:w-18 md:h-18"
                                         src=meta.logo_b64
                                     />
                                 </div>
-                                <span class="text-base md:text-lg font-semibold text-white">
+                                <span class="text-base font-semibold text-white md:text-lg">
                                     {meta.name}
                                 </span>
                             </div>
@@ -128,9 +128,9 @@ fn TokenInfoInner(
                         </div>
 
                         <ShowAny when=move || key_principal.clone().is_some()>
-                            <div class="flex flex-row justify-between border-b p-1 border-white items-center">
-                                <span class="text-xs md:text-sm text-green-500">Balance</span>
-                                <span class="text-lg md:text-xl text-white">
+                            <div class="flex flex-row justify-between items-center p-1 border-b border-white">
+                                <span class="text-xs text-green-500 md:text-sm">Balance</span>
+                                <span class="text-lg text-white md:text-xl">
                                     {meta
                                         .balance
                                         .clone()
@@ -147,10 +147,10 @@ fn TokenInfoInner(
                         </ShowAny>
                         <button
                             on:click=move |_| detail_toggle.update(|t| *t = !*t)
-                            class="w-full bg-transparent p-1 flex flex-row justify-center items-center gap-2 text-white"
+                            class="flex flex-row gap-2 justify-center items-center p-1 w-full text-white bg-transparent"
                         >
                             <span class="text-xs md:text-sm">View details</span>
-                            <div class="p-1 bg-white/15 rounded-full">
+                            <div class="p-1 rounded-full bg-white/15">
                                 <Icon
                                     attr:class="text-xs md:text-sm text-white"
                                     icon=view_detail_icon
@@ -165,7 +165,7 @@ fn TokenInfoInner(
                 <ShowAny when=move || is_user_principal>
                     <a
                         href=format!("/token/transfer/{}", root.to_string())
-                        class="fixed bottom-20 left-4 right-4 p-3 bg-primary-600 text-white text-center md:text-lg rounded-full z-50"
+                        class="fixed right-4 left-4 bottom-20 z-50 p-3 text-center text-white rounded-full md:text-lg bg-primary-600"
                     >
                         Send
                     </a>

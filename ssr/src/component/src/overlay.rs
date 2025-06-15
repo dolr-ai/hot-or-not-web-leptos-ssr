@@ -116,7 +116,7 @@ pub fn ShadowOverlay(#[prop(into)] show: ShowOverlay, children: ChildrenFn) -> i
                         #[cfg(not(feature = "hydrate"))] { |_| () }
                     }
 
-                    class="flex cursor-pointer modal-bg w-dvw h-dvh fixed left-0 top-0 bg-black/60 z-99 justify-center items-center overflow-hidden backdrop-blur-sm"
+                    class="flex overflow-hidden fixed top-0 left-0 justify-center items-center cursor-pointer modal-bg w-dvw h-dvh bg-black/60 z-99 backdrop-blur-sm"
                 >
                     {(children_s.get_value())()}
                 </div>
@@ -128,7 +128,7 @@ pub fn ShadowOverlay(#[prop(into)] show: ShowOverlay, children: ChildrenFn) -> i
 #[component]
 fn ActionRunningOverlay(message: String) -> impl IntoView {
     view! {
-        <div class="w-full h-full flex flex-col gap-6 items-center justify-center text-white text-center text-xl font-semibold">
+        <div class="flex flex-col gap-6 justify-center items-center w-full h-full text-xl font-semibold text-center text-white">
             <Spinner />
             <span>{message}</span>
             <span>Please wait...</span>
@@ -140,7 +140,7 @@ fn ActionRunningOverlay(message: String) -> impl IntoView {
 pub fn PopupOverlay(#[prop(into)] show: ShowOverlay, children: ChildrenFn) -> impl IntoView {
     view! {
         <ShadowOverlay show>
-            <div class="px-4 pt-4 pb-12 mx-6 w-full lg:w-1/2 max-h-[65%] rounded-xl bg-white">
+            <div class="px-4 pt-4 pb-12 mx-6 w-full bg-white rounded-xl lg:w-1/2 max-h-[65%]">
                 {children()}
             </div>
         </ShadowOverlay>

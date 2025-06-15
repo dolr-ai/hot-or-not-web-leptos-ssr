@@ -49,9 +49,9 @@ pub fn BgView(
     let win_audio_ref = NodeRef::<Audio>::new();
 
     view! {
-        <div class="bg-transparent w-full h-full relative overflow-hidden">
+        <div class="overflow-hidden relative w-full h-full bg-transparent">
             <div
-                class="absolute top-0 left-0 bg-cover bg-center w-full h-full z-1 blur-lg"
+                class="absolute top-0 left-0 w-full h-full bg-center bg-cover z-1 blur-lg"
                 style:background-color="rgb(0, 0, 0)"
                 style:background-image=move || format!("url({})", bg_url(uid()))
             ></div>

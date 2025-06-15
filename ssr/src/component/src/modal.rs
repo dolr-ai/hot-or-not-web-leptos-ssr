@@ -6,11 +6,11 @@ use leptos_icons::*;
 pub fn Modal(#[prop(into)] show: RwSignal<bool>, children: ChildrenFn) -> impl IntoView {
     view! {
         <ShadowOverlay show>
-            <div class="mx-4 py-4 px-[20px] max-w-full max-h-full items-center cursor-auto flex-col flex justify-around bg-neutral-900 rounded-md">
-                <div class="flex w-full justify-end items-center">
+            <div class="flex flex-col justify-around items-center py-4 mx-4 max-w-full max-h-full rounded-md cursor-auto px-[20px] bg-neutral-900">
+                <div class="flex justify-end items-center w-full">
                     <button
                         on:click=move |_| show.set(false)
-                        class="text-white text-center p-1 text-lg md:text-xl bg-neutral-600 rounded-full"
+                        class="p-1 text-lg text-center text-white rounded-full md:text-xl bg-neutral-600"
                     >
                         <Icon icon=icondata::ChCross />
                     </button>

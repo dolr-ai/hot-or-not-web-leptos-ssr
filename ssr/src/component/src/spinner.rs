@@ -6,7 +6,7 @@ use utils::icon_gen;
 #[component]
 pub fn Spinner() -> impl IntoView {
     view! {
-        <div class="animate-spin border-solid rounded-full border-t-transparent border-white border-8 h-32 w-32"></div>
+        <div class="w-32 h-32 rounded-full border-8 border-white border-solid animate-spin border-t-transparent"></div>
     }
 }
 
@@ -14,7 +14,7 @@ pub fn Spinner() -> impl IntoView {
 #[component]
 pub fn SpinnerFit() -> impl IntoView {
     view! {
-        <div class="animate-spin border-solid rounded-full border-t-transparent border-primary-600 border-8 w-full h-full"></div>
+        <div class="w-full h-full rounded-full border-8 border-solid animate-spin border-t-transparent border-primary-600"></div>
     }
 }
 
@@ -22,7 +22,7 @@ pub fn SpinnerFit() -> impl IntoView {
 #[component]
 pub fn FullScreenSpinner() -> impl IntoView {
     view! {
-        <div class="h-screen w-screen grid grid-cols-1 bg-black justify-items-center place-content-center">
+        <div class="grid grid-cols-1 justify-items-center place-content-center w-screen h-screen bg-black">
             <Spinner />
         </div>
     }

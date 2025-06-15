@@ -192,17 +192,17 @@ pub fn LoginProviders(
     provide_context(ctx);
 
     view! {
-        <div class="flex flex-col py-12 px-16 items-center gap-2 bg-neutral-900 text-white cursor-auto">
+        <div class="flex flex-col gap-2 items-center py-12 px-16 text-white cursor-auto bg-neutral-900">
             <h1 class="text-xl">Login to Yral</h1>
-            <img class="h-32 w-32 object-contain my-8" src="/img/yral/logo.webp" />
+            <img class="object-contain my-8 w-32 h-32" src="/img/yral/logo.webp" />
             <span class="text-md">Continue with</span>
-            <div class="flex flex-col w-full gap-4 items-center">
+            <div class="flex flex-col gap-4 items-center w-full">
                 {
                     #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
                     view! { <yral::YralAuthProvider /> }
-                } <div id="tnc" class="text-white text-center">
+                } <div id="tnc" class="text-center text-white">
                     By continuing you agree to our
-                    <a class="text-primary-600 underline" href="/terms-of-service">
+                    <a class="underline text-primary-600" href="/terms-of-service">
                         Terms of Service
                     </a>
                 </div>

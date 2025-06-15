@@ -37,7 +37,7 @@ pub fn ShareContent(
                 <span class="text-xl font-semibold text-center md:text-2xl">Share this app</span>
             </div>
             <SocialShare message=message.clone() share_link=share_link_social.clone() />
-            <div class="flex overflow-x-auto justify-center items-center px-10 mx-1 space-x-2 w-full rounded-xl border-2 border-neutral-700 h-10 md:h-20">
+            <div class="flex overflow-x-auto justify-center items-center px-10 mx-1 space-x-2 w-full h-10 rounded-xl border-2 md:h-20 border-neutral-700">
                 <span class="text-lg text-black md:text-xl truncate">{share_link.clone()}</span>
                 <button on:click=copy_clipboard>
                     <Icon

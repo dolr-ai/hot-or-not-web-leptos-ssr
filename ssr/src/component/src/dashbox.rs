@@ -6,8 +6,8 @@ use utils::web::copy_to_clipboard;
 #[component]
 pub fn DashboxLoading() -> impl IntoView {
     view! {
-        <div class="flex border-dashed w-full md:w-2/12 p-1 h-10 md:h-12 border-2 border-primary-500 rounded-full">
-            <span class="bg-white/30 w-full h-full animate-pulse rounded-full "></span>
+        <div class="flex p-1 w-full h-10 rounded-full border-2 border-dashed md:w-2/12 md:h-12 border-primary-500">
+            <span class="w-full h-full rounded-full animate-pulse bg-white/30"></span>
         </div>
     }
 }
@@ -28,8 +28,8 @@ pub fn DashboxLoaded(text: String) -> impl IntoView {
     });
 
     view! {
-        <div class="flex items-center w-fit rounded-full border-dashed border-2 p-3 gap-2 border-primary-500">
-            <span class="text-md lg:text-lg text-ellipsis line-clamp-1">{text}</span>
+        <div class="flex gap-2 items-center p-3 rounded-full border-2 border-dashed w-fit border-primary-500">
+            <span class="lg:text-lg text-md text-ellipsis line-clamp-1">{text}</span>
             <button on:click=move |_| {
                 click_copy.dispatch(());
             }>
@@ -37,8 +37,8 @@ pub fn DashboxLoaded(text: String) -> impl IntoView {
             </button>
         </div>
         <Show when=show_copied_popup>
-            <div class="absolute flex flex-col justify-center items-center z-4">
-                <span class="absolute top-28 flex flex-row justify-center items-center bg-white/90 rounded-md h-10 w-28 text-center shadow-lg">
+            <div class="flex absolute flex-col justify-center items-center z-4">
+                <span class="flex absolute top-28 flex-row justify-center items-center w-28 h-10 text-center rounded-md shadow-lg bg-white/90">
                     <p class="text-black">Copied!</p>
                 </span>
             </div>

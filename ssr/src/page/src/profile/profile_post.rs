@@ -191,7 +191,7 @@ fn ProfilePostBase<
                     .map(|pd| {
                         Some(
                             view! {
-                                <div class="absolute left-4 top-4 bg-transparent z-10 text-white">
+                                <div class="absolute top-4 left-4 z-10 text-white bg-transparent">
                                     <BackButton fallback="/".to_string() />
                                 </div>
                                 {(children_s.get_value())(pd)}

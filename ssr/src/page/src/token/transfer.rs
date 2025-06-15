@@ -54,7 +54,7 @@ fn FormError<V: 'static + Send + Sync>(
 
     view! {
         <Show when=move || res.with(|r| r.is_err())>
-            <div class="flex flex-row items-center gap-1 w-full text-sm md:text-base">
+            <div class="flex flex-row gap-1 items-center w-full text-sm md:text-base">
                 <Icon attr:class="text-red-600" icon=icondata::AiInfoCircleOutlined />
                 <span class="text-white/60">{move || err().unwrap()}</span>
             </div>
@@ -238,32 +238,32 @@ fn TokenTransferInner(
     let formatted_balance = balance.humanize_float_truncate_to_dp(if is_btc { 5 } else { 2 });
 
     Either::Right(view! {
-        <div class="w-dvw min-h-dvh bg-neutral-950 flex flex-col gap-4">
+        <div class="flex flex-col gap-4 w-dvw min-h-dvh bg-neutral-950">
             <TitleText justify_center=false>
                 <div class="grid grid-cols-3 justify-start w-full">
                     <BackButton fallback="/wallet" />
-                    <span class="font-bold justify-self-center">Send {info.name}</span>
+                    <span class="justify-self-center font-bold">Send {info.name}</span>
                 </div>
             </TitleText>
-            <div class="flex flex-col w-full gap-4 md:gap-6 items-center p-4">
-                <div class="flex flex-col w-full gap-2 items-center">
-                    <div class="flex flex-row justify-between w-full text-sm md:text-base text-neutral-400 font-medium">
+            <div class="flex flex-col gap-4 items-center p-4 w-full md:gap-6">
+                <div class="flex flex-col gap-2 items-center w-full">
+                    <div class="flex flex-row justify-between w-full text-sm font-medium md:text-base text-neutral-400">
                         <span>Source</span>
                     </div>
-                    <div class="flex flex-row gap-2 w-full items-center">
-                        <p class="text-sm md:text-md text-white/80">{source_addr.to_string()}</p>
+                    <div class="flex flex-row gap-2 items-center w-full">
+                        <p class="text-sm text-white/80 md:text-md">{source_addr.to_string()}</p>
                     </div>
                 </div>
-                <div class="flex flex-col w-full gap-1">
+                <div class="flex flex-col gap-1 w-full">
                     <div class="flex justify-between">
-                        <span class="text-neutral-400 text-sm md:text-base">Destination</span>
+                        <span class="text-sm md:text-base text-neutral-400">Destination</span>
                         {is_btc
                             .then_some(
                                 view! {
                                     <a
                                         target="_blank"
                                         href="https://oisy.com"
-                                        class="text-blue-500 text-sm font-medium md:text-base"
+                                        class="text-sm font-medium text-blue-500 md:text-base"
                                     >
                                         Open OISY Wallet
                                     </a>
@@ -273,11 +273,11 @@ fn TokenTransferInner(
                     <div
                         class=("border-white/15", move || destination_res.with(|r| r.is_ok()))
                         class=("border-red", move || destination_res.with(|r| r.is_err()))
-                        class="flex flex-row gap-2 w-full justify-between p-3 bg-white/5 rounded-lg border"
+                        class="flex flex-row gap-2 justify-between p-3 w-full rounded-lg border bg-white/5"
                     >
                         <input
                             node_ref=destination_ref
-                            class="text-white bg-transparent w-full text-base md:text-lg placeholder-white/40 focus:outline-none"
+                            class="w-full text-base text-white bg-transparent md:text-lg focus:outline-none placeholder-white/40"
                             placeholder=placeholder
                         />
                         <button on:click=move |_| {
@@ -291,18 +291,18 @@ fn TokenTransferInner(
                     </div>
                     <FormError res=destination_res />
                 </div>
-                <div class="flex flex-col w-full gap-1 items-center">
+                <div class="flex flex-col gap-1 items-center w-full">
                     <div class="flex flex-row justify-between w-full text-sm md:text-base text-neutral-400">
                         <span>Amount</span>
                         <div class="flex gap-1 items-center">
-                            <span class="text-neutral-400 text-xs font-medium">
+                            <span class="text-xs font-medium text-neutral-400">
                                 Balance: {formatted_balance}
                             </span>
                             <button
-                                class="flex justify-center items-center gap-2.5 border border-neutral-600 bg-neutral-700 px-4 py-1.5 rounded-full border-solid text-"
+                                class="flex gap-2.5 justify-center items-center py-1.5 px-4 rounded-full border border-solid border-neutral-600 bg-neutral-700 text-"
                                 on:click=move |_| _ = set_max_amt()
                             >
-                                <span class="text-neutral text-xs font-medium">Max</span>
+                                <span class="text-xs font-medium text-neutral">Max</span>
                             </button>
                         </div>
                     </div>
@@ -310,11 +310,11 @@ fn TokenTransferInner(
                         node_ref=amount_ref
                         class=("border-white/15", move || amt_res.with(|r| r.is_ok()))
                         class=("border-red", move || amt_res.with(|r| r.is_err()))
-                        class="w-full p-3 bg-white/5 rounded-lg border text-white placeholder-white/40 focus:outline-none text-base md:text-lg"
+                        class="p-3 w-full text-base text-white rounded-lg border md:text-lg focus:outline-none bg-white/5 placeholder-white/40"
                     />
                     <FormError res=amt_res />
                 </div>
-                <div class="flex flex-col text-sm md:text-base text-white/60 w-full">
+                <div class="flex flex-col w-full text-sm md:text-base text-white/60">
                     <span>Transaction Fee (billed to source)</span>
                     <span>{format!("{} {}", info.fees.humanize_float(), info.symbol)}</span>
                 </div>

@@ -74,21 +74,21 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
 
     view! {
         <ShadowOverlay show=popup_signal>
-            <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-neutral-900 text-white p-8 rounded-lg shadow-xl w-full min-w-[343px] max-w-[550px]">
+            <div class="fixed top-1/2 left-1/2 p-8 w-full text-white rounded-lg shadow-xl transform -translate-x-1/2 -translate-y-1/2 bg-neutral-900 min-w-[343px] max-w-[550px]">
                 <button
                     on:click=move |_| {
                         pop_up.set(false);
                     }
                     aria-label="Close notification"
-                    class="absolute top-3 right-3 p-1 bg-neutral-800 rounded-full text-neutral-300 hover:text-white transition-colors"
+                    class="absolute top-3 right-3 p-1 rounded-full transition-colors hover:text-white bg-neutral-800 text-neutral-300"
                 >
                     <Icon icon=icondata::IoClose attr:class="w-6 h-6" />
                 </button>
 
-                <div class="flex flex-col items-center text-center gap-4 pt-4">
+                <div class="flex flex-col gap-4 items-center pt-4 text-center">
                     <Icon icon=NotificationNudgeIcon attr:class="w-32 h-32 mb-2 text-orange-500" />
-                    <h1 class="text-2xl font-bold mb-2">"Stay in the Loop!"</h1>
-                    <p class="text-neutral-400 text-lg mb-6 max-w-xs font-light">
+                    <h1 class="mb-2 text-2xl font-bold">"Stay in the Loop!"</h1>
+                    <p class="mb-6 max-w-xs text-lg font-light text-neutral-400">
                         "Your video is processing in the background. Enable notifications so you don\'t miss a beat — feel free to explore the app while we handle the upload!"
                     </p>
                     <HighlightedButton

@@ -31,7 +31,7 @@ fn MenuItem(
 ) -> impl IntoView {
     view! {
         <a href=href class="grid grid-cols-3 items-center w-full" target=target>
-            <div class="flex flex-row gap-4 items-center col-span-2">
+            <div class="flex flex-row col-span-2 gap-4 items-center">
                 <Icon attr:class="text-2xl" icon=icon />
                 <span class="text-wrap">{text}</span>
             </div>
@@ -44,8 +44,8 @@ fn MenuItem(
 #[component]
 fn MenuFooter() -> impl IntoView {
     view! {
-        <div class="flex flex-col items-center w-full gap-4 pt-10 pb-8">
-            <span class="text-white/50 text-sm">Follow us on</span>
+        <div class="flex flex-col gap-4 items-center pt-10 pb-8 w-full">
+            <span class="text-sm text-white/50">Follow us on</span>
             <div class="flex flex-row gap-4">
                 <Telegram />
                 <Discord />
@@ -77,10 +77,10 @@ fn MenuFooter() -> impl IntoView {
 #[component]
 fn ProfileLoading() -> impl IntoView {
     view! {
-        <div class="basis-4/12 aspect-square overflow-clip rounded-full bg-white/20 animate-pulse"></div>
-        <div class="basis-8/12 flex flex-col gap-2 animate-pulse">
-            <div class="w-full h-4 bg-white/20 rounded-full"></div>
-            <div class="w-full h-4 bg-white/20 rounded-full"></div>
+        <div class="rounded-full animate-pulse basis-4/12 aspect-square overflow-clip bg-white/20"></div>
+        <div class="flex flex-col gap-2 animate-pulse basis-8/12">
+            <div class="w-full h-4 rounded-full bg-white/20"></div>
+            <div class="w-full h-4 rounded-full bg-white/20"></div>
         </div>
     }.into_any()
 }
@@ -91,15 +91,15 @@ fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
     let is_connected = auth.is_logged_in_with_oauth();
 
     view! {
-        <div class="basis-4/12 aspect-square overflow-clip rounded-full">
-            <img class="h-full w-full object-cover" src=user_details.profile_pic_or_random() />
+        <div class="rounded-full basis-4/12 aspect-square overflow-clip">
+            <img class="object-cover w-full h-full" src=user_details.profile_pic_or_random() />
         </div>
         <div
             class="flex flex-col basis-8/12"
             class=("w-12/12", move || !is_connected())
             class=("sm:w-5/12", move || !is_connected())
         >
-            <span class="text-white text-ellipsis line-clamp-1 text-xl">
+            <span class="text-xl text-white text-ellipsis line-clamp-1">
                 {user_details.display_name_or_fallback()}
             </span>
             <a class="text-primary-600 text-md" href="/profile/posts">
@@ -234,9 +234,9 @@ pub fn Menu() -> impl IntoView {
                                                     .map(|(a, _)| a)
                                                     .unwrap_or_default() && is_connected()
                                             }>
-                                                <div class="w-full px-8 md:w-4/12 xl:w-2/12">
+                                                <div class="px-8 w-full md:w-4/12 xl:w-2/12">
                                                     <button
-                                                        class="font-bold rounded-full bg-primary-600 py-2 md:py-3 w-full text-center text-lg md:text-xl text-white"
+                                                        class="py-2 w-full text-lg font-bold text-center text-white rounded-full md:py-3 md:text-xl bg-primary-600"
                                                         on:click=move |_| show_content_modal.set(true)
                                                     >
                                                         Upload Content
@@ -251,15 +251,15 @@ pub fn Menu() -> impl IntoView {
                 )
             })}
         </Suspense>
-        <div class="min-h-screen w-full flex flex-col text-white pt-2 pb-12 bg-black items-center divide-y divide-white/10">
-            <div class="flex flex-col items-center w-full gap-20 pb-16">
+        <div class="flex flex-col items-center pt-2 pb-12 w-full min-h-screen text-white bg-black divide-y divide-white/10">
+            <div class="flex flex-col gap-20 items-center pb-16 w-full">
                 <TitleText justify_center=false>
                     <div class="flex flex-row justify-center">
-                        <span class="font-bold text-2xl">Menu</span>
+                        <span class="text-2xl font-bold">Menu</span>
                     </div>
                 </TitleText>
-                <div class="flex flex-col items-center w-full gap-4">
-                    <div class="flex flex-row w-full max-w-lg justify-center gap-4 items-center px-4">
+                <div class="flex flex-col gap-4 items-center w-full">
+                    <div class="flex flex-row gap-4 justify-center items-center px-4 w-full max-w-lg">
                         <Suspense fallback=ProfileLoading>
                             {move || Suspend::new(async move {
                                 let cans = auth.auth_cans(unauth_canisters()).await;
@@ -270,17 +270,17 @@ pub fn Menu() -> impl IntoView {
                         </Suspense>
                     </div>
                     <Show when=move || !is_connected()>
-                        <div class="w-full px-8 md:w-4/12 xl:w-2/12">
+                        <div class="px-8 w-full md:w-4/12 xl:w-2/12">
                             <ConnectLogin />
                         </div>
-                        <div class="w-full px-8 text-center text-sm font-sans">
+                        <div class="px-8 w-full font-sans text-sm text-center">
                             {r#"Your Yral account has been setup. Login with Google to not lose progress."#}
                         </div>
                     </Show>
                     <div node_ref=upload_content_mount_point />
                 </div>
             </div>
-            <div class="flex flex-col py-12 px-8 gap-8 w-full text-lg">
+            <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
                 // add later when NSFW toggle is needed
                 // <NsfwToggle />
                 <MenuItem href="/refer-earn" text="Refer & Earn" icon=icondata::AiGiftFilled />

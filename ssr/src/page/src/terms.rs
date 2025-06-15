@@ -9,7 +9,7 @@ pub fn TermsOfService() -> impl IntoView {
     let page_title = app_state.unwrap().name.to_owned() + " - Terms of Service";
     view! {
         <Title text=page_title />
-        <div class="w-screen min-h-screen bg-black pt-4 pb-12 text-white flex flex-col items-center">
+        <div class="flex flex-col items-center pt-4 pb-12 w-screen min-h-screen text-white bg-black">
             <TitleText justify_center=false>
                 <div class="flex flex-row justify-between">
                     <BackButton fallback="/menu".to_string() />
@@ -17,7 +17,7 @@ pub fn TermsOfService() -> impl IntoView {
                     <div></div>
                 </div>
             </TitleText>
-            <div class="px-8 flex h-full w-full flex-col space-y-8 overflow-hidden overflow-y-auto py-16">
+            <div class="flex overflow-hidden overflow-y-auto flex-col py-16 px-8 space-y-8 w-full h-full">
                 <div class="flex flex-col space-y-2">
                     <div class="text-sm font-semibold">Introductions</div>
                     <div class="text-xs whitespace-pre-line">
@@ -50,7 +50,7 @@ pub fn TermsOfService() -> impl IntoView {
                         as minors) that are represented by persons (such as legal guardians)
                         who can form legally binding contracts under the law of their
                         jurisdiction, are permitted to use our Services. You agree that: <br />
-                        <ul class="list-decimal py-2 pl-6">
+                        <ul class="py-2 pl-6 list-decimal">
                             <li>
                                 You have the right, authority and legal capacity to agree to these
                                 Terms and conditions, privacy policy and community guidelines on
@@ -93,7 +93,7 @@ pub fn TermsOfService() -> impl IntoView {
                         or regulation. We are not responsible for any Content posted by you or
                         any consequences thereof. You agree that you shall not host, display,
                         upload, modify, publish, transmit, store, update or share any
-                        information that:"""#} <ul class="list-decimal py-2 pl-6">
+                        information that:"""#} <ul class="py-2 pl-6 list-decimal">
                             <li>
                                 belongs to another person and to which you do not have any right
                                 to;
@@ -169,7 +169,7 @@ pub fn TermsOfService() -> impl IntoView {
                     <div class="text-xs">
                         By enabling the NSFW (Not Safe for Work) content toggle, you acknowledge and consent to viewing adult-oriented
                         content within your feed. This content may include themes that are intended for mature audiences.
-                        You agree that: <ul class="list-decimal py-2 pl-6">
+                        You agree that: <ul class="py-2 pl-6 list-decimal">
                             <li>You are of legal age to view such content in your jurisdiction.</li>
                             <li>
                                 The platform is not responsible for any distress or offense caused by NSFW content.
@@ -254,7 +254,7 @@ pub fn TermsOfService() -> impl IntoView {
                     <div class="text-xs">
                         We shall not be liable to you for any loss or damages or claims
                         including but not limited to the following:
-                        <ul class="list-decimal py-2 pl-6">
+                        <ul class="py-2 pl-6 list-decimal">
                             <li>Any loss of profit, opportunity or goodwill;</li>
                             <li>Any loss of data;</li>
                             <li>
@@ -302,7 +302,7 @@ pub fn TermsOfService() -> impl IntoView {
                     <div class="text-xs">
                         If you wish to complain about our Services / the use of our services
                         by others, please contact our Resident Grievance Officer, whose
-                        details are below: <div class="pl-4 pt-2">Name: Utkarsh Goyal</div>
+                        details are below: <div class="pt-2 pl-4">Name: Utkarsh Goyal</div>
                         <div class="pl-4">Designation: Director</div>
                         <div class="pb-2 pl-4">Email ID: support@gobazzinga.io</div>
                         We will endeavour to redress the complaint within three months from the

@@ -5,8 +5,8 @@ use state::app_state::AppState;
 
 fn terms_section<T: IntoView>(title: &str, content: T) -> impl IntoView + use<'_, T> {
     view! {
-        <div class="term-section mb-6">
-            <div class="term-title text-sm font-semibold mb-3">{title}</div>
+        <div class="mb-6 term-section">
+            <div class="mb-3 text-sm font-semibold term-title">{title}</div>
             <div class="term-content">{content}</div>
         </div>
     }
@@ -20,7 +20,7 @@ fn bullet_list(items: Vec<&str>) -> impl IntoView + '_ {
         })
         .collect_view();
 
-    view! { <ul class="list-disc pl-6 py-2 text-xs">{list_items}</ul> }
+    view! { <ul class="py-2 pl-6 text-xs list-disc">{list_items}</ul> }
 }
 
 #[component]
@@ -86,7 +86,7 @@ pub fn TermsAndroid() -> impl IntoView {
     view! {
         <Title text=page_title />
 
-        <div class="w-screen min-h-screen bg-black pt-4 pb-12 text-white flex flex-col items-center">
+        <div class="flex flex-col items-center pt-4 pb-12 w-screen min-h-screen text-white bg-black">
             <TitleText justify_center=false>
                 <div class="flex flex-row justify-between">
                     <BackButton fallback="/menu".to_string() />
@@ -95,10 +95,10 @@ pub fn TermsAndroid() -> impl IntoView {
                 </div>
             </TitleText>
 
-            <div class="px-8 flex h-full w-full flex-col space-y-8 overflow-hidden overflow-y-auto py-16">
-                <div class="text-center mb-6">
-                    <h1 class="text-xl font-bold mb-2">Terms of Use | Yral</h1>
-                    <div class="text-sm opacity-80 mb-4">
+            <div class="flex overflow-hidden overflow-y-auto flex-col py-16 px-8 space-y-8 w-full h-full">
+                <div class="mb-6 text-center">
+                    <h1 class="mb-2 text-xl font-bold">Terms of Use | Yral</h1>
+                    <div class="mb-4 text-sm opacity-80">
                         <p>
                             <strong>Effective Date:</strong>
                             13th July 2023
@@ -110,7 +110,7 @@ pub fn TermsAndroid() -> impl IntoView {
                     </div>
                 </div>
 
-                <div class="text-xs whitespace-pre-line mb-6">{intro_content}</div>
+                <div class="mb-6 text-xs whitespace-pre-line">{intro_content}</div>
 
                 {terms_section(
                     "1. Your Account & Registration",
@@ -223,7 +223,7 @@ pub fn TermsAndroid() -> impl IntoView {
                         <div>
                             <p class="mb-3 text-xs">
                                 "Please refer to our "
-                                <a href="/privacy-policy" class="underline text-blue-400">
+                                <a href="/privacy-policy" class="text-blue-400 underline">
                                     Privacy Policy
                                 </a>
                                 " for full details on how we collect, use, and protect your data."

@@ -8,10 +8,10 @@ pub fn Popup(#[prop(into)] show: RwSignal<bool>, children: ChildrenFn) -> impl I
         <ShadowOverlay show>
             <div
                 style="min-height: 500px; max-width:40rem;"
-                class="mx-auto py-4 px-[20px] relative max-h-full items-center gap-5 cursor-auto flex-col flex justify-between bg-neutral-900 rounded-md"
+                class="flex relative flex-col gap-5 justify-between items-center py-4 mx-auto max-h-full rounded-md cursor-auto px-[20px] bg-neutral-900"
             >
-                <div class="pb-4 w-full flex-1">{children()}</div>
-                <div class="flex justify-center w-full items-center px-8">
+                <div class="flex-1 pb-4 w-full">{children()}</div>
+                <div class="flex justify-center items-center px-8 w-full">
                     <HighlightedButton
                         alt_style=true
                         disabled=false

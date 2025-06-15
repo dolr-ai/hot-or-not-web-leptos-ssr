@@ -43,7 +43,7 @@ fn NotifInnerComponent(details: ProfileDetails) -> impl IntoView {
 pub fn Notif() -> impl IntoView {
     let auth = auth_state();
     view! {
-        <div class="h-screen w-screen grid grid-cols-1 justify-items-center place-content-center">
+        <div class="grid grid-cols-1 justify-items-center place-content-center w-screen h-screen">
             <Suspense>
                 {move || Suspend::new(async move {
                     let res = auth.cans_wire().await;

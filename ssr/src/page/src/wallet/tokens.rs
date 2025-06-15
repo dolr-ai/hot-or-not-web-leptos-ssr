@@ -53,7 +53,7 @@ use super::ShowLoginSignal;
 #[component]
 pub fn TokenViewFallback() -> impl IntoView {
     view! {
-        <div class="w-full items-center h-16 rounded-xl border-2 border-neutral-700 bg-white/15 animate-pulse"></div>
+        <div class="items-center w-full h-16 rounded-xl border-2 animate-pulse border-neutral-700 bg-white/15"></div>
     }
 }
 
@@ -241,7 +241,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
     ];
 
     view! {
-        <div class="flex flex-col w-full gap-2 mb-2 items-center pb-10">
+        <div class="flex flex-col gap-2 items-center pb-10 mb-2 w-full">
             {tokens
                 .into_iter()
                 .map(|token_type| {
@@ -431,7 +431,7 @@ pub fn WithdrawSection(
     let withdraw_cta = withdrawer.withdraw_cta();
     let is_cents = token_name == CENT_TOKEN_NAME;
     view! {
-        <div class="border-t border-neutral-700 flex flex-col pt-4 gap-2">
+        <div class="flex flex-col gap-2 pt-4 border-t border-neutral-700">
             {is_cents
                 .then_some(
                     view! {
@@ -440,7 +440,7 @@ pub fn WithdrawSection(
                                 attr:class="text-neutral-300"
                                 icon=if is_withdrawable { PadlockOpen } else { PadlockClose }
                             />
-                            <span class="text-neutral-400 text-xs mx-2">{withdraw_message}</span>
+                            <span class="mx-2 text-xs text-neutral-400">{withdraw_message}</span>
                             <Tooltip
                                 icon=Information
                                 title="Withdrawal Tokens"
@@ -451,7 +451,7 @@ pub fn WithdrawSection(
                     },
                 )}
             <button
-                class="rounded-lg px-5 py-2 text-sm text-center font-bold"
+                class="py-2 px-5 text-sm font-bold text-center rounded-lg"
                 class=(
                     ["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled"],
                     !is_withdrawable,
@@ -585,21 +585,21 @@ pub fn FastWalletCard(
     });
 
     view! {
-        <div class="flex flex-col gap-4 bg-neutral-900/90 rounded-lg w-full font-kumbh text-white p-4">
+        <div class="flex flex-col gap-4 p-4 w-full text-white rounded-lg bg-neutral-900/90 font-kumbh">
             <div class="flex flex-col gap-4 p-3 rounded-sm bg-neutral-800/70">
-                <div class="w-full flex items-center justify-between">
-                    <div class="flex items-center gap-2">
+                <div class="flex justify-between items-center w-full">
+                    <div class="flex gap-2 items-center">
                         <img
                             src=logo.clone()
                             alt=name.clone()
-                            class="w-8 h-8 rounded-full object-cover"
+                            class="object-cover w-8 h-8 rounded-full"
                         />
                         <div class="text-sm font-medium uppercase truncate">{name.clone()}</div>
                     </div>
                     <div class="flex flex-col items-end">
                         <Suspense fallback=move || {
                             view! {
-                                <Skeleton class="h-3 w-10 rounded-sm text-neutral-600 [--shimmer:#27272A]" />
+                                <Skeleton class="w-10 h-3 rounded-sm text-neutral-600 [--shimmer:#27272A]" />
                             }
                         }>
                             {move || Suspend::new(async move {
@@ -690,13 +690,13 @@ fn WalletCardOptions(
     let share_link_coin = format!("/token/info/{root}/{user_principal}");
 
     Some(view! {
-        <div class="flex items-center justify-around">
+        <div class="flex justify-around items-center">
             <ActionButtonLink
                 disabled=is_utility_token
                 href=format!("/token/transfer/{root}")
                 label="Send".to_string()
             >
-                <SendIcon class="h-full w-full" />
+                <SendIcon class="w-full h-full" />
             </ActionButtonLink>
             <ActionButtonLink disabled=true href="#".to_string() label="Buy/Sell".to_string()>
                 <Icon attr:class="h-6 w-6" icon=ArrowLeftRightIcon />

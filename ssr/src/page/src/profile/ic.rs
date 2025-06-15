@@ -22,14 +22,14 @@ where
     N: IntoView + 'static,
 {
     view! {
-        <div class="flex flex-row gap-y-3 flex-wrap justify-center w-full">
+        <div class="flex flex-row flex-wrap gap-y-3 justify-center w-full">
             <InfiniteScroller
                 provider
                 fetch_count=PROFILE_CHUNK_SZ
                 children
                 empty_content=move || {
                     view! {
-                        <div class="flex flex-col pt-9 gap-2 w-full justify-center items-center">
+                        <div class="flex flex-col gap-2 justify-center items-center pt-9 w-full">
                             <Icon attr:class="w-36 h-36" icon=empty_graphic />
                             <span class="text-lg text-white">{empty_text.clone()}</span>
                         </div>
@@ -38,7 +38,7 @@ where
 
                 custom_loader=move || {
                     view! {
-                        <div class="w-full flex justify-center items-center pt-9">
+                        <div class="flex justify-center items-center pt-9 w-full">
                             <BulletLoader />
                         </div>
                     }
