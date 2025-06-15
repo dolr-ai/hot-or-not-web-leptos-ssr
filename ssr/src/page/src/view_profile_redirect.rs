@@ -9,8 +9,7 @@ pub fn ProfileInfo() -> impl IntoView {
     view! {
         <Suspense fallback=FullScreenSpinner>
             {move || {
-                auth
-                    .user_principal
+                auth.user_principal
                     .get()
                     .map(|res| match res {
                         Ok(user_principal) => view! { <Redirect path=user_principal.to_text() /> },

@@ -115,8 +115,7 @@ fn ProfileViewInner(user: ProfileDetails, user_canister: Principal) -> impl Into
                             </span>
                             <Suspense>
                                 {move || {
-                                    auth
-                                        .user_principal
+                                    auth.user_principal
                                         .get()
                                         .map(|v| {
                                             view! {

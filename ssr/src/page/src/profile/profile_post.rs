@@ -44,8 +44,7 @@ fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
         view! {
             <Suspense>
                 {move || {
-                    auth
-                        .user_canister
+                    auth.user_canister
                         .get()
                         .map(|canister| {
                             if canister == Ok(initial_post.canister_id) {

@@ -158,8 +158,7 @@ pub fn Wallet() -> impl IntoView {
                         view! {
                             <Suspense>
                                 {move || {
-                                    auth
-                                        .user_principal
+                                    auth.user_principal
                                         .get()
                                         .map(|res| match res {
                                             Ok(user_principal) => {
