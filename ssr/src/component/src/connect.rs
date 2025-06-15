@@ -22,13 +22,13 @@ pub fn ConnectLogin(
 
     view! {
         <HighlightedButton
-        classes="w-full".to_string()
-        alt_style=false
-        disabled=false
-        on_click=move || {
-            show_login.set(true);
-            login_click_action.dispatch(());
-        }
+            classes="w-full".to_string()
+            alt_style=false
+            disabled=false
+            on_click=move || {
+                show_login.set(true);
+                login_click_action.dispatch(());
+            }
         >
             {move || if show_login() { "Connecting..." } else { login_text }}
         </HighlightedButton>

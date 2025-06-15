@@ -27,11 +27,11 @@ pub fn ExternalUser(user: Option<ProfileDetails>) -> impl IntoView {
         .unwrap_or_default();
 
     view! {
-        <div class="flex flex-row items-center gap-1 w-full h-8 px-3 pt-3 text-ellipsis z-20">
-            <div class="w-5 h-5 shrink-0 rounded-full border-2 border-white bg-white">
-                <img class="rounded-full object-cover object-center" src=propic />
+        <div class="flex z-20 flex-row gap-1 items-center px-3 pt-3 w-full h-8 text-ellipsis">
+            <div class="w-5 h-5 bg-white rounded-full border-2 border-white shrink-0">
+                <img class="object-cover object-center rounded-full" src=propic />
             </div>
-            <div class="max-w-full text-xs truncate font-semibold">{name}</div>
+            <div class="max-w-full text-xs font-semibold truncate">{name}</div>
         </div>
     }
 }
@@ -40,12 +40,12 @@ pub fn ExternalUser(user: Option<ProfileDetails>) -> impl IntoView {
 pub fn ExternalPost(post: Option<PostDetails>) -> impl IntoView {
     let bg_url = post.map(|p| bg_url(p.uid));
     view! {
-        <div class="absolute top-0 left-0 h-full w-full z-10 rounded-md overflow-clip">
+        <div class="absolute top-0 left-0 z-10 w-full h-full rounded-md overflow-clip">
             {move || {
                 bg_url
                     .clone()
                     .map(|bgurl| {
-                        view! { <img class="object-cover h-full w-full" src=bgurl.clone() /> }
+                        view! { <img class="object-cover w-full h-full" src=bgurl.clone() /> }
                     })
             }}
 
@@ -107,7 +107,7 @@ pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView 
             "RECEIVED",
             amt,
             view! {
-                <div class="flex w-full justify-center items-center text-white bg-primary-600 h-6 gap-0.5">
+                <div class="flex gap-0.5 justify-center items-center w-full h-6 text-white bg-primary-600">
                     <Icon attr:class="text-sm fill-white" icon=icondata::RiTrophyFinanceFill />
                     <span class="text-xs font-medium">Creator Reward</span>
                 </div>
@@ -119,7 +119,7 @@ pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView 
                 "RECEIVED",
                 win_amt,
                 view! {
-                    <div class="flex w-full justify-center items-center text-white bg-primary-600 h-6 gap-0.5">
+                    <div class="flex gap-0.5 justify-center items-center w-full h-6 text-white bg-primary-600">
                         <Icon attr:class="text-sm fill-white" icon=icondata::RiTrophyFinanceFill />
                         <span class="text-xs font-medium">You Won</span>
                     </div>
@@ -129,7 +129,7 @@ pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView 
                 "LOST",
                 lose_amt,
                 view! {
-                    <div class="flex w-full justify-center items-center h-6 bg-white text-black py-2 text-xs font-medium">
+                    <div class="flex justify-center items-center py-2 w-full h-6 text-xs font-medium text-black bg-white">
                         You Lost
                     </div>
                 }.into_any(),
@@ -140,14 +140,14 @@ pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView 
     let amt_render = TokenBalance::new(amt.into(), 0).humanize_float_truncate_to_dp(0);
 
     view! {
-        <div node_ref=_ref class="relative w-1/2 md:w-1/3 lg:w-1/4 px-1">
+        <div node_ref=_ref class="relative px-1 w-1/2 md:w-1/3 lg:w-1/4">
             <a
                 href=profile_post_url
-                class="relative flex flex-col justify-between aspect-3/5 rounded-md text-white"
+                class="flex relative flex-col justify-between text-white rounded-md aspect-3/5"
             >
                 <Suspense fallback=|| {
                     view! {
-                        <div class="absolute top-0 left-0 h-full w-full z-10 bg-white/10 animate-pulse rounded-md"></div>
+                        <div class="absolute top-0 left-0 z-10 w-full h-full rounded-md animate-pulse bg-white/10"></div>
                     }
                 }>
                     {move || {
@@ -169,10 +169,10 @@ pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView 
                     }}
 
                 </Suspense>
-                <div class="flex flex-col gap-y-5 z-20">
+                <div class="flex z-20 flex-col gap-y-5">
                     <div class="flex flex-col px-3">
                         <span class="text-xs font-medium uppercase">{bet_res}</span>
-                        <span class="text-sm font-semibold md:text-base">{amt_render} Sats</span>
+                        <span class="text-sm font-semibold md:text-base">{amt_render}Sats</span>
                     </div>
                     {icon}
                 </div>

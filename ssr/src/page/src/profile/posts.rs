@@ -30,8 +30,8 @@ fn Post(details: PostDetails, user_canister: Principal, _ref: NodeRef<html::Div>
 
     view! {
         <div node_ref=_ref class="relative w-full basis-1/3 md:basis-1/4 xl:basis-1/5">
-            <div class="relative aspect-9/16 h-full rounded-md border-white/20 m-2 border">
-                <a class="h-full w-full" href=profile_post_url on:click=move |_| video_click()>
+            <div class="relative m-2 h-full rounded-md border aspect-9/16 border-white/20">
+                <a class="w-full h-full" href=profile_post_url on:click=move |_| video_click()>
                     <Show
                         when=image_error
                         fallback=move || {
@@ -45,25 +45,25 @@ fn Post(details: PostDetails, user_canister: Principal, _ref: NodeRef<html::Div>
                         }
                     >
 
-                        <div class="h-full flex text-center flex-col place-content-center items-center text-white">
+                        <div class="flex flex-col items-center place-content-center h-full text-center text-white">
                             <Icon attr:class="h-8 w-8" icon=icondata::TbCloudX />
                             <span class="text-md">Not Available</span>
                         </div>
                     </Show>
 
-                    <div class="absolute bottom-1 left-1 grid grid-cols-2 items-center gap-1">
+                    <div class="grid absolute bottom-1 left-1 grid-cols-2 gap-1 items-center">
                         <Icon
-                        attr:class="h-5 w-5 p-1 text-primary-500 rounded-full bg-black/30"
+                            attr:class="h-5 w-5 p-1 text-primary-500 rounded-full bg-black/30"
                             icon=icondata::AiHeartOutlined
                         />
-                        <span class="text-white text-xs">{details.likes}</span>
+                        <span class="text-xs text-white">{details.likes}</span>
                     </div>
-                    <div class="absolute bottom-1 right-1 grid grid-cols-2 items-center gap-1">
+                    <div class="grid absolute right-1 bottom-1 grid-cols-2 gap-1 items-center">
                         <Icon
-                        attr:class="h-5 w-5 p-1 text-white rounded-full bg-black/30"
+                            attr:class="h-5 w-5 p-1 text-white rounded-full bg-black/30"
                             icon=icondata::AiEyeOutlined
                         />
-                        <span class="text-white text-xs">{details.views}</span>
+                        <span class="text-xs text-white">{details.views}</span>
                     </div>
                 </a>
             </div>

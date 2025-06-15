@@ -38,13 +38,18 @@ fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
 
     view! {
         <div class="w-dvw h-dvh">
-            <div class="bg-transparent w-full h-full relative overflow-hidden">
+            <div class="overflow-hidden relative w-full h-full bg-transparent">
                 <div
-                    class="absolute top-0 left-0 bg-cover bg-center w-full h-full z-1 blur-lg"
+                    class="absolute top-0 left-0 w-full h-full bg-center bg-cover z-1 blur-lg"
                     style:background-color="rgb(0, 0, 0)"
                     style:background-image=format!("url({bg_url})")
                 ></div>
-                <audio class="sr-only" node_ref=win_audio_ref preload="auto" src="/img/hotornot/chaching.m4a"/>
+                <audio
+                    class="sr-only"
+                    node_ref=win_audio_ref
+                    preload="auto"
+                    src="/img/hotornot/chaching.m4a"
+                />
                 <VideoDetailsOverlay post=post.clone() prev_post=None win_audio_ref />
                 <VideoView post=Some(post) muted autoplay_at_render=true />
             </div>
@@ -56,11 +61,11 @@ fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
 #[component]
 fn UnavailablePost() -> impl IntoView {
     view! {
-        <div class="flex flex-col items-center gap-2 justify-center h-dvh w-dvw bg-black">
-            <span class="text-white text-lg md:text-xl lg:text-2xl">Post is unavailable</span>
+        <div class="flex flex-col gap-2 justify-center items-center bg-black h-dvh w-dvw">
+            <span class="text-lg text-white md:text-xl lg:text-2xl">Post is unavailable</span>
             <button
                 on:click=|_| go_back_or_fallback("/")
-                class="px-4 py-2 bg-primary-600 text-center text-white rounded-full"
+                class="py-2 px-4 text-center text-white rounded-full bg-primary-600"
             >
                 Go back
             </button>
@@ -98,7 +103,8 @@ pub fn SinglePost() -> impl IntoView {
     view! {
         <Suspense fallback=FullScreenSpinner>
             {move || {
-                fetch_post.get()
+                fetch_post
+                    .get()
                     .map(|post| match post {
                         Ok(post) => view! { <SinglePostViewInner post /> }.into_any(),
                         Err(PostFetchError::Invalid) => view! { <Redirect path="/" /> }.into_any(),

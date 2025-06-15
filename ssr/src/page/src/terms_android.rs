@@ -5,8 +5,8 @@ use state::app_state::AppState;
 
 fn terms_section<T: IntoView>(title: &str, content: T) -> impl IntoView + use<'_, T> {
     view! {
-        <div class="term-section mb-6">
-            <div class="term-title text-sm font-semibold mb-3">{title}</div>
+        <div class="mb-6 term-section">
+            <div class="mb-3 text-sm font-semibold term-title">{title}</div>
             <div class="term-content">{content}</div>
         </div>
     }
@@ -20,11 +20,7 @@ fn bullet_list(items: Vec<&str>) -> impl IntoView + '_ {
         })
         .collect_view();
 
-    view! {
-        <ul class="list-disc pl-6 py-2 text-xs">
-            {list_items}
-        </ul>
-    }
+    view! { <ul class="py-2 pl-6 text-xs list-disc">{list_items}</ul> }
 }
 
 #[component]
@@ -90,7 +86,7 @@ pub fn TermsAndroid() -> impl IntoView {
     view! {
         <Title text=page_title />
 
-        <div class="w-screen min-h-screen bg-black pt-4 pb-12 text-white flex flex-col items-center">
+        <div class="flex flex-col items-center pt-4 pb-12 w-screen min-h-screen text-white bg-black">
             <TitleText justify_center=false>
                 <div class="flex flex-row justify-between">
                     <BackButton fallback="/menu".to_string() />
@@ -99,130 +95,178 @@ pub fn TermsAndroid() -> impl IntoView {
                 </div>
             </TitleText>
 
-            <div class="px-8 flex h-full w-full flex-col space-y-8 overflow-hidden overflow-y-auto py-16">
-                <div class="text-center mb-6">
-                    <h1 class="text-xl font-bold mb-2">Terms of Use | Yral</h1>
-                    <div class="text-sm opacity-80 mb-4">
-                        <p><strong>Effective Date:</strong> 13th July 2023</p>
-                        <p><strong>Last Updated:</strong> 22nd May 2025</p>
+            <div class="flex overflow-hidden overflow-y-auto flex-col py-16 px-8 space-y-8 w-full h-full">
+                <div class="mb-6 text-center">
+                    <h1 class="mb-2 text-xl font-bold">Terms of Use | Yral</h1>
+                    <div class="mb-4 text-sm opacity-80">
+                        <p>
+                            <strong>Effective Date:</strong>
+                            13th July 2023
+                        </p>
+                        <p>
+                            <strong>Last Updated:</strong>
+                            22nd May 2025
+                        </p>
                     </div>
                 </div>
 
-                <div class="text-xs whitespace-pre-line mb-6">{intro_content}</div>
+                <div class="mb-6 text-xs whitespace-pre-line">{intro_content}</div>
 
-                {terms_section("1. Your Account & Registration", view! {
-                    <div>
-                        <p class="mb-3 text-xs">
-                            "You must be at least 13 years old to use the App and have legal consent if you are a minor in your jurisdiction. You agree to:"
-                        </p>
-                        {bullet_list(account_bullets)}
-                        <p class="mb-3 text-xs">
-                            "We reserve the right to disable your account for violations of these Terms, laws, or for any activity harmful to our Services."
-                        </p>
-                    </div>
-                })}
+                {terms_section(
+                    "1. Your Account & Registration",
+                    view! {
+                        <div>
+                            <p class="mb-3 text-xs">
+                                "You must be at least 13 years old to use the App and have legal consent if you are a minor in your jurisdiction. You agree to:"
+                            </p>
+                            {bullet_list(account_bullets)}
+                            <p class="mb-3 text-xs">
+                                "We reserve the right to disable your account for violations of these Terms, laws, or for any activity harmful to our Services."
+                            </p>
+                        </div>
+                    },
+                )}
 
-                {terms_section("2. Child Safety Standards (CSAE Policy)", view! {
-                    <div>
-                        <p class="mb-3 text-xs">
-                            "Yral has zero tolerance for Child Sexual Abuse and Exploitation (CSAE). We:"
-                        </p>
-                        {bullet_list(csae_bullets)}
-                    </div>
-                })}
+                {terms_section(
+                    "2. Child Safety Standards (CSAE Policy)",
+                    view! {
+                        <div>
+                            <p class="mb-3 text-xs">
+                                "Yral has zero tolerance for Child Sexual Abuse and Exploitation (CSAE). We:"
+                            </p>
+                            {bullet_list(csae_bullets)}
+                        </div>
+                    },
+                )}
 
-                {terms_section("3. Community Guidelines", view! {
-                    <div>
-                        <p class="mb-3 text-xs">
-                            "Users are required to follow Yral's Community Guidelines and refrain from uploading or engaging in:"
-                        </p>
-                        {bullet_list(community_guidelines_bullets)}
-                        <p class="mb-3 text-xs">
-                            "Violation of these terms may result in content removal, account suspension, or reporting to authorities."
-                        </p>
-                    </div>
-                })}
+                {terms_section(
+                    "3. Community Guidelines",
+                    view! {
+                        <div>
+                            <p class="mb-3 text-xs">
+                                "Users are required to follow Yral's Community Guidelines and refrain from uploading or engaging in:"
+                            </p>
+                            {bullet_list(community_guidelines_bullets)}
+                            <p class="mb-3 text-xs">
+                                "Violation of these terms may result in content removal, account suspension, or reporting to authorities."
+                            </p>
+                        </div>
+                    },
+                )}
 
-                {terms_section("4. Content Moderation & Reporting", view! {
-                    <div>
-                        <p class="mb-3 text-xs">
-                            "Yral uses a mix of AI moderation tools and human reviewers to monitor content. Users can:"
-                        </p>
-                        {bullet_list(moderation_bullets)}
-                        <p class="mb-3 text-xs">"We reserve the right to:"</p>
-                        {bullet_list(moderation_rights_bullets)}
-                    </div>
-                })}
+                {terms_section(
+                    "4. Content Moderation & Reporting",
+                    view! {
+                        <div>
+                            <p class="mb-3 text-xs">
+                                "Yral uses a mix of AI moderation tools and human reviewers to monitor content. Users can:"
+                            </p>
+                            {bullet_list(moderation_bullets)}
+                            <p class="mb-3 text-xs">"We reserve the right to:"</p>
+                            {bullet_list(moderation_rights_bullets)}
+                        </div>
+                    },
+                )}
 
-                {terms_section("5. User Responsibilities", view! {
-                    <div>
-                        <p class="mb-3 text-xs">"You agree to:"</p>
-                        {bullet_list(user_responsibilities_bullets)}
-                    </div>
-                })}
+                {terms_section(
+                    "5. User Responsibilities",
+                    view! {
+                        <div>
+                            <p class="mb-3 text-xs">"You agree to:"</p>
+                            {bullet_list(user_responsibilities_bullets)}
+                        </div>
+                    },
+                )}
 
-                {terms_section("6. Blocking & Safety Controls", view! {
-                    <div>
-                        <p class="mb-3 text-xs">"Yral enables users to:"</p>
-                        {bullet_list(blocking_bullets)}
-                    </div>
-                })}
+                {terms_section(
+                    "6. Blocking & Safety Controls",
+                    view! {
+                        <div>
+                            <p class="mb-3 text-xs">"Yral enables users to:"</p>
+                            {bullet_list(blocking_bullets)}
+                        </div>
+                    },
+                )}
 
-                {terms_section("7. Content License", view! {
-                    <div>
-                        <p class="mb-3 text-xs">
-                            "By posting content, you grant Yral a limited, non-exclusive, royalty-free license to use, display, and distribute your content solely for operating and promoting the platform. You retain ownership of your content."
-                        </p>
-                    </div>
-                })}
+                {terms_section(
+                    "7. Content License",
+                    view! {
+                        <div>
+                            <p class="mb-3 text-xs">
+                                "By posting content, you grant Yral a limited, non-exclusive, royalty-free license to use, display, and distribute your content solely for operating and promoting the platform. You retain ownership of your content."
+                            </p>
+                        </div>
+                    },
+                )}
 
-                {terms_section("8. Account Termination", view! {
-                    <div>
-                        <p class="mb-3 text-xs">"We reserve the right to:"</p>
-                        {bullet_list(vec![
-                            "Suspend or delete your account at our sole discretion",
-                            "Remove content that violates these Terms or any applicable law"
-                        ])}
-                        <p class="mb-3 text-xs">
-                            "You may delete your account at any time via the app settings."
-                        </p>
-                    </div>
-                })}
+                {terms_section(
+                    "8. Account Termination",
+                    view! {
+                        <div>
+                            <p class="mb-3 text-xs">"We reserve the right to:"</p>
+                            {bullet_list(
+                                vec![
+                                    "Suspend or delete your account at our sole discretion",
+                                    "Remove content that violates these Terms or any applicable law",
+                                ],
+                            )}
+                            <p class="mb-3 text-xs">
+                                "You may delete your account at any time via the app settings."
+                            </p>
+                        </div>
+                    },
+                )}
 
-                {terms_section("9. Privacy Policy", view! {
-                    <div>
-                        <p class="mb-3 text-xs">
-                            "Please refer to our "
-                            <a href="/privacy-policy" class="underline text-blue-400">Privacy Policy</a>
-                            " for full details on how we collect, use, and protect your data."
-                        </p>
-                    </div>
-                })}
+                {terms_section(
+                    "9. Privacy Policy",
+                    view! {
+                        <div>
+                            <p class="mb-3 text-xs">
+                                "Please refer to our "
+                                <a href="/privacy-policy" class="text-blue-400 underline">
+                                    Privacy Policy
+                                </a>
+                                " for full details on how we collect, use, and protect your data."
+                            </p>
+                        </div>
+                    },
+                )}
 
-                {terms_section("10. Disclaimer and Limitation of Liability", view! {
-                    <div>
-                        <p class="mb-3 text-xs">
-                            "The App is provided \"as is\" and without warranties. We are not liable for:"
-                        </p>
-                        {bullet_list(liability_bullets)}
-                        <p class="mb-3 text-xs">"Use the App at your own risk."</p>
-                    </div>
-                })}
+                {terms_section(
+                    "10. Disclaimer and Limitation of Liability",
+                    view! {
+                        <div>
+                            <p class="mb-3 text-xs">
+                                "The App is provided \"as is\" and without warranties. We are not liable for:"
+                            </p>
+                            {bullet_list(liability_bullets)}
+                            <p class="mb-3 text-xs">"Use the App at your own risk."</p>
+                        </div>
+                    },
+                )}
 
-                {terms_section("11. Changes to Terms", view! {
-                    <div>
-                        <p class="mb-3 text-xs">
-                            "We may update these Terms periodically. Continued use of the App after updates means you accept the new Terms."
-                        </p>
-                    </div>
-                })}
+                {terms_section(
+                    "11. Changes to Terms",
+                    view! {
+                        <div>
+                            <p class="mb-3 text-xs">
+                                "We may update these Terms periodically. Continued use of the App after updates means you accept the new Terms."
+                            </p>
+                        </div>
+                    },
+                )}
 
-                {terms_section("12. Contact Information", view! {
-                    <div>
-                        <p class="mb-3 text-xs">"For safety issues, CSAE reports, or support:"</p>
-                        <p class="mb-3 text-xs">"📧 Email: support@yral.com"</p>
-                    </div>
-                })}
+                {terms_section(
+                    "12. Contact Information",
+                    view! {
+                        <div>
+                            <p class="mb-3 text-xs">
+                                "For safety issues, CSAE reports, or support:"
+                            </p>
+                            <p class="mb-3 text-xs">"📧 Email: support@yral.com"</p>
+                        </div>
+                    },
+                )}
             </div>
         </div>
     }

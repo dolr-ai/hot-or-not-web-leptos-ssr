@@ -37,10 +37,13 @@ pub fn ShareContent(
                 <span class="text-xl font-semibold text-center md:text-2xl">Share this app</span>
             </div>
             <SocialShare message=message.clone() share_link=share_link_social.clone() />
-            <div class="flex overflow-x-auto justify-center items-center px-10 mx-1 space-x-2 w-full rounded-xl border-2 border-neutral-700 h-10 md:h-20">
+            <div class="flex overflow-x-auto justify-center items-center px-10 mx-1 space-x-2 w-full h-10 rounded-xl border-2 md:h-20 border-neutral-700">
                 <span class="text-lg text-black md:text-xl truncate">{share_link.clone()}</span>
                 <button on:click=copy_clipboard>
-                    <Icon attr:class="w-6 h-6 text-black cursor-pointer" icon=icondata::BiCopyRegular />
+                    <Icon
+                        attr:class="w-6 h-6 text-black cursor-pointer"
+                        icon=icondata::BiCopyRegular
+                    />
                 </button>
             </div>
             <button
@@ -81,18 +84,24 @@ fn SocialShare(share_link: String, message: String) -> impl IntoView {
         <div class="flex gap-4">
             // Facebook button
             <a href=fb_url target="_blank">
-                <Icon attr:class="text-3xl md:text-4xl text-primary-600" icon=icondata::BsFacebook />
+                <Icon
+                    attr:class="text-3xl md:text-4xl text-primary-600"
+                    icon=icondata::BsFacebook
+                />
             </a>
 
             // Twitter button
             <a href=twitter_url target="_blank">
-                <Icon attr:class="text-3xl md:text-4xl text-primary-600" icon=icondata::BsTwitterX />
+                <Icon
+                    attr:class="text-3xl md:text-4xl text-primary-600"
+                    icon=icondata::BsTwitterX
+                />
             </a>
 
             // WhatsApp button
             <a href=whatsapp_url target="_blank">
                 <Icon
-                attr:class="text-3xl md:text-4xl text-primary-600"
+                    attr:class="text-3xl md:text-4xl text-primary-600"
                     icon=icondata::FaSquareWhatsappBrands
                 />
             </a>
@@ -100,13 +109,13 @@ fn SocialShare(share_link: String, message: String) -> impl IntoView {
             // LinkedIn button
             <a href=linkedin_url target="_blank">
                 <Icon
-                attr:class="text-3xl md:text-4xl text-primary-600"
+                    attr:class="text-3xl md:text-4xl text-primary-600"
                     icon=icondata::TbBrandLinkedin
                 />
             </a>
             <a href=telegram_url target="_blank">
                 <Icon
-                attr:class="text-3xl md:text-4xl text-primary-600"
+                    attr:class="text-3xl md:text-4xl text-primary-600"
                     icon=icondata::TbBrandTelegram
                 />
             </a>
@@ -136,7 +145,7 @@ pub fn ShareButtonWithFallbackPopup(
 
     view! {
         <button on:click=on_share_click class=class>
-            <Icon  attr:class="h-6 w-6 text-neutral-300" icon=ShareIcon />
+            <Icon attr:class="h-6 w-6 text-neutral-300" icon=ShareIcon />
         </button>
         <PopupOverlay show=show_fallback>
             <ShareContent

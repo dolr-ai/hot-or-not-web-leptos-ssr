@@ -121,6 +121,7 @@ mod mock {
 
     use super::*;
 
+    #[allow(dead_code)]
     pub async fn vote_with_cents_on_post(
         _sender: Principal,
         _req: VoteRequest,

@@ -11,13 +11,13 @@ fn FaqItem(#[prop(into)] header: String, #[prop(into)] content: String) -> impl 
     let show = RwSignal::new(false);
 
     view! {
-        <div class="bg-white/10 w-full p-3 flex flex-col gap-1 rounded-md">
+        <div class="flex flex-col gap-1 p-3 w-full rounded-md bg-white/10">
             <div
                 class="grid grid-cols-2 items-center w-full cursor-pointer"
                 on:click=move |_| show.update(|s| *s = !*s)
             >
                 <span class="text-lg">{header}</span>
-                <div class="text-primary-600 text-lg justify-self-end">
+                <div class="justify-self-end text-lg text-primary-600">
                     <Show when=show fallback=|| view! { <Icon icon=icondata::AiPlusOutlined /> }>
                         <Icon icon=icondata::AiMinusOutlined />
                     </Show>
@@ -46,7 +46,7 @@ fn FaqType<F: FnMut() + 'static>(
                 checked=init_checked
             />
             <span class="text-md text-white/50 peer-checked:text-white">{name}</span>
-            <div class="p-1 rounded-full bg-primary-600 hidden peer-checked:block"></div>
+            <div class="hidden p-1 rounded-full bg-primary-600 peer-checked:block"></div>
         </label>
     }
 }
@@ -100,11 +100,11 @@ fn FaqSwitcher() -> impl IntoView {
 #[component]
 pub fn Faq() -> impl IntoView {
     view! {
-        <div class="w-screen min-h-screen px-8 bg-black pt-4 pb-14 text-white flex flex-col items-center">
+        <div class="flex flex-col items-center px-8 pt-4 pb-14 w-screen min-h-screen text-white bg-black">
             <TitleText>
                 <span class="font-bold">FAQs</span>
             </TitleText>
-            <div class="w-full text-lg my-8">Find all your answers here</div>
+            <div class="my-8 w-full text-lg">Find all your answers here</div>
             <FaqSwitcher />
         </div>
     }

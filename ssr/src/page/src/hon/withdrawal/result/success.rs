@@ -45,9 +45,9 @@ pub fn Success() -> impl IntoView {
     Some(view! {
         <div
             style:background-image="url('/img/yral/onboarding-bg.webp')"
-            class="min-h-screen w-full flex flex-col text-white pt-2 pb-12 bg-black items-center relative max-md:bg-size-[271vw_100vh] md:bg-size-[max(100vw,100vh)] max-md:bg-position-[-51.2vh_-6vw]"
+            class="flex relative flex-col items-center pt-2 pb-12 w-full min-h-screen text-white bg-black max-md:bg-size-[271vw_100vh] max-md:bg-position-[-51.2vh_-6vw] md:bg-size-[max(100vw,100vh)]"
         >
-            <div id="back-nav" class="flex flex-col items-center w-full gap-20 pb-16">
+            <div id="back-nav" class="flex flex-col gap-20 items-center pb-16 w-full">
                 <TitleText justify_center=false>
                     <div class="flex flex-row justify-between">
                         <BackButton fallback="/" />
@@ -55,16 +55,23 @@ pub fn Success() -> impl IntoView {
                 </TitleText>
             </div>
             <div class="w-full">
-                <div class="max-w-md w-full mx-auto px-4 mt-4 pb-6 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                    <div class="w-full flex flex-col gap-12 items-center">
+                <div class="absolute top-1/2 left-1/2 px-4 pb-6 mx-auto mt-4 w-full max-w-md -translate-x-1/2 -translate-y-1/2">
+                    <div class="flex flex-col gap-12 items-center w-full">
                         <img class="max-w-44" src="/img/hotornot/tick.webp" />
-                        <div class="flex flex-col gap-8 w-full px-5">
+                        <div class="flex flex-col gap-8 px-5 w-full">
                             <div class="flex flex-col gap-2 items-center">
-                                <span class="font-bold text-lg">Withdraw Successful!</span>
-                                <span class="text-neutral-300">Your wallet has been updated with {formatted_btc} BTC.</span>
+                                <span class="text-lg font-bold">Withdraw Successful!</span>
+                                <span class="text-neutral-300">
+                                    Your wallet has been updated with {formatted_btc}BTC.
+                                </span>
                             </div>
-                            <a class="rounded-lg px-5 py-2 text-center font-bold bg-white" href="/wallet">
-                                <span class="bg-brand-gradient text-transparent bg-clip-text">Go to wallet</span>
+                            <a
+                                class="py-2 px-5 font-bold text-center bg-white rounded-lg"
+                                href="/wallet"
+                            >
+                                <span class="text-transparent bg-clip-text bg-brand-gradient">
+                                    Go to wallet
+                                </span>
                             </a>
                         </div>
                     </div>

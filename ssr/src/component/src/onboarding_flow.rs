@@ -19,51 +19,51 @@ pub fn OnboardingPopUp(onboard_on_click: WriteSignal<bool>) -> impl IntoView {
 
     view! {
         <div
-            class="h-full w-full bg-black bg-opacity-70 z-10 flex flex-col justify-center relative"
+            class="flex relative z-10 flex-col justify-center w-full h-full bg-black bg-opacity-70"
             style=style
         >
             <Show when=move || { onboarding_page_no.get() == 1 }>
                 <OnboardingTopDecorator />
                 <div class="flex flex-row justify-center">
-                    <div class="flex flex-col justify-center w-9/12 sm:w-4/12 relative gap-y-36">
+                    <div class="flex relative flex-col gap-y-36 justify-center w-9/12 sm:w-4/12">
                         <div class="relative self-center">
-                            <p class="text-white text-center font-bold w-56 text-2xl leading-normal">
+                            <p class="w-56 text-2xl font-bold leading-normal text-center text-white">
                                 A new Hot or Not game experience awaits you
                             </p>
                             <img
-                                class="-left-6 top-8 h-5 w-5 absolute"
+                                class="absolute -left-6 top-8 w-5 h-5"
                                 src="/img/common/decorator/star.svg"
                             />
                             <img
-                                class="-left-2 -top-6 h-4 w-4 absolute"
+                                class="absolute -left-2 -top-6 w-4 h-4"
                                 src="/img/common/decorator/star.svg"
                             />
                             <img
-                                class="left-6 -top-2 h-3 w-3 absolute"
+                                class="absolute -top-2 left-6 w-3 h-3"
                                 src="/img/common/decorator/star.svg"
                             />
                             <img
-                                class="-right-6 -top-2 h-6 w-6 absolute"
+                                class="absolute -top-2 -right-6 w-6 h-6"
                                 src="/img/common/decorator/star.svg"
                             />
                             <img
-                                class="right-2 -top-1 h-2 w-2 absolute"
+                                class="absolute -top-1 right-2 w-2 h-2"
                                 src="/img/common/decorator/star.svg"
                             />
                             <img
-                                class="-right-5 bottom-4 h-2 w-2 absolute"
+                                class="absolute bottom-4 -right-5 w-2 h-2"
                                 src="/img/common/decorator/star.svg"
                             />
                         </div>
-                        <div class="flex flex-col items-center gap-y-4">
+                        <div class="flex flex-col gap-y-4 items-center">
                             <button
-                                class="self-center font-semibold rounded-full bg-primary-600 py-2 md:py-3 w-full max-w-80 text-center text-base md:text-xl text-white"
+                                class="self-center py-2 w-full text-base font-semibold text-center text-white rounded-full md:py-3 md:text-xl bg-primary-600 max-w-80"
                                 on:click=move |_| onboarding_page_no.set(2)
                             >
                                 Start Tutorial
                             </button>
                             <button
-                                class="text-white text-center font-medium text-base leading-normal font-sans"
+                                class="font-sans text-base font-medium leading-normal text-center text-white"
                                 on:click=move |_| onboard_on_click.set(true)
                             >
                                 Maybe Later
@@ -103,34 +103,34 @@ pub fn OnboardingPopUp(onboard_on_click: WriteSignal<bool>) -> impl IntoView {
             <Show when=move || { onboarding_page_no.get() == 5 }>
                 <OnboardingTopDecorator />
                 <div class="flex flex-row justify-center">
-                    <div class="flex flex-col justify-center w-9/12 sm:w-4/12 relative">
+                    <div class="flex relative flex-col justify-center w-9/12 sm:w-4/12">
                         <div class="self-center">
-                            <p class="text-white text-center font-bold w-56 text-2xl leading-normal">
+                            <p class="w-56 text-2xl font-bold leading-normal text-center text-white">
                                 "There's even more"
                             </p>
                         </div>
-                        <div class="flex flex-col justify-center gap-y-3 mt-12">
+                        <div class="flex flex-col gap-y-3 justify-center mt-12">
                             <div class="self-center">
                                 <img src="/img/common/decorator/buy_coin.svg" />
                             </div>
                             <div class="self-center">
-                                <p class="text-white text-center font-medium text-sm leading-normal">
+                                <p class="text-sm font-medium leading-normal text-center text-white">
                                     Refer and Earn Cents
                                 </p>
                             </div>
                         </div>
-                        <div class="flex flex-col justify-center gap-y-3 mt-12">
+                        <div class="flex flex-col gap-y-3 justify-center mt-12">
                             <div class="self-center">
                                 <img src="/img/common/decorator/prizes.svg" />
                             </div>
                             <div class="self-center">
-                                <p class="text-white text-center font-medium text-sm leading-normal">
+                                <p class="text-sm font-medium leading-normal text-center text-white">
                                     Play and earn
                                 </p>
                             </div>
                         </div>
                         <button
-                            class="font-bold rounded-full bg-primary-600 py-3 md:py-4 w-80 mt-24 self-center text-center text-lg md:text-xl text-white"
+                            class="self-center py-3 mt-24 w-80 text-lg font-bold text-center text-white rounded-full md:py-4 md:text-xl bg-primary-600"
                             on:click=move |_| onboard_on_click.set(true)
                         >
                             "Let's make some money"
@@ -145,11 +145,11 @@ pub fn OnboardingPopUp(onboard_on_click: WriteSignal<bool>) -> impl IntoView {
 #[component]
 pub fn OnboardingTopDecorator() -> impl IntoView {
     view! {
-        <div class="top-0 w-full flex justify-center">
-            <div class="absolute left-0 top-0">
+        <div class="flex top-0 justify-center w-full">
+            <div class="absolute top-0 left-0">
                 <img src="/img/common/decorator/decore-left.svg" />
             </div>
-            <div class="absolute right-0 top-0">
+            <div class="absolute top-0 right-0">
                 <img src="/img/common/decorator/decore-right.svg" />
             </div>
         </div>
@@ -159,7 +159,7 @@ pub fn OnboardingTopDecorator() -> impl IntoView {
 #[component]
 pub fn OnboardingTopCross(onboard_on_click: WriteSignal<bool>) -> impl IntoView {
     view! {
-        <div class="top-0 w-full flex justify-center">
+        <div class="flex top-0 justify-center w-full">
             <div class="absolute right-[16.1px] top-[19px]">
                 <button
                     class="text-white bg-transparent bg-opacity-70"
@@ -180,29 +180,29 @@ pub fn OnboardingContent(
 ) -> impl IntoView {
     view! {
         <div class="flex flex-row justify-center">
-            <div class="flex flex-col justify-center w-9/12 sm:w-4/12 relative">
-                <div class="relative flex flex-col justify-center items-center gap-y-9">
+            <div class="flex relative flex-col justify-center w-9/12 sm:w-4/12">
+                <div class="flex relative flex-col gap-y-9 justify-center items-center">
                     <div class="flex flex-col gap-y-2 justify-center items-center">
                         <div class="self-center">
-                            <p class="text-white text-center font-bold w-72 text-2xl leading-normal -mt-3">
+                            <p class="-mt-3 w-72 text-2xl font-bold leading-normal text-center text-white">
                                 {header_text}
                             </p>
                         </div>
                         <div class="self-center px-2">
-                            <p class="text-white text-center font-medium w-64 text-sm leading-5 font-sans">
+                            <p class="w-64 font-sans text-sm font-medium leading-5 text-center text-white">
                                 {body_text}
                             </p>
                         </div>
                     </div>
                     <div class="flex flex-col gap-y-4 justify-center items-center">
                         <button
-                            class="self-center font-semibold rounded-full bg-primary-600 z-20 py-2 md:py-3 w-40 max-w-30 text-center text-base md:text-xl text-white"
+                            class="z-20 self-center py-2 w-40 text-base font-semibold text-center text-white rounded-full md:py-3 md:text-xl bg-primary-600 max-w-30"
                             on:click=move |_| onboarding_page_no.update(|page| *page += 1)
                         >
                             Next
                         </button>
                         <button
-                            class="text-white text-center font-semibold text-lg sm:text-base z-20 leading-normal font-sans"
+                            class="z-20 font-sans text-lg font-semibold leading-normal text-center text-white sm:text-base"
                             on:click=move |_| onboarding_page_no.update(|page| *page -= 1)
                         >
                             Previous
@@ -211,19 +211,19 @@ pub fn OnboardingContent(
                     <Show when=move || { onboarding_page_no.get() == 2 }>
                         <img
                             src="/img/common/decorator/coin_arrow.svg"
-                            class="absolute h-[30vh] hot-left-arrow -ml-56 sm:-ml-64 mt-48 sm:mt:64"
+                            class="absolute mt-48 -ml-56 sm:-ml-64 h-[30vh] hot-left-arrow sm:mt:64"
                         />
                     </Show>
                     <Show when=move || { onboarding_page_no.get() == 3 }>
                         <img
                             src="/img/common/decorator/hot_arrow.svg"
-                            class="absolute h-[33vh] hot-left-arrow -ml-60 sm:-ml-72 mt-48 sm:mt-64"
+                            class="absolute mt-48 -ml-60 sm:mt-64 sm:-ml-72 h-[33vh] hot-left-arrow"
                         />
                     </Show>
                     <Show when=move || { onboarding_page_no.get() == 4 }>
                         <img
                             src="/img/common/decorator/not_arrow.svg"
-                            class="absolute h-[33vh] hot-left-arrow ml-60 sm:ml-72 mt-48 sm:mt-64"
+                            class="absolute mt-48 ml-60 sm:mt-64 sm:ml-72 h-[33vh] hot-left-arrow"
                         />
                     </Show>
                 </div>

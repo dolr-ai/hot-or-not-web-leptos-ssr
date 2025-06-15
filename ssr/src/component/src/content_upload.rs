@@ -42,15 +42,15 @@ fn YoutubeUploadInner(#[prop(optional)] url: String) -> impl IntoView {
     let submit_res = on_submit.value();
 
     view! {
-        <div data-hk="1-0-0-3" class="flex h-full items-center justify-around p-4">
-            <div data-hk="1-0-0-4" class="flex flex-col items-center justify-center">
-                <div class="flex h-full flex-col justify-around gap-6">
-                    <div class="flex basis-9/12 flex-col items-center justify-center">
-                        <h1 data-hk="1-0-0-5" class="text-2xl md:text-3xl text-white">
+        <div data-hk="1-0-0-3" class="flex justify-around items-center p-4 h-full">
+            <div data-hk="1-0-0-4" class="flex flex-col justify-center items-center">
+                <div class="flex flex-col gap-6 justify-around h-full">
+                    <div class="flex flex-col justify-center items-center basis-9/12">
+                        <h1 data-hk="1-0-0-5" class="text-2xl text-white md:text-3xl">
                             VIDEO IMPORTER
                         </h1>
                     </div>
-                    <div class="flex basis-3/12 flex-col justify-around items-center gap-4">
+                    <div class="flex flex-col gap-4 justify-around items-center basis-3/12">
                         <input
                             type="text"
                             value=move || url_value.get()
@@ -64,13 +64,15 @@ fn YoutubeUploadInner(#[prop(optional)] url: String) -> impl IntoView {
                         />
                         <button
                             type="submit"
-                            class="border border-solid px-4 text-xl md:text-2xl w-fit text-white hover:bg-white hover:text-black"
-                            on:click=move |_| {on_submit.dispatch(());}
+                            class="px-4 text-xl text-white border border-solid md:text-2xl hover:text-black hover:bg-white w-fit"
+                            on:click=move |_| {
+                                on_submit.dispatch(());
+                            }
                         >
 
                             Submit
                         </button>
-                        <p class="text-base md:text-lg text-white">
+                        <p class="text-base text-white md:text-lg">
                             {move || submit_res.get().unwrap_or_default()}
                         </p>
                     </div>
