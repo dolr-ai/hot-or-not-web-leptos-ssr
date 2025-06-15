@@ -76,7 +76,7 @@ pub fn NotificationDisplay() -> impl IntoView {
                                 <div class="notification-content">
                                     <div class="notification-header">
                                         <strong>{notif.title.clone()}</strong>
-                                        <button class="close-button" on:click=close_notification>
+                                        <button class="close-button" on:click=close_notification aria-label="Dismiss notification">
                                             "X"
                                         </button>
                                     </div>
