@@ -61,10 +61,17 @@ pub fn Success() -> impl IntoView {
                         <div class="flex flex-col gap-8 w-full px-5">
                             <div class="flex flex-col gap-2 items-center">
                                 <span class="font-bold text-lg">Withdraw Successful!</span>
-                                <span class="text-neutral-300">Your wallet has been updated with {formatted_btc} BTC.</span>
+                                <span class="text-neutral-300">
+                                    Your wallet has been updated with {formatted_btc}BTC.
+                                </span>
                             </div>
-                            <a class="rounded-lg px-5 py-2 text-center font-bold bg-white" href="/wallet">
-                                <span class="bg-brand-gradient text-transparent bg-clip-text">Go to wallet</span>
+                            <a
+                                class="rounded-lg px-5 py-2 text-center font-bold bg-white"
+                                href="/wallet"
+                            >
+                                <span class="bg-brand-gradient text-transparent bg-clip-text">
+                                    Go to wallet
+                                </span>
                             </a>
                         </div>
                     </div>

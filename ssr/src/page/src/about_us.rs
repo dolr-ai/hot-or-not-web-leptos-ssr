@@ -42,25 +42,33 @@ pub fn AboutUs() -> impl IntoView {
                 </div>
 
                 <div class="flex flex-col space-y-4 mb-12">
-                    <div class="text-lg md:text-xl font-semibold md:text-center mb-6">Our Leadership</div>
+                    <div class="text-lg md:text-xl font-semibold md:text-center mb-6">
+                        Our Leadership
+                    </div>
 
                     <div class="flex flex-col md:flex-row gap-4">
                         <div class="bg-neutral-900 rounded-lg p-4 flex-1">
                             <div class="font-semibold text-base md:text-lg">Rishi Chadha</div>
                             <div class="text-gray-400">CEO & Co-Founder</div>
-                            <div class="mt-2 text-sm md:text-base">A serial entrepreneur with global experience across 35+ countries, leading our vision for decentralized social media.</div>
+                            <div class="mt-2 text-sm md:text-base">
+                                A serial entrepreneur with global experience across 35+ countries, leading our vision for decentralized social media.
+                            </div>
                         </div>
 
                         <div class="bg-neutral-900 rounded-lg p-4 flex-1">
                             <div class="font-semibold text-base md:text-lg">Saikat Das</div>
                             <div class="text-gray-400">CTO & Co-Founder</div>
-                            <div class="mt-2 text-sm md:text-base">Tech innovator specializing in Rust programming, blockchain, and AI, driving our technological advancement.</div>
+                            <div class="mt-2 text-sm md:text-base">
+                                Tech innovator specializing in Rust programming, blockchain, and AI, driving our technological advancement.
+                            </div>
                         </div>
 
                         <div class="bg-neutral-900 rounded-lg p-4 flex-1">
                             <div class="font-semibold text-base md:text-lg">Utkarsh Goyal</div>
                             <div class="text-gray-400">CFO & Co-Founder</div>
-                            <div class="mt-2 text-sm md:text-base">Financial strategist with an MBA, overseeing operations and ensuring sustainable growth.</div>
+                            <div class="mt-2 text-sm md:text-base">
+                                Financial strategist with an MBA, overseeing operations and ensuring sustainable growth.
+                            </div>
                         </div>
                     </div>
                 </div>

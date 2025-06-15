@@ -26,9 +26,14 @@ pub fn Failure() -> impl IntoView {
                         <div class="flex flex-col gap-8 w-full px-5">
                             <div class="flex flex-col gap-2 items-center">
                                 <span class="font-bold text-lg">OOPS!</span>
-                                <span class="text-neutral-300">Failed to withdraw {formatted_sats} Sats!</span>
+                                <span class="text-neutral-300">
+                                    Failed to withdraw {formatted_sats}Sats!
+                                </span>
                             </div>
-                            <a class="rounded-lg px-5 py-2 text-center font-bold bg-brand-gradient text-white" href="/hot-or-not/withdraw">
+                            <a
+                                class="rounded-lg px-5 py-2 text-center font-bold bg-brand-gradient text-white"
+                                href="/hot-or-not/withdraw"
+                            >
                                 Try Again
                             </a>
                         </div>

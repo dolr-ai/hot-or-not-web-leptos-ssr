@@ -112,9 +112,7 @@ fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
 
 #[component]
 fn ProfileInfo(profile_details: ProfileDetails) -> impl IntoView {
-    view! {
-        <ProfileLoaded user_details=profile_details />
-    }
+    view! { <ProfileLoaded user_details=profile_details /> }
     .into_any()
 }
 
@@ -203,37 +201,54 @@ pub fn Menu() -> impl IntoView {
         <Suspense>
             {move || Suspend::new(async move {
                 if let Err(e) = authorized_fetch_res.await {
-                    return Either::Left(view! {
-                        <Redirect path=format!("/error?err={e}") />
-                    })
-                };
+                    return Either::Left(view! { <Redirect path=format!("/error?err={e}") /> });
+                }
+                Either::Right(
 
-                Either::Right(view! {
-                    <Modal show=show_content_modal>
-                    {move || is_authorized_to_seed_content.0.get().map(|(_, principal)| {
-                        view! {
-                            <YoutubeUpload url=query_map.get().get("text").unwrap_or_default() user_principal=principal />
-                        }
-                    })}
-                    </Modal>
-                    {move || upload_content_mount_point.get().map(|mount| view! {
-                            <Portal mount>
-                                <Show when=move || {
-                                    is_authorized_to_seed_content.0.get().map(|(a, _)| a).unwrap_or_default()
-                                        && is_connected()
-                                }>
-                                    <div class="w-full px-8 md:w-4/12 xl:w-2/12">
-                                        <button
-                                            class="font-bold rounded-full bg-primary-600 py-2 md:py-3 w-full text-center text-lg md:text-xl text-white"
-                                            on:click=move |_| show_content_modal.set(true)
-                                        >
-                                            Upload Content
-                                        </button>
-                                    </div>
-                            </Show>
-                        </Portal>
-                    })}
-                })
+                    view! {
+                        <Modal show=show_content_modal>
+                            {move || {
+                                is_authorized_to_seed_content
+                                    .0
+                                    .get()
+                                    .map(|(_, principal)| {
+                                        view! {
+                                            <YoutubeUpload
+                                                url=query_map.get().get("text").unwrap_or_default()
+                                                user_principal=principal
+                                            />
+                                        }
+                                    })
+                            }}
+                        </Modal>
+                        {move || {
+                            upload_content_mount_point
+                                .get()
+                                .map(|mount| {
+                                    view! {
+                                        <Portal mount>
+                                            <Show when=move || {
+                                                is_authorized_to_seed_content
+                                                    .0
+                                                    .get()
+                                                    .map(|(a, _)| a)
+                                                    .unwrap_or_default() && is_connected()
+                                            }>
+                                                <div class="w-full px-8 md:w-4/12 xl:w-2/12">
+                                                    <button
+                                                        class="font-bold rounded-full bg-primary-600 py-2 md:py-3 w-full text-center text-lg md:text-xl text-white"
+                                                        on:click=move |_| show_content_modal.set(true)
+                                                    >
+                                                        Upload Content
+                                                    </button>
+                                                </div>
+                                            </Show>
+                                        </Portal>
+                                    }
+                                })
+                        }}
+                    },
+                )
             })}
         </Suspense>
         <div class="min-h-screen w-full flex flex-col text-white pt-2 pb-12 bg-black items-center divide-y divide-white/10">
@@ -248,8 +263,8 @@ pub fn Menu() -> impl IntoView {
                         <Suspense fallback=ProfileLoading>
                             {move || Suspend::new(async move {
                                 let cans = auth.auth_cans(unauth_canisters()).await;
-                                cans.map(|c| view! {
-                                    <ProfileInfo profile_details=c.profile_details() />
+                                cans.map(|c| {
+                                    view! { <ProfileInfo profile_details=c.profile_details() /> }
                                 })
                             })}
                         </Suspense>
@@ -262,7 +277,7 @@ pub fn Menu() -> impl IntoView {
                             {r#"Your Yral account has been setup. Login with Google to not lose progress."#}
                         </div>
                     </Show>
-                    <div node_ref=upload_content_mount_point/>
+                    <div node_ref=upload_content_mount_point />
                 </div>
             </div>
             <div class="flex flex-col py-12 px-8 gap-8 w-full text-lg">

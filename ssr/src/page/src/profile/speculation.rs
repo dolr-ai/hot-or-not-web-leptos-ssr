@@ -172,7 +172,7 @@ pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView 
                 <div class="flex flex-col gap-y-5 z-20">
                     <div class="flex flex-col px-3">
                         <span class="text-xs font-medium uppercase">{bet_res}</span>
-                        <span class="text-sm font-semibold md:text-base">{amt_render} Sats</span>
+                        <span class="text-sm font-semibold md:text-base">{amt_render}Sats</span>
                     </div>
                     {icon}
                 </div>

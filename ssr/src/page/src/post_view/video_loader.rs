@@ -55,16 +55,15 @@ pub fn BgView(
                 style:background-color="rgb(0, 0, 0)"
                 style:background-image=move || format!("url({})", bg_url(uid()))
             ></div>
-            <audio class="sr-only" node_ref=win_audio_ref preload="auto" src="/img/hotornot/chaching.m4a"/>
+            <audio
+                class="sr-only"
+                node_ref=win_audio_ref
+                preload="auto"
+                src="/img/hotornot/chaching.m4a"
+            />
             {move || {
                 let (post, prev_post) = post_with_prev.get();
-                Some(view! {
-                    <VideoDetailsOverlay
-                        post=post?
-                        prev_post
-                        win_audio_ref
-                    />
-                 })
+                Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref /> })
             }}
             {children()}
         </div>

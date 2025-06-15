@@ -65,7 +65,9 @@ fn YoutubeUploadInner(#[prop(optional)] url: String) -> impl IntoView {
                         <button
                             type="submit"
                             class="border border-solid px-4 text-xl md:text-2xl w-fit text-white hover:bg-white hover:text-black"
-                            on:click=move |_| {on_submit.dispatch(());}
+                            on:click=move |_| {
+                                on_submit.dispatch(());
+                            }
                         >
 
                             Submit

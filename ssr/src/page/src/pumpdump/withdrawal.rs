@@ -218,7 +218,9 @@ pub fn PndWithdrawal() -> impl IntoView {
                 <div class="flex flex-col items-center justify-center max-w-md mx-auto px-4 mt-4 pb-6">
                     <Suspense>
                         {move || {
-                            let (balance_info_display, _) = try_or_redirect_opt!(details_res.get()?);
+                            let (balance_info_display, _) = try_or_redirect_opt!(
+                                details_res.get()?
+                            );
                             balance_info_signal.set(Some(balance_info_display.clone()));
                             Some(
                                 view! {

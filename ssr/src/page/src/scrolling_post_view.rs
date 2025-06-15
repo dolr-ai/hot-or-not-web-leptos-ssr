@@ -17,7 +17,7 @@ pub fn MuteIconOverlay(show_mute_icon: RwSignal<bool>) -> impl IntoView {
                 on:click=move |_| AudioState::toggle_mute()
             >
                 <Icon
-                attr:class="text-white/80 animate-ping text-4xl"
+                    attr:class="text-white/80 animate-ping text-4xl"
                     icon=icondata::BiVolumeMuteSolid
                 />
             </button>
@@ -72,9 +72,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                 {
                                     return;
                                 }
-
                                 current_idx.set(queue_idx);
-
                                 if video_queue.with_untracked(|q| q.len()).saturating_sub(queue_idx)
                                     <= threshold_trigger_fetch
                                 {
@@ -97,6 +95,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                         let show_video = Memo::new(move |_| {
                             queue_idx.abs_diff(current_idx()) <= 6
                         });
+
                         view! {
                             <div node_ref=container_ref class="snap-always snap-end w-full h-full">
                                 <Show when=show_video>
@@ -110,7 +109,8 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                     </BgView>
                                 </Show>
                             </div>
-                        }.into_any()
+                        }
+                            .into_any()
                     }
                 />
 

@@ -242,17 +242,27 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
 
     view! {
         <div class="flex flex-col w-full gap-2 mb-2 items-center pb-10">
-            {tokens.into_iter().map(|token_type| {
-                let display_info: TokenDisplayInfo = token_type.into();
-                let display_info = display_info.clone();
-                let balance = balance(token_type);
-                let withdrawal_state = withdrawal_state(token_type);
-                let is_utility_token = token_type.is_utility_token();
+            {tokens
+                .into_iter()
+                .map(|token_type| {
+                    let display_info: TokenDisplayInfo = token_type.into();
+                    let display_info = display_info.clone();
+                    let balance = balance(token_type);
+                    let withdrawal_state = withdrawal_state(token_type);
+                    let is_utility_token = token_type.is_utility_token();
 
-                view! {
-                    <FastWalletCard user_canister user_principal display_info balance withdrawal_state is_utility_token />
-                }
-            }).collect_view()}
+                    view! {
+                        <FastWalletCard
+                            user_canister
+                            user_principal
+                            display_info
+                            balance
+                            withdrawal_state
+                            is_utility_token
+                        />
+                    }
+                })
+                .collect_view()}
         </div>
     }
 }
@@ -422,17 +432,30 @@ pub fn WithdrawSection(
     let is_cents = token_name == CENT_TOKEN_NAME;
     view! {
         <div class="border-t border-neutral-700 flex flex-col pt-4 gap-2">
-            {is_cents.then_some(view! {
-                <div class="flex items-center">
-                    <Icon attr:class="text-neutral-300" icon=if is_withdrawable { PadlockOpen } else { PadlockClose } />
-                    <span class="text-neutral-400 text-xs mx-2">{withdraw_message}</span>
-                    <Tooltip icon=Information title="Withdrawal Tokens" description="Only Cents earned above your airdrop amount can be withdrawn." />
-                    <span class="ml-auto">{withdrawable_balance}</span>
-                </div>
-            })}
+            {is_cents
+                .then_some(
+                    view! {
+                        <div class="flex items-center">
+                            <Icon
+                                attr:class="text-neutral-300"
+                                icon=if is_withdrawable { PadlockOpen } else { PadlockClose }
+                            />
+                            <span class="text-neutral-400 text-xs mx-2">{withdraw_message}</span>
+                            <Tooltip
+                                icon=Information
+                                title="Withdrawal Tokens"
+                                description="Only Cents earned above your airdrop amount can be withdrawn."
+                            />
+                            <span class="ml-auto">{withdrawable_balance}</span>
+                        </div>
+                    },
+                )}
             <button
                 class="rounded-lg px-5 py-2 text-sm text-center font-bold"
-                class=(["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled"], !is_withdrawable)
+                class=(
+                    ["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled"],
+                    !is_withdrawable,
+                )
                 class=(["text-neutral-50", "bg-brand-gradient"], is_withdrawable)
                 on:click=withdraw_handle
             >
@@ -574,20 +597,27 @@ pub fn FastWalletCard(
                         <div class="text-sm font-medium uppercase truncate">{name.clone()}</div>
                     </div>
                     <div class="flex flex-col items-end">
-                        <Suspense
-                            fallback=move || view! {
+                        <Suspense fallback=move || {
+                            view! {
                                 <Skeleton class="h-3 w-10 rounded-sm text-neutral-600 [--shimmer:#27272A]" />
                             }
-                        >
+                        }>
                             {move || Suspend::new(async move {
-                                // show error text if balance fails to load for whatever reason
-                                // error logs are captured by sentry
-                                let bal = balance.await.inspect_err(|err| {log::error!("balance loading error: {err:?}");}).ok();
+                                let bal = balance
+                                    .await
+                                    .inspect_err(|err| {
+                                        log::error!("balance loading error: {err:?}");
+                                    })
+                                    .ok();
                                 let bal = bal.map(|b| b.humanize_float_truncate_to_dp(8));
                                 let err = bal.is_none();
                                 let text = bal.unwrap_or_else(|| "err".into());
+                                // show error text if balance fails to load for whatever reason
+                                // error logs are captured by sentry
                                 view! {
-                                    <div class="text-lg font-medium" class=("text-red-500", err)>{text}</div>
+                                    <div class="text-lg font-medium" class=("text-red-500", err)>
+                                        {text}
+                                    </div>
                                 }
                             })}
                         </Suspense>
@@ -595,22 +625,35 @@ pub fn FastWalletCard(
                     </div>
                 </div>
                 <Suspense>
-                {move || Suspend::new(async move {
-                    // withdraw section wont show in case of error
-                    // error logs are captured by sentry
+                    {move || Suspend::new(async move {
+                        let withdrawal_state = withdrawal_state
+                            .await
+                            .inspect_err(|err| {
+                                log::error!("withdrawal state loading error: {err:?}")
+                            })
+                            .ok()
+                            .flatten();
+                        let withdrawal_state = withdrawal_state?;
+                        Some(
+                            // withdraw section wont show in case of error
+                            // error logs are captured by sentry
 
-                    let withdrawal_state = withdrawal_state.await.inspect_err(|err| log::error!("withdrawal state loading error: {err:?}")).ok().flatten();
-                    let withdrawal_state = withdrawal_state?;
-                    Some(view! {
-                        <WithdrawSection withdrawal_state token_name=name_c.get_value() />
-                    })
-                })}
+                            view! {
+                                <WithdrawSection withdrawal_state token_name=name_c.get_value() />
+                            },
+                        )
+                    })}
                 </Suspense>
             </div>
 
-            <WalletCardOptions pop_up=pop_up.write_only() share_link=share_link.write_only() airdrop_claimed=is_airdrop_claimed claim_airdrop/>
+            <WalletCardOptions
+                pop_up=pop_up.write_only()
+                share_link=share_link.write_only()
+                airdrop_claimed=is_airdrop_claimed
+                claim_airdrop
+            />
 
-            <PopupOverlay show=pop_up >
+            <PopupOverlay show=pop_up>
                 <ShareContent
                     share_link=format!("{base_url}{}", share_link())
                     message=share_message()
@@ -618,7 +661,13 @@ pub fn FastWalletCard(
                 />
             </PopupOverlay>
 
-            <SatsAirdropPopup show=show_airdrop_popup amount_claimed={airdrop_amount_claimed} claimed={is_airdrop_claimed} error={error_claiming_airdrop} try_again=claim_airdrop />
+            <SatsAirdropPopup
+                show=show_airdrop_popup
+                amount_claimed=airdrop_amount_claimed
+                claimed=is_airdrop_claimed
+                error=error_claiming_airdrop
+                try_again=claim_airdrop
+            />
         </div>
     }.into_any()
 }
@@ -642,19 +691,44 @@ fn WalletCardOptions(
 
     Some(view! {
         <div class="flex items-center justify-around">
-            <ActionButtonLink disabled=is_utility_token href=format!("/token/transfer/{root}") label="Send".to_string()>
+            <ActionButtonLink
+                disabled=is_utility_token
+                href=format!("/token/transfer/{root}")
+                label="Send".to_string()
+            >
                 <SendIcon class="h-full w-full" />
             </ActionButtonLink>
             <ActionButtonLink disabled=true href="#".to_string() label="Buy/Sell".to_string()>
                 <Icon attr:class="h-6 w-6" icon=ArrowLeftRightIcon />
             </ActionButtonLink>
-            <ActionButton disabled=airdrop_claimed on:click=move |_|{claim_airdrop.dispatch(is_connected.get());} label="Airdrop".to_string()>
+            <ActionButton
+                disabled=airdrop_claimed
+                on:click=move |_| {
+                    claim_airdrop.dispatch(is_connected.get());
+                }
+                label="Airdrop".to_string()
+            >
                 <Icon attr:class="h-6 w-6" icon=AirdropIcon />
             </ActionButton>
-            <ActionButtonLink disabled=is_utility_token href="#".to_string() label="Share".to_string()>
-                <Icon attr:class="h-6 w-6" icon=ShareIcon on:click=move |_| {pop_up.set(true); share_link.set(share_link_coin.clone())}/>
+            <ActionButtonLink
+                disabled=is_utility_token
+                href="#".to_string()
+                label="Share".to_string()
+            >
+                <Icon
+                    attr:class="h-6 w-6"
+                    icon=ShareIcon
+                    on:click=move |_| {
+                        pop_up.set(true);
+                        share_link.set(share_link_coin.clone())
+                    }
+                />
             </ActionButtonLink>
-            <ActionButtonLink disabled=is_utility_token href=format!("/token/info/{root}/{user_principal}") label="Details".to_string()>
+            <ActionButtonLink
+                disabled=is_utility_token
+                href=format!("/token/info/{root}/{user_principal}")
+                label="Details".to_string()
+            >
                 <Icon attr:class="h-6 w-6" icon=ChevronRightIcon />
             </ActionButtonLink>
         </div>

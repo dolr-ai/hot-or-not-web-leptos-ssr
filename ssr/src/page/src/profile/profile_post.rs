@@ -43,13 +43,18 @@ fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
     let overlay = move || {
         view! {
             <Suspense>
-                {move || auth.user_canister.get().map(|canister| {
-                    if canister == Ok(initial_post.canister_id) {
-                        Some(view! { <YourProfileOverlay /> }.into_any())
-                    } else {
-                        None
-                    }
-                })}
+                {move || {
+                    auth
+                        .user_canister
+                        .get()
+                        .map(|canister| {
+                            if canister == Ok(initial_post.canister_id) {
+                                Some(view! { <YourProfileOverlay /> }.into_any())
+                            } else {
+                                None
+                            }
+                        })
+                }}
             </Suspense>
         }
     };

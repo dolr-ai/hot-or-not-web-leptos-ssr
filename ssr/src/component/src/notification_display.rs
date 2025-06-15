@@ -68,15 +68,23 @@ pub fn NotificationDisplay() -> impl IntoView {
                 class:slide-out=is_sliding_out
                 on:animationend=handle_animation_end
             >
-                {move || current_notification.get().map(|notif| view! {
-                    <div class="notification-content">
-                    <div class="notification-header">
-                        <strong>{notif.title.clone()}</strong>
-                        <button class="close-button" on:click=close_notification>"X"</button>
-                    </div>
-                    <p>{notif.body.clone()}</p>
-                </div>
-                })}
+                {move || {
+                    current_notification
+                        .get()
+                        .map(|notif| {
+                            view! {
+                                <div class="notification-content">
+                                    <div class="notification-header">
+                                        <strong>{notif.title.clone()}</strong>
+                                        <button class="close-button" on:click=close_notification>
+                                            "X"
+                                        </button>
+                                    </div>
+                                    <p>{notif.body.clone()}</p>
+                                </div>
+                            }
+                        })
+                }}
             </div>
         </Show>
     }

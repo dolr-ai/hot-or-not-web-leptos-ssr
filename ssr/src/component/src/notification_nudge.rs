@@ -73,13 +73,14 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
     });
 
     view! {
-        <ShadowOverlay show=popup_signal >
+        <ShadowOverlay show=popup_signal>
             <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-neutral-900 text-white p-8 rounded-lg shadow-xl w-full min-w-[343px] max-w-[550px]">
                 <button
                     on:click=move |_| {
                         pop_up.set(false);
                     }
-                    class="absolute top-3 right-3 p-1 bg-neutral-800 rounded-full text-neutral-300 hover:text-white transition-colors">
+                    class="absolute top-3 right-3 p-1 bg-neutral-800 rounded-full text-neutral-300 hover:text-white transition-colors"
+                >
                     <Icon icon=icondata::IoClose attr:class="w-6 h-6" />
                 </button>
 
@@ -90,9 +91,12 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
                         "Your video is processing in the background. Enable notifications so you don\'t miss a beat — feel free to explore the app while we handle the upload!"
                     </p>
                     <HighlightedButton
-                            alt_style=false
-                            on_click=move || {notification_action.dispatch(());}
-                        classes="w-full py-3 bg-linear-to-r from-fuchsia-600 to-pink-500 hover:from-fuchsia-500 hover:to-pink-400 text-white font-semibold rounded-lg shadow-md transition-all".to_string()
+                        alt_style=false
+                        on_click=move || {
+                            notification_action.dispatch(());
+                        }
+                        classes="w-full py-3 bg-linear-to-r from-fuchsia-600 to-pink-500 hover:from-fuchsia-500 hover:to-pink-400 text-white font-semibold rounded-lg shadow-md transition-all"
+                            .to_string()
                     >
                         <span>"Turn on alerts"</span>
                     </HighlightedButton>

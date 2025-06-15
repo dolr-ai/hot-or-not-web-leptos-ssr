@@ -190,9 +190,10 @@ pub fn ActionTrackerPopup<
                     view! { <ActionRunningOverlay message=loading_msg_s.get_value() /> }
                 }
             >
-                <div class=format!("px-4 pt-4 pb-12 mx-6 w-full lg:w-1/2 max-h-[65%] rounded-xl {}", classes.read_value())>
-                    {move || (modal_s.get_value())(res().unwrap())}
-                </div>
+                <div class=format!(
+                    "px-4 pt-4 pb-12 mx-6 w-full lg:w-1/2 max-h-[65%] rounded-xl {}",
+                    classes.read_value(),
+                )>{move || (modal_s.get_value())(res().unwrap())}</div>
             </Show>
         </ShadowOverlay>
     }

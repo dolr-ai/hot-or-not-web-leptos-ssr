@@ -44,7 +44,12 @@ fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
                     style:background-color="rgb(0, 0, 0)"
                     style:background-image=format!("url({bg_url})")
                 ></div>
-                <audio class="sr-only" node_ref=win_audio_ref preload="auto" src="/img/hotornot/chaching.m4a"/>
+                <audio
+                    class="sr-only"
+                    node_ref=win_audio_ref
+                    preload="auto"
+                    src="/img/hotornot/chaching.m4a"
+                />
                 <VideoDetailsOverlay post=post.clone() prev_post=None win_audio_ref />
                 <VideoView post=Some(post) muted autoplay_at_render=true />
             </div>
@@ -98,7 +103,8 @@ pub fn SinglePost() -> impl IntoView {
     view! {
         <Suspense fallback=FullScreenSpinner>
             {move || {
-                fetch_post.get()
+                fetch_post
+                    .get()
                     .map(|post| match post {
                         Ok(post) => view! { <SinglePostViewInner post /> }.into_any(),
                         Err(PostFetchError::Invalid) => view! { <Redirect path="/" /> }.into_any(),

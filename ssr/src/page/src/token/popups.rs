@@ -65,7 +65,9 @@ fn TokenTransferSuccessPopup(
     view! {
         <SuccessPopup
             img=|| view! { <img src="/img/hotornot/tick.webp" class="max-w-44" /> }
-            text=move || { format!("You’ve successfully sent {amount_str} {token_name} to your wallet.") }
+            text=move || {
+                format!("You’ve successfully sent {amount_str} {token_name} to your wallet.")
+            }
 
             previous_link="/wallet"
             previous_text="Back to wallet"
@@ -111,21 +113,25 @@ pub fn TokenTransferPopup(
             classes="bg-neutral-900"
             modal=move |res| match res {
                 Ok(amount) => {
-                    Either::Left(view! {
-                        <TokenTransferSuccessPopup
-                            token_name=token_name.get_untracked().clone()
-                            amount
-                        />
-                    })
+                    Either::Left(
+                        view! {
+                            <TokenTransferSuccessPopup
+                                token_name=token_name.get_untracked().clone()
+                                amount
+                            />
+                        },
+                    )
                 }
                 Err(e) => {
-                    Either::Right(view! {
-                        <TokenTransferErrorPopup
-                            error=e.to_string()
-                            token_name=token_name.get_untracked().clone()
-                            close_popup=close_popup.write_only()
-                        />
-                    })
+                    Either::Right(
+                        view! {
+                            <TokenTransferErrorPopup
+                                error=e.to_string()
+                                token_name=token_name.get_untracked().clone()
+                                close_popup=close_popup.write_only()
+                            />
+                        },
+                    )
                 }
             }
 

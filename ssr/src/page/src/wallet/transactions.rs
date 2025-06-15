@@ -26,12 +26,11 @@ pub fn TransactionList(source: IndexOrLedger, symbol: String, decimals: u8) -> i
 #[component]
 pub fn Transactions(source: IndexOrLedger, symbol: String, decimals: u8) -> impl IntoView {
     view! {
-
-    <span class="text-xl w-full text-white font-bold">Transactions</span>
+        <span class="text-xl w-full text-white font-bold">Transactions</span>
 
         <div class="flex items-center flex-col gap- pb-12 w-full">
             <div class="flex flex-col divide-y divide-white/10 w-full">
-                <TransactionList source=source symbol decimals/>
+                <TransactionList source=source symbol decimals />
             </div>
         </div>
     }

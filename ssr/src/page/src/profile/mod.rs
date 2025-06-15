@@ -67,10 +67,7 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
             <a class=move || tab_class(0) href=move || format!("/profile/{user_principal}/posts")>
                 <Icon icon=icondata::FiGrid />
             </a>
-            <a
-                class=move || tab_class(1)
-                href=move || format!("/profile/{user_principal}/stakes")
-            >
+            <a class=move || tab_class(1) href=move || format!("/profile/{user_principal}/stakes")>
                 <Icon icon=icondata::BsTrophy />
             </a>
         </div>
@@ -117,18 +114,25 @@ fn ProfileViewInner(user: ProfileDetails, user_canister: Principal) -> impl Into
                                 {display_name}
                             </span>
                             <Suspense>
-                            {move || auth.user_principal.get().map(|v| {
-                                view! {
-                                    <Show when=move || !is_connected() && v == Ok(user_principal)>
-                                        <div class="md:w-4/12 w-6/12 pt-5">
-                                            <ConnectLogin
-                                                cta_location="profile"
-                                                redirect_to=format!("/profile/posts")
-                                            />
-                                        </div>
-                                    </Show>
-                                }
-                            })}
+                                {move || {
+                                    auth
+                                        .user_principal
+                                        .get()
+                                        .map(|v| {
+                                            view! {
+                                                <Show when=move || {
+                                                    !is_connected() && v == Ok(user_principal)
+                                                }>
+                                                    <div class="md:w-4/12 w-6/12 pt-5">
+                                                        <ConnectLogin
+                                                            cta_location="profile"
+                                                            redirect_to=format!("/profile/posts")
+                                                        />
+                                                    </div>
+                                                </Show>
+                                            }
+                                        })
+                                }}
                             </Suspense>
                         </div>
                     </div>
@@ -144,9 +148,7 @@ fn ProfileViewInner(user: ProfileDetails, user_canister: Principal) -> impl Into
 fn ProfilePageTitle() -> impl IntoView {
     let app_state = use_context::<AppState>();
     let page_title = app_state.unwrap().name.to_owned() + " - Profile";
-    view! {
-        <Title text=page_title />
-    }
+    view! { <Title text=page_title /> }
 }
 
 #[component]
@@ -161,16 +163,20 @@ pub fn LoggedInUserProfileView() -> impl IntoView {
             {move || Suspend::new(async move {
                 let principal = auth.user_principal.await;
                 match principal {
-                    Ok(principal) => view! {
-                        {move || tab().map(|tab| {
-                            view! {
-                                <Redirect path=format!("/profile/{principal}/{tab}") />
-                            }
-                        })}
-                    }.into_any(),
-                    Err(_) => view! {
-                        <Redirect path="/" />
-                    }.into_any(),
+                    Ok(principal) => {
+                        view! {
+                            {move || {
+                                tab()
+                                    .map(|tab| {
+                                        view! {
+                                            <Redirect path=format!("/profile/{principal}/{tab}") />
+                                        }
+                                    })
+                            }}
+                        }
+                            .into_any()
+                    }
+                    Err(_) => view! { <Redirect path="/" /> }.into_any(),
                 }
             })}
         </Suspense>
@@ -221,14 +227,13 @@ pub fn ProfileView() -> impl IntoView {
         <Suspense fallback=FullScreenSpinner>
             {move || Suspend::new(async move {
                 let res = user_details.await;
-
                 match res {
-                    Ok((user, user_canister)) => view! {
-                        <ProfileComponent user user_canister />
-                    }.into_any(),
-                    _ => view! {
-                        <Redirect path="/" />
-                    }.into_any(),
+                    Ok((user, user_canister)) => {
+
+                        view! { <ProfileComponent user user_canister /> }
+                            .into_any()
+                    }
+                    _ => view! { <Redirect path="/" /> }.into_any(),
                 }
             })}
         </Suspense>
@@ -251,7 +256,5 @@ pub fn ProfileComponent(user: ProfileDetails, user_canister: Principal) -> impl 
         *idx = 0;
     });
 
-    view! {
-        <ProfileViewInner user user_canister />
-    }
+    view! { <ProfileViewInner user user_canister /> }
 }

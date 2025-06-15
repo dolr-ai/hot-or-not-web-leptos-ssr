@@ -257,9 +257,18 @@ fn TokenTransferInner(
                 <div class="flex flex-col w-full gap-1">
                     <div class="flex justify-between">
                         <span class="text-neutral-400 text-sm md:text-base">Destination</span>
-                        {is_btc.then_some(view! {
-                            <a target="_blank" href="https://oisy.com" class="text-blue-500 text-sm font-medium md:text-base">Open OISY Wallet</a>
-                        })}
+                        {is_btc
+                            .then_some(
+                                view! {
+                                    <a
+                                        target="_blank"
+                                        href="https://oisy.com"
+                                        class="text-blue-500 text-sm font-medium md:text-base"
+                                    >
+                                        Open OISY Wallet
+                                    </a>
+                                },
+                            )}
                     </div>
                     <div
                         class=("border-white/15", move || destination_res.with(|r| r.is_ok()))
@@ -271,9 +280,11 @@ fn TokenTransferInner(
                             class="text-white bg-transparent w-full text-base md:text-lg placeholder-white/40 focus:outline-none"
                             placeholder=placeholder
                         />
-                        <button on:click=move |_| {paste_destination.dispatch(());}>
+                        <button on:click=move |_| {
+                            paste_destination.dispatch(());
+                        }>
                             <Icon
-                            attr:class="text-neutral-600 text-lg md:text-xl"
+                                attr:class="text-neutral-600 text-lg md:text-xl"
                                 icon=icondata::BsClipboard
                             />
                         </button>
@@ -291,9 +302,7 @@ fn TokenTransferInner(
                                 class="flex justify-center items-center gap-2.5 border border-neutral-600 bg-neutral-700 px-4 py-1.5 rounded-full border-solid text-"
                                 on:click=move |_| _ = set_max_amt()
                             >
-                                <span class="text-neutral text-xs font-medium">
-                                    Max
-                                </span>
+                                <span class="text-neutral text-xs font-medium">Max</span>
                             </button>
                         </div>
                     </div>
@@ -311,7 +320,9 @@ fn TokenTransferInner(
                 </div>
                 <GradientButton
                     classes="w-full md:w-1/2"
-                    on_click=move || {send_action.dispatch(());}
+                    on_click=move || {
+                        send_action.dispatch(());
+                    }
                     disabled=Signal::derive(move || !valid())
                 >
                     Send
@@ -344,22 +355,16 @@ pub fn TokenTransfer() -> impl IntoView {
     view! {
         <Title text="YRAL - Token transfer" />
         <Suspense fallback=FullScreenSpinner>
-        {move || Suspend::new(async move {
-            let res = token_metadata_fetch.await;
-            match res {
-                Err(e) => {
-                    view! { <Redirect path=format!("/error?err={e}") /> }.into_any()
-                },
-                Ok(None) => view! { <Redirect path="/" /> }.into_any(),
-                Ok(Some((info, root, cans_wire))) => view! {
-                    <TokenTransferInner
-                        info=info
-                        root=root
-                        cans_wire
-                    />
-                }.into_any()
-            }
-        })}
+            {move || Suspend::new(async move {
+                let res = token_metadata_fetch.await;
+                match res {
+                    Err(e) => view! { <Redirect path=format!("/error?err={e}") /> }.into_any(),
+                    Ok(None) => view! { <Redirect path="/" /> }.into_any(),
+                    Ok(Some((info, root, cans_wire))) => {
+                        view! { <TokenTransferInner info=info root=root cans_wire /> }.into_any()
+                    }
+                }
+            })}
         </Suspense>
     }
 }

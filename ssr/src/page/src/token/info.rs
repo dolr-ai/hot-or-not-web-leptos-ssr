@@ -40,7 +40,7 @@ fn TokenField(
                 <ShowAny when=move || copy>
                     <button on:click=copy_clipboard.clone()>
                         <Icon
-                        attr:class="w-6 h-6 text-white/50 cursor-pointer hover:text-white/80"
+                            attr:class="w-6 h-6 text-white/50 cursor-pointer hover:text-white/80"
                             icon=icondata::BiCopyRegular
                         />
                     </button>
@@ -122,24 +122,26 @@ fn TokenInfoInner(
                                             message
                                             style="w-12 h-12".into()
                                         />
-                                    }.into_any()
+                                    }
+                                        .into_any()
                                 })}
                         </div>
 
-                        <ShowAny when= move|| key_principal.clone().is_some()>
+                        <ShowAny when=move || key_principal.clone().is_some()>
                             <div class="flex flex-row justify-between border-b p-1 border-white items-center">
                                 <span class="text-xs md:text-sm text-green-500">Balance</span>
                                 <span class="text-lg md:text-xl text-white">
                                     {meta
-                                        .balance.clone()
+                                        .balance
+                                        .clone()
                                         .map(|balance| {
                                             view! {
                                                 <span class="font-bold">
                                                     {format!("{} ", balance.humanize_float_truncate_to_dp(8))}
                                                 </span>
                                                 <span>{meta_c1.symbol.clone()}</span>
-                                    }
-                                    })}
+                                            }
+                                        })}
                                 </span>
                             </div>
                         </ShowAny>
@@ -149,7 +151,10 @@ fn TokenInfoInner(
                         >
                             <span class="text-xs md:text-sm">View details</span>
                             <div class="p-1 bg-white/15 rounded-full">
-                                <Icon attr:class="text-xs md:text-sm text-white" icon=view_detail_icon />
+                                <Icon
+                                    attr:class="text-xs md:text-sm text-white"
+                                    icon=view_detail_icon
+                                />
                             </div>
                         </button>
                     </div>
@@ -157,16 +162,26 @@ fn TokenInfoInner(
                         <TokenDetails meta=meta_c.clone() />
                     </ShowAny>
                 </div>
-                    <ShowAny when= move || is_user_principal>
-                        <a
-                            href=format!("/token/transfer/{}", root.to_string())
-                            class="fixed bottom-20 left-4 right-4 p-3 bg-primary-600 text-white text-center md:text-lg rounded-full z-50"
-                        >
-                            Send
-                        </a>
-                    </ShowAny>
+                <ShowAny when=move || is_user_principal>
+                    <a
+                        href=format!("/token/transfer/{}", root.to_string())
+                        class="fixed bottom-20 left-4 right-4 p-3 bg-primary-600 text-white text-center md:text-lg rounded-full z-50"
+                    >
+                        Send
+                    </a>
+                </ShowAny>
                 {if let Some(key_principal) = key_principal {
-                    view! { <Transactions source=IndexOrLedger::Index { key_principal, index: meta.index } symbol=meta.symbol.clone() decimals/> }.into_any()
+                    view! {
+                        <Transactions
+                            source=IndexOrLedger::Index {
+                                key_principal,
+                                index: meta.index,
+                            }
+                            symbol=meta.symbol.clone()
+                            decimals
+                        />
+                    }
+                        .into_any()
                 } else {
                     view! {
                         <Transactions
@@ -174,7 +189,8 @@ fn TokenInfoInner(
                             symbol=meta.symbol.clone()
                             decimals
                         />
-                    }.into_any()
+                    }
+                        .into_any()
                 }}
             </div>
         </div>
@@ -273,15 +289,30 @@ pub fn TokenInfo() -> impl IntoView {
         <Title text="YRAL - Token Info" />
         <Suspense fallback=FullScreenSpinner>
             {move || {
-                token_metadata_fetch.get()
+                token_metadata_fetch
+                    .get()
                     .map(|info| {
                         match info {
-                            Ok(Some(TokenInfoResponse { meta, root, key_principal, is_user_principal, is_token_viewer_airdrop_claimed })) => {
-                                if let Ok(AirdropParam { airdrop_amt }) = airdrop_param.get(){
-                                    if !is_token_viewer_airdrop_claimed && meta.token_owner.clone().map(|t| t.principal_id) == key_principal && !is_user_principal{
+                            Ok(
+                                Some(
+                                    TokenInfoResponse {
+                                        meta,
+                                        root,
+                                        key_principal,
+                                        is_user_principal,
+                                        is_token_viewer_airdrop_claimed,
+                                    },
+                                ),
+                            ) => {
+                                if let Ok(AirdropParam { airdrop_amt }) = airdrop_param.get() {
+                                    if !is_token_viewer_airdrop_claimed
+                                        && meta.token_owner.clone().map(|t| t.principal_id)
+                                            == key_principal && !is_user_principal
+                                    {
                                         return view! {
-                                            <AirdropPage airdrop_amount=airdrop_amt meta/>
-                                        }.into_any()
+                                            <AirdropPage airdrop_amount=airdrop_amt meta />
+                                        }
+                                            .into_any();
                                     }
                                 }
                                 view! {
@@ -291,7 +322,8 @@ pub fn TokenInfo() -> impl IntoView {
                                         meta
                                         is_user_principal=is_user_principal
                                     />
-                                }.into_any()
+                                }
+                                    .into_any()
                             }
                             _ => view! { <Redirect path="/wallet" /> }.into_any(),
                         }

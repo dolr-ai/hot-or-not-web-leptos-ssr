@@ -116,11 +116,9 @@ fn ProfileInfo() -> impl IntoView {
                 match res {
                     Ok(cans) => {
                         let user_details = cans.profile_details;
-                        Either::Left(view! { <ProfileLoaded user_details/> })
+                        Either::Left(view! { <ProfileLoaded user_details /> })
                     }
-                    Err(e) => {
-                        Either::Right(view! { <Redirect path=format!("/error?err={e}") /> })
-                    }
+                    Err(e) => Either::Right(view! { <Redirect path=format!("/error?err={e}") /> }),
                 }
             })}
         </Suspense>
