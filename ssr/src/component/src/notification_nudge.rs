@@ -79,6 +79,7 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
                     on:click=move |_| {
                         pop_up.set(false);
                     }
+                    aria-label="Close notification"
                     class="absolute top-3 right-3 p-1 bg-neutral-800 rounded-full text-neutral-300 hover:text-white transition-colors"
                 >
                     <Icon icon=icondata::IoClose attr:class="w-6 h-6" />
