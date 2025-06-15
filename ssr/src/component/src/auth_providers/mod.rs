@@ -199,10 +199,12 @@ pub fn LoginProviders(
             <div class="flex flex-col w-full gap-4 items-center">
                 {
                     #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-                    view! { <yral::YralAuthProvider/> }
-                }
-                <div id="tnc" class="text-white text-center">
-                    By continuing you agree to our <a class="text-primary-600 underline" href="/terms-of-service">Terms of Service</a>
+                    view! { <yral::YralAuthProvider /> }
+                } <div id="tnc" class="text-white text-center">
+                    By continuing you agree to our
+                    <a class="text-primary-600 underline" href="/terms-of-service">
+                        Terms of Service
+                    </a>
                 </div>
             </div>
         </div>

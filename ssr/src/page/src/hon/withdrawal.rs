@@ -120,7 +120,11 @@ fn Header() -> impl IntoView {
                 <div class="flex flex-row justify-between">
                     <BackButton fallback="/" />
                     <span class="font-bold text-2xl">Withdraw</span>
-                    <a href="/wallet/notifications" aria_disabled=true class="text-xl font-semibold">
+                    <a
+                        href="/wallet/notifications"
+                        aria_disabled=true
+                        class="text-xl font-semibold"
+                    >
                         <NotificationIcon show_dot=false class="w-8 h-8 text-neutral-600" />
                     </a>
                 </div>
@@ -222,61 +226,95 @@ pub fn HonWithdrawal() -> impl IntoView {
             <div class="w-full">
                 <div class="flex flex-col items-center justify-center max-w-md mx-auto px-4 mt-4 pb-6">
                     <Suspense>
-                    {move || {
-                        let balance: Nat = try_or_redirect_opt!(details_res.get()?).balance.into();
-                        Some(view! {
-                            <BalanceDisplay balance />
-                        })
-                    }}
+                        {move || {
+                            let balance: Nat = try_or_redirect_opt!(details_res.get()?)
+                                .balance
+                                .into();
+                            Some(view! { <BalanceDisplay balance /> })
+                        }}
                     </Suspense>
                     <div class="flex flex-col gap-5 mt-8 w-full">
                         <span class="text-sm">Choose how much to redeem:</span>
-                        <div id="input-card" class="rounded-lg bg-neutral-900 p-3 flex flex-col gap-8">
+                        <div
+                            id="input-card"
+                            class="rounded-lg bg-neutral-900 p-3 flex flex-col gap-8"
+                        >
                             <div class="flex flex-col gap-3">
                                 <div class="flex justify-between">
                                     <div class="flex gap-2 items-center">
                                         <span>You withdraw</span>
                                     </div>
-                                    <input min={MIN_WITHDRAWAL_PER_TXN} max={MAX_WITHDRAWAL_PER_TXN} placeholder=format!("Min: {}", MIN_WITHDRAWAL_PER_TXN) disabled=is_claiming on:input=on_input type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-44 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg" />
+                                    <input
+                                        min=MIN_WITHDRAWAL_PER_TXN
+                                        max=MAX_WITHDRAWAL_PER_TXN
+                                        placeholder=format!("Min: {}", MIN_WITHDRAWAL_PER_TXN)
+                                        disabled=is_claiming
+                                        on:input=on_input
+                                        type="text"
+                                        inputmode="decimal"
+                                        class="bg-neutral-800 h-10 w-44 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg"
+                                    />
                                 </div>
                                 <div class="flex justify-between">
                                     <div class="flex gap-2 items-center">
                                         <span>You get</span>
                                     </div>
-                                    <input disabled type="text" inputmode="decimal" class="bg-neutral-800 h-10 w-44 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg text-neutral-400" value=formated_dolrs />
+                                    <input
+                                        disabled
+                                        type="text"
+                                        inputmode="decimal"
+                                        class="bg-neutral-800 h-10 w-44 rounded focus:outline focus:outline-1 focus:outline-primary-600 text-right px-4 text-lg text-neutral-400"
+                                        value=formated_dolrs
+                                    />
                                 </div>
                             </div>
-                            <Suspense fallback=|| view! {
-                                <button
-                                    disabled
-                                    class="rounded-lg px-5 py-2 text-sm text-center font-bold bg-brand-gradient-disabled"
-                                >Please Wait</button>
-                            }>
-                            {move || {
-                                let can_withdraw = true; // all of the money can be withdrawn
-                                let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize || sats() > MAX_WITHDRAWAL_PER_TXN as usize;
-                                let is_claiming = is_claiming();
-                                let message = if invalid_input {
-                                    format!("Enter valid Amount. Min: {MIN_WITHDRAWAL_PER_TXN} Max: {MAX_WITHDRAWAL_PER_TXN}")
-                                } else {
-                                    match (can_withdraw, is_claiming) {
-                                        (false, _) => "Not enough winnings".to_string(),
-                                        (_, true) => "Claiming...".to_string(),
-                                        (_, _) => "Withdraw Now!".to_string()
-                                    }
-                                };
-                                Some(view! {
+                            <Suspense fallback=|| {
+                                view! {
                                     <button
-                                        disabled=invalid_input || !can_withdraw
-                                        class=("pointer-events-none", is_claiming)
-                                        class="rounded-lg px-5 py-2 text-sm text-center font-bold bg-brand-gradient disabled:bg-brand-gradient-disabled"
-                                        on:click=move |_ev| {send_claim.dispatch(());}
-                                    >{message}</button>
-                                })
-                            }}
+                                        disabled
+                                        class="rounded-lg px-5 py-2 text-sm text-center font-bold bg-brand-gradient-disabled"
+                                    >
+                                        Please Wait
+                                    </button>
+                                }
+                            }>
+                                {move || {
+                                    let can_withdraw = true;
+                                    let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize
+                                        || sats() > MAX_WITHDRAWAL_PER_TXN as usize;
+                                    let is_claiming = is_claiming();
+                                    let message = if invalid_input {
+                                        format!(
+                                            "Enter valid Amount. Min: {MIN_WITHDRAWAL_PER_TXN} Max: {MAX_WITHDRAWAL_PER_TXN}",
+                                        )
+                                    } else {
+                                        match (can_withdraw, is_claiming) {
+                                            (false, _) => "Not enough winnings".to_string(),
+                                            (_, true) => "Claiming...".to_string(),
+                                            (_, _) => "Withdraw Now!".to_string(),
+                                        }
+                                    };
+                                    Some(
+                                        // all of the money can be withdrawn
+                                        view! {
+                                            <button
+                                                disabled=invalid_input || !can_withdraw
+                                                class=("pointer-events-none", is_claiming)
+                                                class="rounded-lg px-5 py-2 text-sm text-center font-bold bg-brand-gradient disabled:bg-brand-gradient-disabled"
+                                                on:click=move |_ev| {
+                                                    send_claim.dispatch(());
+                                                }
+                                            >
+                                                {message}
+                                            </button>
+                                        },
+                                    )
+                                }}
                             </Suspense>
                         </div>
-                        <span class="text-sm">1 Sats = {crate::consts::SATS_TO_BTC_CONVERSION_RATIO} BTC</span>
+                        <span class="text-sm">
+                            1 Sats = {crate::consts::SATS_TO_BTC_CONVERSION_RATIO}BTC
+                        </span>
                     </div>
                 </div>
             </div>

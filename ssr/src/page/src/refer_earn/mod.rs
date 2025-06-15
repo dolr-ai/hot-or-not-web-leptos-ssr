@@ -92,16 +92,24 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
     view! {
         <div class="flex z-[1] w-full gap-2 justify-between">
             <div class="flex flex-1 items-center w-full rounded-md border-dashed border-2 p-3 gap-2 border-neutral-700 bg-neutral-900">
-                <span class="text-md lg:text-lg text-ellipsis line-clamp-1 text-neutral-500">{refer_link.clone()}</span>
-                <button style="filter: invert(1)" on:click=move |_| { click_copy.dispatch(refer_link.clone()); }>
+                <span class="text-md lg:text-lg text-ellipsis line-clamp-1 text-neutral-500">
+                    {refer_link.clone()}
+                </span>
+                <button
+                    style="filter: invert(1)"
+                    on:click=move |_| {
+                        click_copy.dispatch(refer_link.clone());
+                    }
+                >
                     <Icon attr:class="text-xl" icon=icondata::IoCopyOutline />
                 </button>
             </div>
             <HighlightedButton
-            classes="!w-fit".to_string()
-            alt_style=false
-            disabled=false
-            on_click=move || { handle_share() }>
+                classes="!w-fit".to_string()
+                alt_style=false
+                disabled=false
+                on_click=move || { handle_share() }
+            >
                 Share
             </HighlightedButton>
         </div>
@@ -119,8 +127,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
 #[component]
 fn ReferLoading() -> impl IntoView {
     view! {
-        <div class="flex flex-1 flex-col lg:flex-row items-center justify-center text-xs lg:text-md gap-3 bg-neutral-900 rounded-md px-3 lg:px-4 lg:py-5 py-4 animate-pulse">
-        </div>
+        <div class="flex flex-1 flex-col lg:flex-row items-center justify-center text-xs lg:text-md gap-3 bg-neutral-900 rounded-md px-3 lg:px-4 lg:py-5 py-4 animate-pulse"></div>
     }
 }
 
@@ -129,21 +136,13 @@ fn ReferCode() -> impl IntoView {
     let auth = auth_state();
     view! {
         <Suspense fallback=ReferLoading>
-        {move || Suspend::new(async move {
-            let res = auth.user_principal.await;
-            match res {
-                Ok(user_principal) => {
-                    Either::Left(view! {
-                        <ReferLoaded user_principal />
-                    })
+            {move || Suspend::new(async move {
+                let res = auth.user_principal.await;
+                match res {
+                    Ok(user_principal) => Either::Left(view! { <ReferLoaded user_principal /> }),
+                    Err(e) => Either::Right(view! { <Redirect path=format!("/error?err={e}") /> }),
                 }
-                Err(e) => {
-                    Either::Right(view! {
-                        <Redirect path=format!("/error?err={e}") />
-                    })
-                }
-            }
-        })}
+            })}
         </Suspense>
     }
 }
@@ -157,19 +156,43 @@ fn ReferView() -> impl IntoView {
 
     view! {
         <div class="flex flex-col w-full h-full items-center text-white gap-5">
-            <div class="absolute inset-x-0 top-0 z-0 w-full max-w-md mx-auto" style="filter: blur(1.5px);">
+            <div
+                class="absolute inset-x-0 top-0 z-0 w-full max-w-md mx-auto"
+                style="filter: blur(1.5px);"
+            >
                 <img src="/img/common/refer-bg.webp" class="w-full object-cover" />
             </div>
-            <div style="height: 14rem;" class="flex z-[1] relative justify-center w-full items-center gap-4 overflow-visible">
+            <div
+                style="height: 14rem;"
+                class="flex z-[1] relative justify-center w-full items-center gap-4 overflow-visible"
+            >
                 <img class="shrink-0 h-32 select-none" src="/img/common/wallet.webp" />
-                <img src="/img/common/bitcoin.webp" class="absolute top-8 left-5 size-6" style="filter: blur(1px); transform: rotate(30deg);" />
-                <img src="/img/common/bitcoin.webp" class="absolute top-16 right-3 size-6" style="filter: blur(1px); transform: rotate(40deg);" />
-                <img src="/img/common/bitcoin.webp" class="absolute bottom-4 left-6 size-9" style="filter: blur(0.3px); transform: rotate(-60deg);" />
+                <img
+                    src="/img/common/bitcoin.webp"
+                    class="absolute top-8 left-5 size-6"
+                    style="filter: blur(1px); transform: rotate(30deg);"
+                />
+                <img
+                    src="/img/common/bitcoin.webp"
+                    class="absolute top-16 right-3 size-6"
+                    style="filter: blur(1px); transform: rotate(40deg);"
+                />
+                <img
+                    src="/img/common/bitcoin.webp"
+                    class="absolute bottom-4 left-6 size-9"
+                    style="filter: blur(0.3px); transform: rotate(-60deg);"
+                />
             </div>
-            <div style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%); height:29rem" class="absolute z-0 inset-x-0 top-16"></div>
+            <div
+                style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%); height:29rem"
+                class="absolute z-0 inset-x-0 top-16"
+            ></div>
 
             <div class="flex flex-col w-full z-[1] items-center gap-4 text-center">
-                <span class="font-bold text-xl md:text-2xl">Invite & get Bitcoin <span style="color: #A3A3A3">"("{REFERRAL_REWARD} " SATS)"</span></span>
+                <span class="font-bold text-xl md:text-2xl">
+                    Invite & get Bitcoin
+                    <span style="color: #A3A3A3">"("{REFERRAL_REWARD} " SATS)"</span>
+                </span>
             </div>
             <div class="flex flex-col w-full z-[1] gap-2 px-4 text-white items-center">
                 <Show when=logged_in fallback=|| view! { <ConnectLogin cta_location="refer" /> }>

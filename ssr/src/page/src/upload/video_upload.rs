@@ -126,14 +126,20 @@ pub fn PreVideoUpload(
             for="dropzone-file"
             class="w-[358px] h-[300px] sm:w-full sm:h-auto sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] bg-neutral-950 rounded-2xl border-2 border-dashed border-neutral-600 flex flex-col items-center justify-center cursor-pointer select-none p-0"
         >
-            <Show when=move || { file.with(| file | file.is_none()) }>
+            <Show when=move || { file.with(|file| file.is_none()) }>
                 <div class="flex flex-1 flex-col items-center justify-center w-full h-full gap-6">
-                    <div class="text-white text-[16px] font-semibold leading-tight text-center">Upload a video to share with the world!</div>
-                    <div class="text-neutral-400 text-[13px] leading-tight text-center">Drag & Drop or select video file ( Max 60s )</div>
-                    <span class="inline-block px-6 py-2 border border-pink-300 text-pink-300 rounded-lg font-medium text-[15px] bg-transparent transition-colors duration-150 cursor-pointer select-none">Select File</span>
+                    <div class="text-white text-[16px] font-semibold leading-tight text-center">
+                        Upload a video to share with the world!
+                    </div>
+                    <div class="text-neutral-400 text-[13px] leading-tight text-center">
+                        Drag & Drop or select video file ( Max 60s )
+                    </div>
+                    <span class="inline-block px-6 py-2 border border-pink-300 text-pink-300 rounded-lg font-medium text-[15px] bg-transparent transition-colors duration-150 cursor-pointer select-none">
+                        Select File
+                    </span>
                 </div>
             </Show>
-            <Show when=move || { file.with(| file | file.is_some()) }>
+            <Show when=move || { file.with(|file| file.is_some()) }>
                 <video
                     node_ref=video_ref
                     class="w-full h-full object-contain rounded-xl bg-black p-2"
@@ -142,7 +148,7 @@ pub fn PreVideoUpload(
                     autoplay
                     loop
                     oncanplay="this.muted=true"
-                    src=move || file.with(| file | file.as_ref().map(| f | f.url.to_string()))
+                    src=move || file.with(|file| file.as_ref().map(|f| f.url.to_string()))
                 ></video>
             </Show>
             <input
@@ -479,11 +485,17 @@ pub fn VideoUploader(
                             if published.get() {
                                 "100%".to_string()
                             } else if publish_action.pending().get() {
-                                format!("{:.2}%", video_uploaded_base_width + metadata_publish_total_width * 0.7)
+                                format!(
+                                    "{:.2}%",
+                                    video_uploaded_base_width + metadata_publish_total_width * 0.7,
+                                )
                             } else if uid.with(|u| u.is_some()) {
                                 format!("{video_uploaded_base_width:.2}%")
                             } else {
-                                format!("{:.2}%", upload_file_actual_progress.get() * video_uploaded_base_width)
+                                format!(
+                                    "{:.2}%",
+                                    upload_file_actual_progress.get() * video_uploaded_base_width,
+                                )
                             }
                         }
                     ></div>
@@ -496,10 +508,11 @@ pub fn VideoUploader(
                             "Processing video metadata...".to_string()
                         } else if uid.with(|u| u.is_none()) {
                             "Uploading video file...".to_string()
-                        } else if uid.with(|u| u.is_some()) && !publish_action.pending().get() && !published.get() {
+                        } else if uid.with(|u| u.is_some()) && !publish_action.pending().get()
+                            && !published.get()
+                        {
                             "Video file uploaded. Waiting to publish metadata...".to_string()
-                        }
-                        else {
+                        } else {
                             "Waiting to upload...".to_string()
                         }
                     }}
@@ -509,7 +522,6 @@ pub fn VideoUploader(
         <Show when=published>
             <PostUploadScreen />
         </Show>
-
     }.into_any()
 }
 
@@ -518,15 +530,16 @@ pub fn VideoUploader(
 fn PostUploadScreen() -> impl IntoView {
     view! {
         <div
-        style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
-         class="fixed top-0 bottom-0 left-0 right-0 z-50 flex justify-center items-center h-screen w-screen ">
-         <img
-         alt="bg"
-         src="/img/airdrop/bg.webp"
-         class="absolute inset-0 z-25 fade-in w-full h-full object-cover"
-     />
+            style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
+            class="fixed top-0 bottom-0 left-0 right-0 z-50 flex justify-center items-center h-screen w-screen "
+        >
+            <img
+                alt="bg"
+                src="/img/airdrop/bg.webp"
+                class="absolute inset-0 z-25 fade-in w-full h-full object-cover"
+            />
             <div class="z-50 flex flex-col items-center">
-            <img src="/img/common/coins/sucess-coin.png" width=170 class="z-300 mb-6"/>
+                <img src="/img/common/coins/sucess-coin.png" width=170 class="z-300 mb-6" />
 
                 <h1 class="font-semibold text-lg mb-2">Video uploaded sucessfully</h1>
 
@@ -534,13 +547,13 @@ fn PostUploadScreen() -> impl IntoView {
                     "We're processing your video. It'll be in 'Your Videos' under My Profile soon. Happy scrolling!"
                 </p>
                 <HighlightedLinkButton
-                alt_style=false
-                disabled=false
-                classes="max-w-96 w-full mx-auto py-[12px] px-[20px]".to_string()
-                href="/".to_string()
-            >
-                Done
-            </HighlightedLinkButton>
+                    alt_style=false
+                    disabled=false
+                    classes="max-w-96 w-full mx-auto py-[12px] px-[20px]".to_string()
+                    href="/".to_string()
+                >
+                    Done
+                </HighlightedLinkButton>
             </div>
         </div>
     }

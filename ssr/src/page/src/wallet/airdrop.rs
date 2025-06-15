@@ -229,15 +229,21 @@ fn AirdropButton(
             style="--duration:1500ms"
             class="fade-in flex text-xl font-bold z-2 w-full flex-col gap-4 items-center justify-center px-8"
         >
-            <Show clone:name_c when=claimed fallback=move ||view! {
-                    <div class="text-center">
-                        {format!("{} {} Airdrop received", airdrop_amount, name.clone())}
-                    </div>
-                }>
-                    <div class="text-center">
-                        {format!("{} {}", airdrop_amount, name_c.clone())} <br />
-                        <span class="font-normal">"added to wallet"</span>
-                    </div>
+            <Show
+                clone:name_c
+                when=claimed
+                fallback=move || {
+                    view! {
+                        <div class="text-center">
+                            {format!("{} {} Airdrop received", airdrop_amount, name.clone())}
+                        </div>
+                    }
+                }
+            >
+                <div class="text-center">
+                    {format!("{} {}", airdrop_amount, name_c.clone())} <br />
+                    <span class="font-normal">"added to wallet"</span>
+                </div>
             </Show>
 
             {move || {
@@ -326,39 +332,58 @@ fn AirdropPopUpButton(
             style="--duration:1500ms"
             class="fade-in flex text-xl font-bold z-2 w-full flex-col gap-4 items-center justify-center px-8"
         >
-            <Show when=claimed fallback=move || view! {
-                <div class="text-center font-normal"><span class="font-semibold">100 {name_c.clone()}</span> successfully claimed and added to your wallet!</div>
-            }.into_view()>
+            <Show
+                when=claimed
+                fallback=move || {
+                    view! {
+                        <div class="text-center font-normal">
+                            <span class="font-semibold">100 {name_c.clone()}</span>
+                            successfully claimed and added to your wallet!
+                        </div>
+                    }
+                        .into_view()
+                }
+            >
                 <div class="text-center">
                     {format!("100 {}", name_c2.clone())} <br />
-                    <span class="text-center font-normal">Claim for <span class="font-semibold">100 {name_c2.clone()}</span> is being processed</span>
+                    <span class="text-center font-normal">
+                        Claim for <span class="font-semibold">100 {name_c2.clone()}</span>
+                        is being processed
+                    </span>
                 </div>
             </Show>
             {move || {
                 if buffer_signal.get() {
-                    Some(view! {
-                        <div class="max-w-100 mt-10 mb-16 scale-[4] ">
-                            <SpinnerCircleStyled/>
-                        </div>
-                    }
-                        .into_any())
+                    Some(
+                        view! {
+                            <div class="max-w-100 mt-10 mb-16 scale-[4] ">
+                                <SpinnerCircleStyled />
+                            </div>
+                        }
+                            .into_any(),
+                    )
                 } else if claimed.get() {
                     let host = host.clone();
-                    let PopUpButtonTextRedirection { href, text } = pop_up_button_href(host, pathname.pathname.get());
-                    Some(view! {
-                        <div class="mt-10 mb-16">
-                            <HighlightedLinkButton
-                                alt_style=true
-                                disabled=false
-                                classes="max-w-96 mx-auto py-[12px] px-[20px] w-full".to_string()
-                                href=href
-                            >
-                                {text}
-                            </HighlightedLinkButton>
-                        </div>
-
-                    }
-                        .into_any())
+                    let PopUpButtonTextRedirection { href, text } = pop_up_button_href(
+                        host,
+                        pathname.pathname.get(),
+                    );
+                    Some(
+                        view! {
+                            <div class="mt-10 mb-16">
+                                <HighlightedLinkButton
+                                    alt_style=true
+                                    disabled=false
+                                    classes="max-w-96 mx-auto py-[12px] px-[20px] w-full"
+                                        .to_string()
+                                    href=href
+                                >
+                                    {text}
+                                </HighlightedLinkButton>
+                            </div>
+                        }
+                            .into_any(),
+                    )
                 } else {
                     None
                 }
@@ -380,7 +405,10 @@ pub fn AirdropPopup(
             style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
             class="h-full w-full relative items-center justify-center text-white font-kumbh flex flex-col overflow-hidden gap-4 rounded-lg"
         >
-            <button on:click=move |_| airdrop_popup.set(false) class="absolute z-40 right-5 top-5 scale-125 p-2 rounded-full bg-neutral-800">
+            <button
+                on:click=move |_| airdrop_popup.set(false)
+                class="absolute z-40 right-5 top-5 scale-125 p-2 rounded-full bg-neutral-800"
+            >
                 <Icon icon=icondata::TbX />
             </button>
             <img
@@ -388,12 +416,8 @@ pub fn AirdropPopup(
                 src="/img/airdrop/bg.webp"
                 class="absolute inset-0 z-1 fade-in w-full h-full object-cover"
             />
-            <AirdropAnimation claimed=claimed.into() logo=logo.clone()/>
-            <AirdropPopUpButton
-                claimed
-                name
-                buffer_signal
-            />
+            <AirdropAnimation claimed=claimed.into() logo=logo.clone() />
+            <AirdropPopUpButton claimed name buffer_signal />
         </div>
     }
 }
@@ -402,58 +426,63 @@ pub fn AirdropPopup(
 fn AirdropAnimation(claimed: Signal<bool>, logo: String) -> impl IntoView {
     let logo_c = logo.clone();
     view! {
-        <Show when=claimed fallback=move || view! {
-            <div class="h-[30vh] max-h-96 w-full flex items-center justify-center z-2 lg:mb-8 mt-12">
-                <div class="h-[22vh] w-[22vh] lg:h-[27vh] lg:w-[27vh] relative gap-12">
-                    <AnimatedTick />
+        <Show
+            when=claimed
+            fallback=move || {
+                view! {
+                    <div class="h-[30vh] max-h-96 w-full flex items-center justify-center z-2 lg:mb-8 mt-12">
+                        <div class="h-[22vh] w-[22vh] lg:h-[27vh] lg:w-[27vh] relative gap-12">
+                            <AnimatedTick />
+                            <div
+                                style="--duration:1500ms; background: radial-gradient(circle, rgba(27,0,15,1) 0%, rgba(0,0,0,1) 100%); box-shadow: 0px 0px 3.43px 0px #FFFFFF29;"
+                                class="p-px fade-in absolute w-16 h-16 -bottom-4 -right-4 rounded-md"
+                            >
+                                <img
+                                    alt="Airdrop"
+                                    src=logo_c.clone()
+                                    class="w-full fade-in rounded-md h-full object-cover"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        >
+            <div class="relative h-[50vh] max-h-96 z-2">
+                <div
+                    style="--y: 50px"
+                    class="flex flex-col items-center justify-center airdrop-parachute"
+                >
+                    <img
+                        alt="Parachute"
+                        src="/img/airdrop/parachute.webp"
+                        class="h-auto max-h-72"
+                    />
+
                     <div
-                        style="--duration:1500ms; background: radial-gradient(circle, rgba(27,0,15,1) 0%, rgba(0,0,0,1) 100%); box-shadow: 0px 0px 3.43px 0px #FFFFFF29;"
-                        class="p-px fade-in absolute w-16 h-16 -bottom-4 -right-4 rounded-md"
+                        style="background: radial-gradient(circle, rgb(244 141 199) 0%, rgb(255 255 255) 100%); box-shadow: 0px 0px 3.43px 0px #FFFFFF29;"
+                        class="p-px w-16 h-16 -translate-y-8 rounded-md"
                     >
                         <img
                             alt="Airdrop"
-                            src=logo_c.clone()
+                            src=logo.clone()
                             class="w-full fade-in rounded-md h-full object-cover"
                         />
                     </div>
                 </div>
-            </div>
-        }>
-        <div class="relative h-[50vh] max-h-96 z-2">
-        <div
-            style="--y: 50px"
-            class="flex flex-col items-center justify-center airdrop-parachute"
-        >
-            <img
-                alt="Parachute"
-                src="/img/airdrop/parachute.webp"
-                class="h-auto max-h-72"
-            />
-
-            <div
-                style="background: radial-gradient(circle, rgb(244 141 199) 0%, rgb(255 255 255) 100%); box-shadow: 0px 0px 3.43px 0px #FFFFFF29;"
-                class="p-px w-16 h-16 -translate-y-8 rounded-md"
-            >
                 <img
-                    alt="Airdrop"
-                    src=logo.clone()
-                    class="w-full fade-in rounded-md h-full object-cover"
+                    alt="Cloud"
+                    src="/img/airdrop/cloud.webp"
+                    style="--x: -50px"
+                    class="max-w-12 absolute -top-10 left-0 airdrop-cloud"
+                />
+                <img
+                    alt="Cloud"
+                    src="/img/airdrop/cloud.webp"
+                    style="--x: 50px"
+                    class="max-w-16 absolute bottom-10 right-10 airdrop-cloud"
                 />
             </div>
-        </div>
-        <img
-            alt="Cloud"
-            src="/img/airdrop/cloud.webp"
-            style="--x: -50px"
-            class="max-w-12 absolute -top-10 left-0 airdrop-cloud"
-        />
-        <img
-            alt="Cloud"
-            src="/img/airdrop/cloud.webp"
-            style="--x: 50px"
-            class="max-w-16 absolute bottom-10 right-10 airdrop-cloud"
-        />
-    </div>
         </Show>
     }
 }
@@ -511,18 +540,27 @@ pub fn SatsAirdropPopup(
     let is_connected = auth_state().is_logged_in_with_oauth();
 
     view! {
-        <ShadowOverlay show=show >
+        <ShadowOverlay show=show>
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
                 <div class="overflow-hidden h-fit max-w-md items-center pt-16 cursor-auto bg-neutral-950 rounded-md w-full relative">
-                    <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
+                    <img
+                        src="/img/common/refer-bg.webp"
+                        class="absolute inset-0 z-0 w-full h-full object-cover opacity-40"
+                    />
                     <div
                         style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
-                        class=format!("absolute z-[1] -left-1/2 bottom-1/3 size-[32rem] {}", if error.get() {"saturate-0"} else {"saturate-100"}) >
-                    </div>
+                        class=format!(
+                            "absolute z-[1] -left-1/2 bottom-1/3 size-[32rem] {}",
+                            if error.get() { "saturate-0" } else { "saturate-100" },
+                        )
+                    ></div>
                     <div
                         style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
-                        class=format!("absolute z-[1] top-8 -right-1/3 size-72 {}", if error.get() { "saturate-0"} else {"saturate-100"}) >
-                    </div>
+                        class=format!(
+                            "absolute z-[1] top-8 -right-1/3 size-72 {}",
+                            if error.get() { "saturate-0" } else { "saturate-100" },
+                        )
+                    ></div>
                     <button
                         on:click=move |_| show.set(false)
                         class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[2] top-4 right-4"
@@ -532,47 +570,57 @@ pub fn SatsAirdropPopup(
                     <div class="flex z-[2] flex-col items-center gap-16 text-white justify-center p-12">
                         <img src=img_src class="h-60" />
                         <div class="flex z-[2] flex-col items-center gap-6">
-                            {
-                                move || {
-                                    if claimed.get() {
-                                        view! {
-                                            <div class="text-center">
-                                                <span class="font-semibold">{amount_claimed} " Bitcoin (SATS)"</span>" credited in your wallet"
-                                            </div>
-                                            <HighlightedButton
-                                                alt_style=false
-                                                disabled=false
-                                                on_click=move || { show.set(false) }
-                                            >
-                                                "Keep Playing"
-                                            </HighlightedButton>
-                                        }.into_any()
-
-                                    } else if error.get() {
-                                        view! {
-                                            <div class="text-center">
-                                                "Claim for "<span class="font-semibold">"Bitcoin (SATS)"</span> " failed"
-                                            </div>
-                                            <HighlightedButton
-                                                alt_style=true
-                                                disabled=false
-                                                on_click=move || { try_again.dispatch(is_connected.get()); }
-                                            >
-                                                "Try again"
-                                            </HighlightedButton>
-                                        }.into_any()
-                                    } else {
-                                        view! {
-                                            <div class="text-center">
-                                                "Claim for "<span class="font-semibold">"Bitcoin (SATS)"</span> " is being processed"
-                                            </div>
-                                            <div class="w-12 h-12">
-                                                <SpinnerCircle />
-                                            </div>
-                                        }.into_any()
+                            {move || {
+                                if claimed.get() {
+                                    view! {
+                                        <div class="text-center">
+                                            <span class="font-semibold">
+                                                {amount_claimed} " Bitcoin (SATS)"
+                                            </span>
+                                            " credited in your wallet"
+                                        </div>
+                                        <HighlightedButton
+                                            alt_style=false
+                                            disabled=false
+                                            on_click=move || { show.set(false) }
+                                        >
+                                            "Keep Playing"
+                                        </HighlightedButton>
                                     }
+                                        .into_any()
+                                } else if error.get() {
+
+                                    view! {
+                                        <div class="text-center">
+                                            "Claim for "
+                                            <span class="font-semibold">"Bitcoin (SATS)"</span>
+                                            " failed"
+                                        </div>
+                                        <HighlightedButton
+                                            alt_style=true
+                                            disabled=false
+                                            on_click=move || {
+                                                try_again.dispatch(is_connected.get());
+                                            }
+                                        >
+                                            "Try again"
+                                        </HighlightedButton>
+                                    }
+                                        .into_any()
+                                } else {
+                                    view! {
+                                        <div class="text-center">
+                                            "Claim for "
+                                            <span class="font-semibold">"Bitcoin (SATS)"</span>
+                                            " is being processed"
+                                        </div>
+                                        <div class="w-12 h-12">
+                                            <SpinnerCircle />
+                                        </div>
+                                    }
+                                        .into_any()
                                 }
-                            }
+                            }}
                         </div>
                     </div>
                 </div>

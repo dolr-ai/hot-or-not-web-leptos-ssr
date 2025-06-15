@@ -391,7 +391,12 @@ pub fn VideoDetailsOverlay(
                     <div class="flex flex-col justify-center min-w-0">
                         <div class="flex flex-row text-xs md:text-sm lg:text-base gap-1 items-center">
                             <span class="font-semibold truncate">
-                                <a on:click=move|_| mixpanel_track_profile_click() href=profile_url>{post.display_name}</a>
+                                <a
+                                    on:click=move |_| mixpanel_track_profile_click()
+                                    href=profile_url
+                                >
+                                    {post.display_name}
+                                </a>
                             </span>
                             <span class="font-semibold">"|"</span>
                             <span class="flex flex-row gap-1 items-center">
@@ -424,10 +429,13 @@ pub fn VideoDetailsOverlay(
             </div>
             <div class="flex flex-col gap-2 w-full">
                 <div class="flex flex-col pointer-events-auto gap-6 self-end items-end text-2xl md:text-3xl lg:text-4xl">
-                    <button on:click=move |_| {track_video_report(); show_report.set(true);}>
+                    <button on:click=move |_| {
+                        track_video_report();
+                        show_report.set(true);
+                    }>
                         <Icon attr:class="drop-shadow-lg" icon=icondata::TbMessageReport />
                     </button>
-                    <a on:click=move|_| track_video_refer()  href="/refer-earn">
+                    <a on:click=move |_| track_video_refer() href="/refer-earn">
                         <Icon attr:class="drop-shadow-lg" icon=icondata::AiGiftFilled />
                     </a>
                     <LikeAndAuthCanLoader post=post_c.clone() />
