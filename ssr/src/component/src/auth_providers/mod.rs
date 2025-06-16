@@ -207,7 +207,7 @@ pub fn LoginProviders(
                     <Icon icon=icondata::ChCross />
                 </button>
                 <div class="flex z-[2] flex-col items-center gap-8 text-white justify-center px-12 py-10 relative">
-                    <img src="/img/common/join-yral.webp" class="h-52" />
+                    <img src="/img/common/join-yral.webp" class="h-52 object-contain" />
                     <div class="font-bold text-base">
                         "Login in to watch, play & earn Bitcoin."
                     </div>
