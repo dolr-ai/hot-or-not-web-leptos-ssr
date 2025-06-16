@@ -202,7 +202,7 @@ pub fn LoginProviders(
                 </div>
                 <button
                     on:click=move |_| show_modal.set(false)
-                    class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[2] top-4 right-4"
+                    class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[3] top-4 right-4"
                 >
                     <Icon icon=icondata::ChCross />
                 </button>
