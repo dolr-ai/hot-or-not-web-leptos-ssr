@@ -124,7 +124,7 @@ pub fn YralAuthProvider() -> impl IntoView {
     view! {
         <LoginProvButton
             prov=ProviderKind::YralAuth
-            class="flex flex-row gap-2 justify-center justify-between items-center pr-4 rounded-full bg-neutral-600"
+            class="flex flex-row gap-2 justify-between items-center pr-4 rounded-full bg-neutral-600"
             on_click=move |ev| {
                 ev.stop_propagation();
                 on_click()
