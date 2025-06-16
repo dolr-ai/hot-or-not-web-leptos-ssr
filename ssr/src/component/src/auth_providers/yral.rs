@@ -29,9 +29,7 @@ async fn yral_auth_login_url(
 #[component]
 pub fn YralAuthProvider() -> impl IntoView {
     let ctx: LoginProvCtx = expect_context();
-    let signing_in = move || {
-        ctx.processing.get() == Some(ProviderKind::YralAuth)
-    };
+    let signing_in = move || ctx.processing.get() == Some(ProviderKind::YralAuth);
     let signing_in_provider = RwSignal::new(LoginProvider::Google);
     let done_guard = RwSignal::new(false);
     let close_popup_store = StoredValue::new(None::<Callback<()>>);
