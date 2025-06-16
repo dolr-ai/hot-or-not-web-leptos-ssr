@@ -196,4 +196,8 @@ yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", br
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
 ], branch = "master", version = "0.1.0" }
-cargo-husky = "1.5.0"
+cargo-husky = { version = "1.5.0", features = [
+    "precommit-hook",
+    "run-cargo-clippy",
+    "run-cargo-fmt",
+] }

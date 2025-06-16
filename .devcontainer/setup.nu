@@ -19,3 +19,6 @@ git submodule update --init --recursive;
 
 # Enable the env file
 cp .env.example .env;
+
+# Make the cargo husky hooks executable
+chmod +x .cargo-husky/hooks/*;

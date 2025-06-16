@@ -24,7 +24,9 @@
         // shell
         "TheNuProjectContributors.vscode-nushell-lang",
         // tailwindcss
-        "bradlc.vscode-tailwindcss"
+        "bradlc.vscode-tailwindcss",
+        // git
+        "eamodio.gitlens"
       ]
     }
   },
