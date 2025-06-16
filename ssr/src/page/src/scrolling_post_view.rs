@@ -1,4 +1,5 @@
 use crate::post_view::video_loader::{BgView, VideoViewForQueue};
+use crate::post_view::FeedPostCtx;
 use indexmap::IndexSet;
 use leptos::html;
 use leptos::prelude::*;
@@ -28,6 +29,7 @@ pub fn MuteIconOverlay(show_mute_icon: RwSignal<bool>) -> impl IntoView {
 #[component]
 pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
     video_queue: RwSignal<IndexSet<PostDetails>>,
+    video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
     current_idx: RwSignal<usize>,
     #[prop(optional)] fetch_next_videos: Option<F>,
     recovering_state: RwSignal<bool>,
@@ -54,9 +56,11 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                 {overlay.map(|o| o.run())}
 
                 <For
-                    each=move || video_queue.get().into_iter().enumerate()
-                    key=move |(_, details)| (details.canister_id, details.post_id)
-                    children=move |(queue_idx, _details)| {
+                    each=move || video_queue_for_feed.get()
+                    key=move |feedpost| (feedpost.key)
+                    children=move |feedpost| {
+                        let queue_idx = feedpost.key;
+                        let post = feedpost.value;
                         let container_ref = NodeRef::<html::Div>::new();
                         let next_videos = fetch_next_videos.clone();
                         use_intersection_observer_with_options(
@@ -94,21 +98,29 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                 recovering_state.set(false);
                             }
                         });
-                        // let show_video = Memo::new(move |_| {
-                        //     queue_idx.abs_diff(current_idx()) <= 6
+                        let show_video = Memo::new(move |_| {
+                            (queue_idx as i32 - current_idx() as i32) >= -3
+                        });
+                        let to_load = Signal::derive(move || {
+                            let cidx = current_idx.get() as i32;
+                            (queue_idx as i32 - cidx) <= 2 && (queue_idx as i32 - cidx) >= 0
+                        });
+                        // let post = Signal::derive(move || {
+                        //     details.value.clone()
                         // });
                         view! {
                             <div node_ref=container_ref class="snap-always snap-end w-full h-full">
-                                // <Show when=show_video>
+                                <Show when=show_video>
                                     <BgView video_queue idx=queue_idx>
                                         <VideoViewForQueue
-                                            video_queue
+                                            post
                                             current_idx
                                             idx=queue_idx
                                             muted
+                                            to_load
                                         />
                                     </BgView>
-                                // </Show>
+                                </Show>
                             </div>
                         }.into_any()
                     }

@@ -120,15 +120,15 @@ fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
     });
 
     view! {
-        <ScrollingPostView
-            video_queue
-            current_idx=current_index
-            queue_end
-            recovering_state
-            fetch_next_videos
-            overlay
-            threshold_trigger_fetch=10
-        />
+        // <ScrollingPostView
+        //     video_queue
+        //     current_idx=current_index
+        //     queue_end
+        //     recovering_state
+        //     fetch_next_videos
+        //     overlay
+        //     threshold_trigger_fetch=10
+        // />
     }
     .into_any()
 }

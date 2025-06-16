@@ -99,7 +99,7 @@ pub fn YralRootPage() -> impl IntoView {
                             post_details.insert((canister_id, post_id), post_item.clone());
                         });
 
-                        format!("/hot-or-not/{canister_id}/{post_id}")
+                        format!("/hot-or-not/{canister_id}/{post_id}") // format!("/hot-or-not/feed?canister_id={canister_id}&post_id={post_id}")
                     },
                     Ok(None) => "/error?err=No Posts Found".to_string(),
                     Err(e) => format!("/error?err={e}"),

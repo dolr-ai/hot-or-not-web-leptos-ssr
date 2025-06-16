@@ -64,7 +64,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <meta charset="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <script fetchpriority="low" type="module" src="/js/sentry-init.js" async></script>
-                <script fetchpriority="low" type="module" src="/js/mixpanel-init.js" async></script>
+                // <script fetchpriority="low" type="module" src="/js/mixpanel-init.js" async></script>
                 <script fetchpriority="low" type="module" src="/js/store-initial-url.js" async></script>
 
                 <AutoReload options=options.clone() />
@@ -92,7 +92,7 @@ pub fn App() -> impl IntoView {
     // Existing context providers
     provide_context(Canisters::default());
     provide_context(ContentSeedClient::default());
-    provide_context(PostViewCtx::default());
+    provide_context(PostViewCtx::new());
     provide_context(ProfilePostsContext::default());
     provide_context(AuthorizedUserToSeedContent::default());
     provide_context(AudioState::default());

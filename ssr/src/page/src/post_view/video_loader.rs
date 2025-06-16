@@ -137,12 +137,12 @@ pub fn VideoView(
     Effect::new(move |_| {
         let vid = _ref.get()?;
         // the attributes in DOM don't seem to be working
-        vid.set_muted(muted.get_untracked());
-        vid.set_loop(true);
-        if autoplay_at_render {
-            vid.set_autoplay(true);
-            _ = vid.play();
-        }
+        // vid.set_muted(muted.get_untracked());
+        // vid.set_loop(true);
+        // if autoplay_at_render {
+        //     vid.set_autoplay(true);
+        //     _ = vid.play();
+        // }
         Some(())
     });
 
@@ -239,8 +239,8 @@ pub fn VideoView(
     view! {
         <VideoPlayer
             node_ref=_ref
-            view_bg_url=Signal::derive(view_bg_url)
-            view_video_url=Signal::derive(view_video_url)
+            // view_bg_url=Signal::derive(view_bg_url)
+            // view_video_url=Signal::derive(view_video_url)
         />
     }
     .into_any()
@@ -248,22 +248,55 @@ pub fn VideoView(
 
 #[component]
 pub fn VideoViewForQueue(
-    video_queue: RwSignal<IndexSet<PostDetails>>,
+    post: RwSignal<Option<PostDetails>>,
     current_idx: RwSignal<usize>,
     idx: usize,
     muted: RwSignal<bool>,
+    to_load: Signal<bool>,
 ) -> impl IntoView {
     let container_ref = NodeRef::<Video>::new();
 
+    // Effect::new(move |_| {
+    //     let Some(vid) = container_ref.get() else { return; };
+    //     let diff = current_idx.get() as i32 - idx as i32;
+  
+    //     if diff > 1 {  // More aggressive on mobile
+    //         vid.set_src("");  // Clear src completely
+    //         vid.remove_attribute("poster").ok();
+    //         vid.set_preload("none");
+    //         _ = vid.pause();
+    //     }
+    // });
+
     // Handles autoplay
     Effect::new(move |_| {
+        let Some(post) = post.get() else {
+            return;
+        };
         let Some(vid) = container_ref.get() else {
             return;
         };
+        // log::info!("effect running for idx: {} current_idx: {}", idx, current_idx.get_untracked());
+        if to_load() && vid.src() == ""{
+            let view_bg_url = bg_url(post.uid.clone());
+            let view_video_url = mp4_url(post.uid.clone());
+            vid.set_poster(&view_bg_url);
+            vid.set_src(&view_video_url);
+
+            // if to_load() {
+            //     log::info!("loading video for idx: {}", idx);
+            //     vid.set_preload("auto");
+            //     vid.load();
+            // }
+        }
         if idx != current_idx() {
+            // vid.set_preload("none");
             _ = vid.pause();
+            vid.set_autoplay(false);
             return;
         }
+        log::info!("effect running for idx: {} current_idx: {}", idx, current_idx.get_untracked());
+        // vid.set_muted(muted.get());
         vid.set_autoplay(true);
         let promise = vid.play();
         if let Ok(promise) = promise {
@@ -278,7 +311,7 @@ pub fn VideoViewForQueue(
         }
     });
 
-    let post = Signal::derive(move || video_queue.with(|q| q.get_index(idx).cloned()));
+    // let post = Signal::derive(move || video_queue.with(|q| q.get_index(idx).cloned()));
 
     view! { <VideoView post _ref=container_ref muted /> }.into_any()
 }
