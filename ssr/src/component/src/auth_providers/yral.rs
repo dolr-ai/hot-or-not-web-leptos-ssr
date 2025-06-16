@@ -133,7 +133,7 @@ pub fn YralAuthProvider() -> impl IntoView {
             }
         >
             <img class="size-5" src="/img/common/google.svg" />
-            <span>{format!("{}Google", if signing_in() && signing_in_provider.get() == LoginProvider::Google { "Logging in " } else { "Login with " })}</span>
+            <span>{format!("{}Google", if signing_in() && signing_in_provider.get() == LoginProvider::Google { "Logging in with " } else { "Login with " })}</span>
         </LoginProvButton>
         <LoginProvButton
             prov=ProviderKind::YralAuth
@@ -145,7 +145,7 @@ pub fn YralAuthProvider() -> impl IntoView {
             }
         >
             <img class="size-5" src="/img/common/apple.svg" />
-            <span>{format!("{}Apple", if signing_in() && signing_in_provider.get() == LoginProvider::Apple { "Logging in " } else { "Login with " })}</span>
+            <span>{format!("{}Apple", if signing_in() && signing_in_provider.get() == LoginProvider::Apple { "Logging in with " } else { "Login with " })}</span>
         </LoginProvButton>
     }
 }
