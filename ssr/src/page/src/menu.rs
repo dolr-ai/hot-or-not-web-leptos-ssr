@@ -112,8 +112,7 @@ fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
 
 #[component]
 fn ProfileInfo(profile_details: ProfileDetails) -> impl IntoView {
-    view! { <ProfileLoaded user_details=profile_details /> }
-    .into_any()
+    view! { <ProfileLoaded user_details=profile_details /> }.into_any()
 }
 
 #[component]

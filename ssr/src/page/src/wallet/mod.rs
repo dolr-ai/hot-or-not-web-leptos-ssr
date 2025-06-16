@@ -291,8 +291,7 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
 
 #[component]
 pub fn NotificationWallet() -> impl IntoView {
-    view! { <NotificationWalletImpl /> }
-    .into_any()
+    view! { <NotificationWalletImpl /> }.into_any()
 }
 
 #[component]
