@@ -2,7 +2,7 @@
 
 set -e
 
-echo '+cargo test --all'
+echo '+cargo test --all-features'
 cargo test --all-features
 echo '+cargo clippy --all -- -D warnings'
 cargo clippy --all-features -- -D warnings
