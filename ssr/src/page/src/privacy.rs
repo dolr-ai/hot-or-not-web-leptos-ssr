@@ -206,7 +206,7 @@ pub fn PrivacyPolicy() -> impl IntoView {
                                 Look for the "Third-party apps with account access"
                                 or similar option. Here, you can view and manage the apps connected to your Google account.
                             </li>
-                            <li>Locate "Yral"inthelistofconnected apps.</li>
+                            <li>Locate "Yral"inthelistofconnectedapps.</li>
                             <li>
                                 You can adjust permissions or revoke access to your Google account as needed.
                             </li>
