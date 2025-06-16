@@ -208,7 +208,7 @@ pub fn LoginProviders(
                 </button>
                 <div class="flex z-[2] flex-col items-center gap-8 text-white justify-center px-12 py-10 relative">
                     <img src="/img/common/join-yral.webp" class="h-52 object-contain" />
-                    <div class="font-bold text-base">
+                    <div class="font-bold text-base text-center">
                         "Login in to watch, play & earn Bitcoin."
                     </div>
                     <div class="flex flex-col items-center w-full gap-4">
