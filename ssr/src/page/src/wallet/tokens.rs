@@ -569,7 +569,6 @@ pub fn FastWalletCard(
             show_airdrop_popup.set(true);
             match airdropper.as_ref().unwrap().claim_airdrop(cans).await {
                 Ok(amount) => {
-                    log::info!("claimed airdrop amount: {amount}");
                     airdrop_amount_claimed.set(amount);
                     is_airdrop_claimed.set(true);
                     error_claiming_airdrop.set(false);

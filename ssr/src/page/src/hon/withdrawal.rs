@@ -10,7 +10,7 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
 use state::{canisters::auth_state, server::HonWorkerJwt};
-use utils::{send_wrap, try_or_redirect_opt};
+use utils::send_wrap;
 use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::{utils::token::balance::TokenBalance, Canisters};
 use yral_identity::Signature;
@@ -220,6 +220,19 @@ pub fn HonWithdrawal() -> impl IntoView {
             }
         }
     });
+    let balance = Resource::new(
+        move || details_res.get().map(|r| r.ok().map(|d| d.balance.into())),
+        |res| async move {
+            if let Some(res) = res {
+                res.unwrap_or_default()
+            } else {
+                Nat::from(0_usize)
+            }
+        },
+    );
+
+    let zero = Nat::from(0_usize);
+
     view! {
         <div class="flex overflow-x-hidden flex-col items-center pt-2 pb-12 w-full min-h-screen text-white bg-black">
             <Header />
@@ -227,10 +240,8 @@ pub fn HonWithdrawal() -> impl IntoView {
                 <div class="flex flex-col justify-center items-center px-4 pb-6 mx-auto mt-4 max-w-md">
                     <Suspense>
                         {move || {
-                            let balance: Nat = try_or_redirect_opt!(details_res.get()?)
-                                .balance
-                                .into();
-                            Some(view! { <BalanceDisplay balance /> })
+                            balance.get()
+                                .map(|balance| view! { <BalanceDisplay balance=balance.clone() /> })
                         }}
                     </Suspense>
                     <div class="flex flex-col gap-5 mt-8 w-full">
@@ -278,38 +289,36 @@ pub fn HonWithdrawal() -> impl IntoView {
                                     </button>
                                 }
                             }>
-                                {move || {
-                                    let can_withdraw = true;
-                                    let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize
-                                        || sats() > MAX_WITHDRAWAL_PER_TXN as usize;
-                                    let is_claiming = is_claiming();
-                                    let message = if invalid_input {
-                                        format!(
-                                            "Enter valid Amount. Min: {MIN_WITHDRAWAL_PER_TXN} Max: {MAX_WITHDRAWAL_PER_TXN}",
-                                        )
-                                    } else {
-                                        match (can_withdraw, is_claiming) {
-                                            (false, _) => "Not enough winnings".to_string(),
-                                            (_, true) => "Claiming...".to_string(),
-                                            (_, _) => "Withdraw Now!".to_string(),
-                                        }
-                                    };
-                                    Some(
-                                        // all of the money can be withdrawn
-                                        view! {
-                                            <button
-                                                disabled=invalid_input || !can_withdraw
-                                                class=("pointer-events-none", is_claiming)
-                                                class="py-2 px-5 text-sm font-bold text-center rounded-lg bg-brand-gradient disabled:bg-brand-gradient-disabled"
-                                                on:click=move |_ev| {
-                                                    send_claim.dispatch(());
-                                                }
-                                            >
-                                                {message}
-                                            </button>
-                                        },
-                                    )
-                                }}
+                            {move || {
+                                let balance = if let Some(balance) = balance.get() {
+                                    balance
+                                } else {
+                                    Nat::from(0_usize)
+                                };
+                                let can_withdraw = true; // all of the money can be withdrawn
+                                let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize || sats() > MAX_WITHDRAWAL_PER_TXN as usize;
+                                let invalid_balance = sats() > balance || balance == zero;
+                                let is_claiming = is_claiming();
+                                let message = if invalid_balance {
+                                    "Not enough balance".to_string()
+                                } else if invalid_input {
+                                    format!("Enter valid amount, min: {MIN_WITHDRAWAL_PER_TXN} max: {MAX_WITHDRAWAL_PER_TXN}")
+                                } else {
+                                    match (can_withdraw, is_claiming) {
+                                        (false, _) => "Not enough winnings".to_string(),
+                                        (_, true) => "Claiming...".to_string(),
+                                        (_, _) => "Withdraw Now!".to_string()
+                                    }
+                                };
+                                Some(view! {
+                                    <button
+                                        disabled=invalid_input || !can_withdraw
+                                        class=("pointer-events-none", is_claiming)
+                                        class="rounded-lg px-5 py-2 text-sm text-center font-bold bg-brand-gradient disabled:bg-brand-gradient-disabled"
+                                        on:click=move |_ev| {send_claim.dispatch(());}
+                                    >{message}</button>
+                                })
+                            }}
                             </Suspense>
                         </div>
                         <span class="text-sm">
