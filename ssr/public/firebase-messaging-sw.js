@@ -1,22 +1,14 @@
 importScripts("https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging-compat.js");
 
-const firebaseConfig = {
-
-  apiKey: "AIzaSyCc_3-30sOgNhpPprV-YDMSTebf4EAPNIo",
-
-  authDomain: "client-device-notification.firebaseapp.com",
-
-  projectId: "client-device-notification",
-
-  storageBucket: "client-device-notification.firebasestorage.app",
-
-  messagingSenderId: "257800168511",
-
-  appId: "1:257800168511:web:ce7840178c24f97e09048a",
-
-  measurementId: "G-WLPMS55C10"
-
+const firebaseConfig =  {
+  apiKey: "AIzaSyBi3lnHvvPyPlhTk9kG1GZubc477V3q40M",
+  authDomain: "yral-mobile.firebaseapp.com",
+  projectId: "yral-mobile",
+  storageBucket: "yral-mobile.firebasestorage.app",
+  messagingSenderId: "1035262663512",
+  appId: "1:1035262663512:web:c995288e332798c51c232d",
+  measurementId: "G-V2WDJLV7E5"
 };
 
 if (!firebase.apps.length) {

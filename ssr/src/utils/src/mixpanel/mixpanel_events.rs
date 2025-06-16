@@ -15,6 +15,7 @@ use yral_canisters_common::utils::vote::VoteKind;
 use yral_canisters_common::Canisters;
 
 use crate::event_streaming::events::EventCtx;
+use crate::event_streaming::events::HistoryCtx;
 
 #[wasm_bindgen]
 extern "C" {
@@ -65,15 +66,42 @@ async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
 
     #[cfg(feature = "qstash")]
     {
-        let qstash_client: crate::qstash::QStashClient = expect_context();
-        let token =
-            std::env::var("ANALYTICS_SERVER_TOKEN").expect("ANALYTICS_SERVER_TOKEN is not set");
-        qstash_client
-            .send_analytics_event_to_qstash(props, token)
-            .await
-            .map_err(|e| ServerFnError::new(format!("Mixpanel track error: {e:?}")))?;
+        let qstash_client = use_context::<crate::qstash::QStashClient>();
+        if let Some(qstash_client) = qstash_client {
+            let token =
+                std::env::var("ANALYTICS_SERVER_TOKEN").expect("ANALYTICS_SERVER_TOKEN is not set");
+            qstash_client
+                .send_analytics_event_to_qstash(props, token)
+                .await
+                .map_err(|e| ServerFnError::new(format!("Mixpanel track error: {e:?}")))?;
+        } else {
+            logging::error!("QStash client not found. Gracefully continuing");
+        }
     }
     Ok(())
+}
+
+pub fn parse_query_params_utm() -> Result<Vec<(String, String)>, String> {
+    if let Some(storage) = window()
+        .local_storage()
+        .map_err(|e| format!("Failed to access localstorage: {e:?}"))?
+    {
+        if let Some(url_str) = storage
+            .get_item("initial_url")
+            .map_err(|e| format!("Failed to get utm from localstorage: {e:?}"))?
+        {
+            let url =
+                reqwest::Url::parse(&url_str).map_err(|e| format!("Failed to parse url: {e:?}"))?;
+            storage
+                .remove_item("initial_url")
+                .map_err(|e| format!("Failed to remove initial_url from localstorage: {e:?}"))?;
+            return Ok(url
+                .query_pairs()
+                .map(|(k, v)| (k.into_owned(), v.into_owned()))
+                .collect());
+        }
+    }
+    Ok(Vec::new())
 }
 
 /// Generic helper: serializes `props` and calls Mixpanel.track
@@ -94,7 +122,24 @@ where
     } else {
         props.get("visitor_id").and_then(Value::as_str).into()
     };
-    props["current_url"] = window().location().href().ok().into();
+    let current_url = window().location().href().ok();
+    if let Some(url) = current_url {
+        props["current_url"] = url.clone().into();
+        props["$current_url"] = url.into();
+    }
+    let history = use_context::<HistoryCtx>();
+    if let Some(history) = history {
+        if history.utm.get_untracked().is_empty() {
+            if let Ok(utms) = parse_query_params_utm() {
+                history.push_utm(utms);
+            }
+        }
+        for (key, value) in history.utm.get_untracked() {
+            props[key] = value.into();
+        }
+    } else {
+        logging::error!("HistoryCtx not found. Gracefully continuing");
+    }
     spawn_local(async {
         let res = track_event_server_fn(props).await;
         match res {

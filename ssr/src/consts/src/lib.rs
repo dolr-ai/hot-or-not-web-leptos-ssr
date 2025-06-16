@@ -1,5 +1,7 @@
 #[cfg(any(feature = "local-bin", feature = "local-lib"))]
 mod local;
+use std::ops::Range;
+
 use candid::Principal;
 #[cfg(any(feature = "local-bin", feature = "local-lib"))]
 pub use local::*;
@@ -12,6 +14,9 @@ pub use remote::*;
 use once_cell::sync::Lazy;
 use reqwest::Url;
 
+// TODO: make it consistent with the actual bet amount
+pub const MAX_BET_AMOUNT: usize = 20;
+pub const SATS_AIRDROP_LIMIT_RANGE: Range<u64> = 50..100;
 pub const CENTS_IN_E6S: u64 = 1_000_000;
 pub const CF_STREAM_BASE: &str = "https://customer-2p3jflss4r4hmpnz.cloudflarestream.com";
 pub const FALLBACK_PROPIC_BASE: &str = "https://api.dicebear.com/7.x/big-smile/svg";
@@ -24,6 +29,7 @@ pub const DEVICE_ID: &str = "device_id";
 pub static CF_BASE_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://api.cloudflare.com/client/v4/").unwrap());
 pub const NOTIFICATIONS_ENABLED_STORE: &str = "yral-notifications-enabled";
+pub const NOTIFICATION_MIGRATED_STORE: &str = "notifications-migrated";
 pub const NSFW_TOGGLE_STORE: &str = "nsfw-enabled";
 pub const REFERRER_COOKIE: &str = "referrer";
 pub const USER_CANISTER_ID_STORE: &str = "user-canister-id";

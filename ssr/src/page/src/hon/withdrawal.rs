@@ -10,7 +10,7 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
 use state::{canisters::auth_state, server::HonWorkerJwt};
-use utils::{send_wrap, try_or_redirect_opt};
+use utils::send_wrap;
 use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::{utils::token::balance::TokenBalance, Canisters};
 use yral_identity::Signature;
@@ -216,18 +216,29 @@ pub fn HonWithdrawal() -> impl IntoView {
             }
         }
     });
+    let balance = Resource::new(
+        move || details_res.get().map(|r| r.ok().map(|d| d.balance.into())),
+        |res| async move {
+            if let Some(res) = res {
+                res.unwrap_or_default()
+            } else {
+                Nat::from(0_usize)
+            }
+        },
+    );
+
+    let zero = Nat::from(0_usize);
+
     view! {
         <div class="min-h-screen w-full flex flex-col text-white pt-2 pb-12 bg-black items-center overflow-x-hidden">
             <Header />
             <div class="w-full">
                 <div class="flex flex-col items-center justify-center max-w-md mx-auto px-4 mt-4 pb-6">
                     <Suspense>
-                    {move || {
-                        let balance: Nat = try_or_redirect_opt!(details_res.get()?).balance.into();
-                        Some(view! {
-                            <BalanceDisplay balance />
-                        })
-                    }}
+                        {move || {
+                            balance.get()
+                                .map(|balance| view! { <BalanceDisplay balance=balance.clone() /> })
+                        }}
                     </Suspense>
                     <div class="flex flex-col gap-5 mt-8 w-full">
                         <span class="text-sm">Choose how much to redeem:</span>
@@ -253,11 +264,19 @@ pub fn HonWithdrawal() -> impl IntoView {
                                 >Please Wait</button>
                             }>
                             {move || {
+                                let balance = if let Some(balance) = balance.get() {
+                                    balance
+                                } else {
+                                    Nat::from(0_usize)
+                                };
                                 let can_withdraw = true; // all of the money can be withdrawn
                                 let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize || sats() > MAX_WITHDRAWAL_PER_TXN as usize;
+                                let invalid_balance = sats() > balance || balance == zero;
                                 let is_claiming = is_claiming();
-                                let message = if invalid_input {
-                                    format!("Enter valid Amount. Min: {MIN_WITHDRAWAL_PER_TXN} Max: {MAX_WITHDRAWAL_PER_TXN}")
+                                let message = if invalid_balance {
+                                    "Not enough balance".to_string()
+                                } else if invalid_input {
+                                    format!("Enter valid amount, min: {MIN_WITHDRAWAL_PER_TXN} max: {MAX_WITHDRAWAL_PER_TXN}")
                                 } else {
                                     match (can_withdraw, is_claiming) {
                                         (false, _) => "Not enough winnings".to_string(),
