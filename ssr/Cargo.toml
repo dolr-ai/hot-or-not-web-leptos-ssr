@@ -102,10 +102,8 @@ state.workspace = true
 component.workspace = true
 page.workspace = true
 
-[dev-dependencies.cargo-husky]
-workspace = true
-default-features = false
-features = ["user-hooks"]
+[dev-dependencies]
+cargo-husky = { workspace = true }
 
 [build-dependencies]
 tonic-build = { workspace = true }

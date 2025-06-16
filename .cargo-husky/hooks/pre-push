@@ -3,9 +3,9 @@
 set -e
 
 echo '+cargo test --all'
-cargo test --all
+cargo test --all-features
 echo '+cargo clippy --all -- -D warnings'
-cargo clippy --all -- -D warnings
+cargo clippy --all-features -- -D warnings
 echo '+cargo fmt --all -- --check'
 cargo fmt --all -- --check
 echo '+leptosfmt --check .'
