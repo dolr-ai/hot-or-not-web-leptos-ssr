@@ -219,7 +219,6 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
         Resource::new(
             || (),
             move |_| async move {
-                log::info!("fetching balance for: {token_type:?}");
                 let fetcher: BalanceFetcherType = token_type.into();
                 send_wrap(fetcher.fetch(unauth_canisters(), user_canister, user_principal)).await
             },
