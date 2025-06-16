@@ -206,12 +206,12 @@ pub fn LoginProviders(
                 >
                     <Icon icon=icondata::ChCross />
                 </button>
-                <div class="flex z-[2] flex-col items-center gap-16 text-white justify-center px-12 py-10 relative">
+                <div class="flex z-[2] flex-col items-center gap-8 text-white justify-center px-12 py-10 relative">
                     <img src="/img/common/join-yral.webp" class="h-52" />
                     <div class="font-bold text-base">
                         "Login in to watch, play & earn Bitcoin."
                     </div>
-                    <div>
+                    <div class="flex flex-col items-center w-full gap-4">
                         {
                             #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
                             view! { <yral::YralAuthProvider/> }
