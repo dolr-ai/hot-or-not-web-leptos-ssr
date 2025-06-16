@@ -259,7 +259,7 @@ pub fn Menu() -> impl IntoView {
                             <ConnectLogin />
                         </div>
                         <div class="w-full px-8 text-center text-sm font-sans">
-                            {r#"Your Yral account has been setup. Login with Google to not lose progress."#}
+                            {r#"Your Yral account has been setup. Login to not lose progress."#}
                         </div>
                     </Show>
                     <div node_ref=upload_content_mount_point/>

@@ -29,13 +29,10 @@ async fn yral_auth_login_url(
 #[component]
 pub fn YralAuthProvider() -> impl IntoView {
     let ctx: LoginProvCtx = expect_context();
-    let current_text = move || {
-        if ctx.processing.get() == Some(ProviderKind::YralAuth) {
-            "Signing In..."
-        } else {
-            "Yral Sign-In"
-        }
+    let signing_in = move || {
+        ctx.processing.get() == Some(ProviderKind::YralAuth)
     };
+    let signing_in_provider = RwSignal::new(LoginProvider::Google);
     let done_guard = RwSignal::new(false);
     let close_popup_store = StoredValue::new(None::<Callback<()>>);
     let close_popup =
@@ -46,15 +43,15 @@ pub fn YralAuthProvider() -> impl IntoView {
     let auth = auth_state();
 
     let open_yral_auth = Action::new_unsync_local(
-        move |(target, origin): &(leptos::web_sys::Window, String)| {
+        move |(target, origin, provider): &(leptos::web_sys::Window, String, LoginProvider)| {
             let target = target.clone();
             let origin = origin.clone();
+            let provider = *provider;
 
             let url_fut = async move {
                 let id_wire = auth.user_identity.await?;
                 let id = DelegatedIdentity::try_from(id_wire)?;
                 let login_hint = yral_auth_login_hint(&id)?;
-                let provider = LoginProvider::Google;
 
                 yral_auth_login_url(login_hint, provider).await
             };
@@ -74,7 +71,7 @@ pub fn YralAuthProvider() -> impl IntoView {
         },
     );
 
-    let on_click = move || {
+    let on_click = move |provider: LoginProvider| {
         let window = window();
         let origin = window.origin();
 
@@ -82,7 +79,7 @@ pub fn YralAuthProvider() -> impl IntoView {
         let target = window.open().transpose().and_then(|w| w.ok()).unwrap();
 
         // load yral auth url in background
-        open_yral_auth.dispatch_local((target.clone(), origin.clone()));
+        open_yral_auth.dispatch_local((target.clone(), origin.clone(), provider));
 
         // Check if the target window was closed by the user
         let target_c = target.clone();
@@ -128,14 +125,27 @@ pub fn YralAuthProvider() -> impl IntoView {
     view! {
         <LoginProvButton
             prov=ProviderKind::YralAuth
-            class="flex flex-row items-center justify-between gap-2 rounded-full bg-neutral-600 pr-4"
+            class="flex items-center gap-3 rounded-md bg-white p-3 w-full font-bold text-black hover:bg-white/95"
             on_click=move |ev| {
                 ev.stop_propagation();
-                on_click()
+                signing_in_provider.set(LoginProvider::Google);
+                on_click(signing_in_provider.get())
             }
         >
-            <img class="w-9 h-9 rounded-full" src="/img/yral/logo.webp" />
-            <span class="text-white">{current_text}</span>
+            <img class="size-5" src="/img/common/google.svg" />
+            <span>{format!("{}Google", if signing_in() && signing_in_provider.get() == LoginProvider::Google { "Logging in " } else { "Login with " })}</span>
+        </LoginProvButton>
+        <LoginProvButton
+            prov=ProviderKind::YralAuth
+            class="flex items-center gap-3 rounded-md bg-white py-3 w-full font-bold text-black hover:bg-white/95"
+            on_click=move |ev| {
+                ev.stop_propagation();
+                signing_in_provider.set(LoginProvider::Apple);
+                on_click(signing_in_provider.get())
+            }
+        >
+            <img class="size-5" src="/img/common/apple.svg" />
+            <span>{format!("{}Apple", if signing_in() && signing_in_provider.get() == LoginProvider::Apple { "Logging in " } else { "Login with " })}</span>
         </LoginProvButton>
     }
 }
