@@ -44,9 +44,8 @@ fn yral_nav_items() -> Vec<NavItem> {
                     current_post_params
                         .get()
                         .map(|f| format!("/hot-or-not/{}/{}", f.canister_id, f.post_id))
-                        .unwrap_or(format!("/"))
-                })
-                .into(),
+                        .unwrap_or("/".to_string())
+                }),
             },
             cur_selected: Signal::derive(move || {
                 matches!(path.get().as_str(), "/") || path.get().contains("/hot-or-not")
