@@ -65,7 +65,12 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <script fetchpriority="low" type="module" src="/js/sentry-init.js" async></script>
                 <script fetchpriority="low" type="module" src="/js/mixpanel-init.js" async></script>
-                <script fetchpriority="low" type="module" src="/js/store-initial-url.js" async></script>
+                <script
+                    fetchpriority="low"
+                    type="module"
+                    src="/js/store-initial-url.js"
+                    async
+                ></script>
 
                 <AutoReload options=options.clone() />
                 <HashedStylesheet id="leptos" options=options.clone() />
@@ -138,7 +143,6 @@ pub fn App() -> impl IntoView {
         // App manifest
         <Link rel="manifest" href=format!("/{}/manifest.json", app_state.asset_path()) />
 
-
         <Router>
             <main class="bg-black" id="body">
                 <Routes fallback=|| view! { <NotFound /> }.into_view()>
@@ -146,7 +150,10 @@ pub fn App() -> impl IntoView {
                     <GoogleAuthRedirectHandlerRoute />
                     <Route path=path!("/") view=YralRootPage />
                     <ParentRoute path=path!("") view=BaseRoute>
-                        <Route path=path!("/hot-or-not/withdraw") view=hon::withdrawal::HonWithdrawal />
+                        <Route
+                            path=path!("/hot-or-not/withdraw")
+                            view=hon::withdrawal::HonWithdrawal
+                        />
                         <Route
                             path=path!("/hot-or-not/withdraw/success")
                             view=hon::withdrawal::result::Success
@@ -178,7 +185,10 @@ pub fn App() -> impl IntoView {
                         />
                         <Route path=path!("/token/info/:token_root") view=TokenInfo />
                         <Route path=path!("/token/transfer/:token_root") view=TokenTransfer />
-                        <Route path=path!("/pnd/withdraw") view=pumpdump::withdrawal::PndWithdrawal />
+                        <Route
+                            path=path!("/pnd/withdraw")
+                            view=pumpdump::withdrawal::PndWithdrawal
+                        />
                         <Route
                             path=path!("/pnd/withdraw/success")
                             view=pumpdump::withdrawal::result::Success

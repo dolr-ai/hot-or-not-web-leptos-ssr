@@ -135,7 +135,7 @@ fn CtxProvider(children: Children) -> impl IntoView {
 pub fn BaseRoute() -> impl IntoView {
     view! {
         <CtxProvider>
-            <Outlet/>
+            <Outlet />
         </CtxProvider>
     }
 }

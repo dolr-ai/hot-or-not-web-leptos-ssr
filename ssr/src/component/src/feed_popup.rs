@@ -12,31 +12,31 @@ pub fn FeedPopUp<F: Fn(MouseEvent) + 'static>(
 ) -> impl IntoView {
     view! {
         <div
-            class="h-full w-full absolute bg-black opacity-90 z-50 flex flex-col justify-center"
+            class="flex absolute z-50 flex-col justify-center w-full h-full bg-black opacity-90"
             on:click=on_dismiss
         >
             <div class="flex flex-row justify-center" on:click=move |e| e.stop_propagation()>
-                <div class="flex flex-col justify-center w-9/12 sm:w-4/12 relative">
+                <div class="flex relative flex-col justify-center w-9/12 sm:w-4/12">
                     <img
-                        class="h-28 w-28 absolute -left-4 -top-10"
+                        class="absolute -left-4 -top-10 w-28 h-28"
                         src="/img/common/coins/coin-topleft.svg"
                     />
                     <img
-                        class="h-18 w-18 absolute -right-2 -top-14"
+                        class="absolute -right-2 -top-14 h-18 w-18"
                         src="/img/common/coins/coin-topright.svg"
                     />
                     <img
-                        class="h-18 w-18 absolute -bottom-14 -left-8"
+                        class="absolute -left-8 -bottom-14 h-18 w-18"
                         src="/img/common/coins/coin-bottomleft.svg"
                     />
                     <img
-                        class="h-18 w-18 absolute -bottom-12 -right-2"
+                        class="absolute -right-2 -bottom-12 h-18 w-18"
                         src="/img/common/coins/coin-bottomright.svg"
                     />
-                    <span class="text-white text-3xl text-center text-bold p-2 whitespace-pre-line">
+                    <span class="p-2 text-3xl text-center text-white whitespace-pre-line text-bold">
                         {header_text}
                     </span>
-                    <span class="text-white text-center p-2 pb-4">{body_text}</span>
+                    <span class="p-2 pb-4 text-center text-white">{body_text}</span>
                     <div class="flex justify-center">
                         <div class="w-7/12 sm:w-4/12 z-60">
                             <ConnectLogin login_text=login_text cta_location="feed_popup" />

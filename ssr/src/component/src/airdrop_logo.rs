@@ -3,7 +3,7 @@ use leptos::prelude::*;
 #[component]
 pub fn AirdropLogo() -> impl IntoView {
     view! {
-        <svg class="h-full w-full" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 265 255">
+        <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 265 255">
             <g fill="#F47421" clip-path="url(#a)">
                 <path
                     d="M39 193.2c0 9 41.8 16.2 93.5 16.2s93.5-7.3 93.5-16.2c0-9-41.8-16.3-93.5-16.3S39 184.2 39 193.2Z"

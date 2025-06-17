@@ -10,7 +10,7 @@ pub fn PrivacyPolicy() -> impl IntoView {
     let page_title = app_state.unwrap().name.to_owned() + " - Privacy Policy";
     view! {
         <Title text=page_title />
-        <div class="w-screen min-h-screen bg-black pt-4 pb-12 text-white flex flex-col items-center">
+        <div class="flex flex-col items-center pt-4 pb-12 w-screen min-h-screen text-white bg-black">
             <TitleText justify_center=false>
                 <div class="flex flex-row justify-between">
                     <BackButton fallback="/menu".to_string() />
@@ -20,7 +20,7 @@ pub fn PrivacyPolicy() -> impl IntoView {
                     <div></div>
                 </div>
             </TitleText>
-            <div class="px-8 flex h-full w-full flex-col space-y-8 overflow-hidden overflow-y-auto py-16">
+            <div class="flex overflow-hidden overflow-y-auto flex-col py-16 px-8 space-y-8 w-full h-full">
                 <div class="text-xs whitespace-pre-line">
                     {r#"Thank you for choosing "Yral." We are delighted to provide our Service to you. "Yral" encompasses the Yral App, website, features, and associated services. It offers image and video posting capabilities along with various social and interactive features. This Privacy Policy outlines our information practices.
                     
@@ -34,9 +34,9 @@ pub fn PrivacyPolicy() -> impl IntoView {
                 <div class="flex flex-col space-y-2">
                     <div class="text-sm font-semibold">Information We Collect</div>
                     <div class="text-xs">
-                        The below information is collected by Yral: <ul class="list-decimal pl-6">
+                        The below information is collected by Yral: <ul class="pl-6 list-decimal">
                             <li>
-                                Information collected with a prompt: <ul class="list-disc pl-4">
+                                Information collected with a prompt: <ul class="pl-4 list-disc">
                                     <li>
                                         In order to use Yral, we may need you to authenticate your account using your google account.
                                     </li>
@@ -49,11 +49,11 @@ pub fn PrivacyPolicy() -> impl IntoView {
                                 </ul>
                             </li>
                             <li>
-                                Information collected without a prompt: <ul class="list-disc pl-4">
+                                Information collected without a prompt: <ul class="pl-4 list-disc">
                                     <li>
                                         Device Information: We may collect the below with respect to
                                         any device through which Yral is used or accessed:
-                                        <ul class="list-disc pl-4">
+                                        <ul class="pl-4 list-disc">
                                             <li>Device Identifiers.</li>
                                             <li>IP Address.</li>
                                             <li>Operating System.</li>
@@ -122,7 +122,7 @@ pub fn PrivacyPolicy() -> impl IntoView {
                     <div class="text-xs">
                         We may use all the information we have to help us operate, provide,
                         improve, understand, customise, support, and market Yral.
-                        <ul class="list-decimal pl-6">
+                        <ul class="pl-6 list-decimal">
                             <li>
                                 Our Services: We operate and provide Yral, and improving,
                                 fixing, and customising Yral by using the said information.
@@ -154,7 +154,7 @@ pub fn PrivacyPolicy() -> impl IntoView {
                     <div class="text-sm font-semibold">How We Share Information</div>
                     <div class="text-xs">
                         We may share your information in ways including the following:
-                        <ul class="list-decimal pl-6">
+                        <ul class="pl-6 list-decimal">
                             <li>
                                 With other Yral users: your username, profile photograph,
                                 content that you post or send or share. You may also be able to
@@ -199,14 +199,14 @@ pub fn PrivacyPolicy() -> impl IntoView {
                 <div class="flex flex-col space-y-2">
                     <div class="text-sm font-semibold">To manage access to your Google account</div>
                     <div class="text-xs">
-                        <ul class="list-decimal pl-6">
+                        <ul class="pl-6 list-decimal">
                             <li>Visit your Google Account settings.</li>
-                            <li>Navigate to the "Security" section.</li>
+                            <li>Navigate to the "Security"section.</li>
                             <li>
                                 Look for the "Third-party apps with account access"
                                 or similar option. Here, you can view and manage the apps connected to your Google account.
                             </li>
-                            <li>Locate "Yral" in the list of connected apps.</li>
+                            <li>Locate "Yral"inthelistofconnectedapps.</li>
                             <li>
                                 You can adjust permissions or revoke access to your Google account as needed.
                             </li>

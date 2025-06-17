@@ -46,8 +46,8 @@ pub fn IdentitySender(identity_res: YralAuthMessage) -> impl IntoView {
     });
 
     view! {
-        <div class="h-dvh w-dvw bg-black flex flex-col justify-center items-center gap-10">
-            <img class="h-56 w-56 object-contain animate-pulse" src="/img/yral/logo.webp"/>
+        <div class="flex flex-col gap-10 justify-center items-center bg-black h-dvh w-dvw">
+            <img class="object-contain w-56 h-56 animate-pulse" src="/img/yral/logo.webp" />
             <span class="text-2xl text-white/60">Good things come to those who wait...</span>
         </div>
     }
@@ -98,10 +98,10 @@ pub fn YralAuthRedirectHandler() -> impl IntoView {
     view! {
         <Loading text="Logging out...".to_string()>
             <Suspense>
-            {move || Suspend::new(async move {
-                let identity_res = identity_resource.await;
-                view! { <IdentitySender identity_res /> }
-            })}
+                {move || Suspend::new(async move {
+                    let identity_res = identity_resource.await;
+                    view! { <IdentitySender identity_res /> }
+                })}
             </Suspense>
         </Loading>
     }
