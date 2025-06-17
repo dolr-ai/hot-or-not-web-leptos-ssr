@@ -29,7 +29,7 @@ fn MenuItem(
 ) -> impl IntoView {
     view! {
         <a href=_href class="grid grid-cols-3 items-center w-full" target=_target>
-            <div class="flex flex-row gap-4 items-center col-span-2">
+            <div class="flex flex-row col-span-2 gap-4 items-center">
                 <Icon attr:class="text-2xl" icon=_icon />
                 <span class="text-wrap">{_text}</span>
             </div>
@@ -41,8 +41,8 @@ fn MenuItem(
 #[component]
 fn MenuFooter() -> impl IntoView {
     view! {
-        <div class="flex flex-col items-center w-full gap-4 pt-10 pb-8">
-            <span class="text-white/50 text-sm">Follow us on</span>
+        <div class="flex flex-col gap-4 items-center pt-10 pb-8 w-full">
+            <span class="text-sm text-white/50">Follow us on</span>
             <div class="flex flex-row gap-4">
                 <Telegram />
                 <Discord />
@@ -74,10 +74,10 @@ fn MenuFooter() -> impl IntoView {
 #[component]
 fn ProfileLoading() -> impl IntoView {
     view! {
-        <div class="basis-4/12 aspect-square overflow-clip rounded-full bg-white/20 animate-pulse"></div>
-        <div class="basis-8/12 flex flex-col gap-2 animate-pulse">
-            <div class="w-full h-4 bg-white/20 rounded-full"></div>
-            <div class="w-full h-4 bg-white/20 rounded-full"></div>
+        <div class="rounded-full animate-pulse basis-4/12 aspect-square overflow-clip bg-white/20"></div>
+        <div class="flex flex-col gap-2 animate-pulse basis-8/12">
+            <div class="w-full h-4 rounded-full bg-white/20"></div>
+            <div class="w-full h-4 rounded-full bg-white/20"></div>
         </div>
     }
 }
@@ -88,15 +88,15 @@ fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
     let is_connected = auth_state.is_logged_in_with_oauth();
 
     view! {
-        <div class="basis-4/12 aspect-square overflow-clip rounded-full">
-            <img class="h-full w-full object-cover" src=user_details.profile_pic_or_random() />
+        <div class="rounded-full basis-4/12 aspect-square overflow-clip">
+            <img class="object-cover w-full h-full" src=user_details.profile_pic_or_random() />
         </div>
         <div
             class="flex flex-col basis-8/12"
             class=("w-12/12", move || !is_connected())
             class=("sm:w-5/12", move || !is_connected())
         >
-            <span class="text-white text-ellipsis line-clamp-1 text-xl">
+            <span class="text-xl text-white text-ellipsis line-clamp-1">
                 {user_details.display_name_or_fallback()}
             </span>
             <a class="text-primary-600 text-md" href="/profile/posts">
@@ -116,11 +116,9 @@ fn ProfileInfo() -> impl IntoView {
                 match res {
                     Ok(cans) => {
                         let user_details = cans.profile_details;
-                        Either::Left(view! { <ProfileLoaded user_details/> })
+                        Either::Left(view! { <ProfileLoaded user_details /> })
                     }
-                    Err(e) => {
-                        Either::Right(view! { <Redirect path=format!("/error?err={e}") /> })
-                    }
+                    Err(e) => Either::Right(view! { <Redirect path=format!("/error?err={e}") /> }),
                 }
             })}
         </Suspense>
@@ -144,7 +142,10 @@ fn EnableNotifications() -> impl IntoView {
     let on_token_click: Action<(), ()> = Action::new_unsync(move |()| async move {
         let metaclient: MetadataClient<false> = MetadataClient::default();
 
-        let cans = auth.auth_cans(expect_context()).await.unwrap();
+        let cans = auth
+            .auth_cans(use_context().unwrap_or_default())
+            .await
+            .unwrap();
 
         let browser_permission = Notification::permission();
         let notifs_enabled_val = notifs_enabled.get_untracked();
@@ -221,17 +222,17 @@ fn EnableNotifications() -> impl IntoView {
 #[component]
 pub fn Settings() -> impl IntoView {
     view! {
-        <div class="min-h-screen w-full flex flex-col text-white pt-2 pb-12 bg-black items-center divide-y divide-white/10">
-            <div class="flex flex-col items-center w-full gap-20 pb-16">
+        <div class="flex flex-col items-center pt-2 pb-12 w-full min-h-screen text-white bg-black divide-y divide-white/10">
+            <div class="flex flex-col gap-20 items-center pb-16 w-full">
                 <TitleText justify_center=false>
                     <div class="flex flex-row justify-between">
                         <BackButton fallback="/menu".to_string() />
-                        <span class="font-bold text-2xl">Settings</span>
+                        <span class="text-2xl font-bold">Settings</span>
                         <div></div>
                     </div>
                 </TitleText>
             </div>
-            <div class="flex flex-col py-12 px-8 gap-8 w-full text-lg">
+            <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
                 <EnableNotifications />
             </div>
             <MenuFooter />

@@ -2,15 +2,144 @@ use candid::{Nat, Principal};
 use component::{
     back_btn::BackButton,
     buttons::{HighlightedButton, HighlightedLinkButton},
+    overlay::ShadowOverlay,
     spinner::{SpinnerCircle, SpinnerCircleStyled},
 };
+use consts::{MAX_BET_AMOUNT, SATS_AIRDROP_LIMIT_RANGE};
+use hon_worker_common::{ClaimRequest, VerifiableClaimRequest, WORKER_URL};
 use leptos::prelude::*;
 use leptos_icons::Icon;
 use leptos_router::hooks::use_location;
-use state::canisters::{auth_state, unauth_canisters};
-use utils::event_streaming::events::CentsAdded;
-use utils::host::get_host;
-use yral_canisters_common::utils::token::{TokenMetadata, TokenOwner};
+use rand::{rngs::SmallRng, Rng, SeedableRng};
+use reqwest::Url;
+use state::{
+    canisters::{auth_state, unauth_canisters},
+    server::HonWorkerJwt,
+};
+use utils::{event_streaming::events::CentsAdded, host::get_host};
+use yral_canisters_client::individual_user_template::{Result7, SessionType};
+use yral_canisters_common::{
+    utils::token::{load_sats_balance, TokenMetadata, TokenOwner},
+    Canisters,
+};
+use yral_identity::Signature;
+
+pub async fn is_airdrop_claimed(user_principal: Principal) -> Result<bool, ServerFnError> {
+    let req_url: Url = WORKER_URL.parse().expect("url to be valid");
+    let req_url = req_url
+        .join(&format!("/last_airdrop_claimed_at/{user_principal}"))
+        .expect("url to be valid");
+
+    let response: Option<u64> = reqwest::get(req_url).await?.json().await?;
+
+    // user has never claimed airdrop before
+    let Some(last_airdrop_timestamp) = response else {
+        return Ok(false);
+    };
+    let last_airdrop_timestamp: u128 = last_airdrop_timestamp.into();
+
+    let now = web_time::SystemTime::now()
+        .duration_since(web_time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
+
+    // user is blocked for 24h since last airdrop claim
+    let duration_24h = web_time::Duration::from_secs(24 * 60 * 60).as_millis();
+    let blocked_window = last_airdrop_timestamp..(last_airdrop_timestamp + duration_24h);
+
+    Ok(blocked_window.contains(&now))
+}
+
+pub async fn validate_sats_airdrop_eligibility(
+    user_canister: Principal,
+    user_principal: Principal,
+) -> Result<(), ServerFnError> {
+    let cans = Canisters::default();
+    let user = cans.individual_user(user_canister).await;
+
+    let balance = load_sats_balance(user_principal).await?;
+    if balance.balance.ge(&MAX_BET_AMOUNT.into()) {
+        return Err(ServerFnError::new(
+            "Not allowed to claim: balance >= max bet amount",
+        ));
+    }
+    let sess = user.get_session_type().await?;
+    if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
+        return Err(ServerFnError::new("Not allowed to claim: not logged in"));
+    }
+    let is_airdrop_claimed = is_airdrop_claimed(user_principal).await?;
+    if is_airdrop_claimed {
+        return Err(ServerFnError::new("Not allowed to claim: already claimed"));
+    }
+
+    Ok(())
+}
+
+#[server(input = server_fn::codec::Json)]
+pub async fn is_user_eligible_for_sats_airdrop(
+    user_canister: Principal,
+    user_principal: Principal,
+) -> Result<bool, ServerFnError> {
+    let res = validate_sats_airdrop_eligibility(user_canister, user_principal).await;
+
+    match res {
+        Ok(_) => Ok(true),
+        Err(ServerFnError::ServerError(..)) => Ok(false),
+        Err(err) => Err(err),
+    }
+}
+
+#[server(input = server_fn::codec::Json)]
+pub async fn claim_sats_airdrop(
+    user_canister: Principal,
+    request: ClaimRequest,
+    signature: Signature,
+) -> Result<u64, ServerFnError> {
+    let cans: Canisters<false> = expect_context();
+    let user_principal = request.user_principal;
+    let user = cans.individual_user(user_canister).await;
+    let profile_owner = user.get_profile_details_v_2().await?;
+    if profile_owner.principal_id != user_principal {
+        // ideally should never happen unless its a hacking attempt
+        println!(
+            "Not allowed to claim due to principal mismatch: owner={} != receiver={user_principal}",
+            profile_owner.principal_id,
+        );
+        return Err(ServerFnError::new(
+            "Not allowed to claim: principal mismatch",
+        ));
+    }
+    validate_sats_airdrop_eligibility(user_canister, user_principal).await?;
+    let mut rng = SmallRng::from_os_rng();
+    let amount = rng.random_range(SATS_AIRDROP_LIMIT_RANGE);
+    let worker_req = VerifiableClaimRequest {
+        sender: user_principal,
+        amount,
+        request,
+        signature,
+    };
+    let req_url: Url = WORKER_URL.parse().expect("url to be valid");
+    let req_url = req_url
+        .join(&format!("/claim_airdrop/{user_principal}"))
+        .expect("url to be valid");
+    let client = reqwest::Client::new();
+    let jwt = expect_context::<HonWorkerJwt>();
+    let res = client
+        .post(req_url)
+        .json(&worker_req)
+        .header("Authorization", format!("Bearer {}", jwt.0))
+        .send()
+        .await?;
+    if !res.status().is_success() {
+        return Err(ServerFnError::new(format!(
+            "worker error[{}]: {}",
+            res.status().as_u16(),
+            res.text().await?
+        )));
+    }
+    Ok(amount)
+}
+
 #[component]
 pub fn AirdropPage(meta: TokenMetadata, airdrop_amount: u64) -> impl IntoView {
     let claimed = RwSignal::new(false);
@@ -20,15 +149,15 @@ pub fn AirdropPage(meta: TokenMetadata, airdrop_amount: u64) -> impl IntoView {
     view! {
         <div
             style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
-            class="h-screen w-screen relative items-center justify-center text-white font-kumbh flex flex-col overflow-hidden gap-4"
+            class="flex overflow-hidden relative flex-col gap-4 justify-center items-center w-screen h-screen text-white font-kumbh"
         >
-            <div class="absolute z-40 left-5 top-10 scale-[1.75]">
+            <div class="absolute left-5 top-10 z-40 scale-[1.75]">
                 <BackButton fallback="/wallet" />
             </div>
             <img
                 alt="bg"
                 src="/img/airdrop/bg.webp"
-                class="absolute inset-0 z-1 fade-in w-full h-full object-cover"
+                class="object-cover absolute inset-0 w-full h-full z-1 fade-in"
             />
 
             {move || {
@@ -98,17 +227,23 @@ fn AirdropButton(
     view! {
         <div
             style="--duration:1500ms"
-            class="fade-in flex text-xl font-bold z-2 w-full flex-col gap-4 items-center justify-center px-8"
+            class="flex flex-col gap-4 justify-center items-center px-8 w-full text-xl font-bold fade-in z-2"
         >
-            <Show clone:name_c when=claimed fallback=move ||view! {
-                    <div class="text-center">
-                        {format!("{} {} Airdrop received", airdrop_amount, name.clone())}
-                    </div>
-                }>
-                    <div class="text-center">
-                        {format!("{} {}", airdrop_amount, name_c.clone())} <br />
-                        <span class="font-normal">"added to wallet"</span>
-                    </div>
+            <Show
+                clone:name_c
+                when=claimed
+                fallback=move || {
+                    view! {
+                        <div class="text-center">
+                            {format!("{} {} Airdrop received", airdrop_amount, name.clone())}
+                        </div>
+                    }
+                }
+            >
+                <div class="text-center">
+                    {format!("{} {}", airdrop_amount, name_c.clone())} <br />
+                    <span class="font-normal">"added to wallet"</span>
+                </div>
             </Show>
 
             {move || {
@@ -195,41 +330,60 @@ fn AirdropPopUpButton(
     view! {
         <div
             style="--duration:1500ms"
-            class="fade-in flex text-xl font-bold z-2 w-full flex-col gap-4 items-center justify-center px-8"
+            class="flex flex-col gap-4 justify-center items-center px-8 w-full text-xl font-bold fade-in z-2"
         >
-            <Show when=claimed fallback=move || view! {
-                <div class="text-center font-normal"><span class="font-semibold">100 {name_c.clone()}</span> successfully claimed and added to your wallet!</div>
-            }.into_view()>
+            <Show
+                when=claimed
+                fallback=move || {
+                    view! {
+                        <div class="font-normal text-center">
+                            <span class="font-semibold">100 {name_c.clone()}</span>
+                            successfully claimed and added to your wallet!
+                        </div>
+                    }
+                        .into_view()
+                }
+            >
                 <div class="text-center">
                     {format!("100 {}", name_c2.clone())} <br />
-                    <span class="text-center font-normal">Claim for <span class="font-semibold">100 {name_c2.clone()}</span> is being processed</span>
+                    <span class="font-normal text-center">
+                        Claim for <span class="font-semibold">100 {name_c2.clone()}</span>
+                        is being processed
+                    </span>
                 </div>
             </Show>
             {move || {
                 if buffer_signal.get() {
-                    Some(view! {
-                        <div class="max-w-100 mt-10 mb-16 scale-[4] ">
-                            <SpinnerCircleStyled/>
-                        </div>
-                    }
-                        .into_any())
+                    Some(
+                        view! {
+                            <div class="mt-10 mb-16 max-w-100 scale-[4]">
+                                <SpinnerCircleStyled />
+                            </div>
+                        }
+                            .into_any(),
+                    )
                 } else if claimed.get() {
                     let host = host.clone();
-                    let PopUpButtonTextRedirection { href, text } = pop_up_button_href(host, pathname.pathname.get());
-                    Some(view! {
-                        <div class="mt-10 mb-16">
-                            <HighlightedLinkButton
-                                alt_style=true
-                                disabled=false
-                                classes="max-w-96 mx-auto py-[12px] px-[20px] w-full".to_string()
-                                href=href
-                            >
-                                {text}
-                            </HighlightedLinkButton>
-                        </div>
-
-                    }
-                        .into_any())
+                    let PopUpButtonTextRedirection { href, text } = pop_up_button_href(
+                        host,
+                        pathname.pathname.get(),
+                    );
+                    Some(
+                        view! {
+                            <div class="mt-10 mb-16">
+                                <HighlightedLinkButton
+                                    alt_style=true
+                                    disabled=false
+                                    classes="max-w-96 mx-auto py-[12px] px-[20px] w-full"
+                                        .to_string()
+                                    href=href
+                                >
+                                    {text}
+                                </HighlightedLinkButton>
+                            </div>
+                        }
+                            .into_any(),
+                    )
                 } else {
                     None
                 }
@@ -249,22 +403,21 @@ pub fn AirdropPopup(
     view! {
         <div
             style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
-            class="h-full w-full relative items-center justify-center text-white font-kumbh flex flex-col overflow-hidden gap-4 rounded-lg"
+            class="flex overflow-hidden relative flex-col gap-4 justify-center items-center w-full h-full text-white rounded-lg font-kumbh"
         >
-            <button on:click=move |_| airdrop_popup.set(false) class="absolute z-40 right-5 top-5 scale-125 p-2 rounded-full bg-neutral-800">
+            <button
+                on:click=move |_| airdrop_popup.set(false)
+                class="absolute top-5 right-5 z-40 p-2 rounded-full scale-125 bg-neutral-800"
+            >
                 <Icon icon=icondata::TbX />
             </button>
             <img
                 alt="bg"
                 src="/img/airdrop/bg.webp"
-                class="absolute inset-0 z-1 fade-in w-full h-full object-cover"
+                class="object-cover absolute inset-0 w-full h-full z-1 fade-in"
             />
-            <AirdropAnimation claimed=claimed.into() logo=logo.clone()/>
-            <AirdropPopUpButton
-                claimed
-                name
-                buffer_signal
-            />
+            <AirdropAnimation claimed=claimed.into() logo=logo.clone() />
+            <AirdropPopUpButton claimed name buffer_signal />
         </div>
     }
 }
@@ -273,58 +426,63 @@ pub fn AirdropPopup(
 fn AirdropAnimation(claimed: Signal<bool>, logo: String) -> impl IntoView {
     let logo_c = logo.clone();
     view! {
-        <Show when=claimed fallback=move || view! {
-            <div class="h-[30vh] max-h-96 w-full flex items-center justify-center z-2 lg:mb-8 mt-12">
-                <div class="h-[22vh] w-[22vh] lg:h-[27vh] lg:w-[27vh] relative gap-12">
-                    <AnimatedTick />
+        <Show
+            when=claimed
+            fallback=move || {
+                view! {
+                    <div class="flex justify-center items-center mt-12 w-full max-h-96 lg:mb-8 h-[30vh] z-2">
+                        <div class="relative gap-12 h-[22vh] w-[22vh] lg:h-[27vh] lg:w-[27vh]">
+                            <AnimatedTick />
+                            <div
+                                style="--duration:1500ms; background: radial-gradient(circle, rgba(27,0,15,1) 0%, rgba(0,0,0,1) 100%); box-shadow: 0px 0px 3.43px 0px #FFFFFF29;"
+                                class="absolute -right-4 -bottom-4 p-px w-16 h-16 rounded-md fade-in"
+                            >
+                                <img
+                                    alt="Airdrop"
+                                    src=logo_c.clone()
+                                    class="object-cover w-full h-full rounded-md fade-in"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        >
+            <div class="relative max-h-96 h-[50vh] z-2">
+                <div
+                    style="--y: 50px"
+                    class="flex flex-col justify-center items-center airdrop-parachute"
+                >
+                    <img
+                        alt="Parachute"
+                        src="/img/airdrop/parachute.webp"
+                        class="h-auto max-h-72"
+                    />
+
                     <div
-                        style="--duration:1500ms; background: radial-gradient(circle, rgba(27,0,15,1) 0%, rgba(0,0,0,1) 100%); box-shadow: 0px 0px 3.43px 0px #FFFFFF29;"
-                        class="p-px fade-in absolute w-16 h-16 -bottom-4 -right-4 rounded-md"
+                        style="background: radial-gradient(circle, rgb(244 141 199) 0%, rgb(255 255 255) 100%); box-shadow: 0px 0px 3.43px 0px #FFFFFF29;"
+                        class="p-px w-16 h-16 rounded-md -translate-y-8"
                     >
                         <img
                             alt="Airdrop"
-                            src=logo_c.clone()
-                            class="w-full fade-in rounded-md h-full object-cover"
+                            src=logo.clone()
+                            class="object-cover w-full h-full rounded-md fade-in"
                         />
                     </div>
                 </div>
-            </div>
-        }>
-        <div class="relative h-[50vh] max-h-96 z-2">
-        <div
-            style="--y: 50px"
-            class="flex flex-col items-center justify-center airdrop-parachute"
-        >
-            <img
-                alt="Parachute"
-                src="/img/airdrop/parachute.webp"
-                class="h-auto max-h-72"
-            />
-
-            <div
-                style="background: radial-gradient(circle, rgb(244 141 199) 0%, rgb(255 255 255) 100%); box-shadow: 0px 0px 3.43px 0px #FFFFFF29;"
-                class="p-px w-16 h-16 -translate-y-8 rounded-md"
-            >
                 <img
-                    alt="Airdrop"
-                    src=logo.clone()
-                    class="w-full fade-in rounded-md h-full object-cover"
+                    alt="Cloud"
+                    src="/img/airdrop/cloud.webp"
+                    style="--x: -50px"
+                    class="absolute left-0 -top-10 max-w-12 airdrop-cloud"
+                />
+                <img
+                    alt="Cloud"
+                    src="/img/airdrop/cloud.webp"
+                    style="--x: 50px"
+                    class="absolute right-10 bottom-10 max-w-16 airdrop-cloud"
                 />
             </div>
-        </div>
-        <img
-            alt="Cloud"
-            src="/img/airdrop/cloud.webp"
-            style="--x: -50px"
-            class="max-w-12 absolute -top-10 left-0 airdrop-cloud"
-        />
-        <img
-            alt="Cloud"
-            src="/img/airdrop/cloud.webp"
-            style="--x: 50px"
-            class="max-w-16 absolute bottom-10 right-10 airdrop-cloud"
-        />
-    </div>
         </Show>
     }
 }
@@ -332,16 +490,14 @@ fn AirdropAnimation(claimed: Signal<bool>, logo: String) -> impl IntoView {
 #[component]
 pub fn AnimatedTick() -> impl IntoView {
     view! {
-        <div class="h-full w-full perspective-midrange">
-            <div class="relative h-full w-full scale-110 animate-coin-spin-horizontal rounded-full transform-3d before:absolute before:h-full before:w-full before:rounded-full
-            before:bg-linear-to-b before:from-[#FFC6F9] before:via-[#C01271] before:to-[#990D55] before:transform-3d before:[transform:translateZ(1px)]">
-                <div class="absolute flex h-full w-full items-center justify-center rounded-full text-center [transform:translateZ(2rem)] p-12
-                bg-linear-to-br from-[#C01272] to-[#FF48B2]">
+        <div class="w-full h-full perspective-midrange">
+            <div class="relative w-full h-full rounded-full scale-110 animate-coin-spin-horizontal transform-3d before:absolute before:h-full before:w-full before:rounded-full before:bg-linear-to-b before:from-[#FFC6F9] before:via-[#C01271] before:to-[#990D55] before:transform-3d before:[transform:translateZ(1px)]">
+                <div class="flex absolute justify-center items-center p-12 w-full h-full text-center rounded-full [transform:translateZ(2rem)] bg-linear-to-br from-[#C01272] to-[#FF48B2]">
                     <div class="relative">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             xmlns:xlink="http://www.w3.org/1999/xlink"
-                            class="h-full w-full text-current transform-3d [transform:translateZ(10px)]"
+                            class="w-full h-full text-current transform-3d [transform:translateZ(10px)]"
                             viewBox="0 -3 32 32"
                             version="1.1"
                         >
@@ -358,5 +514,115 @@ pub fn AnimatedTick() -> impl IntoView {
                 </div>
             </div>
         </div>
+    }
+}
+
+#[component]
+pub fn SatsAirdropPopup(
+    show: RwSignal<bool>,
+    claimed: RwSignal<bool>,
+    amount_claimed: RwSignal<u64>,
+    error: RwSignal<bool>,
+    try_again: Action<bool, Result<(), ServerFnError>>,
+) -> impl IntoView {
+    let img_src = move || {
+        if claimed.get() {
+            "/img/airdrop/sats-airdrop-success.webp"
+        } else if error.get() {
+            "/img/airdrop/sats-airdrop-failed.webp"
+        } else {
+            "/img/airdrop/sats-airdrop.webp"
+        }
+    };
+
+    let is_connected = auth_state().is_logged_in_with_oauth();
+
+    view! {
+        <ShadowOverlay show=show>
+            <div class="flex justify-center items-center py-6 px-4 w-full h-full">
+                <div class="overflow-hidden relative items-center pt-16 w-full max-w-md rounded-md cursor-auto h-fit bg-neutral-950">
+                    <img
+                        src="/img/common/refer-bg.webp"
+                        class="object-cover absolute inset-0 z-0 w-full h-full opacity-40"
+                    />
+                    <div
+                        style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
+                        class=format!(
+                            "absolute z-[1] -left-1/2 bottom-1/3 size-[32rem] {}",
+                            if error.get() { "saturate-0" } else { "saturate-100" },
+                        )
+                    ></div>
+                    <div
+                        style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
+                        class=format!(
+                            "absolute z-[1] top-8 -right-1/3 size-72 {}",
+                            if error.get() { "saturate-0" } else { "saturate-100" },
+                        )
+                    ></div>
+                    <button
+                        on:click=move |_| show.set(false)
+                        class="flex absolute top-4 right-4 justify-center items-center text-lg text-center text-white rounded-full md:text-xl size-6 bg-neutral-600 z-[2]"
+                    >
+                        <Icon icon=icondata::ChCross />
+                    </button>
+                    <div class="flex flex-col gap-16 justify-center items-center p-12 text-white z-[2]">
+                        <img src=img_src class="h-60" />
+                        <div class="flex flex-col gap-6 items-center z-[2]">
+                            {move || {
+                                if claimed.get() {
+                                    view! {
+                                        <div class="text-center">
+                                            <span class="font-semibold">
+                                                {amount_claimed} " Bitcoin (SATS)"
+                                            </span>
+                                            " credited in your wallet"
+                                        </div>
+                                        <HighlightedButton
+                                            alt_style=false
+                                            disabled=false
+                                            on_click=move || { show.set(false) }
+                                        >
+                                            "Keep Playing"
+                                        </HighlightedButton>
+                                    }
+                                        .into_any()
+                                } else if error.get() {
+
+                                    view! {
+                                        <div class="text-center">
+                                            "Claim for "
+                                            <span class="font-semibold">"Bitcoin (SATS)"</span>
+                                            " failed"
+                                        </div>
+                                        <HighlightedButton
+                                            alt_style=true
+                                            disabled=false
+                                            on_click=move || {
+                                                try_again.dispatch(is_connected.get());
+                                            }
+                                        >
+                                            "Try again"
+                                        </HighlightedButton>
+                                    }
+                                        .into_any()
+                                } else {
+                                    view! {
+                                        <div class="text-center">
+                                            "Claim for "
+                                            <span class="font-semibold">"Bitcoin (SATS)"</span>
+                                            " is being processed"
+                                        </div>
+                                        <div class="w-12 h-12">
+                                            <SpinnerCircle />
+                                        </div>
+                                    }
+                                        .into_any()
+                                }
+                            }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </ShadowOverlay>
     }
 }

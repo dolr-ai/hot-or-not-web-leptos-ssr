@@ -46,6 +46,7 @@ serde_json = { workspace = true }
 crc32fast = { workspace = true }
 uts2ts = { workspace = true }
 rand_chacha = { workspace = true, optional = true }
+getrandom = { workspace = true, optional = true }
 web-sys = { workspace = true, optional = true }
 circular-buffer = { workspace = true }
 redb = { workspace = true, optional = true }
@@ -218,6 +219,7 @@ release-bin = [
     "oauth-ssr",
     "ga4",
     "qstash",
+    "rand/os_rng",
     "consts/release-bin",
     "utils/release-bin",
     "component/release-bin",

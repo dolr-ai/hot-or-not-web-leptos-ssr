@@ -61,12 +61,12 @@ async fn user_canister_auth(
     Ok(canisters.user_canister())
 }
 
-pub fn new_video_fetch_stream<'a>(
-    canisters: &'a Canisters<false>,
+pub fn new_video_fetch_stream(
+    canisters: &Canisters<false>,
     auth: AuthState,
     cursor: FetchCursor,
 ) -> VideoFetchStream<
-    'a,
+    '_,
     false,
     impl AsyncFn(&Canisters<false>, &AuthState) -> Result<Principal, ServerFnError>,
 > {
@@ -78,12 +78,12 @@ pub fn new_video_fetch_stream<'a>(
     }
 }
 
-pub fn new_video_fetch_stream_auth<'a>(
-    canisters: &'a Canisters<true>,
+pub fn new_video_fetch_stream_auth(
+    canisters: &Canisters<true>,
     auth: AuthState,
     cursor: FetchCursor,
 ) -> VideoFetchStream<
-    'a,
+    '_,
     true,
     impl AsyncFn(&Canisters<true>, &AuthState) -> Result<Principal, ServerFnError>,
 > {

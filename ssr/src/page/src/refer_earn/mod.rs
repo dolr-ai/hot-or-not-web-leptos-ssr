@@ -20,8 +20,8 @@ use utils::web::copy_to_clipboard;
 #[component]
 fn WorkButton(#[prop(into)] text: String, #[prop(into)] head: String) -> impl IntoView {
     view! {
-        <div class="flex flex-1 flex-col lg:flex-row items-center justify-center text-xs lg:text-md gap-3 bg-neutral-900 rounded-md px-3 lg:px-4 lg:py-5 py-4">
-            <div class="font-bold text-neutral-50 whitespace-nowrap">{head}</div>
+        <div class="flex flex-col flex-1 gap-3 justify-center items-center py-4 px-3 text-xs rounded-md lg:flex-row lg:py-5 lg:px-4 bg-neutral-900 lg:text-md">
+            <div class="font-bold whitespace-nowrap text-neutral-50">{head}</div>
             <span class="text-neutral-400">{text}</span>
         </div>
     }
@@ -113,25 +113,33 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
     };
 
     view! {
-        <div class="flex z-[1] w-full gap-2 justify-between">
-            <div class="flex flex-1 items-center w-full rounded-md border-dashed border-2 p-3 gap-2 border-neutral-700 bg-neutral-900">
-                <span class="text-md lg:text-lg text-ellipsis line-clamp-1 text-neutral-500">{refer_link.clone()}</span>
-                <button style="filter: invert(1)" on:click=move |_| { click_copy.dispatch(refer_link.clone()); }>
+        <div class="flex gap-2 justify-between w-full z-[1]">
+            <div class="flex flex-1 gap-2 items-center p-3 w-full rounded-md border-2 border-dashed border-neutral-700 bg-neutral-900">
+                <span class="lg:text-lg text-md text-ellipsis line-clamp-1 text-neutral-500">
+                    {refer_link.clone()}
+                </span>
+                <button
+                    style="filter: invert(1)"
+                    on:click=move |_| {
+                        click_copy.dispatch(refer_link.clone());
+                    }
+                >
                     <Icon attr:class="text-xl" icon=icondata::IoCopyOutline />
                 </button>
             </div>
             <HighlightedButton
-            classes="!w-fit".to_string()
-            alt_style=false
-            disabled=false
-            on_click=move || { handle_share() }>
+                classes="!w-fit".to_string()
+                alt_style=false
+                disabled=false
+                on_click=move || { handle_share() }
+            >
                 Share
             </HighlightedButton>
         </div>
 
         <Show when=show_copied_popup>
-            <div class="absolute flex flex-col justify-center items-center z-4">
-                <span class="absolute top-28 flex flex-row justify-center items-center bg-white/90 rounded-md h-10 w-28 text-center shadow-lg">
+            <div class="flex absolute flex-col justify-center items-center z-4">
+                <span class="flex absolute top-28 flex-row justify-center items-center w-28 h-10 text-center rounded-md shadow-lg bg-white/90">
                     <p class="text-black">Link Copied!</p>
                 </span>
             </div>
@@ -142,8 +150,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
 #[component]
 fn ReferLoading() -> impl IntoView {
     view! {
-        <div class="flex flex-1 flex-col lg:flex-row items-center justify-center text-xs lg:text-md gap-3 bg-neutral-900 rounded-md px-3 lg:px-4 lg:py-5 py-4 animate-pulse">
-        </div>
+        <div class="flex flex-col flex-1 gap-3 justify-center items-center py-4 px-3 text-xs rounded-md animate-pulse lg:flex-row lg:py-5 lg:px-4 bg-neutral-900 lg:text-md"></div>
     }
 }
 
@@ -152,21 +159,13 @@ fn ReferCode() -> impl IntoView {
     let auth = auth_state();
     view! {
         <Suspense fallback=ReferLoading>
-        {move || Suspend::new(async move {
-            let res = auth.user_principal.await;
-            match res {
-                Ok(user_principal) => {
-                    Either::Left(view! {
-                        <ReferLoaded user_principal />
-                    })
+            {move || Suspend::new(async move {
+                let res = auth.user_principal.await;
+                match res {
+                    Ok(user_principal) => Either::Left(view! { <ReferLoaded user_principal /> }),
+                    Err(e) => Either::Right(view! { <Redirect path=format!("/error?err={e}") /> }),
                 }
-                Err(e) => {
-                    Either::Right(view! {
-                        <Redirect path=format!("/error?err={e}") />
-                    })
-                }
-            }
-        })}
+            })}
         </Suspense>
     }
 }
@@ -179,28 +178,52 @@ fn ReferView() -> impl IntoView {
     Refer.send_event(auth_state.event_ctx());
 
     view! {
-        <div class="flex flex-col w-full h-full items-center text-white gap-5">
-            <div class="absolute inset-x-0 top-0 z-0 w-full max-w-md mx-auto" style="filter: blur(1.5px);">
-                <img src="/img/common/refer-bg.webp" class="w-full object-cover" />
+        <div class="flex flex-col gap-5 items-center w-full h-full text-white">
+            <div
+                class="absolute inset-x-0 top-0 z-0 mx-auto w-full max-w-md"
+                style="filter: blur(1.5px);"
+            >
+                <img src="/img/common/refer-bg.webp" class="object-cover w-full" />
             </div>
-            <div style="height: 14rem;" class="flex z-[1] relative justify-center w-full items-center gap-4 overflow-visible">
-                <img class="shrink-0 h-32 select-none" src="/img/common/wallet.webp" />
-                <img src="/img/common/bitcoin.webp" class="absolute top-8 left-5 size-6" style="filter: blur(1px); transform: rotate(30deg);" />
-                <img src="/img/common/bitcoin.webp" class="absolute top-16 right-3 size-6" style="filter: blur(1px); transform: rotate(40deg);" />
-                <img src="/img/common/bitcoin.webp" class="absolute bottom-4 left-6 size-9" style="filter: blur(0.3px); transform: rotate(-60deg);" />
+            <div
+                style="height: 14rem;"
+                class="flex overflow-visible relative gap-4 justify-center items-center w-full z-[1]"
+            >
+                <img class="h-32 select-none shrink-0" src="/img/common/wallet.webp" />
+                <img
+                    src="/img/common/bitcoin.webp"
+                    class="absolute left-5 top-8 size-6"
+                    style="filter: blur(1px); transform: rotate(30deg);"
+                />
+                <img
+                    src="/img/common/bitcoin.webp"
+                    class="absolute right-3 top-16 size-6"
+                    style="filter: blur(1px); transform: rotate(40deg);"
+                />
+                <img
+                    src="/img/common/bitcoin.webp"
+                    class="absolute bottom-4 left-6 size-9"
+                    style="filter: blur(0.3px); transform: rotate(-60deg);"
+                />
             </div>
-            <div style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%); height:29rem" class="absolute z-0 inset-x-0 top-16"></div>
+            <div
+                style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%); height:29rem"
+                class="absolute inset-x-0 top-16 z-0"
+            ></div>
 
-            <div class="flex flex-col w-full z-[1] items-center gap-4 text-center">
-                <span class="font-bold text-xl md:text-2xl">Invite & get Bitcoin <span style="color: #A3A3A3">"("{REFERRAL_REWARD} " SATS)"</span></span>
+            <div class="flex flex-col gap-4 items-center w-full text-center z-[1]">
+                <span class="text-xl font-bold md:text-2xl">
+                    Invite & get Bitcoin
+                    <span style="color: #A3A3A3">"("{REFERRAL_REWARD} " SATS)"</span>
+                </span>
             </div>
-            <div class="flex flex-col w-full z-[1] gap-2 px-4 text-white items-center">
+            <div class="flex flex-col gap-2 items-center px-4 w-full text-white z-[1]">
                 <Show when=logged_in fallback=|| view! { <ConnectLogin cta_location="refer" /> }>
                     <ReferCode />
                 </Show>
             </div>
-            <div class="flex flex-col w-full z-[1] items-center gap-6 mt-2 pb-5">
-                <span class="font-xl font-semibold">How it works?</span>
+            <div class="flex flex-col gap-6 items-center pb-5 mt-2 w-full z-[1]">
+                <span class="font-semibold font-xl">How it works?</span>
                 <div class="flex flex-row gap-4 text-center">
                     <WorkButton
                         text="Share your link
@@ -229,7 +252,7 @@ pub fn ReferEarn() -> impl IntoView {
     view! {
         <Title text=page_title.clone() />
 
-        <div class="flex flex-col items-center min-w-dvw min-h-dvh bg-black pt-2 pb-12">
+        <div class="flex flex-col items-center pt-2 pb-12 bg-black min-w-dvw min-h-dvh">
             <TitleText justify_center=false>
                 <div class="flex flex-row justify-between">
                     <BackButton fallback="/menu".to_string() />

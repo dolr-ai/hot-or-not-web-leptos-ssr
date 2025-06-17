@@ -19,8 +19,8 @@
 //!
 //! This will ensure we keep the near instant loading time while also fetching items dynmically.
 
-use crate::wallet::airdrop::AirdropPopup;
-use candid::{Nat, Principal};
+use crate::wallet::airdrop::{claim_sats_airdrop, SatsAirdropPopup};
+use candid::Principal;
 use component::action_btn::{ActionButton, ActionButtonLink};
 use component::icons::information_icon::Information;
 use component::icons::padlock_icon::{PadlockClose, PadlockOpen};
@@ -29,36 +29,32 @@ use component::icons::{
     chevron_right_icon::ChevronRightIcon, send_icon::SendIcon, share_icon::ShareIcon,
 };
 use component::overlay::PopupOverlay;
-use component::overlay::ShadowOverlay;
 use component::share_popup::ShareContent;
 use component::skeleton::Skeleton;
 use component::tooltip::Tooltip;
 use consts::{
     CKBTC_LEDGER_CANISTER, DOLR_AI_LEDGER_CANISTER, DOLR_AI_ROOT_CANISTER, USDC_LEDGER_CANISTER,
 };
-use hon_worker_common::WithdrawalState;
-use leptos::html;
+use hon_worker_common::{sign_claim_request, ClaimRequest, WithdrawalState};
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::hooks::use_navigate;
 use state::canisters::{auth_state, unauth_canisters};
-use utils::event_streaming::events::CentsAdded;
 use utils::host::get_host;
 use utils::mixpanel::mixpanel_events::*;
 use utils::send_wrap;
 use yral_canisters_common::utils::token::balance::TokenBalance;
-use yral_canisters_common::utils::token::{
-    load_cents_balance, load_sats_balance, TokenMetadata, TokenOwner,
-};
+use yral_canisters_common::utils::token::{load_cents_balance, load_sats_balance};
 use yral_canisters_common::{Canisters, CENT_TOKEN_NAME};
 use yral_canisters_common::{SATS_TOKEN_NAME, SATS_TOKEN_SYMBOL};
 
+use super::airdrop::is_user_eligible_for_sats_airdrop;
 use super::ShowLoginSignal;
 
 #[component]
 pub fn TokenViewFallback() -> impl IntoView {
     view! {
-        <div class="w-full items-center h-16 rounded-xl border-2 border-neutral-700 bg-white/15 animate-pulse"></div>
+        <div class="items-center w-full h-16 rounded-xl border-2 animate-pulse border-neutral-700 bg-white/15"></div>
     }
 }
 
@@ -105,7 +101,7 @@ enum WithdrawalStateFetcherType {
 
 impl WithdrawalStateFetcherType {
     // Both `user_principal` and `user_canister` must be provided by the
-    // caller, which allows for perfomance optimizations
+    // caller, which allows for performance optimizations
     async fn fetch(
         &self,
         user_canister: Principal,
@@ -221,10 +217,13 @@ impl TokenType {
 #[component]
 pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl IntoView {
     let balance = |token_type: TokenType| {
-        OnceResource::new(async move {
-            let fetcher: BalanceFetcherType = token_type.into();
-            send_wrap(fetcher.fetch(unauth_canisters(), user_canister, user_principal)).await
-        })
+        Resource::new(
+            || (),
+            move |_| async move {
+                let fetcher: BalanceFetcherType = token_type.into();
+                send_wrap(fetcher.fetch(unauth_canisters(), user_canister, user_principal)).await
+            },
+        )
     };
 
     let withdrawal_state = |token_type: TokenType| {
@@ -243,17 +242,28 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
     ];
 
     view! {
-        <div class="flex flex-col w-full gap-2 mb-2 items-center pb-10">
-            {tokens.into_iter().map(|token_type| {
-                let display_info: TokenDisplayInfo = token_type.into();
-                let balance = balance(token_type);
-                let withdrawal_state = withdrawal_state(token_type);
-                let is_utility_token = token_type.is_utility_token();
+        <div class="flex flex-col gap-2 items-center pb-10 mb-2 w-full">
+            {tokens
+                .into_iter()
+                .map(|token_type| {
+                    let display_info: TokenDisplayInfo = token_type.into();
+                    let display_info = display_info.clone();
+                    let balance = balance(token_type);
+                    let withdrawal_state = withdrawal_state(token_type);
+                    let is_utility_token = token_type.is_utility_token();
 
-                view! {
-                    <FastWalletCard user_principal display_info balance withdrawal_state is_utility_token />
-                }
-            }).collect_view()}
+                    view! {
+                        <FastWalletCard
+                            user_canister
+                            user_principal
+                            display_info
+                            balance
+                            withdrawal_state
+                            is_utility_token
+                        />
+                    }
+                })
+                .collect_view()}
         </div>
     }
 }
@@ -262,7 +272,6 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
 struct WalletCardOptionsContext {
     is_utility_token: bool,
     root: String,
-    token_owner: Option<TokenOwner>,
     user_principal: Principal,
 }
 
@@ -345,6 +354,42 @@ impl WithdrawImpl for WithdrawSats {
     }
 }
 
+trait AirdroppableImpl {
+    async fn claim_airdrop(&self, auth: Canisters<true>) -> Result<u64, ServerFnError>;
+
+    async fn is_airdrop_claimed(
+        &self,
+        user_principal: Principal,
+        user_canister: Principal,
+    ) -> Result<bool, ServerFnError>;
+}
+
+#[derive(Clone)]
+struct AirdropSats;
+
+impl AirdroppableImpl for AirdropSats {
+    async fn claim_airdrop(&self, cans: Canisters<true>) -> Result<u64, ServerFnError> {
+        let request = ClaimRequest {
+            user_principal: cans.user_principal(),
+        };
+        let signature = sign_claim_request(cans.identity(), request.clone()).unwrap();
+
+        claim_sats_airdrop(cans.user_canister(), request, signature).await
+    }
+
+    async fn is_airdrop_claimed(
+        &self,
+        user_principal: Principal,
+        user_canister: Principal,
+    ) -> Result<bool, ServerFnError> {
+        is_user_eligible_for_sats_airdrop(user_canister, user_principal)
+            .await
+            .map(|eligible| !eligible)
+    }
+}
+
+type Airdropper = AirdropSats;
+
 #[derive(Debug, Clone)]
 pub struct TokenDisplayInfo {
     pub name: String,
@@ -404,18 +449,31 @@ pub fn WithdrawSection(
     let withdraw_cta = withdrawer.withdraw_cta();
     let is_cents = token_name == CENT_TOKEN_NAME;
     view! {
-        <div class="border-t border-neutral-700 flex flex-col pt-4 gap-2">
-            {is_cents.then_some(view! {
-                <div class="flex items-center">
-                    <Icon attr:class="text-neutral-300" icon=if is_withdrawable { PadlockOpen } else { PadlockClose } />
-                    <span class="text-neutral-400 text-xs mx-2">{withdraw_message}</span>
-                    <Tooltip icon=Information title="Withdrawal Tokens" description="Only Cents earned above your airdrop amount can be withdrawn." />
-                    <span class="ml-auto">{withdrawable_balance}</span>
-                </div>
-            })}
+        <div class="flex flex-col gap-2 pt-4 border-t border-neutral-700">
+            {is_cents
+                .then_some(
+                    view! {
+                        <div class="flex items-center">
+                            <Icon
+                                attr:class="text-neutral-300"
+                                icon=if is_withdrawable { PadlockOpen } else { PadlockClose }
+                            />
+                            <span class="mx-2 text-xs text-neutral-400">{withdraw_message}</span>
+                            <Tooltip
+                                icon=Information
+                                title="Withdrawal Tokens"
+                                description="Only Cents earned above your airdrop amount can be withdrawn."
+                            />
+                            <span class="ml-auto">{withdrawable_balance}</span>
+                        </div>
+                    },
+                )}
             <button
-                class="rounded-lg px-5 py-2 text-sm text-center font-bold"
-                class=(["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled"], !is_withdrawable)
+                class="py-2 px-5 text-sm font-bold text-center rounded-lg"
+                class=(
+                    ["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled"],
+                    !is_withdrawable,
+                )
                 class=(["text-neutral-50", "bg-brand-gradient"], is_withdrawable)
                 on:click=withdraw_handle
             >
@@ -431,8 +489,9 @@ pub fn WithdrawSection(
 #[component]
 pub fn FastWalletCard(
     user_principal: Principal,
+    user_canister: Principal,
     display_info: TokenDisplayInfo,
-    balance: OnceResource<Result<TokenBalance, ServerFnError>>,
+    balance: Resource<Result<TokenBalance, ServerFnError>>,
     withdrawal_state: OnceResource<Result<Option<WithdrawalState>, ServerFnError>>,
     #[prop(optional)] is_utility_token: bool,
 ) -> impl IntoView {
@@ -441,7 +500,7 @@ pub fn FastWalletCard(
         symbol,
         logo,
         token_root_canister,
-    } = display_info;
+    } = display_info.clone();
 
     let root: String = token_root_canister
         .map(|r| r.to_text())
@@ -462,47 +521,120 @@ pub fn FastWalletCard(
     };
     let pop_up = RwSignal::new(false);
     let base_url = get_host();
+    let name_c = StoredValue::new(name.clone());
 
     provide_context(WalletCardOptionsContext {
         is_utility_token,
         root,
-        // with icpump gone, there shouldn't be any token owners. but lets keep
-        // it just in case; and pray the compiler optimizes things away
-        token_owner: None,
         user_principal,
     });
-    let airdrop_popup = RwSignal::new(false);
-    let buffer_signal = RwSignal::new(false);
-    let claimed = RwSignal::new(true);
-    let name_c = StoredValue::new(name.clone());
+
+    let display_info = display_info.clone();
+    let airdropper: Option<Airdropper> = if display_info.name == SATS_TOKEN_NAME {
+        Some(AirdropSats)
+    } else {
+        None
+    };
+
+    // airdrop popup state
+    let show_airdrop_popup = RwSignal::new(false);
+    let airdrop_amount_claimed: RwSignal<u64> = RwSignal::new(0);
+    let error_claiming_airdrop = RwSignal::new(false);
+
+    // fetch airdrop claim info
+    let is_airdrop_claimed = RwSignal::new(true);
+    let airdropper_c = airdropper.clone();
+    let airdropper_c2 = airdropper_c.clone();
+
+    let update_claimed = Action::new_local(move |_| {
+        let airdropper = airdropper_c.clone();
+        async move {
+            let claimed = if let Some(airdropper) = &airdropper {
+                airdropper
+                    .is_airdrop_claimed(user_principal, user_canister)
+                    .await
+                    .unwrap_or(true)
+            } else {
+                true
+            };
+            is_airdrop_claimed.set(claimed);
+        }
+    });
+
+    Effect::new(move || {
+        update_claimed.dispatch(());
+    });
+
+    let auth = auth_state();
+    let base = unauth_canisters();
+    let show_login = use_context()
+        .map(|ShowLoginSignal(show_login)| show_login)
+        .unwrap_or_else(|| RwSignal::new(false));
+    // action to claim airdrop
+    let claim_airdrop = Action::new_local(move |&is_connected: &bool| {
+        let base = base.clone();
+        let airdrop_amount_claimed = airdrop_amount_claimed;
+        let error_claiming_airdrop = error_claiming_airdrop;
+        let airdropper = airdropper_c2.clone();
+        async move {
+            if !is_connected {
+                show_login.set(true);
+                return Ok(());
+            }
+
+            let cans = auth.auth_cans(base).await?;
+            error_claiming_airdrop.set(false);
+            show_airdrop_popup.set(true);
+            match airdropper.as_ref().unwrap().claim_airdrop(cans).await {
+                Ok(amount) => {
+                    airdrop_amount_claimed.set(amount);
+                    is_airdrop_claimed.set(true);
+                    error_claiming_airdrop.set(false);
+                    balance.refetch();
+                }
+                Err(_) => {
+                    log::error!("error claiming airdrop");
+                    error_claiming_airdrop.set(true);
+                }
+            }
+            Ok(())
+        }
+    });
 
     view! {
-        <div class="flex flex-col gap-4 bg-neutral-900/90 rounded-lg w-full font-kumbh text-white p-4">
+        <div class="flex flex-col gap-4 p-4 w-full text-white rounded-lg bg-neutral-900/90 font-kumbh">
             <div class="flex flex-col gap-4 p-3 rounded-sm bg-neutral-800/70">
-                <div class="w-full flex items-center justify-between">
-                    <div class="flex items-center gap-2">
+                <div class="flex justify-between items-center w-full">
+                    <div class="flex gap-2 items-center">
                         <img
                             src=logo.clone()
                             alt=name.clone()
-                            class="w-8 h-8 rounded-full object-cover"
+                            class="object-cover w-8 h-8 rounded-full"
                         />
                         <div class="text-sm font-medium uppercase truncate">{name.clone()}</div>
                     </div>
                     <div class="flex flex-col items-end">
-                        <Suspense
-                            fallback=move || view! {
-                                <Skeleton class="h-3 w-10 rounded-sm text-neutral-600 [--shimmer:#27272A]" />
+                        <Suspense fallback=move || {
+                            view! {
+                                <Skeleton class="w-10 h-3 rounded-sm text-neutral-600 [--shimmer:#27272A]" />
                             }
-                        >
+                        }>
                             {move || Suspend::new(async move {
-                                // show error text if balance fails to load for whatever reason
-                                // error logs are captured by sentry
-                                let bal = balance.await.inspect_err(|err| {log::error!("balance loading error: {err:?}");}).ok();
+                                let bal = balance
+                                    .await
+                                    .inspect_err(|err| {
+                                        log::error!("balance loading error: {err:?}");
+                                    })
+                                    .ok();
                                 let bal = bal.map(|b| b.humanize_float_truncate_to_dp(8));
                                 let err = bal.is_none();
                                 let text = bal.unwrap_or_else(|| "err".into());
+                                // show error text if balance fails to load for whatever reason
+                                // error logs are captured by sentry
                                 view! {
-                                    <div class="text-lg font-medium" class=("text-red-500", err)>{text}</div>
+                                    <div class="text-lg font-medium" class=("text-red-500", err)>
+                                        {text}
+                                    </div>
                                 }
                             })}
                         </Suspense>
@@ -510,21 +642,35 @@ pub fn FastWalletCard(
                     </div>
                 </div>
                 <Suspense>
-                {move || Suspend::new(async move {
-                    // withdraw section wont show in case of error
-                    // error logs are captured by sentry
-                    let withdrawal_state = withdrawal_state.await.inspect_err(|err| log::error!("withdrawal state loading error: {err:?}")).ok().flatten();
-                    let withdrawal_state = withdrawal_state?;
-                    Some(view! {
-                        <WithdrawSection withdrawal_state token_name=name_c.get_value() />
-                    })
-                })}
+                    {move || Suspend::new(async move {
+                        let withdrawal_state = withdrawal_state
+                            .await
+                            .inspect_err(|err| {
+                                log::error!("withdrawal state loading error: {err:?}")
+                            })
+                            .ok()
+                            .flatten();
+                        let withdrawal_state = withdrawal_state?;
+                        Some(
+                            // withdraw section wont show in case of error
+                            // error logs are captured by sentry
+
+                            view! {
+                                <WithdrawSection withdrawal_state token_name=name_c.get_value() />
+                            },
+                        )
+                    })}
                 </Suspense>
             </div>
 
-            <WalletCardOptions pop_up=pop_up.write_only() share_link=share_link.write_only() airdrop_popup buffer_signal claimed/>
+            <WalletCardOptions
+                pop_up=pop_up.write_only()
+                share_link=share_link.write_only()
+                airdrop_claimed=is_airdrop_claimed
+                claim_airdrop
+            />
 
-            <PopupOverlay show=pop_up >
+            <PopupOverlay show=pop_up>
                 <ShareContent
                     share_link=format!("{base_url}{}", share_link())
                     message=share_message()
@@ -532,175 +678,13 @@ pub fn FastWalletCard(
                 />
             </PopupOverlay>
 
-            <ShadowOverlay show=airdrop_popup >
-                <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-[560px] max-h-[634px] min-w-[343px] min-h-[480px] backdrop-blur-lg rounded-lg">
-                    <div class="rounded-lg z-[500]">
-                        <AirdropPopup
-                            name=name.clone()
-                            logo=logo.clone()
-                            buffer_signal
-                            claimed
-                            airdrop_popup
-                        />
-                    </div>
-                </div>
-            </ShadowOverlay>
-        </div>
-    }.into_any()
-}
-
-#[component]
-pub fn WalletCard(
-    user_principal: Principal,
-    token_metadata: TokenMetadata,
-    is_airdrop_claimed: bool,
-    #[prop(optional)] is_utility_token: bool,
-    #[prop(optional)] _ref: NodeRef<html::Div>,
-) -> impl IntoView {
-    let root: String = token_metadata
-        .root
-        .map(|r| r.to_text())
-        .unwrap_or(token_metadata.name.to_lowercase());
-
-    let is_cents = token_metadata.name == CENT_TOKEN_NAME;
-    let show_withdraw_button = token_metadata.withdrawable_state.is_some();
-    let withdrawer = show_withdraw_button.then(|| match token_metadata.name.as_str() {
-        s if s == SATS_TOKEN_NAME => Box::new(WithdrawSats) as Withdrawer,
-        s if s == CENT_TOKEN_NAME => Box::new(WithdrawCents),
-        _ => unimplemented!("Withdrawing is not implemented for a token"),
-    });
-
-    let withdraw_url = withdrawer.as_ref().map(|w| w.withdraw_url());
-
-    let share_link = RwSignal::new("".to_string());
-
-    let symbol = token_metadata.symbol.clone();
-    let share_message = move || {
-        format!(
-        "Hey! Check out the token: {} I created on YRAL 👇 {}. I just minted my own token—come see and create yours! 🚀 #YRAL #TokenMinter",
-        token_metadata.symbol.clone(),
-        share_link.get(),
-    )
-    };
-    let pop_up = RwSignal::new(false);
-    let base_url = get_host();
-
-    provide_context(WalletCardOptionsContext {
-        is_utility_token,
-        root,
-        token_owner: token_metadata.token_owner,
-        user_principal,
-    });
-
-    // let airdrop_popup = RwSignal::new(false);
-    // let buffer_signal = RwSignal::new(false);
-    // let claimed = RwSignal::new(is_airdrop_claimed);
-    let is_connected = auth_state().is_logged_in_with_oauth();
-    let show_login = use_context()
-        .map(|ShowLoginSignal(show_login)| show_login)
-        .unwrap_or_else(|| RwSignal::new(false));
-    let nav = use_navigate();
-    let withdraw_handle = move |_| {
-        let Some(ref withdraw_url) = withdraw_url else {
-            return;
-        };
-        if !is_connected() {
-            show_login.set(true);
-            return;
-        }
-
-        nav(withdraw_url, Default::default());
-    };
-
-    let airdrop_popup = RwSignal::new(false);
-    let buffer_signal = RwSignal::new(false);
-    let claimed = RwSignal::new(is_airdrop_claimed);
-    let (is_withdrawable, withdraw_message, withdrawable_balance) =
-        match (token_metadata.withdrawable_state, withdrawer.as_ref()) {
-            (Some(ref state), Some(w)) => match w.details(state.clone()) {
-                WithdrawDetails::CanWithdraw { amount, message } => {
-                    (true, Some(message), Some(amount))
-                }
-                WithdrawDetails::CannotWithdraw { message } => (false, Some(message), None),
-            },
-            _ => Default::default(),
-        };
-    let withdraw_cta = withdrawer.as_ref().map(|w| w.withdraw_cta());
-
-    // overrides
-    let name = match token_metadata.name.to_lowercase().as_str() {
-        "btc" => "Bitcoin".to_string(),
-
-        _ => token_metadata.name.to_owned(),
-    };
-
-    view! {
-        <div node_ref=_ref class="flex flex-col gap-4 bg-neutral-900/90 rounded-lg w-full font-kumbh text-white p-4">
-            <div class="flex flex-col gap-4 p-3 rounded-sm bg-neutral-800/70">
-                <div class="w-full flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <img
-                            src=token_metadata.logo_b64.clone()
-                            alt=name.clone()
-                            class="w-8 h-8 rounded-full object-cover"
-                        />
-                        <div class="text-sm font-medium uppercase truncate">{name.clone()}</div>
-                    </div>
-                    <div class="flex flex-col items-end">
-                        {
-                            token_metadata.balance.map(|b| view! {
-                                <div class="text-lg font-medium">{b.humanize_float_truncate_to_dp(8)}</div>
-                            })
-                        }
-                        <div class="text-xs">{symbol}</div>
-                    </div>
-                </div>
-                {show_withdraw_button.then_some(view! {
-                    <div class="border-t border-neutral-700 flex flex-col pt-4 gap-2">
-                        {is_cents.then_some(view! {
-                            <div class="flex items-center">
-                                <Icon attr:class="text-neutral-300" icon=if is_withdrawable { PadlockOpen } else { PadlockClose } />
-                                <span class="text-neutral-400 text-xs mx-2">{withdraw_message}</span>
-                                <Tooltip icon=Information title="Withdrawal Tokens" description="Only Cents earned above your airdrop amount can be withdrawn." />
-                                <span class="ml-auto">{withdrawable_balance}</span>
-                            </div>
-                        })}
-                        <button
-                            class="rounded-lg px-5 py-2 text-sm text-center font-bold"
-                            class=(["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled"], !is_withdrawable)
-                            class=(["text-neutral-50", "bg-brand-gradient"], is_withdrawable)
-                            on:click=withdraw_handle
-                        >
-                            {withdraw_cta}
-                        </button>
-                    </div>
-
-                })}
-            </div>
-
-            <WalletCardOptions pop_up=pop_up.write_only() share_link=share_link.write_only() airdrop_popup buffer_signal claimed/>
-
-            <PopupOverlay show=pop_up >
-                <ShareContent
-                    share_link=format!("{base_url}{}", share_link())
-                    message=share_message()
-                    show_popup=pop_up
-                />
-            </PopupOverlay>
-
-            <ShadowOverlay show=airdrop_popup >
-                <div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-[560px] max-h-[634px] min-w-[343px] min-h-[480px] backdrop-blur-lg rounded-lg">
-                    <div class="rounded-lg z-500">
-                        <AirdropPopup
-                            name=token_metadata.name.clone()
-                            logo=token_metadata.logo_b64.clone()
-                            buffer_signal
-                            claimed
-                            airdrop_popup
-                        />
-                    </div>
-                </div>
-            </ShadowOverlay>
+            <SatsAirdropPopup
+                show=show_airdrop_popup
+                amount_claimed=airdrop_amount_claimed
+                claimed=is_airdrop_claimed
+                error=error_claiming_airdrop
+                try_again=claim_airdrop
+            />
         </div>
     }.into_any()
 }
@@ -709,79 +693,61 @@ pub fn WalletCard(
 fn WalletCardOptions(
     pop_up: WriteSignal<bool>,
     share_link: WriteSignal<String>,
-    airdrop_popup: RwSignal<bool>,
-    buffer_signal: RwSignal<bool>,
-    claimed: RwSignal<bool>,
+    airdrop_claimed: RwSignal<bool>,
+    claim_airdrop: Action<bool, Result<(), ServerFnError>>,
 ) -> impl IntoView {
     let WalletCardOptionsContext {
         is_utility_token,
         root,
-        token_owner,
         user_principal,
         ..
     } = use_context()?;
+    let is_connected = auth_state().is_logged_in_with_oauth();
 
     let share_link_coin = format!("/token/info/{root}/{user_principal}");
-    let token_owner_c = token_owner.clone();
-    let root_c = root.clone();
-
-    let auth = auth_state();
-    let base = unauth_canisters();
-    let airdrop_action = Action::new_local(move |&()| {
-        let token_owner_cans_id = token_owner_c.clone().unwrap().canister_id;
-        airdrop_popup.set(true);
-        let root = Principal::from_text(root_c.clone()).unwrap();
-        let base = base.clone();
-
-        async move {
-            if claimed.get() && !buffer_signal.get() {
-                return Ok(());
-            }
-            buffer_signal.set(true);
-            let cans = auth.auth_cans(base).await?;
-            let token_owner = cans.individual_user(token_owner_cans_id).await;
-            token_owner
-                .request_airdrop(
-                    root,
-                    None,
-                    Into::<Nat>::into(100u64) * 10u64.pow(8),
-                    cans.user_canister(),
-                )
-                .await?;
-            let user = cans.individual_user(cans.user_canister()).await;
-            user.add_token(root).await?;
-
-            if is_utility_token {
-                CentsAdded.send_event(auth.event_ctx(), "airdrop".to_string(), 100);
-            }
-
-            buffer_signal.set(false);
-            claimed.set(true);
-            Ok::<_, ServerFnError>(())
-        }
-    });
-
-    let airdrop_disabled =
-        Signal::derive(move || token_owner.is_some() && claimed.get() || token_owner.is_none());
 
     Some(view! {
-        <div class="flex items-center justify-around">
-            <ActionButton disabled=is_utility_token href=format!("/token/transfer/{root}") label="Send".to_string()>
-                <SendIcon class="h-full w-full" />
-            </ActionButton>
-            <ActionButton disabled=true href="#".to_string() label="Buy/Sell".to_string()>
-                <Icon attr:class="h-6 w-6" icon=ArrowLeftRightIcon />
-            </ActionButton>
-            <ActionButtonLink disabled=airdrop_disabled on:click=move |_|{airdrop_action.dispatch(());} label="Airdrop".to_string()>
-                <Icon attr:class="h-6 w-6" icon=AirdropIcon />
+        <div class="flex justify-around items-center">
+            <ActionButtonLink
+                disabled=is_utility_token
+                href=format!("/token/transfer/{root}")
+                label="Send".to_string()
+            >
+                <SendIcon class="w-full h-full" />
             </ActionButtonLink>
-
-            <ActionButton disabled=is_utility_token href="#".to_string() label="Share".to_string()>
-                <Icon attr:class="h-6 w-6" icon=ShareIcon on:click=move |_| {pop_up.set(true); share_link.set(share_link_coin.clone())}/>
+            <ActionButtonLink disabled=true href="#".to_string() label="Buy/Sell".to_string()>
+                <Icon attr:class="h-6 w-6" icon=ArrowLeftRightIcon />
+            </ActionButtonLink>
+            <ActionButton
+                disabled=airdrop_claimed
+                on:click=move |_| {
+                    claim_airdrop.dispatch(is_connected.get());
+                }
+                label="Airdrop".to_string()
+            >
+                <Icon attr:class="h-6 w-6" icon=AirdropIcon />
             </ActionButton>
-            <ActionButton disabled=is_utility_token href=format!("/token/info/{root}/{user_principal}") label="Details".to_string()>
+            <ActionButtonLink
+                disabled=is_utility_token
+                href="#".to_string()
+                label="Share".to_string()
+            >
+                <Icon
+                    attr:class="h-6 w-6"
+                    icon=ShareIcon
+                    on:click=move |_| {
+                        pop_up.set(true);
+                        share_link.set(share_link_coin.clone())
+                    }
+                />
+            </ActionButtonLink>
+            <ActionButtonLink
+                disabled=is_utility_token
+                href=format!("/token/info/{root}/{user_principal}")
+                label="Details".to_string()
+            >
                 <Icon attr:class="h-6 w-6" icon=ChevronRightIcon />
-            </ActionButton>
+            </ActionButtonLink>
         </div>
     })
 }

@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 
 #[component]
-pub fn ActionButton(
+pub fn ActionButtonLink(
     href: String,
     label: String,
     children: Children,
@@ -22,17 +22,15 @@ pub fn ActionButton(
                 )
             }
         >
-            <div class="w-4.5 h-4.5 flex items-center justify-center">
-                {children()}
-            </div>
+            <div class="flex justify-center items-center w-4.5 h-4.5">{children()}</div>
 
-            <div class="text-[0.625rem] font-medium leading-4">{label}</div>
+            <div class="font-medium leading-4 text-[0.625rem]">{label}</div>
         </a>
     }
 }
 
 #[component]
-pub fn ActionButtonLink(
+pub fn ActionButton(
     label: String,
     children: Children,
     #[prop(optional, into)] disabled: Signal<bool>,
@@ -42,9 +40,7 @@ pub fn ActionButtonLink(
             disabled=disabled
             class="flex flex-col gap-1 justify-center items-center text-xs transition-colors enabled:group-hover:text-white enabled:text-neutral-300 disabled:group-hover:cursor-default disabled:text-neutral-600"
         >
-            <div class="w-4.5 h-4.5 flex items-center justify-center">
-                {children()}
-            </div>
+            <div class="flex justify-center items-center w-4.5 h-4.5">{children()}</div>
 
             <div>{label}</div>
         </button>

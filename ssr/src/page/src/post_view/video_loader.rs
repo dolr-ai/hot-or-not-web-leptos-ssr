@@ -1,8 +1,8 @@
 use std::cmp::Ordering;
 
 use indexmap::IndexSet;
-use leptos::ev;
 use leptos::html::Audio;
+use leptos::{ev, logging};
 use leptos::{html::Video, prelude::*};
 use leptos_use::use_event_listener;
 use state::canisters::{auth_state, unauth_canisters};
@@ -49,22 +49,21 @@ pub fn BgView(
     let win_audio_ref = NodeRef::<Audio>::new();
 
     view! {
-        <div class="bg-transparent w-full h-full relative overflow-hidden">
+        <div class="overflow-hidden relative w-full h-full bg-transparent">
             <div
-                class="absolute top-0 left-0 bg-cover bg-center w-full h-full z-1 blur-lg"
+                class="absolute top-0 left-0 w-full h-full bg-center bg-cover z-1 blur-lg"
                 style:background-color="rgb(0, 0, 0)"
                 style:background-image=move || format!("url({})", bg_url(uid()))
             ></div>
-            <audio class="sr-only" node_ref=win_audio_ref preload="auto" src="/img/hotornot/chaching.m4a"/>
+            <audio
+                class="sr-only"
+                node_ref=win_audio_ref
+                preload="auto"
+                src="/img/hotornot/chaching.m4a"
+            />
             {move || {
                 let (post, prev_post) = post_with_prev.get();
-                Some(view! {
-                    <VideoDetailsOverlay
-                        post=post?
-                        prev_post
-                        win_audio_ref
-                    />
-                 })
+                Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref /> })
             }}
             {children()}
         </div>
@@ -292,7 +291,17 @@ pub fn VideoViewForQueue(
             return;
         }
         vid.set_autoplay(true);
-        _ = vid.play();
+        let promise = vid.play();
+        if let Ok(promise) = promise {
+            wasm_bindgen_futures::spawn_local(async move {
+                let rr = wasm_bindgen_futures::JsFuture::from(promise).await;
+                if let Err(e) = rr {
+                    logging::error!("promise failed: {e:?}");
+                }
+            });
+        } else {
+            logging::error!("Failed to play video");
+        }
     });
 
     let post = Signal::derive(move || video_queue.with(|q| q.get_index(idx).cloned()));
