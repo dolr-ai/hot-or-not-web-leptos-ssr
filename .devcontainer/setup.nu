@@ -1,7 +1,3 @@
-rustup install;
-
-sleep 2sec;
-
 # Install cargo binstall
 http get https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | save cargo-binstall.tgz;
 tar -xzf cargo-binstall.tgz;
@@ -24,3 +20,5 @@ cp .env.example .env;
 
 # Make the cargo husky hooks executable
 chmod +x .cargo-husky/hooks/*;
+# Git hook for cargo husky gets registered with cargo test. Please run
+# cargo test --all-features;
