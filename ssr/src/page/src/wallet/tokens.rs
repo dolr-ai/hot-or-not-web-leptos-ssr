@@ -37,15 +37,16 @@ use component::tooltip::Tooltip;
 use consts::{
     CKBTC_LEDGER_CANISTER, DOLR_AI_LEDGER_CANISTER, DOLR_AI_ROOT_CANISTER, USDC_LEDGER_CANISTER,
 };
-use enum_dispatch::enum_dispatch;
 use hon_worker_common::{sign_claim_request, ClaimRequest, WithdrawalState};
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::hooks::use_navigate;
+use leptos_use::{use_interval, UseIntervalReturn};
 use serde::{Deserialize, Serialize};
 use state::canisters::{auth_state, unauth_canisters};
 use utils::host::get_host;
 use utils::send_wrap;
+use utils::time::to_hh_mm_ss;
 use yral_canisters_common::utils::token::balance::TokenBalance;
 use yral_canisters_common::utils::token::{load_cents_balance, load_sats_balance};
 use yral_canisters_common::{Canisters, CENT_TOKEN_NAME};
@@ -61,6 +62,7 @@ pub fn TokenViewFallback() -> impl IntoView {
     }
 }
 
+#[allow(unused)]
 enum AirdropStatusFetcherType {
     Sats,
     MockAvailable,
@@ -85,11 +87,11 @@ impl AirdropStatusFetcherType {
                 })
             }
             Self::MockAvailable => {
-                tokio::time::sleep(Duration::from_millis(100)).await;
+                utils::time::sleep(Duration::from_millis(100)).await;
                 Some(AirdropStatus::Available)
             }
             Self::MockWaiting => {
-                tokio::time::sleep(Duration::from_millis(100)).await;
+                utils::time::sleep(Duration::from_millis(100)).await;
                 Some(AirdropStatus::WaitFor(Duration::from_secs(24 * 3600)))
             }
             Self::NonAirdropable => None,
@@ -181,7 +183,7 @@ impl From<TokenType> for AirdropStatusFetcherType {
     fn from(value: TokenType) -> Self {
         match value {
             TokenType::Sats => Self::Sats,
-            TokenType::Dolr => Self::MockAvailable,
+            TokenType::Dolr => Self::MockWaiting,
             _ => Self::NonAirdropable,
         }
     }
@@ -414,9 +416,12 @@ impl WithdrawImpl for WithdrawSats {
     }
 }
 
-#[enum_dispatch]
 trait AirdroppableImpl {
     async fn claim_airdrop(&self, auth: Canisters<true>) -> Result<u64, ServerFnError>;
+
+    fn show_info(&self, _status: AirdropStatus) -> bool {
+        false
+    }
 
     fn eligility_info(&self, _status: AirdropStatus) -> Option<String> {
         None
@@ -428,13 +433,61 @@ trait AirdroppableImpl {
 }
 
 #[derive(Clone)]
+enum Airdropper {
+    MockAirdropDolr(MockAirdropDolr),
+    AirdropSats(AirdropSats),
+}
+
+// enum_dispatch doesn't work with traits with `async fn` so we doing it by hand
+// https://gitlab.com/antonok/enum_dispatch/-/issues/75
+impl AirdroppableImpl for Airdropper {
+    async fn claim_airdrop(&self, auth: Canisters<true>) -> Result<u64, ServerFnError> {
+        match self {
+            Airdropper::MockAirdropDolr(mock_airdrop_dolr) => {
+                mock_airdrop_dolr.claim_airdrop(auth).await
+            }
+            Airdropper::AirdropSats(airdrop_sats) => airdrop_sats.claim_airdrop(auth).await,
+        }
+    }
+
+    fn show_info(&self, status: AirdropStatus) -> bool {
+        match self {
+            Airdropper::MockAirdropDolr(mock_airdrop_dolr) => mock_airdrop_dolr.show_info(status),
+            Airdropper::AirdropSats(airdrop_sats) => airdrop_sats.show_info(status),
+        }
+    }
+
+    fn eligility_info(&self, status: AirdropStatus) -> Option<String> {
+        match self {
+            Airdropper::MockAirdropDolr(mock_airdrop_dolr) => {
+                mock_airdrop_dolr.eligility_info(status)
+            }
+            Airdropper::AirdropSats(airdrop_sats) => airdrop_sats.eligility_info(status),
+        }
+    }
+
+    fn available_message(&self, status: AirdropStatus) -> Option<String> {
+        match self {
+            Airdropper::MockAirdropDolr(mock_airdrop_dolr) => {
+                mock_airdrop_dolr.available_message(status)
+            }
+            Airdropper::AirdropSats(airdrop_sats) => airdrop_sats.available_message(status),
+        }
+    }
+}
+
+#[derive(Clone)]
 struct MockAirdropDolr;
 
 impl AirdroppableImpl for MockAirdropDolr {
-    async fn claim_airdrop(&self, auth: Canisters<true>) -> Result<u64, ServerFnError> {
-        tokio::time::sleep(Duration::from_secs(2)).await;
+    async fn claim_airdrop(&self, _auth: Canisters<true>) -> Result<u64, ServerFnError> {
+        utils::time::sleep(Duration::from_secs(2)).await;
 
         Ok(100)
+    }
+
+    fn show_info(&self, _status: AirdropStatus) -> bool {
+        true
     }
 
     fn eligility_info(&self, _status: AirdropStatus) -> Option<String> {
@@ -460,17 +513,10 @@ impl AirdroppableImpl for AirdropSats {
     }
 }
 
-#[enum_dispatch(AirdroppableImpl)]
-#[derive(Clone)]
-enum Airdropper {
-    MockAirdropDolr,
-    AirdropSats,
-}
-
 impl Airdropper {
     fn choose(name: &str) -> Option<Self> {
         match name {
-            "dolr" => Some(Airdropper::MockAirdropDolr(MockAirdropDolr)),
+            "DOLR AI" => Some(Airdropper::MockAirdropDolr(MockAirdropDolr)),
             s if s == SATS_TOKEN_NAME => Some(Airdropper::AirdropSats(AirdropSats)),
             _ => None,
         }
@@ -567,11 +613,65 @@ fn AirdropInfoSection(
 ) -> impl IntoView {
     let airdropper: Airdropper = Airdropper::choose(&token_name)
         .expect("airdrop status returned for a non airdroppable token");
+
+    if !airdropper.show_info(airdrop_status) {
+        return None;
+    }
+
+    if matches!(airdrop_status, AirdropStatus::Claimed) {
+        return None;
+    }
+
+    let UseIntervalReturn { counter, .. } = use_interval(1000);
+    let maybe_wait_for = match airdrop_status {
+        AirdropStatus::WaitFor(duration) => Some(duration),
+        _ => None,
+    };
+
+    let timer = move || {
+        let counter = counter.get();
+        let counter = web_time::Duration::from_secs(counter);
+
+        maybe_wait_for
+            .map(|wait_for| wait_for - counter)
+            .map(to_hh_mm_ss)
+    };
+
+    let available_message = airdropper.available_message(airdrop_status)?;
+    let tooltip_info = airdropper.eligility_info(airdrop_status);
     Some(view! {
         <div class="flex flex-col gap-2 pt-4 border-t border-neutral-700">
-        {match airdrop_status {
-
-        }}
+            <div class="flex items-center justify-between">
+            {match airdrop_status {
+                AirdropStatus::Available => view! {
+                    <div class="flex items-center">
+                        <Icon
+                            attr:class="text-neutral-300"
+                            icon=PadlockOpen
+                        />
+                        <span class="mx-2 text-xs text-neutral-400">{available_message}</span>
+                    </div>
+                }.into_any(),
+                AirdropStatus::WaitFor(..) => view! {
+                    <div class="flex items-center gap-1.5 bg-neutral-900 px-2 py-1.5 rounded-full">
+                        <span class="text-xs text-400">
+                            Next Airdrop In:
+                        </span>
+                        <span class="text-center text-xs font-semibold">
+                            {timer}
+                        </span>
+                    </div>
+                }.into_any(),
+                _ => ().into_any(),
+            }}
+            {tooltip_info.map(|tooltip_info| view! {
+                <Tooltip
+                    icon=Information
+                    title="Airdrop Eligibility"
+                    description=tooltip_info
+                />
+            })}
+            </div>
         </div>
     })
 }
@@ -753,7 +853,7 @@ pub fn FastWalletCard(
                         let airdrop_status = airdrop_status?;
                         Some(
                             view! {
-                                <AirdropInfoSection airdrop_status />
+                                <AirdropInfoSection airdrop_status token_name=name_c.get_value() />
                             }
                         )
                     })}

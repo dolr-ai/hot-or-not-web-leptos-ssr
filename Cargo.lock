@@ -5439,7 +5439,6 @@ dependencies = [
  "consts",
  "crc32fast",
  "dotenv",
- "enum_dispatch",
  "futures",
  "getrandom 0.3.3",
  "gloo",
