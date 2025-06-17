@@ -19,6 +19,8 @@
 //!
 //! This will ensure we keep the near instant loading time while also fetching items dynmically.
 
+use std::time::Duration;
+
 use crate::wallet::airdrop::{claim_sats_airdrop, SatsAirdropPopup};
 use candid::Principal;
 use component::action_btn::{ActionButton, ActionButtonLink};
@@ -35,6 +37,7 @@ use component::tooltip::Tooltip;
 use consts::{
     CKBTC_LEDGER_CANISTER, DOLR_AI_LEDGER_CANISTER, DOLR_AI_ROOT_CANISTER, USDC_LEDGER_CANISTER,
 };
+use enum_dispatch::enum_dispatch;
 use hon_worker_common::{sign_claim_request, ClaimRequest, WithdrawalState};
 use leptos::prelude::*;
 use leptos_icons::*;
@@ -60,6 +63,8 @@ pub fn TokenViewFallback() -> impl IntoView {
 
 enum AirdropStatusFetcherType {
     Sats,
+    MockAvailable,
+    MockWaiting,
     NonAirdropable,
 }
 
@@ -70,7 +75,7 @@ impl AirdropStatusFetcherType {
         user_principal: Principal,
     ) -> Result<Option<AirdropStatus>, ServerFnError> {
         let res = match self {
-            AirdropStatusFetcherType::Sats => {
+            Self::Sats => {
                 let eligible =
                     is_user_eligible_for_sats_airdrop(user_canister, user_principal).await?;
                 Some(if eligible {
@@ -79,7 +84,15 @@ impl AirdropStatusFetcherType {
                     AirdropStatus::Claimed
                 })
             }
-            AirdropStatusFetcherType::NonAirdropable => None,
+            Self::MockAvailable => {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                Some(AirdropStatus::Available)
+            }
+            Self::MockWaiting => {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                Some(AirdropStatus::WaitFor(Duration::from_secs(24 * 3600)))
+            }
+            Self::NonAirdropable => None,
         };
 
         Ok(res)
@@ -168,6 +181,7 @@ impl From<TokenType> for AirdropStatusFetcherType {
     fn from(value: TokenType) -> Self {
         match value {
             TokenType::Sats => Self::Sats,
+            TokenType::Dolr => Self::MockAvailable,
             _ => Self::NonAirdropable,
         }
     }
@@ -400,8 +414,36 @@ impl WithdrawImpl for WithdrawSats {
     }
 }
 
+#[enum_dispatch]
 trait AirdroppableImpl {
     async fn claim_airdrop(&self, auth: Canisters<true>) -> Result<u64, ServerFnError>;
+
+    fn eligility_info(&self, _status: AirdropStatus) -> Option<String> {
+        None
+    }
+
+    fn available_message(&self, _status: AirdropStatus) -> Option<String> {
+        None
+    }
+}
+
+#[derive(Clone)]
+struct MockAirdropDolr;
+
+impl AirdroppableImpl for MockAirdropDolr {
+    async fn claim_airdrop(&self, auth: Canisters<true>) -> Result<u64, ServerFnError> {
+        tokio::time::sleep(Duration::from_secs(2)).await;
+
+        Ok(100)
+    }
+
+    fn eligility_info(&self, _status: AirdropStatus) -> Option<String> {
+        Some("Claims are limited to once every 24 hours.".to_string())
+    }
+
+    fn available_message(&self, _status: AirdropStatus) -> Option<String> {
+        Some("Tap on “airdrop” to claim free tokens.".to_string())
+    }
 }
 
 #[derive(Clone)]
@@ -418,7 +460,22 @@ impl AirdroppableImpl for AirdropSats {
     }
 }
 
-type Airdropper = AirdropSats;
+#[enum_dispatch(AirdroppableImpl)]
+#[derive(Clone)]
+enum Airdropper {
+    MockAirdropDolr,
+    AirdropSats,
+}
+
+impl Airdropper {
+    fn choose(name: &str) -> Option<Self> {
+        match name {
+            "dolr" => Some(Airdropper::MockAirdropDolr(MockAirdropDolr)),
+            s if s == SATS_TOKEN_NAME => Some(Airdropper::AirdropSats(AirdropSats)),
+            _ => None,
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct TokenDisplayInfo {
@@ -496,10 +553,27 @@ pub fn WithdrawSection(
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum AirdropStatus {
     Available,
     Claimed,
+    WaitFor(web_time::Duration),
+}
+
+#[component]
+fn AirdropInfoSection(
+    airdrop_status: AirdropStatus,
+    #[prop(into)] token_name: String,
+) -> impl IntoView {
+    let airdropper: Airdropper = Airdropper::choose(&token_name)
+        .expect("airdrop status returned for a non airdroppable token");
+    Some(view! {
+        <div class="flex flex-col gap-2 pt-4 border-t border-neutral-700">
+        {match airdrop_status {
+
+        }}
+        </div>
+    })
 }
 
 // avoid redirecting in case of error, because that will
@@ -552,11 +626,7 @@ pub fn FastWalletCard(
     });
 
     let display_info = display_info.clone();
-    let airdropper: Option<Airdropper> = if display_info.name == SATS_TOKEN_NAME {
-        Some(AirdropSats)
-    } else {
-        None
-    };
+    let airdropper: Option<Airdropper> = Airdropper::choose(&display_info.name);
 
     // airdrop popup state
     let show_airdrop_popup = RwSignal::new(false);
@@ -670,6 +740,21 @@ pub fn FastWalletCard(
                             view! {
                                 <WithdrawSection withdrawal_state token_name=name_c.get_value() />
                             },
+                        )
+                    })}
+                </Suspense>
+                <Suspense>
+                    {move || Suspend::new(async move {
+                        let airdrop_status = airdrop_status.await.inspect_err(|err| {
+                                log::error!("airdrop status loading failed: {err:?}");
+                            })
+                            .ok()
+                            .flatten();
+                        let airdrop_status = airdrop_status?;
+                        Some(
+                            view! {
+                                <AirdropInfoSection airdrop_status />
+                            }
                         )
                     })}
                 </Suspense>
