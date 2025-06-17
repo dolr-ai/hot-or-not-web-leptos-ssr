@@ -250,7 +250,6 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
                     let balance = balance(token_type);
                     let withdrawal_state = withdrawal_state(token_type);
                     let is_utility_token = token_type.is_utility_token();
-
                     view! {
                         <FastWalletCard
                             user_canister
@@ -611,9 +610,9 @@ pub fn FastWalletCard(
                                 let bal = bal.map(|b| b.humanize_float_truncate_to_dp(8));
                                 let err = bal.is_none();
                                 let text = bal.unwrap_or_else(|| "err".into());
-                                // show error text if balance fails to load for whatever reason
-                                // error logs are captured by sentry
                                 view! {
+                                    // show error text if balance fails to load for whatever reason
+                                    // error logs are captured by sentry
                                     <div class="text-lg font-medium" class=("text-red-500", err)>
                                         {text}
                                     </div>
@@ -634,10 +633,10 @@ pub fn FastWalletCard(
                             .flatten();
                         let withdrawal_state = withdrawal_state?;
                         Some(
-                            // withdraw section wont show in case of error
-                            // error logs are captured by sentry
-
                             view! {
+                                // withdraw section wont show in case of error
+                                // error logs are captured by sentry
+
                                 <WithdrawSection withdrawal_state token_name=name_c.get_value() />
                             },
                         )

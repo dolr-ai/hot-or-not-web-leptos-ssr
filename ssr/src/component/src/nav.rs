@@ -6,6 +6,7 @@ use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_router::hooks::use_location;
 use leptos_use::{use_cookie_with_options, UseCookieOptions};
+use utils::types::PostParams;
 
 #[derive(Clone)]
 struct NavItem {
@@ -32,13 +33,20 @@ fn yral_nav_items() -> Vec<NavItem> {
             .path("/")
             .max_age(AUTH_UTIL_COOKIES_MAX_AGE_MS),
     );
-    let home_path = RwSignal::new("/".to_string());
+    let current_post_params: RwSignal<Option<PostParams>> = expect_context();
+
     vec![
         NavItem {
             render_data: NavItemRenderData::Icon {
                 icon: HomeSymbol,
                 filled_icon: Some(HomeSymbolFilled),
-                href: home_path.into(),
+                href: Signal::derive(move || {
+                    current_post_params
+                        .get()
+                        .map(|f| format!("/hot-or-not/{}/{}", f.canister_id, f.post_id))
+                        .unwrap_or(format!("/"))
+                })
+                .into(),
             },
             cur_selected: Signal::derive(move || {
                 matches!(path.get().as_str(), "/") || path.get().contains("/hot-or-not")

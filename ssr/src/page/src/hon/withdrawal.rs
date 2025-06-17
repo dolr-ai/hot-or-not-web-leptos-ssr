@@ -315,8 +315,8 @@ pub fn HonWithdrawal() -> impl IntoView {
                                         }
                                     };
                                     Some(
-                                        // all of the money can be withdrawn
                                         view! {
+                                            // all of the money can be withdrawn
                                             <button
                                                 disabled=invalid_input || !can_withdraw
                                                 class=("pointer-events-none", is_claiming)

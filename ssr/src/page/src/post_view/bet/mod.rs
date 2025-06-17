@@ -123,9 +123,38 @@ fn HNButtonOverlay(
     coin: RwSignal<CoinState>,
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
+    audio_ref: NodeRef<Audio>,
 ) -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
+
+    fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
+        #[cfg(not(feature = "hydrate"))]
+        {
+            _ = audio_ref;
+        }
+        #[cfg(feature = "hydrate")]
+        {
+            use wasm_bindgen::JsValue;
+            use web_sys::js_sys::Reflect;
+
+            let window = window();
+            let nav = window.navigator();
+            if Reflect::has(&nav, &JsValue::from_str("vibrate")).unwrap_or_default() {
+                nav.vibrate_with_duration(200);
+            } else {
+                log::debug!("browser does not support vibrate");
+            }
+            let Some(audio) = audio_ref.get() else {
+                return;
+            };
+            if won {
+                audio.set_current_time(0.);
+                audio.set_volume(0.5);
+                _ = audio.play();
+            }
+        }
+    }
 
     let place_bet_action = Action::new(move |(bet_direction, bet_amount): &(VoteKind, u64)| {
         let post_canister = post.canister_id;
@@ -184,6 +213,10 @@ fn HNButtonOverlay(
                         won_loss_amount: win_loss_amount,
                         creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
                     });
+                    play_win_sound_and_vibrate(
+                        audio_ref,
+                        matches!(res.game_result, GameResult::Win { .. }),
+                    );
                     Some(())
                 }
                 Err(e) => {
@@ -342,7 +375,6 @@ pub fn HNUserParticipation(
     post: PostDetails,
     participation: GameInfo,
     refetch_bet: Trigger,
-    audio_ref: NodeRef<Audio>,
 ) -> impl IntoView {
     let (_, _) = (post, refetch_bet); // not sure if i will need these later
     let (vote_amount, game_result) = match participation {
@@ -358,38 +390,6 @@ pub fn HNUserParticipation(
         .try_into()
         .expect("We only allow voting with 200 max, so this is alright");
     let won = matches!(game_result, GameResult::Win { .. });
-
-    fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
-        #[cfg(not(feature = "hydrate"))]
-        {
-            _ = audio_ref;
-        }
-        #[cfg(feature = "hydrate")]
-        {
-            use wasm_bindgen::JsValue;
-            use web_sys::js_sys::Reflect;
-
-            let window = window();
-            let nav = window.navigator();
-            if Reflect::has(&nav, &JsValue::from_str("vibrate")).unwrap_or_default() {
-                nav.vibrate_with_duration(200);
-            } else {
-                log::debug!("browser does not support vibrate");
-            }
-            let Some(audio) = audio_ref.get() else {
-                return;
-            };
-            if won {
-                audio.set_current_time(0.);
-                audio.set_volume(0.5);
-                _ = audio.play();
-            }
-        }
-    }
-
-    Effect::new(move |_| {
-        play_win_sound_and_vibrate(audio_ref, won);
-    });
 
     view! {
         <HNWonLost game_result vote_amount />
@@ -460,7 +460,6 @@ pub fn HNGameOverlay(
                                         post
                                         refetch_bet
                                         participation=participation.clone()
-                                        audio_ref=win_audio_ref
                                     />
                                 }
                                     .into_any()
@@ -472,6 +471,7 @@ pub fn HNGameOverlay(
                                         bet_direction
                                         coin
                                         refetch_bet
+                                        audio_ref=win_audio_ref
                                     />
                                 }
                                     .into_any()

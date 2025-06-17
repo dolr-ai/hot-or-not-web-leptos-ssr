@@ -113,7 +113,6 @@ pub fn YralRootPage() -> impl IntoView {
                     } else if let Some(utms) = utms {
                         url.push_str(&format!("?{utms}"));
                     }
-
                     view! { <Redirect path=url /> }
                 })
             }}
