@@ -206,33 +206,38 @@ pub fn LoginProviders(
     provide_context(ctx);
 
     view! {
-        <div class="px-4 py-6 w-full h-full flex items-center justify-center cursor-auto">
-            <div class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
-                <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
+        <div class="flex justify-center items-center py-6 px-4 w-full h-full cursor-auto">
+            <div class="overflow-hidden relative items-center w-full max-w-md rounded-md cursor-auto h-fit bg-neutral-950">
+                <img
+                    src="/img/common/refer-bg.webp"
+                    class="object-cover absolute inset-0 z-0 w-full h-full opacity-40"
+                />
                 <div
                     style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
-                    class="absolute z-[1] size-[50rem] -left-[75%] -top-[50%]" >
-                </div>
+                    class="absolute z-[1] size-[50rem] -left-[75%] -top-[50%]"
+                ></div>
                 <button
                     on:click=move |_| show_modal.set(false)
-                    class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[3] top-4 right-4"
+                    class="flex absolute top-4 right-4 justify-center items-center text-lg text-center text-white rounded-full md:text-xl size-6 bg-neutral-600 z-[3]"
                 >
                     <Icon icon=icondata::ChCross />
                 </button>
-                <div class="flex z-[2] flex-col items-center gap-8 text-white justify-center px-12 py-10 relative">
-                    <img src="/img/common/join-yral.webp" class="h-52 object-contain" />
-                    <div class="font-bold text-base text-center">
+                <div class="flex relative flex-col gap-8 justify-center items-center py-10 px-12 text-white z-[2]">
+                    <img src="/img/common/join-yral.webp" class="object-contain h-52" />
+                    <div class="text-base font-bold text-center">
                         "Login in to watch, play & earn Bitcoin."
                     </div>
-                    <div class="flex flex-col items-center w-full gap-4">
+                    <div class="flex flex-col gap-4 items-center w-full">
                         {
                             #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-                            view! { <yral::YralAuthProvider signing_in_provider/> }
+                            view! { <yral::YralAuthProvider signing_in_provider /> }
                         }
                     </div>
-                    <div class="flex flex-col text-md items-center text-center">
+                    <div class="flex flex-col items-center text-center text-md">
                         <div>"By signing up, you agree to our"</div>
-                        <a class="text-pink-300 font-bold" target="_blank" href="/terms-of-service">"Terms of Service"</a>
+                        <a class="font-bold text-pink-300" target="_blank" href="/terms-of-service">
+                            "Terms of Service"
+                        </a>
                     </div>
                 </div>
             </div>

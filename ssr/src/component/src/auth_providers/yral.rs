@@ -122,7 +122,7 @@ pub fn YralAuthProvider(signing_in_provider: RwSignal<LoginProvider>) -> impl In
     view! {
         <LoginProvButton
             prov=ProviderKind::YralAuth
-            class="flex items-center justify-center gap-3 rounded-md bg-white p-3 w-full font-bold text-black hover:bg-white/95"
+            class="flex gap-3 justify-center items-center p-3 w-full font-bold text-black bg-white rounded-md hover:bg-white/95"
             on_click=move |ev| {
                 ev.stop_propagation();
                 signing_in_provider.set(LoginProvider::Google);
@@ -130,11 +130,20 @@ pub fn YralAuthProvider(signing_in_provider: RwSignal<LoginProvider>) -> impl In
             }
         >
             <img class="size-5" src="/img/common/google.svg" />
-            <span>{format!("{}Google", if signing_in() && signing_in_provider.get() == LoginProvider::Google { "Logging in with " } else { "Login with " })}</span>
+            <span>
+                {format!(
+                    "{}Google",
+                    if signing_in() && signing_in_provider.get() == LoginProvider::Google {
+                        "Logging in with "
+                    } else {
+                        "Login with "
+                    },
+                )}
+            </span>
         </LoginProvButton>
         <LoginProvButton
             prov=ProviderKind::YralAuth
-            class="flex items-center justify-center gap-3 rounded-md bg-white py-3 w-full font-bold text-black hover:bg-white/95"
+            class="flex gap-3 justify-center items-center py-3 w-full font-bold text-black bg-white rounded-md hover:bg-white/95"
             on_click=move |ev| {
                 ev.stop_propagation();
                 signing_in_provider.set(LoginProvider::Apple);
@@ -142,7 +151,16 @@ pub fn YralAuthProvider(signing_in_provider: RwSignal<LoginProvider>) -> impl In
             }
         >
             <img class="size-5" src="/img/common/apple.svg" />
-            <span>{format!("{}Apple", if signing_in() && signing_in_provider.get() == LoginProvider::Apple { "Logging in with " } else { "Login with " })}</span>
+            <span>
+                {format!(
+                    "{}Apple",
+                    if signing_in() && signing_in_provider.get() == LoginProvider::Apple {
+                        "Logging in with "
+                    } else {
+                        "Login with "
+                    },
+                )}
+            </span>
         </LoginProvButton>
     }
 }
