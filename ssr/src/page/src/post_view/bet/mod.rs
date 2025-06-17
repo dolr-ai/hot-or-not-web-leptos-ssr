@@ -389,7 +389,6 @@ pub fn HNUserParticipation(
     let vote_amount: u64 = vote_amount
         .try_into()
         .expect("We only allow voting with 200 max, so this is alright");
-    let won = matches!(game_result, GameResult::Win { .. });
 
     view! {
         <HNWonLost game_result vote_amount />
