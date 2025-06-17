@@ -641,36 +641,40 @@ fn AirdropInfoSection(
     let tooltip_info = airdropper.eligility_info(airdrop_status);
     Some(view! {
         <div class="flex flex-col gap-2 pt-4 border-t border-neutral-700">
-            <div class="flex items-center justify-between">
-            {match airdrop_status {
-                AirdropStatus::Available => view! {
-                    <div class="flex items-center">
-                        <Icon
-                            attr:class="text-neutral-300"
-                            icon=PadlockOpen
-                        />
-                        <span class="mx-2 text-xs text-neutral-400">{available_message}</span>
-                    </div>
-                }.into_any(),
-                AirdropStatus::WaitFor(..) => view! {
-                    <div class="flex items-center gap-1.5 bg-neutral-900 px-2 py-1.5 rounded-full">
-                        <span class="text-xs text-400">
-                            Next Airdrop In:
-                        </span>
-                        <span class="text-center text-xs font-semibold">
-                            {timer}
-                        </span>
-                    </div>
-                }.into_any(),
-                _ => ().into_any(),
-            }}
-            {tooltip_info.map(|tooltip_info| view! {
-                <Tooltip
-                    icon=Information
-                    title="Airdrop Eligibility"
-                    description=tooltip_info
-                />
-            })}
+            <div class="flex justify-between items-center">
+                {match airdrop_status {
+                    AirdropStatus::Available => {
+                        view! {
+                            <div class="flex items-center">
+                                <Icon attr:class="text-neutral-300" icon=PadlockOpen />
+                                <span class="mx-2 text-xs text-neutral-400">
+                                    {available_message}
+                                </span>
+                            </div>
+                        }
+                            .into_any()
+                    }
+                    AirdropStatus::WaitFor(..) => {
+                        view! {
+                            <div class="flex gap-1.5 items-center py-1.5 px-2 rounded-full bg-neutral-900">
+                                <span class="text-xs text-400">Next Airdrop In:</span>
+                                <span class="text-xs font-semibold text-center">{timer}</span>
+                            </div>
+                        }
+                            .into_any()
+                    }
+                    _ => ().into_any(),
+                }}
+                {tooltip_info
+                    .map(|tooltip_info| {
+                        view! {
+                            <Tooltip
+                                icon=Information
+                                title="Airdrop Eligibility"
+                                description=tooltip_info
+                            />
+                        }
+                    })}
             </div>
         </div>
     })
@@ -845,7 +849,9 @@ pub fn FastWalletCard(
                 </Suspense>
                 <Suspense>
                     {move || Suspend::new(async move {
-                        let airdrop_status = airdrop_status.await.inspect_err(|err| {
+                        let airdrop_status = airdrop_status
+                            .await
+                            .inspect_err(|err| {
                                 log::error!("airdrop status loading failed: {err:?}");
                             })
                             .ok()
@@ -854,7 +860,7 @@ pub fn FastWalletCard(
                         Some(
                             view! {
                                 <AirdropInfoSection airdrop_status token_name=name_c.get_value() />
-                            }
+                            },
                         )
                     })}
                 </Suspense>
