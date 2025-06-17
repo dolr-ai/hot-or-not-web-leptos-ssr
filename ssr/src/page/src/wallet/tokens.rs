@@ -39,6 +39,7 @@ use hon_worker_common::{sign_claim_request, ClaimRequest, WithdrawalState};
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::hooks::use_navigate;
+use serde::{Deserialize, Serialize};
 use state::canisters::{auth_state, unauth_canisters};
 use utils::host::get_host;
 use utils::send_wrap;
@@ -54,6 +55,34 @@ use super::ShowLoginSignal;
 pub fn TokenViewFallback() -> impl IntoView {
     view! {
         <div class="items-center w-full h-16 rounded-xl border-2 animate-pulse border-neutral-700 bg-white/15"></div>
+    }
+}
+
+enum AirdropStatusFetcherType {
+    Sats,
+    NonAirdropable,
+}
+
+impl AirdropStatusFetcherType {
+    async fn fetch(
+        &self,
+        user_canister: Principal,
+        user_principal: Principal,
+    ) -> Result<Option<AirdropStatus>, ServerFnError> {
+        let res = match self {
+            AirdropStatusFetcherType::Sats => {
+                let eligible =
+                    is_user_eligible_for_sats_airdrop(user_canister, user_principal).await?;
+                Some(if eligible {
+                    AirdropStatus::Available
+                } else {
+                    AirdropStatus::Claimed
+                })
+            }
+            AirdropStatusFetcherType::NonAirdropable => None,
+        };
+
+        Ok(res)
     }
 }
 
@@ -133,6 +162,15 @@ enum TokenType {
     Cents,
     Dolr,
     Usdc,
+}
+
+impl From<TokenType> for AirdropStatusFetcherType {
+    fn from(value: TokenType) -> Self {
+        match value {
+            TokenType::Sats => Self::Sats,
+            _ => Self::NonAirdropable,
+        }
+    }
 }
 
 impl From<TokenType> for WithdrawalStateFetcherType {
@@ -232,6 +270,13 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
         })
     };
 
+    let airdrop_status = |token_type: TokenType| {
+        OnceResource::new(async move {
+            let fetcher: AirdropStatusFetcherType = token_type.into();
+            send_wrap(fetcher.fetch(user_canister, user_principal)).await
+        })
+    };
+
     let tokens = [
         TokenType::Sats,
         TokenType::Btc,
@@ -250,6 +295,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
                     let balance = balance(token_type);
                     let withdrawal_state = withdrawal_state(token_type);
                     let is_utility_token = token_type.is_utility_token();
+                    let airdrop_status = airdrop_status(token_type);
 
                     view! {
                         <FastWalletCard
@@ -259,6 +305,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
                             balance
                             withdrawal_state
                             is_utility_token
+                            airdrop_status
                         />
                     }
                 })
@@ -355,12 +402,6 @@ impl WithdrawImpl for WithdrawSats {
 
 trait AirdroppableImpl {
     async fn claim_airdrop(&self, auth: Canisters<true>) -> Result<u64, ServerFnError>;
-
-    async fn is_airdrop_claimed(
-        &self,
-        user_principal: Principal,
-        user_canister: Principal,
-    ) -> Result<bool, ServerFnError>;
 }
 
 #[derive(Clone)]
@@ -374,16 +415,6 @@ impl AirdroppableImpl for AirdropSats {
         let signature = sign_claim_request(cans.identity(), request.clone()).unwrap();
 
         claim_sats_airdrop(cans.user_canister(), request, signature).await
-    }
-
-    async fn is_airdrop_claimed(
-        &self,
-        user_principal: Principal,
-        user_canister: Principal,
-    ) -> Result<bool, ServerFnError> {
-        is_user_eligible_for_sats_airdrop(user_canister, user_principal)
-            .await
-            .map(|eligible| !eligible)
     }
 }
 
@@ -465,6 +496,12 @@ pub fn WithdrawSection(
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub enum AirdropStatus {
+    Available,
+    Claimed,
+}
+
 // avoid redirecting in case of error, because that will
 // render the whole wallet useless even if only a single system
 // is down
@@ -475,8 +512,11 @@ pub fn FastWalletCard(
     display_info: TokenDisplayInfo,
     balance: Resource<Result<TokenBalance, ServerFnError>>,
     withdrawal_state: OnceResource<Result<Option<WithdrawalState>, ServerFnError>>,
+    airdrop_status: OnceResource<Result<Option<AirdropStatus>, ServerFnError>>,
     #[prop(optional)] is_utility_token: bool,
 ) -> impl IntoView {
+    let _ = user_canister;
+
     let TokenDisplayInfo {
         name,
         symbol,
@@ -528,23 +568,13 @@ pub fn FastWalletCard(
     let airdropper_c = airdropper.clone();
     let airdropper_c2 = airdropper_c.clone();
 
-    let update_claimed = Action::new_local(move |_| {
-        let airdropper = airdropper_c.clone();
-        async move {
-            let claimed = if let Some(airdropper) = &airdropper {
-                airdropper
-                    .is_airdrop_claimed(user_principal, user_canister)
-                    .await
-                    .unwrap_or(true)
-            } else {
-                true
-            };
-            is_airdrop_claimed.set(claimed);
-        }
-    });
-
     Effect::new(move || {
-        update_claimed.dispatch(());
+        let is_airdrop_available =
+            airdrop_status.map(|value| matches!(value, Ok(Some(AirdropStatus::Available))));
+
+        if let Some(true) = is_airdrop_available {
+            is_airdrop_claimed.set(false);
+        }
     });
 
     let auth = auth_state();
@@ -662,13 +692,13 @@ pub fn FastWalletCard(
 
             <SatsAirdropPopup
                 show=show_airdrop_popup
-                amount_claimed=airdrop_amount_claimed
-                claimed=is_airdrop_claimed
-                error=error_claiming_airdrop
+                amount_claimed=airdrop_amount_claimed.read_only()
+                claimed=is_airdrop_claimed.read_only()
+                error=error_claiming_airdrop.read_only()
                 try_again=claim_airdrop
             />
         </div>
-    }.into_any()
+    }
 }
 
 #[component]

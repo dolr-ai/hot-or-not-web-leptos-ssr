@@ -520,9 +520,9 @@ pub fn AnimatedTick() -> impl IntoView {
 #[component]
 pub fn SatsAirdropPopup(
     show: RwSignal<bool>,
-    claimed: RwSignal<bool>,
-    amount_claimed: RwSignal<u64>,
-    error: RwSignal<bool>,
+    claimed: ReadSignal<bool>,
+    amount_claimed: ReadSignal<u64>,
+    error: ReadSignal<bool>,
     try_again: Action<bool, Result<(), ServerFnError>>,
 ) -> impl IntoView {
     let img_src = move || {
