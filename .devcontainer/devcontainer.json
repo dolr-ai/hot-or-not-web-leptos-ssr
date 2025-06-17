@@ -43,5 +43,6 @@
   "hostRequirements": {
     "cpus": 8
   },
-  "postCreateCommand": "rustup install; nu .devcontainer/setup.nu"
+  "onCreateCommand": "rustup install;",
+  "postCreateCommand": "nu .devcontainer/setup.nu"
 }
