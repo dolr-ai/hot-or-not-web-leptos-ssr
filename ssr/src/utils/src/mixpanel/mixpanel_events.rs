@@ -1,5 +1,6 @@
 use candid::Principal;
 use codee::string::FromToStringCodec;
+use consts::LoginProvider;
 use consts::DEVICE_ID;
 use consts::NSFW_TOGGLE_STORE;
 use consts::REFERRAL_REWARD;
@@ -396,6 +397,7 @@ pub struct MixpanelSignupSuccessProps {
     pub is_nsfw_enabled: bool,
     pub is_referral: bool,
     pub referrer_user_id: Option<String>,
+    pub auth_journey: LoginProvider,
 }
 
 #[derive(Serialize)]
@@ -406,6 +408,7 @@ pub struct MixpanelLoginSuccessProps {
     pub is_logged_in: bool,
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
+    pub auth_journey: LoginProvider,
 }
 
 #[derive(Serialize)]

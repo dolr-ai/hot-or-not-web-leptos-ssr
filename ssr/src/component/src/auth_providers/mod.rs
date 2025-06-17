@@ -1,6 +1,7 @@
 #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
 pub mod yral;
 use candid::Principal;
+use consts::LoginProvider;
 use consts::NEW_USER_SIGNUP_REWARD;
 use hon_worker_common::limits::REFERRAL_REWARD;
 use hon_worker_common::sign_referral_request;
@@ -46,6 +47,7 @@ pub async fn handle_user_login(
     canisters: Canisters<true>,
     event_ctx: EventCtx,
     referrer: Option<Principal>,
+    login_provider: LoginProvider,
 ) -> Result<(), ServerFnError> {
     let user_principal = canisters.identity().sender().unwrap();
     let first_time_login = mark_user_registered(user_principal).await?;
@@ -61,6 +63,7 @@ pub async fn handle_user_login(
             is_nsfw_enabled: global.is_nsfw_enabled,
             is_referral: referrer.is_some(),
             referrer_user_id: referrer.map(|f| f.to_text()),
+            auth_journey: login_provider,
         });
     } else {
         let global = MixpanelGlobalProps::try_get(&canisters, true);
@@ -70,6 +73,7 @@ pub async fn handle_user_login(
             is_logged_in: global.is_logged_in,
             canister_id: global.canister_id,
             is_nsfw_enabled: global.is_nsfw_enabled,
+            auth_journey: login_provider,
         });
     }
 
@@ -149,6 +153,8 @@ pub fn LoginProviders(
 
     let processing = RwSignal::new(None);
 
+    let signing_in_provider = RwSignal::new(LoginProvider::Google);
+
     let login_action = Action::new(move |id: &DelegatedIdentityWire| {
         // Clone the necessary parts
         let id = id.clone();
@@ -161,7 +167,14 @@ pub fn LoginProviders(
 
             let canisters = Canisters::authenticate_with_network(id, referrer).await?;
 
-            if let Err(e) = handle_user_login(canisters.clone(), auth.event_ctx(), referrer).await {
+            if let Err(e) = handle_user_login(
+                canisters.clone(),
+                auth.event_ctx(),
+                referrer,
+                signing_in_provider.get_untracked(),
+            )
+            .await
+            {
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
 
@@ -214,7 +227,7 @@ pub fn LoginProviders(
                     <div class="flex flex-col items-center w-full gap-4">
                         {
                             #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-                            view! { <yral::YralAuthProvider/> }
+                            view! { <yral::YralAuthProvider signing_in_provider/> }
                         }
                     </div>
                     <div class="flex flex-col text-md items-center text-center">
