@@ -1046,7 +1046,7 @@ dependencies = [
  "gob-cloudflare",
  "hex",
  "hmac",
- "hon-worker-common",
+ "hon-worker-common 0.1.0 (git+https://github.com/dolr-ai/yral-common?branch=master)",
  "http 1.3.1",
  "ic-agent",
  "ic-base-types",
@@ -3268,7 +3268,22 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?rev=7e4a9f40bde7688fb6f49ed4996af9ce53d59bed#7e4a9f40bde7688fb6f49ed4996af9ce53d59bed"
+source = "git+https://github.com/dolr-ai/yral-common?branch=master#5951e1ece2cf43599bf92b82e4893b709ae9b50c"
+dependencies = [
+ "candid",
+ "ic-agent",
+ "num-bigint",
+ "serde",
+ "serde_with",
+ "thiserror 2.0.12",
+ "url",
+ "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
+]
+
+[[package]]
+name = "hon-worker-common"
+version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=7e4a9f40bde7688fb6f49ed4996af9ce53d59bed#7e4a9f40bde7688fb6f49ed4996af9ce53d59bed"
 dependencies = [
  "candid",
  "ic-agent",
@@ -3321,7 +3336,7 @@ dependencies = [
  "google-cloud-auth",
  "hex",
  "hmac",
- "hon-worker-common",
+ "hon-worker-common 0.1.0 (git+https://github.com/dolr-ai/yral-common?branch=master)",
  "http 1.3.1",
  "ic-agent",
  "ic-base-types",
@@ -5447,7 +5462,7 @@ dependencies = [
  "gob-cloudflare",
  "hex",
  "hmac",
- "hon-worker-common",
+ "hon-worker-common 0.1.0 (git+https://github.com/dolr-ai/yral-common?branch=master)",
  "http 1.3.1",
  "ic-agent",
  "ic-base-types",
@@ -7406,7 +7421,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?rev=7e4a9f40bde7688fb6f49ed4996af9ce53d59bed#7e4a9f40bde7688fb6f49ed4996af9ce53d59bed"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=7e4a9f40bde7688fb6f49ed4996af9ce53d59bed#7e4a9f40bde7688fb6f49ed4996af9ce53d59bed"
 dependencies = [
  "candid",
  "humantime",
@@ -9217,7 +9232,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?rev=7e4a9f40bde7688fb6f49ed4996af9ce53d59bed#7e4a9f40bde7688fb6f49ed4996af9ce53d59bed"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=7e4a9f40bde7688fb6f49ed4996af9ce53d59bed#7e4a9f40bde7688fb6f49ed4996af9ce53d59bed"
 dependencies = [
  "anyhow",
  "candid",
@@ -9232,14 +9247,14 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?rev=7e4a9f40bde7688fb6f49ed4996af9ce53d59bed#7e4a9f40bde7688fb6f49ed4996af9ce53d59bed"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=7e4a9f40bde7688fb6f49ed4996af9ce53d59bed#7e4a9f40bde7688fb6f49ed4996af9ce53d59bed"
 dependencies = [
  "candid",
  "ciborium",
  "crc32fast",
  "futures-util",
  "getrandom 0.2.16",
- "hon-worker-common",
+ "hon-worker-common 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?rev=7e4a9f40bde7688fb6f49ed4996af9ce53d59bed)",
  "ic-agent",
  "k256",
  "log",
@@ -9337,7 +9352,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?rev=7e4a9f40bde7688fb6f49ed4996af9ce53d59bed#7e4a9f40bde7688fb6f49ed4996af9ce53d59bed"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=7e4a9f40bde7688fb6f49ed4996af9ce53d59bed#7e4a9f40bde7688fb6f49ed4996af9ce53d59bed"
 dependencies = [
  "candid",
  "ic-agent",
@@ -9363,7 +9378,7 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?rev=7e4a9f40bde7688fb6f49ed4996af9ce53d59bed#7e4a9f40bde7688fb6f49ed4996af9ce53d59bed"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=7e4a9f40bde7688fb6f49ed4996af9ce53d59bed#7e4a9f40bde7688fb6f49ed4996af9ce53d59bed"
 dependencies = [
  "ic-agent",
  "k256",
