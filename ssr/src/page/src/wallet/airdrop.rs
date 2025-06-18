@@ -587,7 +587,6 @@ pub fn SatsAirdropPopup(
                                     }
                                         .into_any()
                                 } else if error.get() {
-
                                     view! {
                                         <div class="text-center">
                                             "Claim for "

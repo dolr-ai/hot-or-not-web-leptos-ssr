@@ -33,6 +33,7 @@ use state::app_type::AppType;
 use state::{audio_state::AudioState, content_seed_client::ContentSeedClient};
 use utils::event_streaming::events::HistoryCtx;
 use utils::event_streaming::EventHistory;
+use utils::types::PostParams;
 use yral_canisters_common::Canisters;
 
 #[component]
@@ -106,6 +107,9 @@ pub fn App() -> impl IntoView {
     // History Tracking
     let history_ctx = HistoryCtx::default();
     provide_context(history_ctx.clone());
+
+    let current_post_params = RwSignal::new(None::<PostParams>);
+    provide_context(current_post_params);
 
     #[cfg(feature = "hydrate")]
     {

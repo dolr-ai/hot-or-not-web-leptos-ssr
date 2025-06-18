@@ -3,6 +3,12 @@ use yral_canisters_client::individual_user_template::PostStatus as PostStatusCan
 
 pub type PostId = (Principal, u64);
 
+#[derive(PartialEq, Clone, Copy)]
+pub struct PostParams {
+    pub canister_id: Principal,
+    pub post_id: u64,
+}
+
 #[derive(PartialEq, Debug, Eq)]
 pub enum PostStatus {
     BannedForExplicitness,
