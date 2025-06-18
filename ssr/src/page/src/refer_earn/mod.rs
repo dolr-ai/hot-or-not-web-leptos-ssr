@@ -14,6 +14,7 @@ use component::{back_btn::BackButton, buttons::HighlightedButton, title::TitleTe
 use state::app_state::AppState;
 use state::canisters::auth_state;
 use utils::event_streaming::events::{Refer, ReferShareLink};
+use utils::send_wrap;
 use utils::web::copy_to_clipboard;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
@@ -97,7 +98,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
     let click_copy = Action::new(move |refer_link: &String| {
         let refer_link = refer_link.clone();
 
-        async move {
+        send_wrap(async move {
             let _ = copy_to_clipboard(&refer_link);
 
             // Call the delete user test server function
@@ -110,7 +111,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
 
             show_copied_popup.set(true);
             Timeout::new(1200, move || show_copied_popup.set(false)).forget();
-        }
+        })
     });
     let refer_link_share = refer_link.clone();
     let handle_share = move || {
