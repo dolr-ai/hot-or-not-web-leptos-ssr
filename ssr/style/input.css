@@ -275,3 +275,17 @@
   cursor: pointer;
   padding: 0 5px;
 }
+
+
+.ping {
+  animation: ping 0.8s ease-in-out infinite;
+}
+
+@keyframes ping {
+  0% {
+    box-shadow: 0 0 0px 0px var(--ping-color, 'currentColor');
+  }
+  100% {
+    box-shadow: 0 0 0px var(--ping-strength, 6px) #0000;
+  }
+}
