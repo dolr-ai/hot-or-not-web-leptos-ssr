@@ -8,14 +8,14 @@ pub fn ProfileInfo() -> impl IntoView {
     let auth = auth_state();
     view! {
         <Suspense fallback=FullScreenSpinner>
-            {move || auth.user_principal.get().map(|res| match res {
-                Ok(user_principal) => view! {
-                    <Redirect path=user_principal.to_text() />
-                },
-                Err(e) => view! {
-                    <Redirect path=format!("/error?err={e}") />
-                }
-            })}
+            {move || {
+                auth.user_principal
+                    .get()
+                    .map(|res| match res {
+                        Ok(user_principal) => view! { <Redirect path=user_principal.to_text() /> },
+                        Err(e) => view! { <Redirect path=format!("/error?err={e}") /> },
+                    })
+            }}
         </Suspense>
     }
 }

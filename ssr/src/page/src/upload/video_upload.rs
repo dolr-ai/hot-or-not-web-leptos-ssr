@@ -32,9 +32,9 @@ use wasm_bindgen::{closure::Closure, JsCast};
 #[component]
 pub fn DropBox() -> impl IntoView {
     view! {
-        <div class="flex flex-col items-center justify-self-center justify-center w-full border-2 border-dashed rounded-lg cursor-pointer border-gray-600 hover:bg-gray-600 aspect-3/4 lg:aspect-5/4">
+        <div class="flex flex-col justify-center justify-self-center items-center w-full rounded-lg border-2 border-gray-600 border-dashed cursor-pointer hover:bg-gray-600 aspect-3/4 lg:aspect-5/4">
             <Icon attr:class="w-10 h-10 mb-4 text-gray-400" icon=icondata::BiCloudUploadRegular />
-            <p class="text-center mb-2 mx-2 text-sm text-gray-400">
+            <p class="mx-2 mb-2 text-sm text-center text-gray-400">
                 <span class="font-semibold">Click to upload</span>
                 or drag and drop
             </p>
@@ -124,25 +124,31 @@ pub fn PreVideoUpload(
     view! {
         <label
             for="dropzone-file"
-            class="w-[358px] h-[300px] sm:w-full sm:h-auto sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] bg-neutral-950 rounded-2xl border-2 border-dashed border-neutral-600 flex flex-col items-center justify-center cursor-pointer select-none p-0"
+            class="flex flex-col justify-center items-center p-0 rounded-2xl border-2 border-dashed cursor-pointer select-none sm:w-full sm:h-auto w-[358px] h-[300px] bg-neutral-950 border-neutral-600 sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px]"
         >
-            <Show when=move || { file.with(| file | file.is_none()) }>
-                <div class="flex flex-1 flex-col items-center justify-center w-full h-full gap-6">
-                    <div class="text-white text-[16px] font-semibold leading-tight text-center">Upload a video to share with the world!</div>
-                    <div class="text-neutral-400 text-[13px] leading-tight text-center">Drag & Drop or select video file ( Max 60s )</div>
-                    <span class="inline-block px-6 py-2 border border-pink-300 text-pink-300 rounded-lg font-medium text-[15px] bg-transparent transition-colors duration-150 cursor-pointer select-none">Select File</span>
+            <Show when=move || { file.with(|file| file.is_none()) }>
+                <div class="flex flex-col flex-1 gap-6 justify-center items-center w-full h-full">
+                    <div class="font-semibold leading-tight text-center text-white text-[16px]">
+                        Upload a video to share with the world!
+                    </div>
+                    <div class="leading-tight text-center text-neutral-400 text-[13px]">
+                        Drag & Drop or select video file ( Max 60s )
+                    </div>
+                    <span class="inline-block py-2 px-6 font-medium text-pink-300 bg-transparent rounded-lg border border-pink-300 transition-colors duration-150 cursor-pointer select-none text-[15px]">
+                        Select File
+                    </span>
                 </div>
             </Show>
-            <Show when=move || { file.with(| file | file.is_some()) }>
+            <Show when=move || { file.with(|file| file.is_some()) }>
                 <video
                     node_ref=video_ref
-                    class="w-full h-full object-contain rounded-xl bg-black p-2"
+                    class="object-contain p-2 w-full h-full bg-black rounded-xl"
                     playsinline
                     muted
                     autoplay
                     loop
                     oncanplay="this.muted=true"
-                    src=move || file.with(| file | file.as_ref().map(| f | f.url.to_string()))
+                    src=move || file.with(|file| file.as_ref().map(|f| f.url.to_string()))
                 ></video>
             </Show>
             <input
@@ -155,7 +161,7 @@ pub fn PreVideoUpload(
             />
         </label>
         <Modal show=modal_show>
-            <span class="text-lg md:text-xl text-white h-full items-center py-10 text-center w-full flex flex-col justify-center">
+            <span class="flex flex-col justify-center items-center py-10 w-full h-full text-lg text-center text-white md:text-xl">
                 Please ensure that the video is shorter than 60 seconds
             </span>
         </Modal>
@@ -452,11 +458,11 @@ pub fn VideoUploader(
     let metadata_publish_total_width = 100.0 / 3.0;
 
     view! {
-        <div class="flex flex-col-reverse lg:flex-row w-full gap-4 lg:gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
+        <div class="flex flex-col-reverse gap-4 justify-center items-center p-0 mx-auto w-full min-h-screen bg-transparent lg:flex-row lg:gap-20">
             <NotificationNudge pop_up=notification_nudge />
-            <div class="flex flex-col items-center justify-center w-full h-auto min-h-[200px] max-h-[60vh] sm:min-h-[300px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] lg:min-h-[600px] lg:max-h-[600px] rounded-2xl text-center px-4 mt-0 mb-0 sm:mt-0 sm:mb-0 sm:px-6 lg:px-0 lg:overflow-y-auto">
+            <div class="flex flex-col justify-center items-center px-4 mt-0 mb-0 w-full h-auto text-center rounded-2xl sm:px-6 sm:mt-0 sm:mb-0 lg:overflow-y-auto lg:px-0 min-h-[200px] max-h-[60vh] sm:min-h-[300px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] lg:min-h-[600px] lg:max-h-[600px]">
                 <video
-                    class="w-full h-full object-contain rounded-xl bg-black p-2"
+                    class="object-contain p-2 w-full h-full bg-black rounded-xl"
                     playsinline
                     muted
                     autoplay
@@ -465,30 +471,36 @@ pub fn VideoUploader(
                     src=move || video_url.get_value().to_string()
                 ></video>
             </div>
-            <div class="flex flex-col gap-4 w-full max-w-[627px] h-auto min-h-[400px] max-h-[90vh] lg:w-[627px] lg:h-[600px] rounded-2xl p-2 justify-center overflow-y-auto">
-                <h2 class="text-[32px] font-light text-white mb-2">Uploading Video</h2>
+            <div class="flex overflow-y-auto flex-col gap-4 justify-center p-2 w-full h-auto rounded-2xl max-w-[627px] min-h-[400px] max-h-[90vh] lg:w-[627px] lg:h-[600px]">
+                <h2 class="mb-2 font-light text-white text-[32px]">Uploading Video</h2>
                 <div class="flex flex-col gap-y-1">
                     <p>
                         This may take a moment. Feel free to explore more videos on the home page while you wait!
                     </p>
                 </div>
-                <div class="w-full bg-neutral-800 rounded-full h-2.5 mt-2">
+                <div class="mt-2 w-full h-2.5 rounded-full bg-neutral-800">
                     <div
-                        class="bg-linear-to-r from-[#EC55A7] to-[#E2017B] h-2.5 rounded-full transition-width duration-500 ease-in-out"
+                        class="h-2.5 rounded-full duration-500 ease-in-out bg-linear-to-r from-[#EC55A7] to-[#E2017B] transition-width"
                         style:width=move || {
                             if published.get() {
                                 "100%".to_string()
                             } else if publish_action.pending().get() {
-                                format!("{:.2}%", video_uploaded_base_width + metadata_publish_total_width * 0.7)
+                                format!(
+                                    "{:.2}%",
+                                    video_uploaded_base_width + metadata_publish_total_width * 0.7,
+                                )
                             } else if uid.with(|u| u.is_some()) {
                                 format!("{video_uploaded_base_width:.2}%")
                             } else {
-                                format!("{:.2}%", upload_file_actual_progress.get() * video_uploaded_base_width)
+                                format!(
+                                    "{:.2}%",
+                                    upload_file_actual_progress.get() * video_uploaded_base_width,
+                                )
                             }
                         }
                     ></div>
                 </div>
-                <p class="text-sm text-gray-400 text-center mt-1">
+                <p class="mt-1 text-sm text-center text-gray-400">
                     {move || {
                         if published.get() {
                             "Upload complete!".to_string()
@@ -496,10 +508,11 @@ pub fn VideoUploader(
                             "Processing video metadata...".to_string()
                         } else if uid.with(|u| u.is_none()) {
                             "Uploading video file...".to_string()
-                        } else if uid.with(|u| u.is_some()) && !publish_action.pending().get() && !published.get() {
+                        } else if uid.with(|u| u.is_some()) && !publish_action.pending().get()
+                            && !published.get()
+                        {
                             "Video file uploaded. Waiting to publish metadata...".to_string()
-                        }
-                        else {
+                        } else {
                             "Waiting to upload...".to_string()
                         }
                     }}
@@ -509,7 +522,6 @@ pub fn VideoUploader(
         <Show when=published>
             <PostUploadScreen />
         </Show>
-
     }.into_any()
 }
 
@@ -518,29 +530,30 @@ pub fn VideoUploader(
 fn PostUploadScreen() -> impl IntoView {
     view! {
         <div
-        style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
-         class="fixed top-0 bottom-0 left-0 right-0 z-50 flex justify-center items-center h-screen w-screen ">
-         <img
-         alt="bg"
-         src="/img/airdrop/bg.webp"
-         class="absolute inset-0 z-25 fade-in w-full h-full object-cover"
-     />
-            <div class="z-50 flex flex-col items-center">
-            <img src="/img/common/coins/sucess-coin.png" width=170 class="z-300 mb-6"/>
+            style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
+            class="flex fixed top-0 right-0 bottom-0 left-0 z-50 justify-center items-center w-screen h-screen"
+        >
+            <img
+                alt="bg"
+                src="/img/airdrop/bg.webp"
+                class="object-cover absolute inset-0 w-full h-full z-25 fade-in"
+            />
+            <div class="flex z-50 flex-col items-center">
+                <img src="/img/common/coins/sucess-coin.png" width=170 class="mb-6 z-300" />
 
-                <h1 class="font-semibold text-lg mb-2">Video uploaded sucessfully</h1>
+                <h1 class="mb-2 text-lg font-semibold">Video uploaded sucessfully</h1>
 
-                <p class="text-center px-4 mb-8">
+                <p class="px-4 mb-8 text-center">
                     "We're processing your video. It'll be in 'Your Videos' under My Profile soon. Happy scrolling!"
                 </p>
                 <HighlightedLinkButton
-                alt_style=false
-                disabled=false
-                classes="max-w-96 w-full mx-auto py-[12px] px-[20px]".to_string()
-                href="/".to_string()
-            >
-                Done
-            </HighlightedLinkButton>
+                    alt_style=false
+                    disabled=false
+                    classes="max-w-96 w-full mx-auto py-[12px] px-[20px]".to_string()
+                    href="/".to_string()
+                >
+                    Done
+                </HighlightedLinkButton>
             </div>
         </div>
     }

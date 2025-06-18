@@ -18,13 +18,13 @@ pub fn HighlightedButton(
                 classes,
             )
             style=if alt_style {
-                    "background: linear-gradient(73deg, #FFF 0%, #FFF 1000%)"
-                } else {
-                    "background: linear-gradient(190.27deg, #FF6DC4 8%, #F7007C 38.79%, #690039 78.48%);"
-                }
+                "background: linear-gradient(73deg, #FFF 0%, #FFF 1000%)"
+            } else {
+                "background: linear-gradient(190.27deg, #FF6DC4 8%, #F7007C 38.79%, #690039 78.48%);"
+            }
         >
             <div class=move || {
-                if alt_style{
+                if alt_style {
                     "bg-linear-to-r from-[#FF78C1] via-[#E2017B] to-[#5F0938] inline-block text-transparent bg-clip-text"
                 } else {
                     "text-white"
@@ -56,13 +56,13 @@ pub fn HighlightedLinkButton(
                 "background: linear-gradient(190.27deg, #FF6DC4 8%, #F7007C 38.79%, #690039 78.48%);"
             }
         >
-        <div class=move || {
-            if alt_style{
-                "bg-linear-to-r from-[#FF78C1] via-[#E2017B] to-[#5F0938] inline-block text-transparent bg-clip-text"
-            } else {
-                "text-white"
-            }
-        }>{children()}</div>
+            <div class=move || {
+                if alt_style {
+                    "bg-linear-to-r from-[#FF78C1] via-[#E2017B] to-[#5F0938] inline-block text-transparent bg-clip-text"
+                } else {
+                    "text-white"
+                }
+            }>{children()}</div>
 
         </a>
     }
@@ -78,15 +78,17 @@ pub fn SecondaryHighlightedLinkButton(
     view! {
         <a
             href=href
-            class=move || format!(
-                "rounded-full border border-white text-sm font-bold font-kumbh px-5 py-2 {} {}",
-                if alt_style.get() {
-                    "bg-transparent text-white hover:bg-white/10 active:bg-white/5"
-                } else {
-                    "bg-white text-black"
-                },
-                classes,
-            )
+            class=move || {
+                format!(
+                    "rounded-full border border-white text-sm font-bold font-kumbh px-5 py-2 {} {}",
+                    if alt_style.get() {
+                        "bg-transparent text-white hover:bg-white/10 active:bg-white/5"
+                    } else {
+                        "bg-white text-black"
+                    },
+                    classes,
+                )
+            }
         >
             {children()}
         </a>
@@ -106,15 +108,17 @@ pub fn SecondaryHighlightedButton(
         <button
             disabled=move || disabled.get()
             on:click=on_click
-            class=move ||format!(
-                "rounded-full border border-white text-sm font-bold font-kumbh px-5 py-2 {} {}",
-                if alt_style.get() {
-                    "bg-transparent text-white hover:bg-white/10 active:bg-white/5"
-                } else {
-                    "bg-white text-black"
-                },
-                classes,
-            )
+            class=move || {
+                format!(
+                    "rounded-full border border-white text-sm font-bold font-kumbh px-5 py-2 {} {}",
+                    if alt_style.get() {
+                        "bg-transparent text-white hover:bg-white/10 active:bg-white/5"
+                    } else {
+                        "bg-white text-black"
+                    },
+                    classes,
+                )
+            }
         >
 
             {children()}
@@ -136,7 +140,15 @@ pub fn GradientButton(
 
     view! {
         <button
-            class=(["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled", "cursor-disabled"], move || disabled())
+            class=(
+                [
+                    "pointer-events-none",
+                    "text-primary-300",
+                    "bg-brand-gradient-disabled",
+                    "cursor-disabled",
+                ],
+                move || disabled(),
+            )
             class=(["text-neutral-50", "bg-brand-gradient"], move || !disabled())
             class=format!("rounded-lg px-5 py-2 text-sm text-center font-bold {}", classes)
             on:click=on_click
@@ -155,7 +167,15 @@ pub fn GradientLinkButton(
 ) -> impl IntoView {
     view! {
         <a
-            class=(["pointer-events-none", "text-primary-300", "bg-brand-gradient-disabled", "cursor-disabled"], disabled)
+            class=(
+                [
+                    "pointer-events-none",
+                    "text-primary-300",
+                    "bg-brand-gradient-disabled",
+                    "cursor-disabled",
+                ],
+                disabled,
+            )
             class=(["text-neutral-50", "bg-brand-gradient"], !disabled)
             class=format!("rounded-lg px-5 py-2 text-sm text-center font-bold {}", classes)
             href=href

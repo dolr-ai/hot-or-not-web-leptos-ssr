@@ -97,24 +97,24 @@ where
     let loader = custom_loader.unwrap_or_else(|| BulletLoader.into());
 
     view! {
+        <For
+            each=move || data.get()
+            key=KeyedData::key
+            children=move |item| {
+                let is_last = data
+                    .with(|d| {
+                        d.last()
+                            .map(|last| KeyedData::key(last) == KeyedData::key(&item))
+                            .unwrap_or(false)
+                    });
+                (children.get_value())(item, if is_last { Some(last_elem) } else { None })
+            }
+        />
 
-            <For
-                each=move || data.get()
-                key=KeyedData::key
-                children=move |item| {
-                    let is_last = data.with(|d| d.last().map(|last| KeyedData::key(last) == KeyedData::key(&item)).unwrap_or(false));
-                    (children.get_value())(item, if is_last { Some(last_elem) } else { None })
-                }
-            />
+        <Show when=move || loading.get()>{loader.run()}</Show>
 
-            <Show when=move || loading.get()>
-                {loader.run()}
-            </Show>
-
-            <Show when=move || {
-                !loading.get() && data.with(|d| d.is_empty())
-            }>
-                {empty_content.run()}
-            </Show>
+        <Show when=move || {
+            !loading.get() && data.with(|d| d.is_empty())
+        }>{empty_content.run()}</Show>
     }
 }

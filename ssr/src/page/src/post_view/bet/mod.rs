@@ -25,7 +25,7 @@ pub enum CoinState {
 }
 
 const BET_COIN_ENABLED_STATES: [CoinState; 2] = [CoinState::C10, CoinState::C20];
-const DEFAULT_BET_COIN_STATE: CoinState = CoinState::C20;
+const DEFAULT_BET_COIN_STATE: CoinState = CoinState::C10;
 
 impl CoinState {
     fn wrapping_next(self) -> Self {
@@ -222,17 +222,20 @@ fn HNButtonOverlay(
     view! {
         <div class="flex justify-center w-full touch-manipulation">
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
-                <Icon attr:class="justify-self-end text-2xl text-white" icon=icondata::AiUpOutlined />
+                <Icon
+                    attr:class="justify-self-end text-2xl text-white"
+                    icon=icondata::AiUpOutlined
+                />
             </button>
         </div>
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
-            <CoinStateView
-                disabled=running
-                class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-lg"
-                coin
-            />
+                <CoinStateView
+                    disabled=running
+                    class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-lg"
+                    coin
+                />
             </button>
             <HNButton disabled=running bet_direction kind=VoteKind::Not />
         </div>
@@ -477,17 +480,23 @@ pub fn HNGameOverlay(
     view! {
         <Suspense fallback=LoaderWithShadowBg>
 
-            {
-                move || {
-                    create_game_info.get()
+            {move || {
+                create_game_info
+                    .get()
                     .and_then(|res| {
                         let participation = try_or_redirect_opt!(res.as_ref());
                         let post = post.get_value();
                         Some(
                             if let Some(participation) = participation {
                                 view! {
-                                    <HNUserParticipation post refetch_bet participation=participation.clone() audio_ref=win_audio_ref />
-                                }.into_any()
+                                    <HNUserParticipation
+                                        post
+                                        refetch_bet
+                                        participation=participation.clone()
+                                        audio_ref=win_audio_ref
+                                    />
+                                }
+                                    .into_any()
                             } else {
                                 view! {
                                     <HNButtonOverlay
@@ -497,14 +506,13 @@ pub fn HNGameOverlay(
                                         coin
                                         refetch_bet
                                     />
-                                }.into_any()
+                                }
+                                    .into_any()
                             },
                         )
                     })
                     .unwrap_or_else(|| view! { <LoaderWithShadowBg /> }.into_any())
-                }
-
-            }
+            }}
 
         </Suspense>
     }
