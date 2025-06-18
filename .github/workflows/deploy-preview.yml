@@ -50,8 +50,8 @@ jobs:
       - name: Download build
         uses: actions/download-artifact@v4
         with:
-          name: build
-      - run: chmod +x target/prod-release/hot-or-not-web-leptos-ssr
+          name: build-musl
+      - run: chmod +x target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
 
       - name: Deploy
         id: deploy
