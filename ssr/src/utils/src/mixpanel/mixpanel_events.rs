@@ -1,6 +1,6 @@
 use candid::Principal;
 use codee::string::FromToStringCodec;
-use consts::LoginProvider;
+use consts::AUTH_JOURNET;
 use consts::DEVICE_ID;
 use consts::NSFW_TOGGLE_STORE;
 use consts::REFERRAL_REWARD;
@@ -239,6 +239,21 @@ impl MixpanelGlobalProps {
         }
     }
 
+    pub fn get_auth_journey() -> String {
+        let (auth_journey, _, _) = use_local_storage::<String, FromToStringCodec>(AUTH_JOURNET);
+        // Extracting the device ID value
+        let auth_journey_value = auth_journey.get_untracked();
+        if auth_journey_value.is_empty() {
+            "unknown".to_string()
+        } else {
+            auth_journey_value
+        }
+    }
+    pub fn set_auth_journey(auth_journey: String) {
+        let (_, set_auth_journey, _) = use_local_storage::<String, FromToStringCodec>(AUTH_JOURNET);
+        set_auth_journey.set(auth_journey);
+    }
+
     pub fn from_ev_ctx(ev_ctx: EventCtx) -> Option<Self> {
         #[cfg(not(feature = "hydrate"))]
         {
@@ -397,7 +412,7 @@ pub struct MixpanelSignupSuccessProps {
     pub is_nsfw_enabled: bool,
     pub is_referral: bool,
     pub referrer_user_id: Option<String>,
-    pub auth_journey: LoginProvider,
+    pub auth_journey: String,
 }
 
 #[derive(Serialize)]
@@ -408,7 +423,7 @@ pub struct MixpanelLoginSuccessProps {
     pub is_logged_in: bool,
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
-    pub auth_journey: LoginProvider,
+    pub auth_journey: String,
 }
 
 #[derive(Serialize)]

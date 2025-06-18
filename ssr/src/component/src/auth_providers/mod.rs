@@ -47,10 +47,11 @@ pub async fn handle_user_login(
     canisters: Canisters<true>,
     event_ctx: EventCtx,
     referrer: Option<Principal>,
-    login_provider: LoginProvider,
 ) -> Result<(), ServerFnError> {
     let user_principal = canisters.identity().sender().unwrap();
     let first_time_login = mark_user_registered(user_principal).await?;
+
+    let auth_journey = MixpanelGlobalProps::get_auth_journey();
 
     if first_time_login {
         CentsAdded.send_event(event_ctx, "signup".to_string(), NEW_USER_SIGNUP_REWARD);
@@ -63,7 +64,7 @@ pub async fn handle_user_login(
             is_nsfw_enabled: global.is_nsfw_enabled,
             is_referral: referrer.is_some(),
             referrer_user_id: referrer.map(|f| f.to_text()),
-            auth_journey: login_provider,
+            auth_journey,
         });
     } else {
         let global = MixpanelGlobalProps::try_get(&canisters, true);
@@ -73,7 +74,7 @@ pub async fn handle_user_login(
             is_logged_in: global.is_logged_in,
             canister_id: global.canister_id,
             is_nsfw_enabled: global.is_nsfw_enabled,
-            auth_journey: login_provider,
+            auth_journey,
         });
     }
 
@@ -167,14 +168,7 @@ pub fn LoginProviders(
 
             let canisters = Canisters::authenticate_with_network(id, referrer).await?;
 
-            if let Err(e) = handle_user_login(
-                canisters.clone(),
-                auth.event_ctx(),
-                referrer,
-                signing_in_provider.get_untracked(),
-            )
-            .await
-            {
+            if let Err(e) = handle_user_login(canisters.clone(), auth.event_ctx(), referrer).await {
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
 
