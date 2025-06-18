@@ -21,7 +21,7 @@
 
 use std::time::Duration;
 
-use crate::wallet::airdrop::{claim_sats_airdrop, SatsAirdropPopup};
+use crate::wallet::airdrop::{claim_sats_airdrop, AirdropPopup, MyAirdropPopup, SatsAirdropPopup};
 use candid::Principal;
 use component::action_btn::{ActionButton, ActionButtonLink};
 use component::icons::information_icon::Information;
@@ -787,6 +787,10 @@ pub fn FastWalletCard(
         }
     });
 
+    let claimed = RwSignal::new(false);
+    let buffer_signal = RwSignal::new(false);
+    let airdrop_popup = RwSignal::new(display_info.name == SATS_TOKEN_NAME);
+
     view! {
         <div class="flex flex-col gap-4 p-4 w-full text-white rounded-lg bg-neutral-900/90 font-kumbh">
             <div class="flex flex-col gap-4 p-3 rounded-sm bg-neutral-800/70">
@@ -887,6 +891,13 @@ pub fn FastWalletCard(
                 claimed=is_airdrop_claimed.read_only()
                 error=error_claiming_airdrop.read_only()
                 try_again=claim_airdrop
+            />
+
+            <MyAirdropPopup
+                name="my token"
+                logo="/img/common/dolr.svg"
+                buffer_signal
+                airdrop_popup
             />
         </div>
     }
