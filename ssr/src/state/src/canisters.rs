@@ -124,9 +124,14 @@ impl Default for AuthState {
                 }
 
                 let Some(id) = temp_identity else {
-                    let id_wire = extract_identity()
-                        .await?
-                        .ok_or_else(|| ServerFnError::new("No refresh cookie set?!"))?;
+                    let id_wire = match extract_identity().await {
+                        Ok(Some(identity)) => identity,
+                        Ok(None) => return Err(ServerFnError::new("No refresh cookie set?!")),
+                        Err(_) => {
+                            // If extract_identity fails, return error that signals logout needed
+                            return Err(ServerFnError::new("AUTH_ERROR:LOGOUT_REQUIRED"));
+                        }
+                    };
                     return Ok(id_wire);
                 };
 

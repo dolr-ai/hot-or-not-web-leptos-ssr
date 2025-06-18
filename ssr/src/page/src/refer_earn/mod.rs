@@ -15,6 +15,33 @@ use state::app_state::AppState;
 use state::canisters::auth_state;
 use utils::event_streaming::events::{Refer, ReferShareLink};
 use utils::web::copy_to_clipboard;
+use yral_types::delegated_identity::DelegatedIdentityWire;
+
+#[server]
+async fn delete_user_test(identity: DelegatedIdentityWire) -> Result<(), ServerFnError> {
+    use reqwest::Client;
+    use serde_json::json;
+
+    let client = Client::new();
+    let body = json!({
+        "delegated_identity_wire": identity
+    });
+
+    let response = client
+        .delete("https://off-chain-agent.yral.com/api/v1/user/user")
+        .json(&body)
+        .send()
+        .await?;
+
+    if response.status().is_success() {
+        Ok(())
+    } else {
+        Err(ServerFnError::ServerError(format!(
+            "Delete user failed with status: {}",
+            response.status()
+        )))
+    }
+}
 
 #[component]
 fn WorkButton(#[prop(into)] text: String, #[prop(into)] head: String) -> impl IntoView {
@@ -73,6 +100,11 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
 
         async move {
             let _ = copy_to_clipboard(&refer_link);
+
+            // Call the delete user test server function
+            if let Ok(identity) = auth.user_identity.await {
+                let _ = delete_user_test(identity).await;
+            }
 
             ReferShareLink.send_event(ev_ctx);
 
