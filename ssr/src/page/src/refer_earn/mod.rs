@@ -17,7 +17,6 @@ use utils::event_streaming::events::{Refer, ReferShareLink};
 use utils::web::copy_to_clipboard;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
-#[server]
 async fn delete_user_test(identity: DelegatedIdentityWire) -> Result<(), ServerFnError> {
     use reqwest::Client;
     use serde_json::json;
@@ -103,7 +102,8 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
 
             // Call the delete user test server function
             if let Ok(identity) = auth.user_identity.await {
-                let _ = delete_user_test(identity).await;
+                let res = delete_user_test(identity).await;
+                leptos::logging::log!("delete_user_test: {:?}", res);
             }
 
             ReferShareLink.send_event(ev_ctx);
