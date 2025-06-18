@@ -81,7 +81,7 @@ jobs:
 
       - uses: awalsh128/cache-apt-pkgs-action@v1
         with:
-          packages: musl-tools protobuf-compiler
+          packages: musl-tools protobuf-compiler pkg-config libssl-dev
           version: 1.0
 
       - name: Install clippy
