@@ -37,25 +37,26 @@ fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
     let win_audio_ref = NodeRef::<Audio>::new();
 
     view! {
-        <div class="w-dvw h-dvh">
-            <div class="overflow-hidden relative w-full h-full bg-transparent">
-                <div
-                    class="absolute top-0 left-0 w-full h-full bg-center bg-cover z-1 blur-lg"
-                    style:background-color="rgb(0, 0, 0)"
-                    style:background-image=format!("url({bg_url})")
-                ></div>
-                <audio
-                    class="sr-only"
-                    node_ref=win_audio_ref
-                    preload="auto"
-                    src="/img/hotornot/chaching.m4a"
-                />
-                <VideoDetailsOverlay post=post.clone() prev_post=None win_audio_ref />
-                <VideoView post=Some(post) muted autoplay_at_render=true />
-            </div>
-            <MuteIconOverlay show_mute_icon />
-        </div>
+        // <div class="w-dvw h-dvh">
+        //     <div class="overflow-hidden relative w-full h-full bg-transparent">
+        //         <div
+        //             class="absolute top-0 left-0 w-full h-full bg-center bg-cover z-1 blur-lg"
+        //             style:background-color="rgb(0, 0, 0)"
+        //             style:background-image=format!("url({bg_url})")
+        //         ></div>
+        //         <audio
+        //             class="sr-only"
+        //             node_ref=win_audio_ref
+        //             preload="auto"
+        //             src="/img/hotornot/chaching.m4a"
+        //         />
+        //         <VideoDetailsOverlay post=post.clone() prev_post=None win_audio_ref />
+        //         <VideoView post=Some(post) muted autoplay_at_render=true />
+        //     </div>
+        //     <MuteIconOverlay show_mute_icon />
+        // </div>
     }
+    .into_any()
 }
 
 #[component]

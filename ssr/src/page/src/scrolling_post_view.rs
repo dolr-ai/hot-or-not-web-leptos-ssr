@@ -97,11 +97,11 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                             }
                         });
                         let show_video = Memo::new(move |_| {
-                            (queue_idx as i32 - current_idx() as i32) >= -3
+                            (queue_idx as i32 - current_idx() as i32) >= -2
                         });
-                        let to_load = Signal::derive(move || {
+                        let to_load = Memo::new(move |_| {
                             let cidx = current_idx.get() as i32;
-                            (queue_idx as i32 - cidx) <= 5 && (queue_idx as i32 - cidx) >= 0
+                            (queue_idx as i32 - cidx) <= 10 && (queue_idx as i32 - cidx) >= -1
                         });
                         // let post = Signal::derive(move || {
                         //     details.value.clone()

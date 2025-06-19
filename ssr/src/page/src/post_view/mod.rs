@@ -206,6 +206,22 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                 let mut prio_q = priority_q.write();
                 let mut cnt = 0;
                 while let Some((next, _)) = prio_q.pop_max() {
+                    // if video_queue
+                    //     .with_untracked(|vq| vq.len())
+                    //     .saturating_sub(current_idx.get_untracked())
+                    //     <= 6
+                    // {
+                    //     video_queue.update(|vq| {
+                    //         if vq.insert(next.clone()) {
+                    //             let len_vq = vq.len();
+                    //             video_queue_for_feed.update(|vqf| {
+                    //                 vqf[len_vq - 1].value.set(Some(next.clone()));
+                    //             });
+                    //         }
+                    //     });
+                    // } else {
+                    //     break;
+                    // }
                     video_queue.update(|vq| {
                         if vq.insert(next.clone()) {
                             let len_vq = vq.len();
@@ -296,7 +312,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
         })
     });
 
-    view! { <CommonPostViewWithUpdates initial_post fetch_video_action threshold_trigger_fetch=10 /> }.into_any()
+    view! { <CommonPostViewWithUpdates initial_post fetch_video_action threshold_trigger_fetch=20 /> }.into_any()
 }
 
 #[component]

@@ -76,13 +76,19 @@ pub fn VideoView(
     #[prop(into)] post: Signal<Option<PostDetails>>,
     #[prop(optional)] _ref: NodeRef<Video>,
     #[prop(optional)] autoplay_at_render: bool,
+    to_load: Memo<bool>,
     muted: RwSignal<bool>,
 ) -> impl IntoView {
     let post_for_uid = post;
     // let post_for_mixpanel = post;
-    let uid = Memo::new(move |_| post_for_uid.with(|p| p.as_ref().map(|p| p.uid.clone())));
-    // let view_bg_url = move || uid().map(bg_url);
-    // let view_video_url = move || uid().map(mp4_url);
+    let uid = Memo::new(move |_| {
+        if !to_load() {
+            return None;
+        }
+        post_for_uid.with(|p| p.as_ref().map(|p| p.uid.clone()))
+    });
+    let view_bg_url = move || uid().map(bg_url);
+    let view_video_url = move || uid().map(mp4_url);
     // let mixpanel_video_muted = RwSignal::new(muted.get_untracked());
 
     // let auth = auth_state();
@@ -238,8 +244,8 @@ pub fn VideoView(
     view! {
         <VideoPlayer
             node_ref=_ref
-            // view_bg_url=Signal::derive(view_bg_url)
-            // view_video_url=Signal::derive(view_video_url)
+            view_bg_url=Signal::derive(view_bg_url)
+            view_video_url=Signal::derive(view_video_url)
         />
     }
     .into_any()
@@ -251,7 +257,7 @@ pub fn VideoViewForQueue(
     current_idx: RwSignal<usize>,
     idx: usize,
     muted: RwSignal<bool>,
-    to_load: Signal<bool>,
+    to_load: Memo<bool>,
 ) -> impl IntoView {
     let container_ref = NodeRef::<Video>::new();
 
@@ -272,16 +278,16 @@ pub fn VideoViewForQueue(
         let Some(vid) = container_ref.get() else {
             return;
         };
-        let Some(post) = post.get() else {
-            return;
-        };
+        // let Some(post) = post.get() else {
+        //     return;
+        // };
         // log::info!("effect running for idx: {} current_idx: {}", idx, current_idx.get_untracked());
-        if to_load() && vid.src() == "" {
-            let view_bg_url = bg_url(post.uid.clone());
-            let view_video_url = mp4_url(post.uid.clone());
-            vid.set_poster(&view_bg_url);
-            vid.set_src(&view_video_url);
-        }
+        // if vid.src() == "" && to_load() {
+        //     let view_bg_url = bg_url(post.uid.clone());
+        //     let view_video_url = mp4_url(post.uid.clone());
+        //     vid.set_poster(&view_bg_url);
+        //     vid.set_src(&view_video_url);
+        // }
         if idx != current_idx() {
             // vid.set_preload("none");
             _ = vid.pause();
@@ -310,5 +316,5 @@ pub fn VideoViewForQueue(
 
     // let post = Signal::derive(move || video_queue.with(|q| q.get_index(idx).cloned()));
 
-    view! { <VideoView post _ref=container_ref muted /> }.into_any()
+    view! { <VideoView post _ref=container_ref to_load muted/> }.into_any()
 }
