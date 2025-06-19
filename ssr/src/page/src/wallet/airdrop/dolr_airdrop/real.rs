@@ -1,5 +1,7 @@
+use candid::Nat;
 use candid::Principal;
 use leptos::prelude::*;
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::Canisters;
 use yral_spacetime_bindings::{
@@ -11,6 +13,8 @@ use crate::wallet::airdrop::AirdropStatus;
 
 const DOLR_AIRDROP_LIMIT_DURATION: web_time::Duration = web_time::Duration::from_secs(24 * 3600);
 const MAX_AIRDROP_COUNT_WITHIN_DURATION: u64 = 1;
+/// in e0s
+const DOLR_AIRDROP_AMOUNT_RANGE: std::ops::Range<u64> = 5..10;
 
 /// returns either ok, or the how long after which airdrop will be available
 async fn is_dolr_airdrop_available(
@@ -61,8 +65,41 @@ pub async fn is_user_eligible_for_dolr_airdrop(
     }
 }
 
-async fn send_airdrop_to_user(_user_principal: Principal) -> Result<(), ServerFnError> {
-    println!("sending dolr");
+#[cfg(not(feature = "backend-admin"))]
+async fn send_airdrop_to_user(
+    _user_principal: Principal,
+    _amount: Nat,
+) -> Result<(), ServerFnError> {
+    log::error!("trying to send dolr but no backend admin is available");
+
+    Err(ServerFnError::new("backend admin not available"))
+}
+
+#[cfg(feature = "backend-admin")]
+async fn send_airdrop_to_user(user_principal: Principal, amount: Nat) -> Result<(), ServerFnError> {
+    use consts::DOLR_AI_LEDGER_CANISTER;
+    use state::admin_canisters::AdminCanisters;
+    use yral_canisters_client::sns_ledger::{Account, SnsLedger};
+    let admin: AdminCanisters = expect_context();
+
+    let ledger = SnsLedger(
+        DOLR_AI_LEDGER_CANISTER.parse().unwrap(),
+        admin.get_agent().await,
+    );
+
+    ledger
+        .icrc_1_transfer(yral_canisters_client::sns_ledger::TransferArg {
+            to: Account {
+                owner: user_principal,
+                subaccount: None,
+            },
+            fee: None,
+            memo: None,
+            from_subaccount: None,
+            created_at_time: None,
+            amount,
+        })
+        .await?;
 
     Ok(())
 }
@@ -111,9 +148,12 @@ pub async fn claim_dolr_airdrop(
         // be cautious
         .map_err(ServerFnError::new)?;
 
+    let mut rng = SmallRng::from_os_rng();
+    let amount = rng.random_range(DOLR_AIRDROP_AMOUNT_RANGE);
+    let e8s_amount: Nat = Nat::from(amount) * (1e8 as usize);
     // sending money _after_ marking claim with reasoning "a couple unhappy users
     // are better than company losing money"
-    send_airdrop_to_user(user_principal).await?;
+    send_airdrop_to_user(user_principal, e8s_amount).await?;
 
     Ok(100)
 }
