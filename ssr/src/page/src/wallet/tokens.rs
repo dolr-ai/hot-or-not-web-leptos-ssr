@@ -21,9 +21,9 @@
 
 use std::time::Duration;
 
-use crate::wallet::airdrop::dolr_airdrop::is_user_eligible_for_dolr_airdrop;
+use crate::wallet::airdrop::dolr_airdrop::{claim_dolr_airdrop, is_user_eligible_for_dolr_airdrop};
 use crate::wallet::airdrop::{
-    claim_sats_airdrop, AirdropClaimState, SatsAirdropPopup, StatefulAirdropPopup,
+    claim_sats_airdrop, AirdropClaimState, AirdropStatus, SatsAirdropPopup, StatefulAirdropPopup,
 };
 use candid::Principal;
 use component::action_btn::{ActionButton, ActionButtonLink};
@@ -45,7 +45,6 @@ use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::hooks::use_navigate;
 use leptos_use::{use_interval, UseIntervalReturn};
-use serde::{Deserialize, Serialize};
 use state::canisters::{auth_state, unauth_canisters};
 use utils::host::get_host;
 use utils::send_wrap;
@@ -91,13 +90,7 @@ impl AirdropStatusFetcherType {
                 })
             }
             Self::Dolr => {
-                let eligible =
-                    is_user_eligible_for_dolr_airdrop(user_canister, user_principal).await?;
-                Some(if eligible {
-                    AirdropStatus::Available
-                } else {
-                    AirdropStatus::Claimed
-                })
+                Some(is_user_eligible_for_dolr_airdrop(user_canister, user_principal).await?)
             }
             Self::MockAvailable => {
                 utils::time::sleep(Duration::from_millis(100)).await;
@@ -447,7 +440,9 @@ trait AirdroppableImpl {
 
 #[derive(Clone)]
 enum Airdropper {
+    #[allow(unused)]
     MockAirdropDolr(MockAirdropDolr),
+    AirdropDolr(AirdropDolr),
     AirdropSats(AirdropSats),
 }
 
@@ -460,6 +455,7 @@ impl AirdroppableImpl for Airdropper {
                 mock_airdrop_dolr.claim_airdrop(auth).await
             }
             Airdropper::AirdropSats(airdrop_sats) => airdrop_sats.claim_airdrop(auth).await,
+            Airdropper::AirdropDolr(airdrop_dolr) => airdrop_dolr.claim_airdrop(auth).await,
         }
     }
 
@@ -467,6 +463,7 @@ impl AirdroppableImpl for Airdropper {
         match self {
             Airdropper::MockAirdropDolr(mock_airdrop_dolr) => mock_airdrop_dolr.show_info(status),
             Airdropper::AirdropSats(airdrop_sats) => airdrop_sats.show_info(status),
+            Airdropper::AirdropDolr(airdrop_dolr) => airdrop_dolr.show_info(status),
         }
     }
 
@@ -476,6 +473,7 @@ impl AirdroppableImpl for Airdropper {
                 mock_airdrop_dolr.eligility_info(status)
             }
             Airdropper::AirdropSats(airdrop_sats) => airdrop_sats.eligility_info(status),
+            Airdropper::AirdropDolr(airdrop_dolr) => airdrop_dolr.eligility_info(status),
         }
     }
 
@@ -485,6 +483,7 @@ impl AirdroppableImpl for Airdropper {
                 mock_airdrop_dolr.available_message(status)
             }
             Airdropper::AirdropSats(airdrop_sats) => airdrop_sats.available_message(status),
+            Airdropper::AirdropDolr(airdrop_dolr) => airdrop_dolr.available_message(status),
         }
     }
 }
@@ -497,6 +496,29 @@ impl AirdroppableImpl for MockAirdropDolr {
         utils::time::sleep(Duration::from_secs(2)).await;
 
         Ok(100)
+    }
+
+    fn show_info(&self, _status: AirdropStatus) -> bool {
+        true
+    }
+
+    fn eligility_info(&self, _status: AirdropStatus) -> Option<String> {
+        Some("Claims are limited to once every 24 hours.".to_string())
+    }
+
+    fn available_message(&self, _status: AirdropStatus) -> Option<String> {
+        Some("Tap on “airdrop” to claim free tokens.".to_string())
+    }
+}
+
+#[derive(Clone)]
+struct AirdropDolr;
+
+impl AirdroppableImpl for AirdropDolr {
+    async fn claim_airdrop(&self, auth: Canisters<true>) -> Result<u64, ServerFnError> {
+        let user_canister = auth.user_canister();
+        let user_principal = auth.user_principal();
+        claim_dolr_airdrop(user_canister, user_principal).await
     }
 
     fn show_info(&self, _status: AirdropStatus) -> bool {
@@ -529,7 +551,7 @@ impl AirdroppableImpl for AirdropSats {
 impl Airdropper {
     fn choose(name: &str) -> Option<Self> {
         match name {
-            "DOLR AI" => Some(Airdropper::MockAirdropDolr(MockAirdropDolr)),
+            "DOLR AI" => Some(Airdropper::AirdropDolr(AirdropDolr)),
             s if s == SATS_TOKEN_NAME => Some(Airdropper::AirdropSats(AirdropSats)),
             _ => None,
         }
@@ -610,13 +632,6 @@ pub fn WithdrawSection(
             </button>
         </div>
     }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
-pub enum AirdropStatus {
-    Available,
-    Claimed,
-    WaitFor(web_time::Duration),
 }
 
 #[component]

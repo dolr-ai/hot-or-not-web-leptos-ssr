@@ -7,20 +7,17 @@ use yral_spacetime_bindings::{
     spacetimedb_sdk::{TimeDuration, Timestamp},
 };
 
-async fn validate_dolr_airdrop_eligibility(
-    user_canister: Principal,
+use crate::wallet::airdrop::AirdropStatus;
+
+const DOLR_AIRDROP_LIMIT_DURATION: web_time::Duration = web_time::Duration::from_secs(24 * 3600);
+const MAX_AIRDROP_COUNT_WITHIN_DURATION: u64 = 1;
+
+/// returns either ok, or the how long after which airdrop will be available
+async fn is_dolr_airdrop_available(
+    _user_canister: Principal,
     user_principal: Principal,
-) -> Result<(), ServerFnError> {
-    println!("actually called the damn validator");
-    let cans = Canisters::default();
-    let user = cans.individual_user(user_canister).await;
-
-    let sess = user.get_session_type().await?;
-    if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
-        log::error!("Not allowed to claim: not logged in");
-        // return Err(ServerFnError::new("Not allowed to claim: not logged in"));
-    }
-
+    now: web_time::SystemTime,
+) -> Result<(), web_time::Duration> {
     let ctx: state::stdb_dolr_airdrop::WrappedContext = expect_context();
 
     let Some(airdrop_info) = ctx
@@ -34,20 +31,16 @@ async fn validate_dolr_airdrop_eligibility(
         return Ok(());
     };
 
-    const DOLR_AIRDROP_LIMIT_DURATION: web_time::Duration =
-        web_time::Duration::from_secs(24 * 3600);
-    const MAX_AIRDROP_COUNT_WITHIN_DURATION: u64 = 1;
-
-    let now: Timestamp = web_time::SystemTime::now().into();
+    let now: Timestamp = now.into();
     let next_airdrop_available_after =
         airdrop_info.last_airdrop_at + TimeDuration::from_duration(DOLR_AIRDROP_LIMIT_DURATION);
 
     if now < next_airdrop_available_after {
         let count = airdrop_info.airdrop_count_within_duration + 1;
         if count > MAX_AIRDROP_COUNT_WITHIN_DURATION {
-            return Err(ServerFnError::new(
-                "Not allowed to claim: max claims reached",
-            ));
+            return Err(next_airdrop_available_after
+                .duration_since(now)
+                .expect("now is less than after"));
         }
     }
 
@@ -58,14 +51,20 @@ async fn validate_dolr_airdrop_eligibility(
 pub async fn is_user_eligible_for_dolr_airdrop(
     user_canister: Principal,
     user_principal: Principal,
-) -> Result<bool, ServerFnError> {
-    let res = validate_dolr_airdrop_eligibility(user_canister, user_principal).await;
+) -> Result<AirdropStatus, ServerFnError> {
+    let res =
+        is_dolr_airdrop_available(user_canister, user_principal, web_time::SystemTime::now()).await;
 
     match res {
-        Ok(_) => Ok(true),
-        Err(ServerFnError::ServerError(..)) => Ok(false),
-        Err(err) => Err(err),
+        Ok(_) => Ok(AirdropStatus::Available),
+        Err(duration) => Ok(AirdropStatus::WaitFor(duration)),
     }
+}
+
+async fn send_airdrop_to_user(_user_principal: Principal) -> Result<(), ServerFnError> {
+    println!("sending dolr");
+
+    Ok(())
 }
 
 #[server(input = server_fn::codec::Json)]
@@ -87,10 +86,34 @@ pub async fn claim_dolr_airdrop(
         ));
     }
 
-    validate_dolr_airdrop_eligibility(user_canister, user_principal).await?;
+    let sess = user.get_session_type().await?;
+    if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
+        log::error!("Not allowed to claim: not logged in");
+        // return Err(ServerFnError::new("Not allowed to claim: not logged in"));
+    }
 
-    // send dolr with backend admin
-    // update info in stdb
+    let now = web_time::SystemTime::now();
+    if is_dolr_airdrop_available(user_canister, user_principal, now)
+        .await
+        .is_err()
+    {
+        return Err(ServerFnError::new(
+            "Not allowed to claim: max claims reached within allowed duration",
+        ));
+    }
+
+    let ctx: state::stdb_dolr_airdrop::WrappedContext = expect_context();
+
+    ctx.mark_airdrop_claimed(user_principal, DOLR_AIRDROP_LIMIT_DURATION, now)
+        .await
+        .map_err(ServerFnError::new)?
+        // this is not likely to happen with current impl on stdb, but good to
+        // be cautious
+        .map_err(ServerFnError::new)?;
+
+    // sending money _after_ marking claim with reasoning "a couple unhappy users
+    // are better than company losing money"
+    send_airdrop_to_user(user_principal).await?;
 
     Ok(100)
 }

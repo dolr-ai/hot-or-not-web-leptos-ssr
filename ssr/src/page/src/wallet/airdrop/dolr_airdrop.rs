@@ -10,7 +10,7 @@ mod real;
 pub async fn is_user_eligible_for_dolr_airdrop(
     user_canister: Principal,
     user_principal: Principal,
-) -> Result<bool, ServerFnError> {
+) -> Result<super::AirdropStatus, ServerFnError> {
     #[cfg(not(feature = "stdb-backend"))]
     use mock::is_user_eligible_for_dolr_airdrop as call;
     #[cfg(feature = "stdb-backend")]

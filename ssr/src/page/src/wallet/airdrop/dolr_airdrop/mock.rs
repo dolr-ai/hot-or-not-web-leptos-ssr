@@ -1,3 +1,4 @@
+use crate::wallet::airdrop::AirdropStatus;
 use candid::Principal;
 use leptos::prelude::*;
 
@@ -5,8 +6,8 @@ use leptos::prelude::*;
 pub async fn is_user_eligible_for_dolr_airdrop(
     _user_canister: Principal,
     _user_principal: Principal,
-) -> Result<bool, ServerFnError> {
-    Ok(false)
+) -> Result<AirdropStatus, ServerFnError> {
+    Ok(AirdropStatus::Claimed)
 }
 
 #[server(input = server_fn::codec::Json)]

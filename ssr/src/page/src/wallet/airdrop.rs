@@ -11,6 +11,7 @@ use leptos::prelude::*;
 use leptos_icons::Icon;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use reqwest::Url;
+use serde::{Deserialize, Serialize};
 use state::{
     canisters::{auth_state, unauth_canisters},
     server::HonWorkerJwt,
@@ -24,6 +25,13 @@ use yral_canisters_common::{
 use yral_identity::Signature;
 
 pub mod dolr_airdrop;
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+pub enum AirdropStatus {
+    Available,
+    Claimed,
+    WaitFor(web_time::Duration),
+}
 
 pub async fn is_airdrop_claimed(user_principal: Principal) -> Result<bool, ServerFnError> {
     let req_url: Url = WORKER_URL.parse().expect("url to be valid");
