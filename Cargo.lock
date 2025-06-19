@@ -3486,6 +3486,7 @@ dependencies = [
  "crc32fast",
  "dotenv",
  "enum_dispatch",
+ "fasthash",
  "futures",
  "gloo",
  "gloo-utils",
@@ -3559,6 +3560,7 @@ dependencies = [
  "yral-canisters-common",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
+ "yral-spacetime-bindings",
  "yral-testcontainers",
  "yral-types",
 ]
@@ -5627,7 +5629,6 @@ dependencies = [
  "consts",
  "crc32fast",
  "dotenv",
- "fasthash",
  "futures",
  "getrandom 0.3.3",
  "gloo",
@@ -5695,7 +5696,6 @@ dependencies = [
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-pump-n-dump-common",
- "yral-spacetime-bindings",
  "yral-testcontainers",
  "yral-types",
 ]
@@ -7915,6 +7915,7 @@ dependencies = [
  "crc32fast",
  "dotenv",
  "enum_dispatch",
+ "fasthash",
  "futures",
  "gloo",
  "gloo-utils",
@@ -7977,6 +7978,7 @@ dependencies = [
  "yral-canisters-common",
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
+ "yral-spacetime-bindings",
  "yral-testcontainers",
  "yral-types",
 ]

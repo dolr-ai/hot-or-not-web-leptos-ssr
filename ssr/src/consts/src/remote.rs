@@ -15,4 +15,4 @@ pub const STDB_URL: &str = "https://maincloud.spacetimedb.com";
 pub const BACKEND_MODULE_IDENTITY: &str = "pr-6-yral-backend";
 
 // TODO: load secret from env
-pub static STDB_ACCESS_TOKEN: Lazy<String> = Lazy::new(|| None);
+pub static STDB_ACCESS_TOKEN: Lazy<Option<String>> = Lazy::new(|| None);
