@@ -226,7 +226,6 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
                         Ok((profile_details, logged_in_user)) => {
                             let is_own_account = logged_in_user == principal;
                             Either::Left(
-
                                 view! { <Header details=profile_details is_own_account /> },
                             )
                         }
@@ -245,7 +244,6 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
                             Ok((profile_details, logged_in_user)) => {
                                 let is_own_account = logged_in_user == principal;
                                 Either::Left(
-
                                     view! {
                                         <ProfileCard
                                             details=profile_details

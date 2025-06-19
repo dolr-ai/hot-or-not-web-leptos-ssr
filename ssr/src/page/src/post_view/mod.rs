@@ -98,6 +98,8 @@ pub fn CommonPostViewWithUpdates(
         })
     }
 
+    let current_post_params: RwSignal<Option<utils::types::PostParams>> = expect_context();
+
     Effect::new(move || {
         if !recovering_state.get_untracked() {
             fetch_video_action.dispatch(());
@@ -124,6 +126,10 @@ pub fn CommonPostViewWithUpdates(
         let Some((canister_id, post_id)) = current_post_base() else {
             return;
         };
+        current_post_params.set(Some(utils::types::PostParams {
+            canister_id,
+            post_id,
+        }));
         use_navigate()(
             &format!("/hot-or-not/{canister_id}/{post_id}",),
             Default::default(),

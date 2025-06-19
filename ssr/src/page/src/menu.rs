@@ -203,7 +203,6 @@ pub fn Menu() -> impl IntoView {
                     return Either::Left(view! { <Redirect path=format!("/error?err={e}") /> });
                 }
                 Either::Right(
-
                     view! {
                         <Modal show=show_content_modal>
                             {move || {

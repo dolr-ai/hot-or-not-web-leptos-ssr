@@ -224,7 +224,7 @@ pub fn LoginProviders(
                     <div class="flex flex-col gap-4 items-center w-full">
                         {
                             #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-                            view! { <yral::YralAuthProvider signing_in_provider /> }
+                            view! { <yral::YralAuthProvider /> }
                         }
                     </div>
                     <div class="flex flex-col items-center text-center text-md">

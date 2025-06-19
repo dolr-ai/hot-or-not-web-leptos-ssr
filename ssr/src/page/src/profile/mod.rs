@@ -228,9 +228,7 @@ pub fn ProfileView() -> impl IntoView {
                 let res = user_details.await;
                 match res {
                     Ok((user, user_canister)) => {
-
-                        view! { <ProfileComponent user user_canister /> }
-                            .into_any()
+                        view! { <ProfileComponent user user_canister /> }.into_any()
                     }
                     _ => view! { <Redirect path="/" /> }.into_any(),
                 }
