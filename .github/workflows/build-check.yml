@@ -55,15 +55,19 @@ jobs:
             cargo --version
 
             # Build the Leptos project to output
-            # RUSTFLAGS_VALUE=""
-            # if [[ "${{ inputs.erase_components }}" == "true" ]]; then
-            #   RUSTFLAGS_VALUE="--cfg=erase_components"
-            # fi
-            # echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
-            # RUSTFLAGS="$RUSTFLAGS_VALUE" 
-            cargo leptos build --release --lib-features release-lib --bin-features release-bin
-        env:
-          LEPTOS_HASH_FILES: true
+            RUSTFLAGS_VALUE=""
+            if [[ "${{ inputs.erase_components }}" == "true" ]]; then
+              RUSTFLAGS_VALUE="--cfg=erase_components"
+            fi
+            echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
+            RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release --lib-features release-lib --bin-features release-bin
+            env:
+              RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
+              LEPTOS_TAILWIND_VERSION: v4.1.7
+            # RUSTFLAGS="--cfg=erase_components" RUSTUP_TOOLCHAIN="nightly-2025-01-09" LEPTOS_HASH_FILES="true" LEPTOS_TAILWIND_VERSION="v4.1.7" cargo leptos build --release --lib-features release-lib --bin-features release-bin
+            # env:
+            #   RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
+            #   LEPTOS_TAILWIND_VERSION: v4.1.7
 
       # - name: Install mold linker
       #   uses: rui314/setup-mold@v1
