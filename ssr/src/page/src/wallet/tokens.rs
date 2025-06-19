@@ -21,7 +21,9 @@
 
 use std::time::Duration;
 
-use crate::wallet::airdrop::{claim_sats_airdrop, AirdropPopup, MyAirdropPopup, SatsAirdropPopup};
+use crate::wallet::airdrop::{
+    claim_sats_airdrop, AirdropClaimState, SatsAirdropPopup, StatefulAirdropPopup,
+};
 use candid::Principal;
 use component::action_btn::{ActionButton, ActionButtonLink};
 use component::icons::information_icon::Information;
@@ -183,7 +185,7 @@ impl From<TokenType> for AirdropStatusFetcherType {
     fn from(value: TokenType) -> Self {
         match value {
             TokenType::Sats => Self::Sats,
-            TokenType::Dolr => Self::MockWaiting,
+            TokenType::Dolr => Self::MockAvailable,
             _ => Self::NonAirdropable,
         }
     }
@@ -751,6 +753,10 @@ pub fn FastWalletCard(
         }
     });
 
+    // any variant works as default
+    let claim_state = RwSignal::new(AirdropClaimState::Claiming);
+    let airdrop_popup = RwSignal::new(false);
+
     let auth = auth_state();
     let base = unauth_canisters();
     let show_login = use_context()
@@ -765,7 +771,7 @@ pub fn FastWalletCard(
         async move {
             if !is_connected {
                 show_login.set(true);
-                return Ok(());
+                return Err(ServerFnError::new("login required"));
             }
 
             let cans = auth.auth_cans(base).await?;
@@ -777,19 +783,44 @@ pub fn FastWalletCard(
                     is_airdrop_claimed.set(true);
                     error_claiming_airdrop.set(false);
                     balance.refetch();
+                    Ok(amount)
                 }
-                Err(_) => {
+                Err(err) => {
                     log::error!("error claiming airdrop");
                     error_claiming_airdrop.set(true);
+                    Err(err)
                 }
             }
-            Ok(())
         }
     });
 
-    let claimed = RwSignal::new(false);
-    let buffer_signal = RwSignal::new(false);
-    let airdrop_popup = RwSignal::new(display_info.name == SATS_TOKEN_NAME);
+    let pending = claim_airdrop.pending();
+    let value = claim_airdrop.value();
+    Effect::watch(
+        move || (pending.get(), value.get()),
+        move |(pending, value), _, _| {
+            log::info!("pending: {pending} and value: {value:?}");
+            if name_c.get_value() == SATS_TOKEN_NAME {
+                log::info!("ignoring");
+                return;
+            }
+
+            if *pending {
+                airdrop_popup.set(true);
+                claim_state.set(AirdropClaimState::Claiming);
+            }
+
+            if let Some(res) = value {
+                let new_state = match res {
+                    Ok(amount) => AirdropClaimState::Claimed(*amount),
+                    Err(_) => AirdropClaimState::Failed,
+                };
+
+                claim_state.set(new_state);
+            }
+        },
+        false,
+    );
 
     view! {
         <div class="flex flex-col gap-4 p-4 w-full text-white rounded-lg bg-neutral-900/90 font-kumbh">
@@ -885,18 +916,23 @@ pub fn FastWalletCard(
                 />
             </PopupOverlay>
 
-            <SatsAirdropPopup
-                show=show_airdrop_popup
-                amount_claimed=airdrop_amount_claimed.read_only()
-                claimed=is_airdrop_claimed.read_only()
-                error=error_claiming_airdrop.read_only()
-                try_again=claim_airdrop
-            />
+            {(name_c.get_value() == SATS_TOKEN_NAME)
+                .then_some(
+                    view! {
+                        <SatsAirdropPopup
+                            show=show_airdrop_popup
+                            amount_claimed=airdrop_amount_claimed.read_only()
+                            claimed=is_airdrop_claimed.read_only()
+                            error=error_claiming_airdrop.read_only()
+                            try_again=claim_airdrop
+                        />
+                    },
+                )}
 
-            <MyAirdropPopup
-                name="my token"
-                logo="/img/common/dolr.svg"
-                buffer_signal
+            <StatefulAirdropPopup
+                name=name_c.get_value()
+                logo=logo
+                claim_state=claim_state.read_only()
                 airdrop_popup
             />
         </div>
@@ -908,7 +944,7 @@ fn WalletCardOptions(
     pop_up: WriteSignal<bool>,
     share_link: WriteSignal<String>,
     airdrop_claimed: RwSignal<bool>,
-    claim_airdrop: Action<bool, Result<(), ServerFnError>>,
+    claim_airdrop: Action<bool, Result<u64, ServerFnError>>,
 ) -> impl IntoView {
     let WalletCardOptionsContext {
         is_utility_token,

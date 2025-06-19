@@ -426,7 +426,7 @@ pub fn AirdropPopup(
     claim_state: ReadSignal<AirdropClaimState>,
     airdrop_popup: WriteSignal<bool>,
 ) -> impl IntoView {
-    let show_bg = Signal::derive(move || !matches!(claim_state.get(), AirdropClaimState::Failed));
+    let _ = claim_state.get();
     view! {
         <div class="flex overflow-hidden relative flex-col gap-4 justify-center items-center px-8 w-full h-full text-white rounded-lg font-kumbh bg-neutral-900">
             <button
@@ -435,7 +435,7 @@ pub fn AirdropPopup(
             >
                 <Icon icon=icondata::TbX />
             </button>
-            <Show when=show_bg>
+            <Show when=move || !matches!(claim_state.get(), AirdropClaimState::Failed)>
                 <img
                     alt="bg"
                     src="/img/airdrop/bg.webp"
@@ -443,11 +443,15 @@ pub fn AirdropPopup(
                     class="object-cover absolute inset-0 w-full h-full z-1 fade-in"
                 />
             </Show>
-            <WalletAirdropAnimation state=claim_state.get() logo=logo.clone() />
-            <div class="z-2">
-                <AirdropPopupMessage name=name.clone() state=claim_state.get() />
-            </div>
-            <AirdropPopUpButton state=claim_state.get() />
+            {move || {
+                view! {
+                    <WalletAirdropAnimation state=claim_state.get() logo=logo.clone() />
+                    <div class="z-2">
+                        <AirdropPopupMessage name=name.clone() state=claim_state.get() />
+                    </div>
+                    <AirdropPopUpButton state=claim_state.get() />
+                }
+            }}
         </div>
     }
 }
@@ -633,15 +637,15 @@ pub fn AnimatedTick() -> impl IntoView {
 }
 
 #[component]
-pub fn MyAirdropPopup(
+pub fn StatefulAirdropPopup(
     #[prop(into)] name: String,
     #[prop(into)] logo: String,
-    buffer_signal: RwSignal<bool>,
+    claim_state: ReadSignal<AirdropClaimState>,
     airdrop_popup: RwSignal<bool>,
 ) -> impl IntoView {
     let name = StoredValue::new(name);
     let logo = StoredValue::new(logo);
-    let state = RwSignal::new(AirdropClaimState::Failed);
+
     view! {
         <ShadowOverlay show=airdrop_popup>
             <div class="flex justify-center items-center py-6 px-4 w-full h-full">
@@ -649,7 +653,7 @@ pub fn MyAirdropPopup(
                     <AirdropPopup
                         name=name.get_value()
                         logo=logo.get_value()
-                        claim_state=state.read_only()
+                        claim_state
                         airdrop_popup=airdrop_popup.write_only()
                     />
                 </div>
@@ -664,7 +668,7 @@ pub fn SatsAirdropPopup(
     claimed: ReadSignal<bool>,
     amount_claimed: ReadSignal<u64>,
     error: ReadSignal<bool>,
-    try_again: Action<bool, Result<(), ServerFnError>>,
+    try_again: Action<bool, Result<u64, ServerFnError>>,
 ) -> impl IntoView {
     let img_src = move || {
         if claimed.get() {
