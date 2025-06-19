@@ -66,7 +66,7 @@ pub struct FeedPostCtx {
 impl PostViewCtx {
     pub fn new() -> Self {
         let mut video_queue_for_feed = Vec::new();
-        for i in 0..100 {
+        for i in 0..200 {
             video_queue_for_feed.push(FeedPostCtx {
                 key: i,
                 value: RwSignal::new(None),
@@ -126,7 +126,7 @@ pub fn CommonPostViewWithUpdates(
         })
     }
 
-    let current_post_params: RwSignal<Option<utils::types::PostParams>> = expect_context();
+    // let current_post_params: RwSignal<Option<utils::types::PostParams>> = expect_context();
 
     Effect::new(move || {
         if !recovering_state.get_untracked() {
@@ -154,10 +154,10 @@ pub fn CommonPostViewWithUpdates(
         let Some((canister_id, post_id)) = current_post_base() else {
             return;
         };
-        current_post_params.set(Some(utils::types::PostParams {
-            canister_id,
-            post_id,
-        }));
+        // current_post_params.set(Some(utils::types::PostParams {
+        //     canister_id,
+        //     post_id,
+        // }));
         use_navigate()(
             &format!("/hot-or-not/{canister_id}/{post_id}",),
             Default::default(),

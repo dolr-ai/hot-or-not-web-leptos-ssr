@@ -269,10 +269,10 @@ pub fn VideoViewForQueue(
 
     // Handles autoplay
     Effect::new(move |_| {
-        let Some(post) = post.get() else {
+        let Some(vid) = container_ref.get() else {
             return;
         };
-        let Some(vid) = container_ref.get() else {
+        let Some(post) = post.get() else {
             return;
         };
         // log::info!("effect running for idx: {} current_idx: {}", idx, current_idx.get_untracked());
@@ -281,24 +281,18 @@ pub fn VideoViewForQueue(
             let view_video_url = mp4_url(post.uid.clone());
             vid.set_poster(&view_bg_url);
             vid.set_src(&view_video_url);
-
-            // if to_load() {
-            //     log::info!("loading video for idx: {}", idx);
-            //     vid.set_preload("auto");
-            //     vid.load();
-            // }
         }
         if idx != current_idx() {
             // vid.set_preload("none");
             _ = vid.pause();
-            vid.set_autoplay(false);
+            // vid.set_autoplay(false);
             return;
         }
-        log::info!(
-            "effect running for idx: {} current_idx: {}",
-            idx,
-            current_idx.get_untracked()
-        );
+        // log::info!(
+        //     "effect running for idx: {} current_idx: {}",
+        //     idx,
+        //     current_idx.get_untracked()
+        // );
         // vid.set_muted(muted.get());
         vid.set_autoplay(true);
         let promise = vid.play();

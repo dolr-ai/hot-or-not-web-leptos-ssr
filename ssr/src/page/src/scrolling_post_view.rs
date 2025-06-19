@@ -120,8 +120,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                     </BgView>
                                 </Show>
                             </div>
-                        }
-                            .into_any()
+                        }.into_any()
                     }
                 />
 
