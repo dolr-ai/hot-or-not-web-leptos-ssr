@@ -4,6 +4,7 @@ use indexmap::IndexSet;
 use leptos::html::Audio;
 use leptos::logging;
 use leptos::{html::Video, prelude::*};
+use wasm_bindgen::JsCast;
 // use leptos_use::use_event_listener;
 // use state::canisters::{auth_state, unauth_canisters};
 // use utils::mixpanel::mixpanel_events::*;
@@ -151,6 +152,17 @@ pub fn VideoView(
     //     Some(())
     // });
 
+    // Add loadeddata event listener to handle smooth transition
+    // Effect::new(move |_| {
+    //     let vid = _ref.get()?;
+    //     let closure = wasm_bindgen::closure::Closure::wrap(Box::new(move |_: web_sys::Event| {
+    //         // Video data is loaded, it should display smoothly now
+    //     }) as Box<dyn Fn(_)>);
+    //     vid.set_onloadeddata(Some(closure.as_ref().unchecked_ref()));
+    //     closure.forget();
+    //     Some(())
+    // });
+
     // Video views send to canister
     // 1. When video is paused -> partial video view
     // 2. When video is 95% done -> full view
@@ -273,6 +285,9 @@ pub fn VideoViewForQueue(
     //     }
     // });
 
+    // Track if video is already playing to prevent multiple play attempts
+    let is_playing = RwSignal::new(false);
+
     // Handles autoplay
     Effect::new(move |_| {
         let Some(vid) = container_ref.get() else {
@@ -288,9 +303,15 @@ pub fn VideoViewForQueue(
         //     vid.set_poster(&view_bg_url);
         //     vid.set_src(&view_video_url);
         // }
-        if idx != current_idx() {
+
+        let is_current = idx == current_idx();
+
+        if !is_current {
             // vid.set_preload("none");
-            _ = vid.pause();
+            if is_playing.get_untracked() {
+                is_playing.set(false);
+                _ = vid.pause();
+            }
             // vid.set_autoplay(false);
             return;
         }
@@ -300,17 +321,28 @@ pub fn VideoViewForQueue(
         //     current_idx.get_untracked()
         // );
         // vid.set_muted(muted.get());
-        vid.set_autoplay(true);
-        let promise = vid.play();
-        if let Ok(promise) = promise {
-            wasm_bindgen_futures::spawn_local(async move {
-                let rr = wasm_bindgen_futures::JsFuture::from(promise).await;
-                if let Err(e) = rr {
-                    logging::error!("promise failed: {e:?}");
+
+        // Only attempt to play if not already playing
+        if is_current && !is_playing.get_untracked() {
+            is_playing.set(true);
+            vid.set_autoplay(true);
+
+            // Small delay to ensure video is ready
+            // gloo::timers::callback::Timeout::new(500, move || {
+            if let Some(vid) = container_ref.get() {
+                let promise = vid.play();
+                if let Ok(promise) = promise {
+                    wasm_bindgen_futures::spawn_local(async move {
+                        let rr = wasm_bindgen_futures::JsFuture::from(promise).await;
+                        if let Err(e) = rr {
+                            logging::error!("promise failed: {e:?}");
+                        }
+                    });
+                } else {
+                    logging::error!("Failed to play video");
                 }
-            });
-        } else {
-            logging::error!("Failed to play video");
+            }
+            // });
         }
     });
 

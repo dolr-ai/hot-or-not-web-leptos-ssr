@@ -101,7 +101,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                         });
                         let to_load = Memo::new(move |_| {
                             let cidx = current_idx.get() as i32;
-                            (queue_idx as i32 - cidx) <= 10 && (queue_idx as i32 - cidx) >= -1
+                            (queue_idx as i32 - cidx) <= 10 && (queue_idx as i32 - cidx) >= -2
                         });
                         // let post = Signal::derive(move || {
                         //     details.value.clone()
