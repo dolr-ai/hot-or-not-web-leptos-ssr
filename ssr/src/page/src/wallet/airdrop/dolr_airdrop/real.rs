@@ -125,8 +125,8 @@ pub async fn claim_dolr_airdrop(
 
     let sess = user.get_session_type().await?;
     if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
-        log::error!("Not allowed to claim: not logged in");
-        // return Err(ServerFnError::new("Not allowed to claim: not logged in"));
+        // log::error!("Not allowed to claim: not logged in");
+        return Err(ServerFnError::new("Not allowed to claim: not logged in"));
     }
 
     let now = web_time::SystemTime::now();
@@ -155,5 +155,5 @@ pub async fn claim_dolr_airdrop(
     // are better than company losing money"
     send_airdrop_to_user(user_principal, e8s_amount).await?;
 
-    Ok(100)
+    Ok(amount)
 }
