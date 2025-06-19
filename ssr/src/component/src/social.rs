@@ -8,7 +8,7 @@ fn FollowItem(#[prop(into)] href: String, #[prop(into)] icon: icondata::Icon) ->
         <a
             href=href
             target="_blank"
-            class="h-12 w-12 text-2xl rounded-full grid place-items-center aspect-square border border-primary-600"
+            class="grid place-items-center w-12 h-12 text-2xl rounded-full border aspect-square border-primary-600"
         >
             <Icon icon />
         </a>

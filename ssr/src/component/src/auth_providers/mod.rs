@@ -8,6 +8,7 @@ use hon_worker_common::ReferralReqWithSignature;
 use ic_agent::Identity;
 use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
+use leptos_icons::Icon;
 use leptos_router::hooks::use_navigate;
 use state::canisters::auth_state;
 use utils::event_streaming::events::CentsAdded;
@@ -192,17 +193,39 @@ pub fn LoginProviders(
     provide_context(ctx);
 
     view! {
-        <div class="flex flex-col py-12 px-16 items-center gap-2 bg-neutral-900 text-white cursor-auto">
-            <h1 class="text-xl">Login to Yral</h1>
-            <img class="h-32 w-32 object-contain my-8" src="/img/yral/logo.webp" />
-            <span class="text-md">Continue with</span>
-            <div class="flex flex-col w-full gap-4 items-center">
-                {
-                    #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-                    view! { <yral::YralAuthProvider/> }
-                }
-                <div id="tnc" class="text-white text-center">
-                    By continuing you agree to our <a class="text-primary-600 underline" href="/terms-of-service">Terms of Service</a>
+        <div class="flex justify-center items-center py-6 px-4 w-full h-full cursor-auto">
+            <div class="overflow-hidden relative items-center w-full max-w-md rounded-md cursor-auto h-fit bg-neutral-950">
+                <img
+                    src="/img/common/refer-bg.webp"
+                    class="object-cover absolute inset-0 z-0 w-full h-full opacity-40"
+                />
+                <div
+                    style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
+                    class="absolute z-[1] size-[50rem] -left-[75%] -top-[50%]"
+                ></div>
+                <button
+                    on:click=move |_| show_modal.set(false)
+                    class="flex absolute top-4 right-4 justify-center items-center text-lg text-center text-white rounded-full md:text-xl size-6 bg-neutral-600 z-[3]"
+                >
+                    <Icon icon=icondata::ChCross />
+                </button>
+                <div class="flex relative flex-col gap-8 justify-center items-center py-10 px-12 text-white z-[2]">
+                    <img src="/img/common/join-yral.webp" class="object-contain h-52" />
+                    <div class="text-base font-bold text-center">
+                        "Login in to watch, play & earn Bitcoin."
+                    </div>
+                    <div class="flex flex-col gap-4 items-center w-full">
+                        {
+                            #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
+                            view! { <yral::YralAuthProvider /> }
+                        }
+                    </div>
+                    <div class="flex flex-col items-center text-center text-md">
+                        <div>"By signing up, you agree to our"</div>
+                        <a class="font-bold text-pink-300" target="_blank" href="/terms-of-service">
+                            "Terms of Service"
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

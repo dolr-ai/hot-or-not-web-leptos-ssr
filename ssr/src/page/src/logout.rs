@@ -32,14 +32,10 @@ pub fn Logout() -> impl IntoView {
                             set_notifs_enabled(false);
                             set_device_id(uuid::Uuid::new_v4().to_string());
                             LogoutConfirmation.send_event(ev_ctx);
-                            view! {
-                                <Redirect path="/menu" />
-                            }
-                        },
+                            view! { <Redirect path="/menu" /> }
+                        }
                         Err(e) => {
-                            view! {
-                                <Redirect path=format!("/error?err={e}") />
-                            }
+                            view! { <Redirect path=format!("/error?err={e}") /> }
                         }
                     }
                 })}

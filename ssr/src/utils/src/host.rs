@@ -64,20 +64,20 @@ mod tests {
 
     #[test]
     fn preview_origin_regex_matches() {
-        let preview_link_url = "https://pr-636-yral-dapp-hot-or-not-web-leptos-ssr.fly.dev";
+        let preview_link_url = "https://pr-636-dolr-ai-hot-or-not-web-leptos-ssr.fly.dev";
         assert!(is_host_or_origin_from_preview_domain(preview_link_url))
     }
 
     #[test]
     fn preview_host_regex_matches() {
-        let preview_link_url = "pr-636-yral-dapp-hot-or-not-web-leptos-ssr.fly.dev";
+        let preview_link_url = "pr-636-dolr-ai-hot-or-not-web-leptos-ssr.fly.dev";
         assert!(is_host_or_origin_from_preview_domain(preview_link_url))
     }
 
     #[test]
     fn preview_localhost_fails() {
         let preview_link_url =
-            "https://ramdom.com/pr-636-yral-dapp-hot-or-not-web-leptos-ssr.fly.dev";
+            "https://ramdom.com/pr-636-dolr-ai-hot-or-not-web-leptos-ssr.fly.dev";
         assert!(!is_host_or_origin_from_preview_domain(preview_link_url))
     }
 }
