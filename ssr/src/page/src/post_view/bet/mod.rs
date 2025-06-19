@@ -93,6 +93,7 @@ fn HNButton(
     bet_direction: RwSignal<Option<VoteKind>>,
     kind: VoteKind,
     #[prop(into)] disabled: Signal<bool>,
+    place_bet_action: Action<VoteKind, Option<()>>,
 ) -> impl IntoView {
     let grayscale = Memo::new(move |_| bet_direction() != Some(kind) && disabled());
     let show_spinner = move || disabled() && bet_direction() == Some(kind);
@@ -107,7 +108,7 @@ fn HNButton(
             class="w-14 h-14 md:w-16 md:h-16 md:w-18 lg:h-18"
             class=("grayscale", grayscale)
             disabled=disabled
-            on:click=move |_| bet_direction.set(Some(kind))
+            on:click=move |_| {bet_direction.set(Some(kind)); place_bet_action.dispatch((kind));}
         >
             <Show when=move || !show_spinner() fallback=SpinnerFit>
                 <Icon attr:class="w-full h-full drop-shadow-lg" icon=icon />
@@ -156,10 +157,10 @@ fn HNButtonOverlay(
         }
     }
 
-    let place_bet_action = Action::new(move |(bet_direction, bet_amount): &(VoteKind, u64)| {
+    let place_bet_action: Action<VoteKind, Option<()>> = Action::new(move |bet_direction: &VoteKind| {
         let post_canister = post.canister_id;
         let post_id = post.post_id;
-        let bet_amount = *bet_amount;
+        let bet_amount: u64 = coin.get_untracked().into();
         let bet_direction = *bet_direction;
         let req = hon_worker_common::VoteRequest {
             post_canister,
@@ -177,6 +178,7 @@ fn HNButtonOverlay(
             let sig = sign_vote_request(identity, req.clone()).ok()?;
 
             let res = vote_with_cents_on_post(sender, req, sig, prev_post).await;
+            refetch_bet.notify();
             match res {
                 Ok(res) => {
                     let is_logged_in = is_connected.get_untracked();
@@ -226,31 +228,31 @@ fn HNButtonOverlay(
             }
         })
     });
-    let place_bet_res = place_bet_action.value();
-    Effect::new(move |_| {
-        if place_bet_res.get().flatten().is_some() {
-            refetch_bet.notify();
-        }
-    });
+    // let place_bet_res = place_bet_action.value();
+    // Effect::new(move |_| {
+    //     if place_bet_res.get().flatten().is_some() {
+    //         refetch_bet.notify();
+    //     }
+    // });
     let running = place_bet_action.pending();
 
-    let BetEligiblePostCtx { can_place_bet } = expect_context();
+    // let BetEligiblePostCtx { can_place_bet } = expect_context();
 
-    Effect::new(move |_| {
-        if !running.get() {
-            can_place_bet.set(true)
-        } else {
-            can_place_bet.set(false)
-        }
-    });
+    // Effect::new(move |_| {
+    //     if !running.get() {
+    //         can_place_bet.set(true)
+    //     } else {
+    //         can_place_bet.set(false)
+    //     }
+    // });
 
-    Effect::new(move |_| {
-        let Some(bet_direction) = bet_direction() else {
-            return;
-        };
-        let bet_amount = coin.get_untracked().into();
-        place_bet_action.dispatch((bet_direction, bet_amount));
-    });
+    // Effect::new(move |_| {
+    //     let Some(bet_direction) = bet_direction() else {
+    //         return;
+    //     };
+    //     let bet_amount = coin.get_untracked().into();
+    //     place_bet_action.dispatch((bet_direction, bet_amount));
+    // });
 
     view! {
         <div class="flex justify-center w-full touch-manipulation">
@@ -262,7 +264,7 @@ fn HNButtonOverlay(
             </button>
         </div>
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
-            <HNButton disabled=running bet_direction kind=VoteKind::Hot />
+            <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
                 <CoinStateView
                     disabled=running
@@ -270,7 +272,7 @@ fn HNButtonOverlay(
                     coin
                 />
             </button>
-            <HNButton disabled=running bet_direction kind=VoteKind::Not />
+            <HNButton disabled=running bet_direction kind=VoteKind::Not place_bet_action />
         </div>
         // Bottom row: Hot <down arrow> Not
         // most of the CSS is for alignment with above icons
