@@ -1,7 +1,6 @@
 #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
 pub mod yral;
 use candid::Principal;
-use consts::LoginProvider;
 use consts::NEW_USER_SIGNUP_REWARD;
 use hon_worker_common::limits::REFERRAL_REWARD;
 use hon_worker_common::sign_referral_request;
@@ -153,8 +152,6 @@ pub fn LoginProviders(
     let auth = auth_state();
 
     let processing = RwSignal::new(None);
-
-    let signing_in_provider = RwSignal::new(LoginProvider::Google);
 
     let login_action = Action::new(move |id: &DelegatedIdentityWire| {
         // Clone the necessary parts

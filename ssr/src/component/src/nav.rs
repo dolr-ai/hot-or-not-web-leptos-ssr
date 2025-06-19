@@ -9,9 +9,12 @@ use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_router::hooks::use_location;
 use leptos_use::{storage::use_local_storage, use_cookie_with_options, UseCookieOptions};
-use utils::{types::PostParams, mixpanel::mixpanel_events::{
-    BottomNavigationCategory, MixPanelEvent, MixpanelBottomNavigationProps, MixpanelGlobalProps,
-}};
+use utils::{
+    mixpanel::mixpanel_events::{
+        BottomNavigationCategory, MixPanelEvent, MixpanelBottomNavigationProps, MixpanelGlobalProps,
+    },
+    types::PostParams,
+};
 
 #[derive(Clone)]
 struct NavItem {
