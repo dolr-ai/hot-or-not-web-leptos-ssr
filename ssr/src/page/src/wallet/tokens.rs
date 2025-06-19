@@ -21,6 +21,7 @@
 
 use std::time::Duration;
 
+use crate::wallet::airdrop::dolr_airdrop::is_user_eligible_for_dolr_airdrop;
 use crate::wallet::airdrop::{
     claim_sats_airdrop, AirdropClaimState, SatsAirdropPopup, StatefulAirdropPopup,
 };
@@ -67,6 +68,7 @@ pub fn TokenViewFallback() -> impl IntoView {
 #[allow(unused)]
 enum AirdropStatusFetcherType {
     Sats,
+    Dolr,
     MockAvailable,
     MockWaiting,
     NonAirdropable,
@@ -82,6 +84,15 @@ impl AirdropStatusFetcherType {
             Self::Sats => {
                 let eligible =
                     is_user_eligible_for_sats_airdrop(user_canister, user_principal).await?;
+                Some(if eligible {
+                    AirdropStatus::Available
+                } else {
+                    AirdropStatus::Claimed
+                })
+            }
+            Self::Dolr => {
+                let eligible =
+                    is_user_eligible_for_dolr_airdrop(user_canister, user_principal).await?;
                 Some(if eligible {
                     AirdropStatus::Available
                 } else {
@@ -185,7 +196,7 @@ impl From<TokenType> for AirdropStatusFetcherType {
     fn from(value: TokenType) -> Self {
         match value {
             TokenType::Sats => Self::Sats,
-            TokenType::Dolr => Self::MockAvailable,
+            TokenType::Dolr => Self::Dolr,
             _ => Self::NonAirdropable,
         }
     }

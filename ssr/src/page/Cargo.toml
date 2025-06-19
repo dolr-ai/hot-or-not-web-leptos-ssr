@@ -87,6 +87,8 @@ send_wrapper = { workspace = true }
 rand.workspace = true
 indexmap.workspace = true
 yral-identity.workspace = true
+yral-spacetime-bindings = { workspace = true, optional = true }
+fasthash = { workspace = true, optional = true }
 
 # local deps`
 auth = { workspace = true }
@@ -179,6 +181,10 @@ oauth-hydrate = [
     "utils/oauth-hydrate",
     "component/oauth-hydrate",
     "state/oauth-hydrate",
+]
+stdb-backend = [
+    "dep:yral-spacetime-bindings",
+    "dep:fasthash"
 ]
 redis-kv = [
     "consts/redis-kv",

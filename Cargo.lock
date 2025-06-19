@@ -5629,6 +5629,7 @@ dependencies = [
  "consts",
  "crc32fast",
  "dotenv",
+ "fasthash",
  "futures",
  "getrandom 0.3.3",
  "gloo",
@@ -5696,6 +5697,7 @@ dependencies = [
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-pump-n-dump-common",
+ "yral-spacetime-bindings",
  "yral-testcontainers",
  "yral-types",
 ]
@@ -9812,7 +9814,7 @@ dependencies = [
 [[package]]
 name = "yral-spacetime-bindings"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-spacetime?branch=feat%2Fdolr-airdrop#2abfce269bc5b94c1e58b0e14ee0f5c61298e042"
+source = "git+https://github.com/dolr-ai/yral-spacetime?branch=feat%2Fdolr-airdrop#cce4f3b34064f8efb93ca570293bea0b8936e5cc"
 dependencies = [
  "spacetimedb-sdk",
 ]

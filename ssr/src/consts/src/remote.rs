@@ -9,10 +9,10 @@ pub const AGENT_URL: &str = "https://ic0.app";
 pub static PUMP_AND_DUMP_WORKER_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://yral-pump-n-dump.go-bazzinga.workers.dev/").unwrap());
 
-pub const STDB_URL: &str = "https://maincloud.spacetimedb.com";
+pub const STDB_URL: &str = "http://localhost:5000";
 
 // TODO: switch to prod module
-pub const BACKEND_MODULE_IDENTITY: &str = "pr-6-yral-backend";
+pub const BACKEND_MODULE_IDENTITY: &str = "local-backend";
 
 // TODO: load secret from env
 pub static STDB_ACCESS_TOKEN: Lazy<Option<String>> = Lazy::new(|| None);

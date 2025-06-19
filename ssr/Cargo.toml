@@ -256,6 +256,7 @@ stdb-backend = [
     "dep:yral-spacetime-bindings",
     "dep:fasthash",
     "state/stdb-backend",
+    "page/stdb-backend",
 ]
 release-bin = [
     "ssr",

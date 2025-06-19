@@ -23,7 +23,7 @@ use yral_canisters_common::{
 };
 use yral_identity::Signature;
 
-mod dolr_airdrop;
+pub mod dolr_airdrop;
 
 pub async fn is_airdrop_claimed(user_principal: Principal) -> Result<bool, ServerFnError> {
     let req_url: Url = WORKER_URL.parse().expect("url to be valid");
