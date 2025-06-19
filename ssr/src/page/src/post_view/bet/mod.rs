@@ -1,6 +1,5 @@
 mod server_impl;
 
-use crate::post_view::BetEligiblePostCtx;
 use component::{bullet_loader::BulletLoader, hn_icons::*, spinner::SpinnerFit};
 use hon_worker_common::{sign_vote_request, GameInfo, GameResult, WORKER_URL};
 use ic_agent::Identity;
@@ -108,7 +107,7 @@ fn HNButton(
             class="w-14 h-14 md:w-16 md:h-16 md:w-18 lg:h-18"
             class=("grayscale", grayscale)
             disabled=disabled
-            on:click=move |_| {bet_direction.set(Some(kind)); place_bet_action.dispatch((kind));}
+            on:click=move |_| {bet_direction.set(Some(kind)); place_bet_action.dispatch(kind);}
         >
             <Show when=move || !show_spinner() fallback=SpinnerFit>
                 <Icon attr:class="w-full h-full drop-shadow-lg" icon=icon />
@@ -146,7 +145,7 @@ fn HNButtonOverlay(
             } else {
                 log::debug!("browser does not support vibrate");
             }
-            let Some(audio) = audio_ref.get() else {
+            let Some(audio) = audio_ref.get_untracked() else {
                 return;
             };
             if won {
@@ -157,102 +156,80 @@ fn HNButtonOverlay(
         }
     }
 
-    let place_bet_action: Action<VoteKind, Option<()>> = Action::new(move |bet_direction: &VoteKind| {
-        let post_canister = post.canister_id;
-        let post_id = post.post_id;
-        let bet_amount: u64 = coin.get_untracked().into();
-        let bet_direction = *bet_direction;
-        let req = hon_worker_common::VoteRequest {
-            post_canister,
-            post_id,
-            vote_amount: bet_amount as u128,
-            direction: bet_direction.into(),
-        };
-        let prev_post = prev_post.as_ref().map(|p| (p.canister_id, p.post_id));
+    let place_bet_action: Action<VoteKind, Option<()>> =
+        Action::new(move |bet_direction: &VoteKind| {
+            let post_canister = post.canister_id;
+            let post_id = post.post_id;
+            let bet_amount: u64 = coin.get_untracked().into();
+            let bet_direction = *bet_direction;
+            let req = hon_worker_common::VoteRequest {
+                post_canister,
+                post_id,
+                vote_amount: bet_amount as u128,
+                direction: bet_direction.into(),
+            };
+            let prev_post = prev_post.as_ref().map(|p| (p.canister_id, p.post_id));
 
-        let post_mix = post.clone();
-        send_wrap(async move {
-            let cans = auth.auth_cans(expect_context()).await.ok()?;
-            let identity = cans.identity();
-            let sender = identity.sender().unwrap();
-            let sig = sign_vote_request(identity, req.clone()).ok()?;
+            let post_mix = post.clone();
+            send_wrap(async move {
+                let cans = auth.auth_cans(expect_context()).await.ok()?;
+                let identity = cans.identity();
+                let sender = identity.sender().unwrap();
+                let sig = sign_vote_request(identity, req.clone()).ok()?;
 
-            let res = vote_with_cents_on_post(sender, req, sig, prev_post).await;
-            refetch_bet.notify();
-            match res {
-                Ok(res) => {
-                    let is_logged_in = is_connected.get_untracked();
-                    let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-                    let game_conclusion = match res.game_result {
-                        GameResult::Win { .. } => GameConclusion::Win,
-                        GameResult::Loss { .. } => GameConclusion::Loss,
-                    };
-                    let win_loss_amount = match res.game_result.clone() {
-                        GameResult::Win { win_amt } => {
-                            TokenBalance::new((win_amt + bet_amount).into(), 0).humanize()
-                        }
-                        GameResult::Loss { lose_amt } => {
-                            TokenBalance::new((lose_amt + 0u64).into(), 0).humanize()
-                        }
-                    };
-                    MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
-                        is_nsfw: post_mix.is_nsfw,
-                        user_id: global.user_id,
-                        visitor_id: global.visitor_id,
-                        is_logged_in: global.is_logged_in,
-                        canister_id: global.canister_id,
-                        is_nsfw_enabled: global.is_nsfw_enabled,
-                        game_type: MixpanelPostGameType::HotOrNot,
-                        option_chosen: bet_direction.into(),
-                        publisher_user_id: post_mix.poster_principal.to_text(),
-                        video_id: post_mix.uid.clone(),
-                        view_count: post_mix.views,
-                        like_count: post_mix.likes,
-                        stake_amount: bet_amount,
-                        is_game_enabled: true,
-                        stake_type: StakeType::Sats,
-                        conclusion: game_conclusion,
-                        won_loss_amount: win_loss_amount,
-                        creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
-                    });
-                    play_win_sound_and_vibrate(
-                        audio_ref,
-                        matches!(res.game_result, GameResult::Win { .. }),
-                    );
-                    Some(())
+                let res = vote_with_cents_on_post(sender, req, sig, prev_post).await;
+                refetch_bet.notify();
+                match res {
+                    Ok(res) => {
+                        let is_logged_in = is_connected.get_untracked();
+                        let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
+                        let game_conclusion = match res.game_result {
+                            GameResult::Win { .. } => GameConclusion::Win,
+                            GameResult::Loss { .. } => GameConclusion::Loss,
+                        };
+                        let win_loss_amount = match res.game_result.clone() {
+                            GameResult::Win { win_amt } => {
+                                TokenBalance::new((win_amt + bet_amount).into(), 0).humanize()
+                            }
+                            GameResult::Loss { lose_amt } => {
+                                TokenBalance::new((lose_amt + 0u64).into(), 0).humanize()
+                            }
+                        };
+                        MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
+                            is_nsfw: post_mix.is_nsfw,
+                            user_id: global.user_id,
+                            visitor_id: global.visitor_id,
+                            is_logged_in: global.is_logged_in,
+                            canister_id: global.canister_id,
+                            is_nsfw_enabled: global.is_nsfw_enabled,
+                            game_type: MixpanelPostGameType::HotOrNot,
+                            option_chosen: bet_direction.into(),
+                            publisher_user_id: post_mix.poster_principal.to_text(),
+                            video_id: post_mix.uid.clone(),
+                            view_count: post_mix.views,
+                            like_count: post_mix.likes,
+                            stake_amount: bet_amount,
+                            is_game_enabled: true,
+                            stake_type: StakeType::Sats,
+                            conclusion: game_conclusion,
+                            won_loss_amount: win_loss_amount,
+                            creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
+                        });
+                        play_win_sound_and_vibrate(
+                            audio_ref,
+                            matches!(res.game_result, GameResult::Win { .. }),
+                        );
+                        Some(())
+                    }
+                    Err(e) => {
+                        log::error!("{e}");
+                        None
+                    }
                 }
-                Err(e) => {
-                    log::error!("{e}");
-                    None
-                }
-            }
-        })
-    });
-    // let place_bet_res = place_bet_action.value();
-    // Effect::new(move |_| {
-    //     if place_bet_res.get().flatten().is_some() {
-    //         refetch_bet.notify();
-    //     }
-    // });
+            })
+        });
+
     let running = place_bet_action.pending();
-
-    // let BetEligiblePostCtx { can_place_bet } = expect_context();
-
-    // Effect::new(move |_| {
-    //     if !running.get() {
-    //         can_place_bet.set(true)
-    //     } else {
-    //         can_place_bet.set(false)
-    //     }
-    // });
-
-    // Effect::new(move |_| {
-    //     let Some(bet_direction) = bet_direction() else {
-    //         return;
-    //     };
-    //     let bet_amount = coin.get_untracked().into();
-    //     place_bet_action.dispatch((bet_direction, bet_amount));
-    // });
 
     view! {
         <div class="flex justify-center w-full touch-manipulation">
