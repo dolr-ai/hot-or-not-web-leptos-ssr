@@ -94,6 +94,8 @@ consts = { workspace = true }
 utils.workspace = true
 component.workspace = true
 state.workspace = true
+yral-spacetime-bindings = { git = "https://github.com/dolr-ai/yral-spacetime", branch = "feat/dolr-airdrop", version = "0.1.0" }
+fasthash = "0.4.0"
 
 [features]
 hydrate = [
