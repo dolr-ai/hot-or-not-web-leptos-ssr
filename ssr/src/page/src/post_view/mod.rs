@@ -66,7 +66,7 @@ pub struct FeedPostCtx {
 impl PostViewCtx {
     pub fn new() -> Self {
         let mut video_queue_for_feed = Vec::new();
-        for i in 0..200 {
+        for i in 0..100 {
             video_queue_for_feed.push(FeedPostCtx {
                 key: i,
                 value: RwSignal::new(None),
