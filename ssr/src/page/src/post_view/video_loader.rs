@@ -1,18 +1,18 @@
-use std::cmp::Ordering;
+// use std::cmp::Ordering;
 
 use indexmap::IndexSet;
 use leptos::html::Audio;
-use leptos::{ev, logging};
+use leptos::logging;
 use leptos::{html::Video, prelude::*};
-use leptos_use::use_event_listener;
-use state::canisters::{auth_state, unauth_canisters};
-use utils::mixpanel::mixpanel_events::*;
-use utils::send_wrap;
-use yral_canisters_client::individual_user_template::PostViewDetailsFromFrontend;
+// use leptos_use::use_event_listener;
+// use state::canisters::{auth_state, unauth_canisters};
+// use utils::mixpanel::mixpanel_events::*;
+// use utils::send_wrap;
+// use yral_canisters_client::individual_user_template::PostViewDetailsFromFrontend;
 
 use crate::post_view::BetEligiblePostCtx;
 use component::video_player::VideoPlayer;
-use utils::event_streaming::events::VideoWatched;
+// use utils::event_streaming::events::VideoWatched;
 use utils::{bg_url, mp4_url};
 
 use super::{overlay::VideoDetailsOverlay, PostDetails};
@@ -81,8 +81,8 @@ pub fn VideoView(
     let post_for_uid = post;
     // let post_for_mixpanel = post;
     let uid = Memo::new(move |_| post_for_uid.with(|p| p.as_ref().map(|p| p.uid.clone())));
-    let view_bg_url = move || uid().map(bg_url);
-    let view_video_url = move || uid().map(mp4_url);
+    // let view_bg_url = move || uid().map(bg_url);
+    // let view_video_url = move || uid().map(mp4_url);
     // let mixpanel_video_muted = RwSignal::new(muted.get_untracked());
 
     // let auth = auth_state();
@@ -133,17 +133,17 @@ pub fn VideoView(
         Some(())
     });
 
-    Effect::new(move |_| {
-        let vid = _ref.get()?;
-        // the attributes in DOM don't seem to be working
-        // vid.set_muted(muted.get_untracked());
-        // vid.set_loop(true);
-        // if autoplay_at_render {
-        //     vid.set_autoplay(true);
-        //     _ = vid.play();
-        // }
-        Some(())
-    });
+    // Effect::new(move |_| {
+    //     let vid = _ref.get()?;
+    //     // the attributes in DOM don't seem to be working
+    //     // vid.set_muted(muted.get_untracked());
+    //     // vid.set_loop(true);
+    //     // if autoplay_at_render {
+    //     //     vid.set_autoplay(true);
+    //     //     _ = vid.play();
+    //     // }
+    //     Some(())
+    // });
 
     // Video views send to canister
     // 1. When video is paused -> partial video view
@@ -258,7 +258,7 @@ pub fn VideoViewForQueue(
     // Effect::new(move |_| {
     //     let Some(vid) = container_ref.get() else { return; };
     //     let diff = current_idx.get() as i32 - idx as i32;
-  
+
     //     if diff > 1 {  // More aggressive on mobile
     //         vid.set_src("");  // Clear src completely
     //         vid.remove_attribute("poster").ok();
@@ -276,7 +276,7 @@ pub fn VideoViewForQueue(
             return;
         };
         // log::info!("effect running for idx: {} current_idx: {}", idx, current_idx.get_untracked());
-        if to_load() && vid.src() == ""{
+        if to_load() && vid.src() == "" {
             let view_bg_url = bg_url(post.uid.clone());
             let view_video_url = mp4_url(post.uid.clone());
             vid.set_poster(&view_bg_url);
@@ -294,7 +294,11 @@ pub fn VideoViewForQueue(
             vid.set_autoplay(false);
             return;
         }
-        log::info!("effect running for idx: {} current_idx: {}", idx, current_idx.get_untracked());
+        log::info!(
+            "effect running for idx: {} current_idx: {}",
+            idx,
+            current_idx.get_untracked()
+        );
         // vid.set_muted(muted.get());
         vid.set_autoplay(true);
         let promise = vid.play();

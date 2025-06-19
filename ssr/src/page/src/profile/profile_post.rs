@@ -12,7 +12,7 @@ use leptos_use::use_debounce_fn;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::{route::failure_redirect, send_wrap, try_or_redirect};
 
-use crate::scrolling_post_view::ScrollingPostView;
+// use crate::scrolling_post_view::ScrollingPostView;
 
 use super::{
     overlay::YourProfileOverlay,

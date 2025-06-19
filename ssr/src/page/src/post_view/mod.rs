@@ -18,7 +18,7 @@ use codee::string::FromToStringCodec;
 use futures::StreamExt;
 use leptos::prelude::*;
 use leptos_router::{
-    hooks::{use_navigate, use_params, use_query_map},
+    hooks::{use_navigate, use_params},
     params::Params,
 };
 use leptos_use::{storage::use_local_storage, use_debounce_fn};
@@ -211,7 +211,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                             let len_vq = vq.len();
 
                             video_queue_for_feed.update(|vqf| {
-                                vqf[len_vq-1].value.set(Some(next.clone()));
+                                vqf[len_vq - 1].value.set(Some(next.clone()));
                             });
                             cnt += 1;
                         }
@@ -266,7 +266,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                                 if vq.insert(post_detail.clone()) {
                                     let len_vq = vq.len();
                                     video_queue_for_feed.update(|vqf| {
-                                        vqf[len_vq-1].value.set(Some(post_detail.clone()));
+                                        vqf[len_vq - 1].value.set(Some(post_detail.clone()));
                                     });
                                 }
                             });
