@@ -101,7 +101,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                         });
                         let to_load = Signal::derive(move || {
                             let cidx = current_idx.get() as i32;
-                            (queue_idx as i32 - cidx) <= 2 && (queue_idx as i32 - cidx) >= 0
+                            (queue_idx as i32 - cidx) <= 5 && (queue_idx as i32 - cidx) >= 0
                         });
                         // let post = Signal::derive(move || {
                         //     details.value.clone()
