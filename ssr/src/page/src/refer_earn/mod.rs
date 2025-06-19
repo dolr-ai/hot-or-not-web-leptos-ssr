@@ -28,7 +28,7 @@ async fn delete_user_test(identity: DelegatedIdentityWire) -> Result<(), ServerF
     });
 
     let response = client
-        .delete("https://pr-214-dolr-ai-off-chain-agent.fly.dev/api/v1/user/")
+        .delete("https://pr-214-dolr-ai-off-chain-agent.fly.dev/api/v1/user")
         .json(&body)
         .send()
         .await?;
