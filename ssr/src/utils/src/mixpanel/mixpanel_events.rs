@@ -734,21 +734,36 @@ impl MixPanelEvent {
                 }
                 if props.page.contains("/profile/") {
                     let home_props: MixpanelPageViewedProps = props.clone();
-                    let principal = if home_props.user_id.is_some() {
-                        home_props.user_id.clone().unwrap()
-                    } else {
-                        home_props.visitor_id.clone().unwrap()
-                    };
-                    let is_own_profile = props.page.contains(principal.as_str());
-                    Self::track_profile_page_viewed(MixpanelProfilePageViewedProps {
-                        user_id: home_props.user_id,
-                        visitor_id: home_props.visitor_id,
-                        is_logged_in: home_props.is_logged_in,
-                        canister_id: home_props.canister_id,
-                        is_nsfw_enabled: home_props.is_nsfw_enabled,
-                        is_own_profile,
-                        publisher_user_id: principal,
-                    });
+                    let publisher_user_id = home_props
+                        .page
+                        .split("/profile/")
+                        .nth(1)
+                        .and_then(|s| s.split('/').next())
+                        .unwrap_or_default()
+                        .to_string();
+
+                    if Principal::from_text(publisher_user_id.clone())
+                        .ok()
+                        .is_some()
+                    {
+                        let principal = if home_props.user_id.is_some() {
+                            home_props.user_id.clone().unwrap()
+                        } else {
+                            home_props.visitor_id.clone().unwrap()
+                        };
+
+                        let is_own_profile = publisher_user_id == principal;
+
+                        Self::track_profile_page_viewed(MixpanelProfilePageViewedProps {
+                            user_id: home_props.user_id,
+                            visitor_id: home_props.visitor_id,
+                            is_logged_in: home_props.is_logged_in,
+                            canister_id: home_props.canister_id,
+                            is_nsfw_enabled: home_props.is_nsfw_enabled,
+                            is_own_profile,
+                            publisher_user_id,
+                        });
+                    }
                 }
                 track_event("page_viewed", props);
             },
