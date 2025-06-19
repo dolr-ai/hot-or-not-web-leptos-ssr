@@ -14,34 +14,7 @@ use component::{back_btn::BackButton, buttons::HighlightedButton, title::TitleTe
 use state::app_state::AppState;
 use state::canisters::auth_state;
 use utils::event_streaming::events::{Refer, ReferShareLink};
-use utils::send_wrap;
 use utils::web::copy_to_clipboard;
-use yral_types::delegated_identity::DelegatedIdentityWire;
-
-async fn delete_user_test(identity: DelegatedIdentityWire) -> Result<(), ServerFnError> {
-    use reqwest::Client;
-    use serde_json::json;
-
-    let client = Client::new();
-    let body = json!({
-        "delegated_identity_wire": identity
-    });
-
-    let response = client
-        .delete("https://pr-214-dolr-ai-off-chain-agent.fly.dev/api/v1/user")
-        .json(&body)
-        .send()
-        .await?;
-
-    if response.status().is_success() {
-        Ok(())
-    } else {
-        Err(ServerFnError::ServerError(format!(
-            "Delete user failed with status: {}",
-            response.status()
-        )))
-    }
-}
 
 #[component]
 fn WorkButton(#[prop(into)] text: String, #[prop(into)] head: String) -> impl IntoView {
@@ -97,21 +70,14 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
 
     let click_copy = Action::new(move |refer_link: &String| {
         let refer_link = refer_link.clone();
-
-        send_wrap(async move {
+        async move {
             let _ = copy_to_clipboard(&refer_link);
-
-            // Call the delete user test server function
-            if let Ok(identity) = auth.user_identity.await {
-                let res = delete_user_test(identity).await;
-                leptos::logging::log!("delete_user_test: {:?}", res);
-            }
 
             ReferShareLink.send_event(ev_ctx);
 
             show_copied_popup.set(true);
             Timeout::new(1200, move || show_copied_popup.set(false)).forget();
-        })
+        }
     });
     let refer_link_share = refer_link.clone();
     let handle_share = move || {

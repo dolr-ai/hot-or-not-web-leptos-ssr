@@ -29,10 +29,8 @@ fn CtxProvider(children: Children) -> impl IntoView {
 
     // Monitor auth errors and navigate to logout if needed
     Effect::new(move |_| {
-        if let Some(Err(e)) = auth.user_identity.get() {
-            if e.to_string().contains("AUTH_ERROR:LOGOUT_REQUIRED") {
-                navigate("/logout", Default::default());
-            }
+        if let Some(Err(_)) = auth.user_identity.get() {
+            navigate("/logout", Default::default());
         }
     });
 
