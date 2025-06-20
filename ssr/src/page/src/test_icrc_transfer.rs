@@ -1,18 +1,30 @@
 use crate::wallet::airdrop::dolr_airdrop::send_airdrop_to_user;
 use candid::{Nat, Principal};
 use leptos::prelude::*;
+use yral_canisters_client::sns_ledger::TransferResult;
 
 #[server(input = server_fn::codec::Json)]
-async fn send_money_impl() -> Result<(), ServerFnError> {
+async fn send_money_impl() -> Result<String, ServerFnError> {
     let tushar_principal =
         Principal::from_text("v6uzq-up7cy-os5rl-oxyp6-vodok-prm66-lbrwu-r6qes-otn5a-kwfeb-hae")
             .expect("valid");
     // .123dolr
     let amount = Nat::from(123_000_usize);
 
-    send_airdrop_to_user(tushar_principal, amount).await?;
+    let (res, admin_principal) = send_airdrop_to_user(tushar_principal, amount).await?;
 
-    Ok(())
+    if admin_principal.to_text()
+        != "zg7n3-345by-nqf6o-3moz4-iwxql-l6gko-jqdz2-56juu-ja332-unymr-fqe"
+    {
+        return Err(ServerFnError::new(format!(
+            "unknown admin: {admin_principal}"
+        )));
+    }
+
+    match res {
+        TransferResult::Ok(nat) => Ok(format!("{nat}")),
+        TransferResult::Err(err) => Err(ServerFnError::new(format!("transfer error: {err:?}"))),
+    }
 }
 
 #[component]
