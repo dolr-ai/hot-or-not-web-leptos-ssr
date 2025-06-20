@@ -77,6 +77,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                     return;
                                 }
                                 current_idx.set(queue_idx);
+
                                 if video_queue.with_untracked(|q| q.len()).saturating_sub(queue_idx)
                                     <= threshold_trigger_fetch
                                 {
@@ -88,6 +89,13 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                 .root(Some(scroll_root)),
                         );
                         Effect::new(move |_| {
+                            if current_idx() > 199 {
+                                // hard refresh window
+                                let window = window();
+                                let _ = window
+                                    .location()
+                                    .set_href("/");
+                            }
                             let Some(container) = container_ref.get() else {
                                 return;
                             };
@@ -103,9 +111,6 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                             let cidx = current_idx.get() as i32;
                             (queue_idx as i32 - cidx) <= 10 && (queue_idx as i32 - cidx) >= -2
                         });
-                        // let post = Signal::derive(move || {
-                        //     details.value.clone()
-                        // });
                         view! {
                             <div node_ref=container_ref class="w-full h-full snap-always snap-end">
                                 <Show when=show_video>

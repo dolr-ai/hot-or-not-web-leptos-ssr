@@ -126,7 +126,7 @@ pub fn CommonPostViewWithUpdates(
         })
     }
 
-    // let current_post_params: RwSignal<Option<utils::types::PostParams>> = expect_context();
+    let current_post_params: RwSignal<Option<utils::types::PostParams>> = expect_context();
 
     Effect::new(move || {
         if !recovering_state.get_untracked() {
@@ -154,10 +154,10 @@ pub fn CommonPostViewWithUpdates(
         let Some((canister_id, post_id)) = current_post_base() else {
             return;
         };
-        // current_post_params.set(Some(utils::types::PostParams {
-        //     canister_id,
-        //     post_id,
-        // }));
+        current_post_params.set(Some(utils::types::PostParams {
+            canister_id,
+            post_id,
+        }));
         use_navigate()(
             &format!("/hot-or-not/{canister_id}/{post_id}",),
             Default::default(),
@@ -206,25 +206,12 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                 let mut prio_q = priority_q.write();
                 let mut cnt = 0;
                 while let Some((next, _)) = prio_q.pop_max() {
-                    // if video_queue
-                    //     .with_untracked(|vq| vq.len())
-                    //     .saturating_sub(current_idx.get_untracked())
-                    //     <= 6
-                    // {
-                    //     video_queue.update(|vq| {
-                    //         if vq.insert(next.clone()) {
-                    //             let len_vq = vq.len();
-                    //             video_queue_for_feed.update(|vqf| {
-                    //                 vqf[len_vq - 1].value.set(Some(next.clone()));
-                    //             });
-                    //         }
-                    //     });
-                    // } else {
-                    //     break;
-                    // }
                     video_queue.update(|vq| {
                         if vq.insert(next.clone()) {
                             let len_vq = vq.len();
+                            if len_vq > 200 {
+                                return;
+                            }
 
                             video_queue_for_feed.update(|vqf| {
                                 vqf[len_vq - 1].value.set(Some(next.clone()));
@@ -281,6 +268,9 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                             video_queue.update(|vq| {
                                 if vq.insert(post_detail.clone()) {
                                     let len_vq = vq.len();
+                                    if len_vq > 200 {
+                                        return;
+                                    }
                                     video_queue_for_feed.update(|vqf| {
                                         vqf[len_vq - 1].value.set(Some(post_detail.clone()));
                                     });

@@ -91,10 +91,8 @@ jobs:
 
       - name: lint check
         run: |
-          objcopy --version
-          # TODO: check this - removing cargo fmt requirement as its buggy: https://github.com/rust-lang/cargo/issues/15506
-          # cargo fmt --check
-          # cargo clippy --no-deps --all-features --release -- -D warnings
+          cargo fmt --check
+          cargo clippy --no-deps --all-features --release -- -D warnings
         env:
           RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
 

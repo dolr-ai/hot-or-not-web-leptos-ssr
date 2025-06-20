@@ -5,6 +5,7 @@ use leptos::html::Input;
 use leptos::prelude::Signal;
 use leptos::{ev, prelude::*};
 use leptos_use::{use_event_listener, use_timeout_fn, UseTimeoutFnReturn};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sns_validation::pbs::sns_pb::SnsInitPayload;
 use wasm_bindgen::JsCast;
@@ -101,6 +102,10 @@ impl HistoryCtx {
 
 #[cfg(feature = "ga4")]
 use crate::event_streaming::{send_event_ssr_spawn, send_event_warehouse_ssr_spawn};
+use crate::mixpanel::mixpanel_events::{
+    MixPanelEvent, MixpanelGlobalProps, MixpanelPostGameType, MixpanelVideoClickedCTAType,
+    MixpanelVideoClickedProps, MixpanelVideoViewedProps,
+};
 use leptos::html::Video;
 use yral_canisters_common::{
     utils::{posts::PostDetails, profile::ProfileDetails},
@@ -156,6 +161,69 @@ impl EventCtx {
     }
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct VideoEventData {
+    pub publisher_user_id: Option<Principal>,
+    pub user_id: Principal,
+    pub is_logged_in: bool,
+    pub display_name: Option<String>,
+    pub canister_id: Principal,
+    pub video_id: Option<String>,
+    pub video_category: String,
+    pub creator_category: String,
+    pub hashtag_count: Option<usize>,
+    pub is_nsfw: Option<bool>,
+    pub is_hotor_not: Option<bool>,
+    pub feed_type: String,
+    pub view_count: Option<u64>,
+    pub like_count: Option<u64>,
+    pub share_count: u64,
+    pub post_id: Option<u64>,
+    pub publisher_canister_id: Option<Principal>,
+    pub nsfw_probability: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub percentage_watched: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub absolute_watched: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub video_duration: Option<f64>,
+}
+
+impl VideoEventData {
+    pub fn from_details(
+        user: &EventUserDetails,
+        post: Option<&PostDetails>,
+        ctx: &EventCtx,
+    ) -> Self {
+        let nsfw_probability = post.map(|p| p.nsfw_probability);
+        let is_nsfw = nsfw_probability.map(|prob| prob > 0.5);
+
+        Self {
+            publisher_user_id: post.map(|p| p.poster_principal),
+            user_id: user.details.principal,
+            is_logged_in: ctx.is_connected(),
+            display_name: user.details.display_name.clone(),
+            canister_id: user.canister_id,
+            video_id: post.map(|p| p.uid.clone()),
+            video_category: "NA".to_string(),
+            creator_category: "NA".to_string(),
+            hashtag_count: post.map(|p| p.hastags.len()),
+            is_nsfw,
+            is_hotor_not: post.map(|p| p.is_hot_or_not()),
+            feed_type: "NA".to_string(),
+            view_count: post.map(|p| p.views),
+            like_count: post.map(|p| p.likes),
+            share_count: 0,
+            post_id: post.map(|p| p.post_id),
+            publisher_canister_id: post.map(|p| p.canister_id),
+            nsfw_probability,
+            percentage_watched: None,
+            absolute_watched: None,
+            video_duration: None,
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct VideoWatched;
 
@@ -165,19 +233,88 @@ impl VideoWatched {
         ctx: EventCtx,
         vid_details: Signal<Option<PostDetails>>,
         container_ref: NodeRef<Video>,
+        muted: RwSignal<bool>,
     ) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
+            // use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
+
             // video_viewed - analytics
             let (video_watched, set_video_watched) = signal(false);
             let (full_video_watched, set_full_video_watched) = signal(false);
+            let playing_started = RwSignal::new(false);
+            // let stall_start_time = RwSignal::new(None::<f64>);
 
-            let post_for_time = vid_details;
+            // // Setup 5-second stall/buffer timeout
+            // let UseTimeoutFnReturn {
+            //     start: start_stall_timeout,
+            //     stop: stop_stall_timeout,
+            //     ..
+            // } = use_timeout_fn(
+            //     move |_| {
+            //         leptos::logging::error!(
+            //             "Video has been stalled/buffering for more than 5 seconds"
+            //         );
+            //     },
+            //     5000.0, // 5 seconds
+            // );
+
+            // Clone timeout functions for use in multiple closures
+            // let stop_stall_timeout_playing = stop_stall_timeout.clone();
+            // let start_stall_timeout_waiting = start_stall_timeout.clone();
+            // let start_stall_timeout_stalled = start_stall_timeout.clone();
+            // let stop_stall_timeout_canplay = stop_stall_timeout.clone();
+            // let stop_stall_timeout_ended = stop_stall_timeout.clone();
+
+            // let _ = use_event_listener(container_ref, ev::playing, move |_evt| {
+            //     let Some(_) = container_ref.get() else {
+            //         return;
+            //     };
+            //     playing_started.set(true);
+            //     // Video is playing, stop the stall timeout
+            //     stop_stall_timeout_playing();
+            //     stall_start_time.set(None);
+            // });
+
+            // // Track when video starts buffering/waiting for data
+            // let _ = use_event_listener(container_ref, ev::waiting, move |evt| {
+            //     let Some(target) = evt.target() else {
+            //         return;
+            //     };
+            //     let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
+            //     let current_time = video.current_time();
+
+            //     leptos::logging::warn!("Video waiting/buffering at time: {}", current_time);
+            //     stall_start_time.set(Some(current_time));
+            //     start_stall_timeout_waiting(());
+            // });
+
+            // Track when video stalls
+            // let _ = use_event_listener(container_ref, ev::stalled, move |evt| {
+            //     let Some(target) = evt.target() else {
+            //         return;
+            //     };
+            //     // let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
+            //     // let current_time = video.current_time();
+
+            //     // leptos::logging::warn!("Video stalled at time: {}", current_time);
+            //     // if stall_start_time.get().is_none() {
+            //     //     stall_start_time.set(Some(current_time));
+            //     //     start_stall_timeout_stalled(());
+            //     // }
+            // });
+
+            // Stop stall timeout when video can play through
+            // let _ = use_event_listener(container_ref, ev::canplaythrough, move |_evt| {
+            //     stop_stall_timeout_canplay();
+            //     stall_start_time.set(None);
+            // });
+
             let _ = use_event_listener(container_ref, ev::timeupdate, move |evt| {
                 let Some(user) = ctx.user_details() else {
                     return;
                 };
-                let post_o = post_for_time();
+                let post_o = vid_details();
                 let post = post_o.as_ref();
 
                 let Some(target) = evt.target() else {
@@ -187,40 +324,22 @@ impl VideoWatched {
                 let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
                 let duration = video.duration();
                 let current_time = video.current_time();
-                let nsfw_probability = post.map(|p| p.nsfw_probability);
-                let is_nsfw = nsfw_probability.map(|prob| prob > 0.5);
+
                 if current_time < 0.95 * duration {
                     set_full_video_watched.set(false);
                 }
 
                 // send bigquery event when video is watched > 95%
                 if current_time >= 0.95 * duration && !full_video_watched.get() {
+                    // Initialize base event data and add duration-specific fields
+                    let mut event_data = VideoEventData::from_details(&user, post, &ctx);
+                    event_data.percentage_watched = Some(100.0);
+                    event_data.absolute_watched = Some(duration);
+                    event_data.video_duration = Some(duration);
+
                     send_event_warehouse_ssr_spawn(
                         "video_duration_watched".to_string(),
-                        json!({
-                            "publisher_user_id": post.map(|p| p.poster_principal),
-                            "user_id": user.details.principal,
-                            "is_loggedIn": ctx.is_connected(),
-                            "display_name": user.details.display_name.clone(),
-                            "canister_id": user.canister_id,
-                            "video_id": post.map(|p| p.uid.clone()),
-                            "video_category": "NA",
-                            "creator_category": "NApublisher_canister_id(",
-                            "hashtag_count": post.map(|p| p.hastags.len()),
-                            "is_NSFW": is_nsfw,
-                            "is_hotorNot": post.map(|p| p.is_hot_or_not()),
-                            "feed_type": "NA",
-                            "view_count": post.map(|p| p.views),
-                            "like_count": post.map(|p| p.likes),
-                            "share_count": 0,
-                            "percentage_watched": 100.0,
-                            "absolute_watched": duration,
-                            "video_duration": duration,
-                            "post_id": post.map(|p| p.post_id),
-                            "publisher_canister_id": post.map(|p| p.canister_id),
-                            "nsfw_probability": nsfw_probability,
-                        })
-                        .to_string(),
+                        serde_json::to_string(&event_data).unwrap_or_default(),
                     );
 
                     set_full_video_watched.set(true);
@@ -230,45 +349,52 @@ impl VideoWatched {
                     return;
                 }
 
-                if current_time >= 3.0 {
+                if current_time >= 3.0 && playing_started() {
+                    // Initialize event data for video_viewed event
+                    let event_data = VideoEventData::from_details(&user, post, &ctx);
+
                     let _ = send_event_ssr_spawn(
                         "video_viewed".to_string(),
-                        json!({
-                            "publisher_user_id": post.map(|p| p.poster_principal),
-                            "user_id": user.details.principal,
-                            "is_loggedIn": ctx.is_connected(),
-                            "display_name": user.details.display_name,
-                            "canister_id": user.canister_id,
-                            "video_id": post.map(|p| p.uid.clone()),
-                            "video_category": "NA",
-                            "creator_category": "NA",
-                            "hashtag_count": post.map(|p| p.hastags.len()),
-                            "is_NSFW": is_nsfw,
-                            "is_hotorNot": post.map(|p| p.is_hot_or_not()),
-                            "feed_type": "NA",
-                            "view_count": post.map(|p| p.views),
-                            "like_count": post.map(|p| p.likes),
-                            "share_count": 0,
-                            "post_id": post.map(|p| p.post_id),
-                            "publisher_canister_id": post.map(|p| p.canister_id),
-                            "nsfw_probability": nsfw_probability,
-                        })
-                        .to_string(),
+                        serde_json::to_string(&event_data).unwrap_or_default(),
                     );
+
+                    // Mixpanel tracking
+                    let Some(global) = MixpanelGlobalProps::from_ev_ctx(ctx) else {
+                        return;
+                    };
+                    if let Some(post) = post {
+                        let is_logged_in = ctx.is_connected();
+                        let is_game_enabled = true;
+
+                        MixPanelEvent::track_video_viewed(MixpanelVideoViewedProps {
+                            publisher_user_id: post.poster_principal.to_text(),
+                            user_id: global.user_id,
+                            visitor_id: global.visitor_id,
+                            is_logged_in,
+                            canister_id: global.canister_id,
+                            is_nsfw_enabled: global.is_nsfw_enabled,
+                            video_id: post.uid.clone(),
+                            view_count: post.views,
+                            like_count: post.likes,
+                            game_type: MixpanelPostGameType::HotOrNot,
+                            is_nsfw: post.is_nsfw,
+                            is_game_enabled,
+                        });
+                    }
+                    playing_started.set(false);
+
                     set_video_watched.set(true);
                 }
             });
 
             // video duration watched - warehousing
-            let post_for_warehouse = vid_details;
             let _ = use_event_listener(container_ref, ev::pause, move |evt| {
                 let Some(user) = ctx.user_details() else {
                     return;
                 };
-                let post_o = post_for_warehouse();
+                let post_o = vid_details();
                 let post = post_o.as_ref();
-                let nsfw_probability = post.map(|p| p.nsfw_probability);
-                let is_nsfw = nsfw_probability.map(|prob| prob > 0.5);
+
                 let Some(target) = evt.target() else {
                     leptos::logging::error!("No target found for video pause event");
                     return;
@@ -276,39 +402,71 @@ impl VideoWatched {
                 let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
                 let duration = video.duration();
                 let current_time = video.current_time();
+
                 if current_time < 0.1 {
                     return;
                 }
 
                 let percentage_watched = (current_time / duration) * 100.0;
 
+                // Initialize event data and add pause-specific fields
+                let mut event_data = VideoEventData::from_details(&user, post, &ctx);
+                event_data.percentage_watched = Some(percentage_watched);
+                event_data.absolute_watched = Some(current_time);
+                event_data.video_duration = Some(duration);
+
                 send_event_warehouse_ssr_spawn(
                     "video_duration_watched".to_string(),
-                    json!({
-                        "publisher_user_id": post.map(|p| p.poster_principal),
-                        "user_id": user.details.principal,
-                        "is_loggedIn": ctx.is_connected(),
-                        "display_name": user.details.display_name.clone(),
-                        "canister_id": user.canister_id,
-                        "video_id": post.map(|p| p.uid.clone()),
-                        "video_category": "NA",
-                        "creator_category": "NA",
-                        "hashtag_count": post.map(|p| p.hastags.len()),
-                        "is_NSFW": is_nsfw,
-                        "is_hotorNot": post.map(|p| p.is_hot_or_not()),
-                        "feed_type": "NA",
-                        "view_count": post.map(|p| p.views),
-                        "like_count": post.map(|p| p.likes),
-                        "share_count": 0,
-                        "percentage_watched": percentage_watched,
-                        "absolute_watched": current_time,
-                        "video_duration": duration,
-                        "post_id": post.map(|p| p.post_id),
-                        "publisher_canister_id": post.map(|p| p.canister_id),
-                        "nsfw_probability": nsfw_probability,
-                    })
-                    .to_string(),
+                    serde_json::to_string(&event_data).unwrap_or_default(),
                 );
+            });
+
+            // Stop stall timeout when video ends
+            // let _ = use_event_listener(container_ref, ev::ended, move |_evt| {
+            //     stop_stall_timeout_ended();
+            //     stall_start_time.set(None);
+            // });
+
+            // Track mute/unmute events
+            let mixpanel_video_muted = RwSignal::new(muted.get_untracked());
+
+            Effect::new(move |_| {
+                let current_muted = muted.get();
+                if current_muted == mixpanel_video_muted.get_untracked() {
+                    return;
+                }
+                mixpanel_video_muted.set(current_muted);
+
+                let Some(global) = MixpanelGlobalProps::from_ev_ctx(ctx) else {
+                    return;
+                };
+
+                let post_o = vid_details();
+                let post = post_o.as_ref();
+
+                if let Some(post) = post {
+                    let is_game_enabled = true;
+
+                    MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
+                        user_id: global.user_id,
+                        visitor_id: global.visitor_id,
+                        is_logged_in: global.is_logged_in,
+                        canister_id: global.canister_id,
+                        is_nsfw_enabled: global.is_nsfw_enabled,
+                        publisher_user_id: post.poster_principal.to_text(),
+                        like_count: post.likes,
+                        view_count: post.views,
+                        is_game_enabled,
+                        video_id: post.uid.clone(),
+                        is_nsfw: post.is_nsfw,
+                        game_type: MixpanelPostGameType::HotOrNot,
+                        cta_type: if current_muted {
+                            MixpanelVideoClickedCTAType::Mute
+                        } else {
+                            MixpanelVideoClickedCTAType::Unmute
+                        },
+                    });
+                }
             });
         }
     }

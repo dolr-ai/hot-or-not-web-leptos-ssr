@@ -24,7 +24,6 @@ pub fn VideoPlayer(
                 src=view_video_url
                 loop
                 muted
-                // autoplay
                 playsinline
                 disablepictureinpicture
                 disableremoteplayback
