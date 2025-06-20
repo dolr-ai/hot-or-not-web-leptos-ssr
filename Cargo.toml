@@ -17,12 +17,14 @@ inherits = "release"
 opt-level = 'z'
 lto = true
 codegen-units = 1
+strip = true
 # panic = "abort"
 
 [profile.prod-release]
 inherits = "release"
 debug = 1
 lto = true
+strip = true
 
 # TODO: leaving this here as a reminder to be used once cargo-leptos solves the profile issue
 # [profile.preview-release]
