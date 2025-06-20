@@ -30,6 +30,7 @@ fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
 ) -> impl IntoView {
     let ProfilePostsContext {
         video_queue,
+        video_queue_for_feed,
         start_index,
         current_index,
         queue_end,
@@ -62,6 +63,9 @@ fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
         video_queue.update_untracked(|vq| {
             let _ = vq.insert(initial_post.clone());
         });
+        video_queue_for_feed.update(|vqf| {
+            vqf[0].value.set(Some(initial_post.clone()));
+        });
         queue_end.set(true)
     }
 
@@ -80,7 +84,14 @@ fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
         queue_end.set(res.end);
         res.posts.into_iter().for_each(|p| {
             video_queue.try_update(|q| {
-                let _ = q.insert(p);
+                if q.insert(p.clone()) {
+                    let len_vq = q.len();
+                    if len_vq <= 200 {
+                        video_queue_for_feed.update(|vqf| {
+                            vqf[len_vq - 1].value.set(Some(p));
+                        });
+                    }
+                }
             });
         });
         fetch_cursor.try_update(|c| {
@@ -126,6 +137,7 @@ fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
     view! {
         <ScrollingPostView
             video_queue
+            video_queue_for_feed
             current_idx=current_index
             queue_end
             recovering_state

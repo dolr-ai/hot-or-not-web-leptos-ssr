@@ -21,12 +21,33 @@ use state::{
 use utils::send_wrap;
 use yral_canisters_common::utils::{posts::PostDetails, profile::ProfileDetails};
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct ProfilePostsContext {
     video_queue: RwSignal<IndexSet<PostDetails>>,
+    video_queue_for_feed: RwSignal<Vec<crate::post_view::FeedPostCtx>>,
     start_index: RwSignal<usize>,
     current_index: RwSignal<usize>,
     queue_end: RwSignal<bool>,
+}
+
+impl Default for ProfilePostsContext {
+    fn default() -> Self {
+        let mut video_queue_for_feed = Vec::new();
+        for i in 0..200 {
+            video_queue_for_feed.push(crate::post_view::FeedPostCtx {
+                key: i,
+                value: RwSignal::new(None),
+            });
+        }
+
+        Self {
+            video_queue: RwSignal::new(IndexSet::new()),
+            video_queue_for_feed: RwSignal::new(video_queue_for_feed),
+            start_index: RwSignal::new(0),
+            current_index: RwSignal::new(0),
+            queue_end: RwSignal::new(false),
+        }
+    }
 }
 
 #[derive(Params, PartialEq, Clone)]

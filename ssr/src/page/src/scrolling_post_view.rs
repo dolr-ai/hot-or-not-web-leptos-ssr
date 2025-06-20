@@ -1,4 +1,5 @@
 use crate::post_view::video_loader::{BgView, VideoViewForQueue};
+use crate::post_view::FeedPostCtx;
 use indexmap::IndexSet;
 use leptos::html;
 use leptos::prelude::*;
@@ -28,6 +29,7 @@ pub fn MuteIconOverlay(show_mute_icon: RwSignal<bool>) -> impl IntoView {
 #[component]
 pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
     video_queue: RwSignal<IndexSet<PostDetails>>,
+    video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
     current_idx: RwSignal<usize>,
     #[prop(optional)] fetch_next_videos: Option<F>,
     recovering_state: RwSignal<bool>,
@@ -54,9 +56,11 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                 {overlay.map(|o| o.run())}
 
                 <For
-                    each=move || video_queue.get().into_iter().enumerate()
-                    key=move |(_, details)| (details.canister_id, details.post_id)
-                    children=move |(queue_idx, _details)| {
+                    each=move || video_queue_for_feed.get()
+                    key=move |feedpost| (feedpost.key)
+                    children=move |feedpost| {
+                        let queue_idx = feedpost.key;
+                        let post = feedpost.value;
                         let container_ref = NodeRef::<html::Div>::new();
                         let next_videos = fetch_next_videos.clone();
                         use_intersection_observer_with_options(
@@ -73,6 +77,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                     return;
                                 }
                                 current_idx.set(queue_idx);
+
                                 if video_queue.with_untracked(|q| q.len()).saturating_sub(queue_idx)
                                     <= threshold_trigger_fetch
                                 {
@@ -84,6 +89,13 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                 .root(Some(scroll_root)),
                         );
                         Effect::new(move |_| {
+                            if current_idx() > 199 {
+                                // hard refresh window
+                                let window = window();
+                                let _ = window
+                                    .location()
+                                    .set_href("/");
+                            }
                             let Some(container) = container_ref.get() else {
                                 return;
                             };
@@ -93,23 +105,27 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                             }
                         });
                         let show_video = Memo::new(move |_| {
-                            queue_idx.abs_diff(current_idx()) <= 6
+                            (queue_idx as i32 - current_idx() as i32) >= -2
+                        });
+                        let to_load = Memo::new(move |_| {
+                            let cidx = current_idx.get() as i32;
+                            (queue_idx as i32 - cidx) <= 10 && (queue_idx as i32 - cidx) >= -2
                         });
                         view! {
                             <div node_ref=container_ref class="w-full h-full snap-always snap-end">
                                 <Show when=show_video>
                                     <BgView video_queue idx=queue_idx>
                                         <VideoViewForQueue
-                                            video_queue
+                                            post
                                             current_idx
                                             idx=queue_idx
                                             muted
+                                            to_load
                                         />
                                     </BgView>
                                 </Show>
                             </div>
-                        }
-                            .into_any()
+                        }.into_any()
                     }
                 />
 
