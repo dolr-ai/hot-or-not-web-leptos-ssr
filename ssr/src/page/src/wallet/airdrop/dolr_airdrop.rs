@@ -21,7 +21,7 @@ pub async fn send_airdrop_to_user(
 pub async fn send_airdrop_to_user(
     user_principal: Principal,
     amount: Nat,
-) -> Result<(), ServerFnError> {
+) -> Result<yral_canisters_client::sns_ledger::TransferResult, ServerFnError> {
     use consts::DOLR_AI_LEDGER_CANISTER;
     use state::admin_canisters::AdminCanisters;
     use yral_canisters_client::sns_ledger::{Account, SnsLedger};
@@ -32,7 +32,7 @@ pub async fn send_airdrop_to_user(
         admin.get_agent().await,
     );
 
-    ledger
+    let res = ledger
         .icrc_1_transfer(yral_canisters_client::sns_ledger::TransferArg {
             to: Account {
                 owner: user_principal,
@@ -46,7 +46,7 @@ pub async fn send_airdrop_to_user(
         })
         .await?;
 
-    Ok(())
+    Ok(res)
 }
 
 #[server(endpoint = "dolr_airdrop_eligibility", input = server_fn::codec::Json)]
