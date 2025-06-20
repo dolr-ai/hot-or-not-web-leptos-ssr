@@ -174,7 +174,7 @@ pub fn LoginProviders(
             if let Some(redir_loc) = redirect_to {
                 let nav = use_navigate();
                 if redir_loc.contains("/profile/posts") {
-                    let principal = canisters.user_canister().to_text();
+                    let principal = canisters.user_principal().to_text();
                     nav(&format!("/profile/{principal}/posts"), Default::default());
                 } else {
                     nav(&redir_loc, Default::default());
