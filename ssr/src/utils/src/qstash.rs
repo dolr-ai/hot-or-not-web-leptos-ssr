@@ -41,8 +41,7 @@ impl QStashClient {
         req: Value,
         token: String,
     ) -> Result<(), reqwest::Error> {
-        let off_chain_ep = ANALYTICS_SERVER_URL.join("api/send_event").unwrap();
-        let path = format!("publish/{off_chain_ep}");
+        let path = format!("publish/analytics");
         let ep = self.base_url.join(&path).unwrap();
 
         let res = self
