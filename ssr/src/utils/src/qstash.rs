@@ -7,8 +7,6 @@ use http::{
 use reqwest::{Client, Url};
 use serde_json::Value;
 
-use consts::ANALYTICS_SERVER_URL;
-
 #[derive(Clone, Debug)]
 pub struct QStashClient {
     client: Client,
@@ -41,9 +39,7 @@ impl QStashClient {
         req: Value,
         token: String,
     ) -> Result<(), reqwest::Error> {
-        let off_chain_ep = ANALYTICS_SERVER_URL.join("api/send_event").unwrap();
-        let path = format!("publish/{off_chain_ep}");
-        let ep = self.base_url.join(&path).unwrap();
+        let ep = self.base_url.join("publish/analytics").unwrap();
 
         let res = self
             .client
