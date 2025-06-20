@@ -66,7 +66,7 @@ pub async fn is_user_eligible_for_dolr_airdrop(
 }
 
 #[cfg(not(feature = "backend-admin"))]
-async fn send_airdrop_to_user(
+pub async fn send_airdrop_to_user(
     _user_principal: Principal,
     _amount: Nat,
 ) -> Result<(), ServerFnError> {
@@ -76,7 +76,10 @@ async fn send_airdrop_to_user(
 }
 
 #[cfg(feature = "backend-admin")]
-async fn send_airdrop_to_user(user_principal: Principal, amount: Nat) -> Result<(), ServerFnError> {
+pub async fn send_airdrop_to_user(
+    user_principal: Principal,
+    amount: Nat,
+) -> Result<(), ServerFnError> {
     use consts::DOLR_AI_LEDGER_CANISTER;
     use state::admin_canisters::AdminCanisters;
     use yral_canisters_client::sns_ledger::{Account, SnsLedger};

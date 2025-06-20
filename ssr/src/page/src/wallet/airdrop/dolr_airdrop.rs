@@ -1,3 +1,4 @@
+use candid::Nat;
 use candid::Principal;
 use leptos::prelude::*;
 
@@ -5,6 +6,48 @@ use leptos::prelude::*;
 mod mock;
 #[cfg(feature = "stdb-backend")]
 mod real;
+
+#[cfg(not(feature = "backend-admin"))]
+pub async fn send_airdrop_to_user(
+    _user_principal: Principal,
+    _amount: Nat,
+) -> Result<(), ServerFnError> {
+    log::error!("trying to send dolr but no backend admin is available");
+
+    Err(ServerFnError::new("backend admin not available"))
+}
+
+#[cfg(feature = "backend-admin")]
+pub async fn send_airdrop_to_user(
+    user_principal: Principal,
+    amount: Nat,
+) -> Result<(), ServerFnError> {
+    use consts::DOLR_AI_LEDGER_CANISTER;
+    use state::admin_canisters::AdminCanisters;
+    use yral_canisters_client::sns_ledger::{Account, SnsLedger};
+    let admin: AdminCanisters = expect_context();
+
+    let ledger = SnsLedger(
+        DOLR_AI_LEDGER_CANISTER.parse().unwrap(),
+        admin.get_agent().await,
+    );
+
+    ledger
+        .icrc_1_transfer(yral_canisters_client::sns_ledger::TransferArg {
+            to: Account {
+                owner: user_principal,
+                subaccount: None,
+            },
+            fee: None,
+            memo: None,
+            from_subaccount: None,
+            created_at_time: None,
+            amount,
+        })
+        .await?;
+
+    Ok(())
+}
 
 #[server(endpoint = "dolr_airdrop_eligibility", input = server_fn::codec::Json)]
 pub async fn is_user_eligible_for_dolr_airdrop(
