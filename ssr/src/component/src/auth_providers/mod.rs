@@ -169,11 +169,16 @@ pub fn LoginProviders(
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
 
-            let _ = LoginSuccessful.send_event(canisters);
+            let _ = LoginSuccessful.send_event(canisters.clone());
 
             if let Some(redir_loc) = redirect_to {
                 let nav = use_navigate();
-                nav(&redir_loc, Default::default());
+                if redir_loc.contains("/profile/posts") {
+                    let principal = canisters.user_canister().to_text();
+                    nav(&format!("/profile/{principal}/posts"), Default::default());
+                } else {
+                    nav(&redir_loc, Default::default());
+                }
             }
 
             // Update the context signal instead of writing directly
