@@ -50,7 +50,6 @@ getrandom = { workspace = true, optional = true }
 web-sys = { workspace = true, optional = true }
 circular-buffer = { workspace = true }
 redb = { workspace = true, optional = true }
-enum_dispatch = { workspace = true, optional = true }
 axum-extra = { workspace = true, optional = true }
 openidconnect = { workspace = true, optional = true }
 dotenv = { workspace = true, optional = true }
@@ -88,6 +87,8 @@ send_wrapper = { workspace = true }
 rand.workspace = true
 indexmap.workspace = true
 yral-identity.workspace = true
+yral-spacetime-bindings = { workspace = true, optional = true }
+fasthash = { workspace = true, optional = true }
 
 # local deps`
 auth = { workspace = true }
@@ -129,7 +130,7 @@ ssr = [
     "dep:redis",
     "yral-canisters-common/rustls-tls",
     "dep:redb",
-    "dep:enum_dispatch",
+
     "axum-extra",
     "dep:rand_chacha",
     "dep:dotenv",
@@ -180,6 +181,10 @@ oauth-hydrate = [
     "utils/oauth-hydrate",
     "component/oauth-hydrate",
     "state/oauth-hydrate",
+]
+stdb-backend = [
+    "dep:yral-spacetime-bindings",
+    "dep:fasthash"
 ]
 redis-kv = [
     "consts/redis-kv",

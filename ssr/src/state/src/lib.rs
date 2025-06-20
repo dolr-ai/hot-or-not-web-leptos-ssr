@@ -8,6 +8,9 @@ pub mod audio_state;
 pub mod canisters;
 pub mod content_seed_client;
 
+#[cfg(feature = "stdb-backend")]
+pub mod stdb_dolr_airdrop;
+
 #[cfg(not(feature = "ssr"))]
 pub mod server {
     #[derive(Clone)]
@@ -52,5 +55,8 @@ pub mod server {
         pub alloydb: super::alloydb::AlloyDbInstance,
         #[cfg(feature = "alloydb")]
         pub hon_worker_jwt: HonWorkerJwt,
+        // might expand this to be general stdb backend module access
+        #[cfg(feature = "stdb-backend")]
+        pub dolr_airdrop_stbd: super::stdb_dolr_airdrop::WrappedContext,
     }
 }

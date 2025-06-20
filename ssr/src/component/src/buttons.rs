@@ -134,9 +134,6 @@ pub fn GradientButton(
     on_click: impl Fn() + 'static,
 ) -> impl IntoView {
     let on_click = move |_| on_click();
-    Effect::new(move || {
-        log::info!("disabled: {}", disabled());
-    });
 
     view! {
         <button
@@ -178,6 +175,31 @@ pub fn GradientLinkButton(
             )
             class=(["text-neutral-50", "bg-brand-gradient"], !disabled)
             class=format!("rounded-lg px-5 py-2 text-sm text-center font-bold {}", classes)
+            href=href
+        >
+            {children()}
+        </a>
+    }
+}
+
+#[component]
+pub fn GradientLinkText(
+    children: Children,
+    #[prop(into)] href: String,
+    #[prop(optional, into)] classes: String,
+    #[prop(optional)] disabled: bool,
+) -> impl IntoView {
+    view! {
+        <a
+            class=(
+                ["pointer-events-none", "bg-brand-gradient-disabled", "cursor-disabled"],
+                disabled,
+            )
+            class=(["bg-brand-gradient"], !disabled)
+            class=format!(
+                "bg-clip-text text-transparent rounded-lg px-5 py-2 text-sm text-center font-bold {}",
+                classes,
+            )
             href=href
         >
             {children()}

@@ -58,6 +58,8 @@ pub async fn server_fn_handler(
                 provide_context(app_state.alloydb.clone());
                 provide_context(app_state.hon_worker_jwt.clone());
             }
+            #[cfg(feature = "stdb-backend")]
+            provide_context(app_state.dolr_airdrop_stbd.clone());
         },
         request,
     )
