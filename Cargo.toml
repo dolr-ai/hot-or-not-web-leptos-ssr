@@ -12,24 +12,18 @@ resolver = "2"
 
 
 # Defines a size-optimized profile for the WASM bundle in release mode
-[profile.wasm-release]
-inherits = "release"
+[profile.release]
+codegen-units = 1
 opt-level = 'z'
 lto = true
-codegen-units = 1
-strip = true
-# panic = "abort"
 
 [profile.prod-release]
 inherits = "release"
 debug = 1
-lto = true
-strip = true
 
 # TODO: leaving this here as a reminder to be used once cargo-leptos solves the profile issue
 # [profile.preview-release]
 # inherits = "release"
-
 
 [workspace.dependencies]
 serde = { version = "1.0", features = ["derive"] }

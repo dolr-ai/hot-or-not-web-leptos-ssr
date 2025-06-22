@@ -108,6 +108,7 @@ cargo-husky = { workspace = true }
 [build-dependencies]
 tonic-build = { workspace = true }
 anyhow = { workspace = true }
+
 [features]
 hydrate = [
     "leptos/hydrate",
@@ -177,8 +178,6 @@ mock-referral-history = [
     "component/mock-referral-history",
     "page/mock-referral-history",
 ]
-
-
 mock-history = [
     "mock-referral-history",
     "mock-wallet-history",
@@ -357,7 +356,7 @@ browserquery = "defaults"
 watch = false
 
 # The environment Leptos will run in, usually either "DEV" or "PROD"
-env = "DEV"
+env = "dev"
 
 # The features to use when compiling the bin target
 #
@@ -377,7 +376,7 @@ bin-profile-release = "prod-release"
 # The profile to use for the bin target when compiling for debug
 #
 # Optional. Defaults to "debug".
-# bin-profile-dev = "bin-debug"
+# bin-profile-dev = "debug"
 
 # The features to use when compiling the lib target
 #
@@ -392,4 +391,4 @@ lib-default-features = false
 # The profile to use for the lib target when compiling for release
 #
 # Optional. Defaults to "release".
-lib-profile-release = "wasm-release"
+lib-profile-release = "release"
