@@ -71,7 +71,6 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
 
     let click_copy = Action::new(move |refer_link: &String| {
         let refer_link = refer_link.clone();
-
         async move {
             let _ = copy_to_clipboard(&refer_link);
 
