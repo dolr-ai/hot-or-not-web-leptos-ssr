@@ -661,9 +661,9 @@ impl MixPanelEvent {
     pub fn track_refer_and_earn_page_viewed(p: MixpanelReferAndEarnPageViewedProps) {
         send_event_to_server("refer_and_earn_page_viewed", p);
     }
-    pub fn track_profile_page_viewed(p: MixpanelProfilePageViewedProps) {
-        send_event_to_server("profile_page_viewed", p);
-    }
+    // pub fn track_profile_page_viewed(p: MixpanelProfilePageViewedProps) {
+    //     send_event_to_server("profile_page_viewed", p);
+    // }
     pub fn track_withdraw_tokens_clicked(p: MixpanelWithdrawTokenClickedProps) {
         send_event_to_server("withdraw_tokens_clicked", p);
     }
@@ -732,39 +732,40 @@ impl MixPanelEvent {
                         is_nsfw_enabled: home_props.is_nsfw_enabled,
                     });
                 }
-                if props.page.contains("/profile/") {
-                    let home_props: MixpanelPageViewedProps = props.clone();
-                    let publisher_user_id = home_props
-                        .page
-                        .split("/profile/")
-                        .nth(1)
-                        .and_then(|s| s.split('/').next())
-                        .unwrap_or_default()
-                        .to_string();
+                // TODO: Will be used later
+                // if props.page.contains("/profile/") {
+                //     let home_props: MixpanelPageViewedProps = props.clone();
+                //     let publisher_user_id = home_props
+                //         .page
+                //         .split("/profile/")
+                //         .nth(1)
+                //         .and_then(|s| s.split('/').next())
+                //         .unwrap_or_default()
+                //         .to_string();
 
-                    if Principal::from_text(publisher_user_id.clone())
-                        .ok()
-                        .is_some()
-                    {
-                        let principal = if home_props.user_id.is_some() {
-                            home_props.user_id.clone().unwrap()
-                        } else {
-                            home_props.visitor_id.clone().unwrap()
-                        };
+                //     if Principal::from_text(publisher_user_id.clone())
+                //         .ok()
+                //         .is_some()
+                //     {
+                //         let principal = if home_props.user_id.is_some() {
+                //             home_props.user_id.clone().unwrap()
+                //         } else {
+                //             home_props.visitor_id.clone().unwrap()
+                //         };
 
-                        let is_own_profile = publisher_user_id == principal;
+                //         let is_own_profile = publisher_user_id == principal;
 
-                        Self::track_profile_page_viewed(MixpanelProfilePageViewedProps {
-                            user_id: home_props.user_id,
-                            visitor_id: home_props.visitor_id,
-                            is_logged_in: home_props.is_logged_in,
-                            canister_id: home_props.canister_id,
-                            is_nsfw_enabled: home_props.is_nsfw_enabled,
-                            is_own_profile,
-                            publisher_user_id,
-                        });
-                    }
-                }
+                //         Self::track_profile_page_viewed(MixpanelProfilePageViewedProps {
+                //             user_id: home_props.user_id,
+                //             visitor_id: home_props.visitor_id,
+                //             is_logged_in: home_props.is_logged_in,
+                //             canister_id: home_props.canister_id,
+                //             is_nsfw_enabled: home_props.is_nsfw_enabled,
+                //             is_own_profile,
+                //             publisher_user_id,
+                //         });
+                //     }
+                // }
                 track_event("page_viewed", props);
             },
             10.0,
