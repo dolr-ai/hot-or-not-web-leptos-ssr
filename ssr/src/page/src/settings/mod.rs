@@ -1,6 +1,7 @@
 use codee::string::FromToStringCodec;
 use component::back_btn::BackButton;
 use component::login_modal::LoginModal;
+use component::overlay::{ShadowOverlay, ShowOverlay};
 use component::title::TitleText;
 use component::{social::*, toggle::Toggle};
 use consts::NOTIFICATIONS_ENABLED_STORE;
@@ -11,6 +12,7 @@ use leptos::web_sys::{Notification, NotificationPermission};
 use leptos::{ev, prelude::*};
 use leptos_icons::*;
 use leptos_router::components::Redirect;
+use leptos_router::hooks::use_navigate;
 use leptos_router::{hooks::use_params, params::Params};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
@@ -18,9 +20,12 @@ use state::canisters::auth_state;
 use utils::notifications::{
     get_device_registeration_token, get_fcm_token, notification_permission_granted,
 };
+use utils::send_wrap;
 use yral_canisters_common::utils::profile::ProfileDetails;
 use yral_metadata_client::MetadataClient;
 use yral_metadata_types::error::ApiError;
+
+mod delete_user;
 
 #[derive(Params, PartialEq, Clone)]
 struct SettingsParams {
@@ -215,12 +220,12 @@ fn EnableNotifications() -> impl IntoView {
     });
 
     view! {
-        <div class="grid grid-cols-2 items-center w-full">
-            <div class="flex flex-row gap-4 items-center">
-                <Icon attr:class="text-2xl" icon=icondata::BiCommentDotsRegular />
-                <span>Enable Notifications</span>
+        <div class="flex items-center justify-between w-full">
+            <div class="flex flex-row gap-4 items-center flex-1">
+                <Icon attr:class="text-2xl flex-shrink-0" icon=icondata::BiCommentDotsRegular />
+                <span class="text-wrap">Enable Notifications</span>
             </div>
-            <div class="justify-self-end">
+            <div class="flex-shrink-0">
                 <Toggle checked=notifs_enabled_der node_ref=toggle_ref />
             </div>
         </div>
@@ -229,77 +234,124 @@ fn EnableNotifications() -> impl IntoView {
 
 #[component]
 fn DeleteAccountPopup(show_delete_popup: RwSignal<bool>) -> impl IntoView {
+    let auth = auth_state();
+    let navigate = use_navigate();
+    let (is_deleting, set_is_deleting) = signal(false);
+
+    let handle_delete = Action::new_local(move |&()| {
+        set_is_deleting(true);
+        let auth = auth.clone();
+        let navigate = navigate.clone();
+        async move {
+            match auth.user_identity.await {
+                Ok(identity_wire) => match delete_user::initiate_delete_user(identity_wire).await {
+                    Ok(_) => {
+                        navigate("/logout", Default::default());
+                    }
+                    Err(e) => {
+                        leptos::logging::error!("Failed to delete account: {e:?}");
+                        navigate(&format!("/error?err={e}"), Default::default());
+                    }
+                },
+                Err(e) => {
+                    leptos::logging::error!("Failed to get auth canisters: {e:?}");
+                    navigate(&format!("/error?err={e}"), Default::default());
+                }
+            }
+        }
+    });
+
     view! {
-        <div
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
-            class:hidden=move || !show_delete_popup.get()
-            on:click=move |_| show_delete_popup.set(false)
-        >
-            <div
-                class="relative bg-gray-900 rounded-lg p-8 mx-4 max-w-md w-full"
-                on:click=move |e| e.stop_propagation()
-            >
-                <button
-                    class="absolute top-4 right-4 text-gray-400 hover:text-white"
-                    on:click=move |_| show_delete_popup.set(false)
-                >
-                    <Icon icon=icondata::AiCloseOutlined attr:class="text-xl" />
-                </button>
-
-                <h2 class="text-2xl font-bold text-white text-center mb-6">Delete your account</h2>
-
-                <p class="text-gray-400 text-center mb-6">
-                    This action will not be reverted. All your data including your Bitcoin and other token balance will be removed from our platform.
-                </p>
-
-                <p class="text-gray-300 text-center mb-8">
-                    Are you sure you want to delete your account?
-                </p>
-
-                <div class="flex gap-4">
+        <ShadowOverlay show=ShowOverlay::MaybeClosable {
+            show: show_delete_popup,
+            closable: RwSignal::new(true),
+        }>
+            <div class="flex justify-center items-center py-6 px-4 w-full h-full cursor-auto">
+                <div class="relative w-full max-w-md rounded-md bg-neutral-900 text-white p-6">
                     <button
-                        class="flex-1 py-3 px-6 rounded-full bg-gray-800 text-white font-medium hover:bg-gray-700 transition-colors"
                         on:click=move |_| show_delete_popup.set(false)
+                        class="absolute top-4 right-4 text-white rounded-full bg-neutral-600 hover:bg-neutral-700 size-6 flex items-center justify-center"
+                        disabled=move || is_deleting.get()
                     >
-                        No, take me back
+                        <Icon attr::class="w-4 h-4" icon=icondata::ChCross />
                     </button>
-                    <button
-                        class="flex-1 py-3 px-6 rounded-full bg-red-600 text-white font-medium hover:bg-red-700 transition-colors"
-                        on:click=move |_| {
-                            leptos::logging::log!("Delete account button pressed");
-                            show_delete_popup.set(false);
-                        }
-                    >
-                        Yes, Delete
-                    </button>
+
+                    <h2 class="text-lg font-bold mb-4 text-center">"Delete your account"</h2>
+
+                    <p class="text-sm text-neutral-300 mb-6 text-center">
+                        "This action will not be reverted. All your data including your Bitcoin and other token balance will be removed from our platform."
+                        <br/><br/>
+                        "Are you sure you want to delete your account?"
+                    </p>
+
+                    <div class="flex justify-center gap-4">
+                        <button
+                            class="px-4 py-2 rounded-md bg-neutral-700 hover:bg-neutral-600 text-white text-sm disabled:opacity-50"
+                            on:click=move |_| show_delete_popup.set(false)
+                            disabled=move || is_deleting.get()
+                        >
+                            "No, take me back"
+                        </button>
+                        <button
+                            class="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
+                            on:click=move |_| {handle_delete.dispatch(());}
+                            disabled=move || is_deleting.get()
+                        >
+                            <Show
+                                when=move || is_deleting.get()
+                                fallback=|| "Yes, Delete"
+                            >
+                                <div class="w-4 h-4 rounded-full border-2 border-white border-solid animate-spin border-t-transparent"></div>
+                                "Deleting..."
+                            </Show>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </ShadowOverlay>
     }
 }
 
 #[component]
 fn DeleteAccount(show_delete_popup: RwSignal<bool>) -> impl IntoView {
     let auth = auth_state();
-    let is_connected = auth.is_logged_in_with_oauth();
     let show_login_modal = RwSignal::new(false);
+    let (is_loading, set_is_loading) = signal(true);
+
+    Effect::new(move |_| {
+        set_is_loading(true);
+        spawn_local(async move {
+            // Wait for auth state to be loaded
+            let user_principal_result = auth.user_principal.await;
+            let _is_connected =
+                user_principal_result.is_ok() && auth.is_logged_in_with_oauth().get();
+
+            set_is_loading(false);
+        });
+    });
+
+    let handle_click = move |_| {
+        show_delete_popup.set(true);
+    };
 
     view! {
         <button
-            class="grid grid-cols-2 items-center w-full"
-            on:click=move |_| {
-                // if is_connected.get() {
-                    show_delete_popup.set(true);
-                // } else {
-                //     show_login_modal.set(true);
-                // }
-            }
+            class="flex items-center justify-between w-full"
+            on:click=handle_click
+            disabled=move || is_loading.get()
         >
-            <div class="flex flex-row gap-4 items-center">
-                <Icon icon=icondata::RiDeleteBinSystemLine attr:class="text-2xl" />
-                <span>Delete account</span>
+            <div class="flex flex-row gap-4 items-center flex-1">
+                <Icon icon=icondata::RiDeleteBinSystemLine attr:class="text-2xl flex-shrink-0" />
+                <span class="text-wrap">Delete account</span>
             </div>
-            <Icon attr:class="text-2xl justify-self-end hover:text-primary-600 transition-colors cursor-pointer" icon=icondata::AiRightOutlined />
+            <Show
+                when=move || is_loading.get()
+                fallback=move || view! {
+                    <Icon attr:class="text-2xl flex-shrink-0 hover:text-primary-600 transition-colors cursor-pointer" icon=icondata::AiRightOutlined />
+                }
+            >
+                <div class="w-6 h-6 rounded-full border-2 border-white border-solid animate-spin border-t-transparent"></div>
+            </Show>
         </button>
         <LoginModal show=show_login_modal redirect_to=Some("/settings".to_string()) />
     }
@@ -318,12 +370,12 @@ fn DeleteActionHandler(action: Signal<String>, show_delete_popup: RwSignal<bool>
             spawn_local(async move {
                 // Wait for auth state to be loaded
                 let user_principal_result = auth.user_principal.await;
-                let is_connected =
+                let _is_connected =
                     user_principal_result.is_ok() && auth.is_logged_in_with_oauth().get();
 
                 set_is_loading(false);
 
-                // if is_connected {
+                // if _is_connected {
                 show_delete_popup.set(true);
                 // } else {
                 //     show_delete_popup.set(false);
