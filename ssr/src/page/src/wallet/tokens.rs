@@ -128,7 +128,7 @@ impl WithdrawalStateFetcherType {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum TokenType {
+pub enum TokenType {
     Sats,
     Btc,
     Cents,
@@ -142,6 +142,18 @@ impl From<TokenType> for WithdrawalStateFetcherType {
             TokenType::Sats => Self::Sats,
             TokenType::Cents => Self::Cents,
             _ => Self::Noop,
+        }
+    }
+}
+
+impl From<TokenType> for StakeType {
+    fn from(value: TokenType) -> Self {
+        match value {
+            TokenType::Sats => Self::Sats,
+            TokenType::Cents => Self::Cents,
+            TokenType::Btc => Self::Btc,
+            TokenType::Usdc => Self::Usdc,
+            TokenType::Dolr => Self::DolrAi,
         }
     }
 }
@@ -259,6 +271,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
                             balance
                             withdrawal_state
                             is_utility_token
+                            token_type
                         />
                     }
                 })
@@ -492,6 +505,7 @@ pub fn FastWalletCard(
     display_info: TokenDisplayInfo,
     balance: Resource<Result<TokenBalance, ServerFnError>>,
     withdrawal_state: OnceResource<Result<Option<WithdrawalState>, ServerFnError>>,
+    token_type: TokenType,
     #[prop(optional)] is_utility_token: bool,
 ) -> impl IntoView {
     let TokenDisplayInfo {
@@ -521,7 +535,6 @@ pub fn FastWalletCard(
     let pop_up = RwSignal::new(false);
     let base_url = get_host();
     let name_c = StoredValue::new(name.clone());
-    let token_type = name.clone();
 
     provide_context(WalletCardOptionsContext {
         is_utility_token,
@@ -576,7 +589,7 @@ pub fn FastWalletCard(
         let airdrop_amount_claimed = airdrop_amount_claimed;
         let error_claiming_airdrop = error_claiming_airdrop;
         let airdropper = airdropper_c2.clone();
-        let token_type = token_type.clone();
+        let token_type: StakeType = token_type.into();
         async move {
             if !is_connected {
                 show_login.set(true);

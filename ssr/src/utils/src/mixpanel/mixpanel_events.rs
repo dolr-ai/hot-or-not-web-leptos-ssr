@@ -366,7 +366,7 @@ pub struct MixpanelClaimAirdropClickedProps {
     pub is_logged_in: bool,
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
-    pub token_type: String,
+    pub token_type: StakeType,
 }
 
 #[derive(Serialize)]
@@ -376,7 +376,7 @@ pub struct MixpanelAirdropClaimedProps {
     pub is_logged_in: bool,
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
-    pub token_type: String,
+    pub token_type: StakeType,
     pub is_success: bool,
     pub claimed_amount: u64,
 }
@@ -602,11 +602,14 @@ pub enum GameConclusion {
     Loss,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum StakeType {
     Sats,
     Cents,
+    DolrAi,
+    Btc,
+    Usdc,
 }
 
 #[derive(Serialize, Debug)]
