@@ -10,7 +10,6 @@ use utils::mixpanel::mixpanel_events::*;
 use utils::send_wrap;
 use yral_canisters_client::individual_user_template::PostViewDetailsFromFrontend;
 
-use crate::post_view::BetEligiblePostCtx;
 use component::video_player::VideoPlayer;
 use utils::event_streaming::events::VideoWatched;
 use utils::{bg_url, mp4_url};
@@ -42,9 +41,6 @@ pub fn BgView(
             .map(|q| q.uid.clone())
             .unwrap_or_default()
     };
-
-    let onboarding_eligible_post_context = BetEligiblePostCtx::default();
-    provide_context(onboarding_eligible_post_context.clone());
 
     let win_audio_ref = NodeRef::<Audio>::new();
 
