@@ -254,8 +254,6 @@ pub fn DeleteAccountModal(show: RwSignal<bool>) -> impl IntoView {
                         <button
                             class="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-semibold"
                             on:click=move |_| {
-                                /// TODO : Your delete logic goes here
-                                log::info!("User confirmed account deletion");
                                 show.set(false);
                             }
                         >
