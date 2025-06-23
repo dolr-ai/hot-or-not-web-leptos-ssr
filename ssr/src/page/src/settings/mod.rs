@@ -2,17 +2,16 @@ use codee::string::FromToStringCodec;
 use component::back_btn::BackButton;
 use component::login_modal::LoginModal;
 use component::overlay::ShadowOverlay;
+use component::spinner::FullScreenSpinner;
 use component::title::TitleText;
 use component::{social::*, toggle::Toggle};
 use consts::NOTIFICATIONS_ENABLED_STORE;
 use leptos::either::Either;
 use leptos::html::Input;
-use leptos::task::spawn_local;
 use leptos::web_sys::{Notification, NotificationPermission};
 use leptos::{ev, prelude::*};
 use leptos_icons::*;
 use leptos_router::components::Redirect;
-use leptos_router::hooks::use_navigate;
 use leptos_router::{hooks::use_params, params::Params};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
@@ -312,130 +311,66 @@ fn DeleteAccountPopup(show_delete_popup: RwSignal<bool>) -> impl IntoView {
 }
 
 #[component]
-fn DeleteAccount(
-    show_delete_popup: RwSignal<bool>,
-    show_login_modal: RwSignal<bool>,
-) -> impl IntoView {
-    let is_loading = RwSignal::new(false);
-    let auth = auth_state();
-
-    let handle_click = move |_| {
-        leptos::logging::log!("Delete button clicked, setting loading to true");
-        is_loading.set(true);
-
-        let is_oauth = auth.is_logged_in_with_oauth().get_untracked();
-        leptos::logging::log!("Checking auth state for delete action: is_oauth={is_oauth}");
-
-        // Use request_animation_frame to ensure DOM updates before running async code
-        request_animation_frame(move || {
-            spawn_local(async move {
-                // Check auth state when button is clicked
-                let user_principal_result = auth.user_principal.await;
-                leptos::logging::log!("User principal result: {:?}", user_principal_result);
-                let is_connected = user_principal_result.is_ok() && is_oauth;
-
-                leptos::logging::log!("Auth check completed: is_connected={is_connected}");
-
-                if is_connected {
-                    show_delete_popup.set(true);
-                } else {
-                    show_delete_popup.set(false);
-                    show_login_modal.set(true);
-                }
-
-                leptos::logging::log!("Setting loading to false");
-                is_loading.set(false);
-            });
-        });
-    };
-
+fn DeleteAccount(show_popup: RwSignal<bool>) -> impl IntoView {
     view! {
         <button
             class="flex items-center justify-between w-full"
-            on:click=handle_click
-            // disabled=move || is_loading.get()
+            on:click=move |_| {
+                leptos::logging::log!("Delete account button clicked");
+                // Show the popup (will determine which one based on auth state)
+                show_popup.set(true);
+            }
         >
             <div class="flex flex-row gap-4 items-center flex-1">
                 <Icon icon=icondata::RiDeleteBinSystemLine attr:class="text-2xl flex-shrink-0" />
                 <span class="text-wrap">Delete account</span>
             </div>
-            <Show
-                when=move || {
-                    let loading = is_loading.get();
-                    leptos::logging::log!("DeleteAccount: is_loading = {}", loading);
-                    loading
-                }
-                fallback=move || view! {
-                    <Icon attr:class="text-2xl flex-shrink-0 hover:text-primary-600 transition-colors cursor-pointer" icon=icondata::AiRightOutlined />
-                }
-            >
-                <div class="w-6 h-6 rounded-full border-2 border-white border-solid animate-spin border-t-transparent"></div>
-            </Show>
+            <Icon attr:class="text-2xl flex-shrink-0 hover:text-primary-600 transition-colors cursor-pointer" icon=icondata::AiRightOutlined />
         </button>
     }
 }
 
 #[component]
-fn DeleteActionHandler(
-    action: Signal<String>,
-    show_delete_popup: RwSignal<bool>,
-    show_login_modal: RwSignal<bool>,
-) -> impl IntoView {
-    let is_loading = RwSignal::new(false);
+fn DeleteAccountFlow(show_popup: RwSignal<bool>) -> impl IntoView {
     let auth = auth_state();
-    // Trigger the action when the route action is "delete"
-    Effect::new(move |_| {
-        if action.get() == "delete" {
-            leptos::logging::log!(
-                "DeleteActionHandler: Route action is delete, setting loading to true"
-            );
-            is_loading.set(true);
 
-            spawn_local(async move {
-                // Wait for auth state to be loaded
+    // Check auth state when popup should be shown
+    let is_authenticated = Resource::new(
+        move || show_popup.get(),
+        move |should_show| async move {
+            if should_show {
                 let user_principal_result = auth.user_principal.await;
                 let is_oauth = auth.is_logged_in_with_oauth().get_untracked();
-                let is_connected = user_principal_result.is_ok() && is_oauth;
-
-                leptos::logging::log!("DeleteActionHandler: is_connected = {}", is_connected);
-
-                if is_connected {
-                    show_delete_popup.set(true);
-                } else {
-                    show_delete_popup.set(false);
-                    show_login_modal.set(true);
-                }
-
-                leptos::logging::log!("DeleteActionHandler: Setting loading to false");
-                is_loading.set(false);
-            });
-        }
-    });
+                user_principal_result.is_ok() && is_oauth
+            } else {
+                false
+            }
+        },
+    );
 
     view! {
-        <>
-            // Show loader when loading
-            // <Show when=move || is_loading.get()>
-            //     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-            //         <div class="w-20 h-20 rounded-full border-4 border-white border-solid animate-spin border-t-transparent"></div>
-            //     </div>
-            // </Show>
+        {move || {
+            if show_popup.get() {
+                leptos::logging::log!("DeleteAccountFlow: show_popup is true, showing suspense");
+                Either::Left(view! {
+                    <Suspense fallback=FullScreenSpinner>
+                        {move || Suspend::new(async move {
+                            leptos::logging::log!("DeleteAccountFlow: Starting auth check");
+                            let is_auth = is_authenticated.await;
+                            leptos::logging::log!("DeleteAccountFlow: Auth check complete, is_auth: {}", is_auth);
 
-            <Show when=move || {
-                let loading = is_loading.get();
-                leptos::logging::log!("DeleteActionHandler: is_loading = {}", loading);
-                loading
-            }>
-                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-                    <div class="w-20 h-20 rounded-full border-4 border-white border-solid animate-spin border-t-transparent"></div>
-                </div>
-            </Show>
-
-            // Show login modal when needed
-            <Show when=move || show_login_modal.get()>
-                <LoginModal show=show_login_modal redirect_to=Some("/settings/delete".to_string()) />
-            </Show>
-        </>
+                            if is_auth {
+                                Either::Left(view! { <DeleteAccountPopup show_delete_popup=show_popup /> })
+                            } else {
+                                Either::Right(view! { <LoginModal show=show_popup redirect_to=Some("/settings/delete".to_string()) /> })
+                            }
+                        })}
+                    </Suspense>
+                })
+            } else {
+                Either::Right(())
+            }
+        }}
     }
 }
 
@@ -450,28 +385,25 @@ pub fn Settings() -> impl IntoView {
             .unwrap_or_else(|_| String::new())
     });
 
-    // Initialize delete popup signal to be shared across components
-    let show_delete_popup = RwSignal::new(false);
-    let show_login_modal = RwSignal::new(false);
+    let show_popup = RwSignal::new(action.get_untracked() == "delete");
 
     view! {
-            <div class="flex flex-col items-center pt-2 pb-12 w-full min-h-screen text-white bg-black divide-y divide-white/10">
-                <div class="flex flex-col gap-20 items-center pb-16 w-full">
-                    <TitleText justify_center=false>
-                        <div class="flex flex-row justify-between">
-                            <BackButton fallback="/menu".to_string() />
-                            <span class="text-2xl font-bold">Settings</span>
-                            <div></div>
-                        </div>
-                    </TitleText>
-                </div>
-                <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
-                    <EnableNotifications />
-                    <DeleteAccount show_delete_popup show_login_modal />
-                </div>
-                <DeleteAccountPopup show_delete_popup />
-                <DeleteActionHandler action show_delete_popup show_login_modal />
-                <MenuFooter />
+        <div class="flex flex-col items-center pt-2 pb-12 w-full min-h-screen text-white bg-black divide-y divide-white/10">
+            <div class="flex flex-col gap-20 items-center pb-16 w-full">
+                <TitleText justify_center=false>
+                    <div class="flex flex-row justify-between">
+                        <BackButton fallback="/menu".to_string() />
+                        <span class="text-2xl font-bold">Settings</span>
+                        <div></div>
+                    </div>
+                </TitleText>
             </div>
+            <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
+                <EnableNotifications />
+                <DeleteAccount show_popup />
+            </div>
+            <MenuFooter />
+            <DeleteAccountFlow show_popup />
+        </div>
     }
 }
