@@ -240,7 +240,6 @@ fn DeleteAccountPopup(show_delete_popup: RwSignal<bool>) -> impl IntoView {
 
     let handle_delete = Action::new_local(move |&()| {
         set_is_deleting(true);
-        let auth = auth.clone();
         let navigate = navigate.clone();
         send_wrap(async move {
             match auth.user_identity.await {
