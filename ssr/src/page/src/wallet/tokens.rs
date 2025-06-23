@@ -293,10 +293,13 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
     };
 
     let airdrop_status = |token_type: TokenType| {
-        OnceResource::new(async move {
-            let fetcher: AirdropStatusFetcherType = token_type.into();
-            send_wrap(fetcher.fetch(user_canister, user_principal)).await
-        })
+        Resource::new(
+            || (),
+            move |_| async move {
+                let fetcher: AirdropStatusFetcherType = token_type.into();
+                send_wrap(fetcher.fetch(user_canister, user_principal)).await
+            },
+        )
     };
 
     let tokens = [
@@ -718,7 +721,7 @@ pub fn FastWalletCard(
     display_info: TokenDisplayInfo,
     balance: Resource<Result<TokenBalance, ServerFnError>>,
     withdrawal_state: OnceResource<Result<Option<WithdrawalState>, ServerFnError>>,
-    airdrop_status: OnceResource<Result<Option<AirdropStatus>, ServerFnError>>,
+    airdrop_status: Resource<Result<Option<AirdropStatus>, ServerFnError>>,
     #[prop(optional)] is_utility_token: bool,
 ) -> impl IntoView {
     let _ = user_canister;
@@ -809,6 +812,7 @@ pub fn FastWalletCard(
                     is_airdrop_claimed.set(true);
                     error_claiming_airdrop.set(false);
                     balance.refetch();
+                    airdrop_status.refetch();
                     Ok(amount)
                 }
                 Err(err) => {

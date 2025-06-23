@@ -11,7 +11,6 @@ use page::post_view::PostDetailsCacheCtx;
 use page::root::YralRootPage;
 use page::terms_android::TermsAndroid;
 use page::terms_ios::TermsIos;
-use page::test_icrc_transfer::TestSend;
 use page::{
     err::ServerErrorPage,
     logout::Logout,
@@ -202,7 +201,6 @@ pub fn App() -> impl IntoView {
                             path=path!("/pnd/withdraw/failure")
                             view=pumpdump::withdrawal::result::Failure
                         />
-                        <Route path=path!("/test_send") view=TestSend />
                         <Route path=path!("/terms-ios") view=TermsIos />
                         <Route path=path!("/terms-android") view=TermsAndroid />
                     </ParentRoute>
