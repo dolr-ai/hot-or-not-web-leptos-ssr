@@ -1,5 +1,6 @@
 use codee::string::FromToStringCodec;
 use component::back_btn::BackButton;
+use component::overlay::{ShadowOverlay, ShowOverlay};
 use component::title::TitleText;
 use component::{social::*, toggle::Toggle};
 use consts::NOTIFICATIONS_ENABLED_STORE;
@@ -220,7 +221,56 @@ fn EnableNotifications() -> impl IntoView {
 }
 
 #[component]
+pub fn DeleteAccountModal(show: RwSignal<bool>) -> impl IntoView {
+    view! {
+        <ShadowOverlay show=ShowOverlay::MaybeClosable {
+            show,
+            closable: RwSignal::new(true),
+        }>
+            <div class="flex justify-center items-center py-6 px-4 w-full h-full cursor-auto">
+                <div class="relative w-full max-w-md rounded-md bg-neutral-900 text-white p-6">
+                    <button
+                        on:click=move |_| show.set(false)
+                        class="absolute top-4 right-4 text-white rounded-full bg-neutral-600 hover:bg-neutral-700 size-6 flex items-center justify-center"
+                    >
+                        <Icon attr::class="w-4 h-4" icon=icondata::ChCross />
+                    </button>
+
+                    <h2 class="text-lg font-bold mb-4">"Delete your account"</h2>
+
+                    <p class="text-sm text-neutral-300 mb-6">
+                        "This action will not be reverted. All your data including your Bitcoin and other token balance will be removed from our platform."
+                        <br/><br/>
+                        "Are you sure you want to delete your account?"
+                    </p>
+
+                    <div class="flex justify-end gap-4">
+                        <button
+                            class="px-4 py-2 rounded-md bg-neutral-700 hover:bg-neutral-600 text-white text-sm"
+                            on:click=move |_| show.set(false)
+                        >
+                            "No, take me back"
+                        </button>
+                        <button
+                            class="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-semibold"
+                            on:click=move |_| {
+                                /// TODO : Your delete logic goes here
+                                log::info!("User confirmed account deletion");
+                                show.set(false);
+                            }
+                        >
+                            "Yes, Delete"
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </ShadowOverlay>
+    }
+}
+
+#[component]
 pub fn Settings() -> impl IntoView {
+    let show_delete_modal = RwSignal::new(false);
     view! {
         <div class="flex flex-col items-center pt-2 pb-12 w-full min-h-screen text-white bg-black divide-y divide-white/10">
             <div class="flex flex-col gap-20 items-center pb-16 w-full">
@@ -235,6 +285,19 @@ pub fn Settings() -> impl IntoView {
             <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
                 <EnableNotifications />
             </div>
+            <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg divide-y divide-white/10">
+                <button
+                 on:click=move |_| show_delete_modal.set(true)
+                 class="grid grid-cols-3 items-center w-full text-white text-left">
+                    <div class="flex flex-row col-span-2 gap-4 items-center">
+                        <Icon attr:class="text-2xl" icon=icondata::BiTrashAltRegular />
+                        <span class="text-wrap">Delete account</span>
+                    </div>
+                    <Icon attr:class="text-2xl justify-self-end" icon=icondata::AiRightOutlined />
+                </button>
+            </div>
+
+            <DeleteAccountModal show=show_delete_modal />
             <MenuFooter />
         </div>
     }
