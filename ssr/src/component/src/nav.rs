@@ -8,7 +8,9 @@ use consts::{
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_router::hooks::use_location;
-use leptos_use::{storage::use_local_storage, use_cookie, use_cookie_with_options, UseCookieOptions};
+use leptos_use::{
+    storage::use_local_storage, use_cookie, use_cookie_with_options, UseCookieOptions,
+};
 use utils::{
     mixpanel::mixpanel_events::{
         BottomNavigationCategory, MixPanelEvent, MixpanelBottomNavigationProps, MixpanelGlobalProps,
@@ -142,19 +144,10 @@ fn NavIcon(
     #[prop(into)] filled_icon: Option<icondata_core::Icon>,
     #[prop(into)] cur_selected: Signal<bool>,
 ) -> impl IntoView {
-    let (user_principal, _) = use_cookie_with_options::<Principal, FromToStringCodec>(
-        USER_PRINCIPAL_STORE,
-        UseCookieOptions::default(),
-    );
+    let (user_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
 
-    let (user_canister, _) = use_cookie_with_options::<Principal, FromToStringCodec>(
-        USER_CANISTER_ID_STORE,
-        UseCookieOptions::default(),
-    );
-    let (is_connected, _) = use_cookie_with_options::<bool, FromToStringCodec>(
-        ACCOUNT_CONNECTED_STORE,
-        UseCookieOptions::default(),
-    );
+    let (user_canister, _) = use_cookie::<Principal, FromToStringCodec>(USER_CANISTER_ID_STORE);
+    let (is_connected, _) = use_cookie::<bool, FromToStringCodec>(ACCOUNT_CONNECTED_STORE);
     let (is_nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
 
     let on_click = move |_| {
@@ -208,16 +201,10 @@ fn NavIcon(
 
 #[component]
 fn UploadIcon(#[prop(into)] cur_selected: Signal<bool>) -> impl IntoView {
-    let (user_principal, _) = use_cookie::<Principal, FromToStringCodec>(
-        USER_PRINCIPAL_STORE,
-    );
+    let (user_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
 
-    let (user_canister, _) = use_cookie::<Principal, FromToStringCodec>(
-        USER_CANISTER_ID_STORE,
-    );
-    let (is_connected, _) = use_cookie::<bool, FromToStringCodec>(
-        ACCOUNT_CONNECTED_STORE,
-    );
+    let (user_canister, _) = use_cookie::<Principal, FromToStringCodec>(USER_CANISTER_ID_STORE);
+    let (is_connected, _) = use_cookie::<bool, FromToStringCodec>(ACCOUNT_CONNECTED_STORE);
     let (is_nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
 
     let on_click = move |_| {
