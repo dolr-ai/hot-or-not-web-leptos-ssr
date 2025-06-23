@@ -359,6 +359,28 @@ pub struct MixpanelWithdrawTokenClickedProps {
     pub token_clicked: StakeType,
 }
 
+#[derive(Serialize)]
+pub struct MixpanelClaimAirdropClickedProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub token_type: String,
+}
+
+#[derive(Serialize)]
+pub struct MixpanelAirdropClaimedProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub token_type: String,
+    pub is_success: bool,
+    pub claimed_amount: u64,
+}
+
 #[derive(Serialize, Clone)]
 pub struct MixpanelPageViewedProps {
     pub user_id: Option<String>,
@@ -666,6 +688,12 @@ impl MixPanelEvent {
     // }
     pub fn track_withdraw_tokens_clicked(p: MixpanelWithdrawTokenClickedProps) {
         send_event_to_server("withdraw_tokens_clicked", p);
+    }
+    pub fn track_claim_airdrop_clicked(p: MixpanelClaimAirdropClickedProps) {
+        send_event_to_server("claim_airdrop_clicked", p);
+    }
+    pub fn track_airdrop_claimed(p: MixpanelAirdropClaimedProps) {
+        send_event_to_server("airdrop_claimed", p);
     }
     pub fn track_referral_link_copied(p: MixpanelReferAndEarnPageViewedProps) {
         send_event_to_server("referral_link_copied", p);
