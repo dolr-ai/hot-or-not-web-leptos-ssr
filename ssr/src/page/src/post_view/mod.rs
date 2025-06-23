@@ -37,12 +37,6 @@ struct PostParams {
 }
 
 #[derive(Clone, Default)]
-pub struct BetEligiblePostCtx {
-    // This is true if betting is enabled for the current post and no bet has been placed
-    pub can_place_bet: RwSignal<bool>,
-}
-
-#[derive(Clone, Default)]
 pub struct PostViewCtx {
     fetch_cursor: RwSignal<FetchCursor>,
     // TODO: this is a dead simple with no GC
