@@ -242,7 +242,7 @@ fn DeleteAccountPopup(show_delete_popup: RwSignal<bool>) -> impl IntoView {
         set_is_deleting(true);
         let auth = auth.clone();
         let navigate = navigate.clone();
-        async move {
+        send_wrap(async move {
             match auth.user_identity.await {
                 Ok(identity_wire) => match delete_user::initiate_delete_user(identity_wire).await {
                     Ok(_) => {
@@ -258,7 +258,7 @@ fn DeleteAccountPopup(show_delete_popup: RwSignal<bool>) -> impl IntoView {
                     navigate(&format!("/error?err={e}"), Default::default());
                 }
             }
-        }
+        })
     });
 
     view! {
