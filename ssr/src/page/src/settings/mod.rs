@@ -1,14 +1,17 @@
 use codee::string::FromToStringCodec;
 use component::back_btn::BackButton;
+use component::login_modal::LoginModal;
 use component::title::TitleText;
 use component::{social::*, toggle::Toggle};
 use consts::NOTIFICATIONS_ENABLED_STORE;
 use leptos::either::Either;
 use leptos::html::Input;
+use leptos::task::spawn_local;
 use leptos::web_sys::{Notification, NotificationPermission};
 use leptos::{ev, prelude::*};
 use leptos_icons::*;
 use leptos_router::components::Redirect;
+use leptos_router::{hooks::use_params, params::Params};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use state::canisters::auth_state;
@@ -18,6 +21,11 @@ use utils::notifications::{
 use yral_canisters_common::utils::profile::ProfileDetails;
 use yral_metadata_client::MetadataClient;
 use yral_metadata_types::error::ApiError;
+
+#[derive(Params, PartialEq, Clone)]
+struct SettingsParams {
+    action: String,
+}
 
 #[component]
 #[allow(dead_code)]
@@ -220,22 +228,162 @@ fn EnableNotifications() -> impl IntoView {
 }
 
 #[component]
-pub fn Settings() -> impl IntoView {
+fn DeleteAccountPopup(show_delete_popup: RwSignal<bool>) -> impl IntoView {
     view! {
-        <div class="flex flex-col items-center pt-2 pb-12 w-full min-h-screen text-white bg-black divide-y divide-white/10">
-            <div class="flex flex-col gap-20 items-center pb-16 w-full">
-                <TitleText justify_center=false>
-                    <div class="flex flex-row justify-between">
-                        <BackButton fallback="/menu".to_string() />
-                        <span class="text-2xl font-bold">Settings</span>
-                        <div></div>
-                    </div>
-                </TitleText>
+        <div
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+            class:hidden=move || !show_delete_popup.get()
+            on:click=move |_| show_delete_popup.set(false)
+        >
+            <div
+                class="relative bg-gray-900 rounded-lg p-8 mx-4 max-w-md w-full"
+                on:click=move |e| e.stop_propagation()
+            >
+                <button
+                    class="absolute top-4 right-4 text-gray-400 hover:text-white"
+                    on:click=move |_| show_delete_popup.set(false)
+                >
+                    <Icon icon=icondata::AiCloseOutlined attr:class="text-xl" />
+                </button>
+
+                <h2 class="text-2xl font-bold text-white text-center mb-6">Delete your account</h2>
+
+                <p class="text-gray-400 text-center mb-6">
+                    This action will not be reverted. All your data including your Bitcoin and other token balance will be removed from our platform.
+                </p>
+
+                <p class="text-gray-300 text-center mb-8">
+                    Are you sure you want to delete your account?
+                </p>
+
+                <div class="flex gap-4">
+                    <button
+                        class="flex-1 py-3 px-6 rounded-full bg-gray-800 text-white font-medium hover:bg-gray-700 transition-colors"
+                        on:click=move |_| show_delete_popup.set(false)
+                    >
+                        No, take me back
+                    </button>
+                    <button
+                        class="flex-1 py-3 px-6 rounded-full bg-red-600 text-white font-medium hover:bg-red-700 transition-colors"
+                        on:click=move |_| {
+                            leptos::logging::log!("Delete account button pressed");
+                            show_delete_popup.set(false);
+                        }
+                    >
+                        Yes, Delete
+                    </button>
+                </div>
             </div>
-            <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
-                <EnableNotifications />
-            </div>
-            <MenuFooter />
         </div>
+    }
+}
+
+#[component]
+fn DeleteAccount(show_delete_popup: RwSignal<bool>) -> impl IntoView {
+    let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
+    let show_login_modal = RwSignal::new(false);
+
+    view! {
+        <button
+            class="grid grid-cols-2 items-center w-full"
+            on:click=move |_| {
+                // if is_connected.get() {
+                    show_delete_popup.set(true);
+                // } else {
+                //     show_login_modal.set(true);
+                // }
+            }
+        >
+            <div class="flex flex-row gap-4 items-center">
+                <Icon icon=icondata::RiDeleteBinSystemLine attr:class="text-2xl" />
+                <span>Delete account</span>
+            </div>
+            <Icon attr:class="text-2xl justify-self-end hover:text-primary-600 transition-colors cursor-pointer" icon=icondata::AiRightOutlined />
+        </button>
+        <LoginModal show=show_login_modal redirect_to=Some("/settings".to_string()) />
+    }
+}
+
+#[component]
+fn DeleteActionHandler(action: Signal<String>, show_delete_popup: RwSignal<bool>) -> impl IntoView {
+    let auth = auth_state();
+    let show_login_modal = RwSignal::new(false);
+    let (is_loading, set_is_loading) = signal(true);
+
+    // Check auth state when action is delete
+    Effect::new(move |_| {
+        if action.get() == "delete" {
+            set_is_loading(true);
+            spawn_local(async move {
+                // Wait for auth state to be loaded
+                let user_principal_result = auth.user_principal.await;
+                let is_connected =
+                    user_principal_result.is_ok() && auth.is_logged_in_with_oauth().get();
+
+                set_is_loading(false);
+
+                // if is_connected {
+                show_delete_popup.set(true);
+                // } else {
+                //     show_delete_popup.set(false);
+                //     show_login_modal.set(true);
+                // }
+            });
+        }
+    });
+
+    view! {
+        <>
+            // Show loader when loading
+            <Show when=move || action.get() == "delete" && is_loading.get()>
+                <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+                    <div class="w-20 h-20 rounded-full border-4 border-white border-solid animate-spin border-t-transparent"></div>
+                </div>
+            </Show>
+
+            // Show login modal when needed
+            <Show when=move || action.get() == "delete" && !is_loading.get()>
+                <LoginModal show=show_login_modal redirect_to=Some("/settings/delete".to_string()) />
+            </Show>
+        </>
+    }
+}
+
+#[component]
+pub fn Settings() -> impl IntoView {
+    // Handle route parameters
+    let params = use_params::<SettingsParams>();
+    let action = Signal::derive(move || {
+        params
+            .get()
+            .map(|p| p.action)
+            .unwrap_or_else(|_| String::new())
+    });
+
+    // Initialize delete popup signal to be shared across components
+    let show_delete_popup = RwSignal::new(false);
+
+    view! {
+        <>
+            <div class="flex flex-col items-center pt-2 pb-12 w-full min-h-screen text-white bg-black divide-y divide-white/10">
+                <div class="flex flex-col gap-20 items-center pb-16 w-full">
+                    <TitleText justify_center=false>
+                        <div class="flex flex-row justify-between">
+                            <BackButton fallback="/menu".to_string() />
+                            <span class="text-2xl font-bold">Settings</span>
+                            <div></div>
+                        </div>
+                    </TitleText>
+                </div>
+                <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
+                    <EnableNotifications />
+                    <DeleteAccount show_delete_popup />
+                </div>
+                <MenuFooter />
+                <DeleteAccountPopup show_delete_popup />
+            </div>
+            <DeleteActionHandler action show_delete_popup />
+        </>
     }
 }
