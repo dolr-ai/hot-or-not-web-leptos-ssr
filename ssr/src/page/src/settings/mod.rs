@@ -323,10 +323,17 @@ fn DeleteAccount(show_delete_popup: RwSignal<bool>) -> impl IntoView {
         spawn_local(async move {
             // Wait for auth state to be loaded
             let user_principal_result = auth.user_principal.await;
-            let _is_connected =
+            let is_connected =
                 user_principal_result.is_ok() && auth.is_logged_in_with_oauth().get();
 
             set_is_loading(false);
+
+            if is_connected {
+                show_delete_popup.set(true);
+            } else {
+                show_delete_popup.set(false);
+                show_login_modal.set(true);
+            }
         });
     });
 
@@ -370,17 +377,17 @@ fn DeleteActionHandler(action: Signal<String>, show_delete_popup: RwSignal<bool>
             spawn_local(async move {
                 // Wait for auth state to be loaded
                 let user_principal_result = auth.user_principal.await;
-                let _is_connected =
+                let is_connected =
                     user_principal_result.is_ok() && auth.is_logged_in_with_oauth().get();
 
                 set_is_loading(false);
 
-                // if _is_connected {
-                show_delete_popup.set(true);
-                // } else {
-                //     show_delete_popup.set(false);
-                //     show_login_modal.set(true);
-                // }
+                if is_connected {
+                    show_delete_popup.set(true);
+                } else {
+                    show_delete_popup.set(false);
+                    show_login_modal.set(true);
+                }
             });
         }
     });
