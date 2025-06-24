@@ -11,7 +11,6 @@ use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::host::show_nsfw_content;
-use utils::notifications::send_liked_notification;
 use utils::{
     event_streaming::events::{LikeVideo, ShareVideo},
     report::ReportOption,
