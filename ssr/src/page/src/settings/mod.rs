@@ -336,7 +336,6 @@ fn DeleteAccountFlow(show_popup: RwSignal<bool>, is_authenticated: bool) -> impl
     view! {
         <Show when=move || show_popup.get()>
             {
-                leptos::logging::log!("DeleteAccountFlow: show_popup is true, is_authenticated: {}", is_authenticated);
                 if is_authenticated {
                     Either::Left(view! { <DeleteAccountPopup show_delete_popup=show_popup /> })
                 } else {
@@ -362,7 +361,6 @@ pub fn Settings() -> impl IntoView {
 
     let auth = auth_state();
 
-    // Check auth state when popup should be shown
     let is_authenticated = Resource::new_blocking(
         move || show_popup.get(),
         move |should_show| async move {
