@@ -9814,7 +9814,7 @@ dependencies = [
 [[package]]
 name = "yral-spacetime-bindings"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-spacetime?branch=feat%2Fdolr-airdrop#cce4f3b34064f8efb93ca570293bea0b8936e5cc"
+source = "git+https://github.com/dolr-ai/yral-spacetime?branch=main#62fcbbc719eea58ffa2e1ce6404bbe2182873b90"
 dependencies = [
  "spacetimedb-sdk",
 ]
