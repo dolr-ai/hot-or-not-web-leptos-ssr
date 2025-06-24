@@ -41,14 +41,14 @@ fn ProfileCard(
 ) -> impl IntoView {
     let ShowLoginSignal(show_login) = expect_context();
     view! {
-        <div class="w-full flex flex-col bg-neutral-900 rounded-lg p-4 gap-4">
-            <div class="flex items-center gap-4">
+        <div class="flex flex-col gap-4 p-4 w-full rounded-lg bg-neutral-900">
+            <div class="flex gap-4 items-center">
                 <img
                     src=details.profile_pic_or_random()
                     alt="Profile picture"
-                    class="w-12 h-12 rounded-full object-cover shrink-0"
+                    class="object-cover w-12 h-12 rounded-full shrink-0"
                 />
-                <span class="line-clamp-1 text-lg font-kumbh font-semibold select-all text-neutral-50">
+                <span class="text-lg font-semibold select-all line-clamp-1 font-kumbh text-neutral-50">
                     // TEMP: Workaround for hydration bug until leptos 0.7
                     // class=("md:w-5/12", move || !is_connected())
                     {details.display_name_or_fallback()}
@@ -70,13 +70,10 @@ fn ProfileCard(
 #[component]
 fn ProfileCardLoading() -> impl IntoView {
     view! {
-        <div class="w-full flex flex-col bg-neutral-900 rounded-lg p-4 gap-4">
-            <div class="flex items-center gap-4">
-                <div
-                    class="w-12 h-12 rounded-full bg-loading shrink-0"
-                />
-                <div class="flex-1 bg-loading rounded-lg h-7">
-                </div>
+        <div class="flex flex-col gap-4 p-4 w-full rounded-lg bg-neutral-900">
+            <div class="flex gap-4 items-center">
+                <div class="w-12 h-12 rounded-full bg-loading shrink-0" />
+                <div class="flex-1 h-7 rounded-lg bg-loading"></div>
             </div>
         </div>
     }
@@ -96,9 +93,9 @@ fn Header(details: ProfileDetails, is_own_account: bool) -> impl IntoView {
     );
 
     view! {
-        <div class="w-full flex items-center justify-between px-4 py-3 gap-10 ">
-            <div class="text-white font-kumbh text-xl font-bold">My Wallet</div>
-            <div class="flex items-center gap-8">
+        <div class="flex gap-10 justify-between items-center py-3 px-4 w-full">
+            <div class="text-xl font-bold text-white font-kumbh">My Wallet</div>
+            <div class="flex gap-8 items-center">
                 <ShareButtonWithFallbackPopup share_link message />
                 <Show when=move || is_own_account>
                     <a href="/wallet/notifications">
@@ -113,9 +110,9 @@ fn Header(details: ProfileDetails, is_own_account: bool) -> impl IntoView {
 #[component]
 fn HeaderLoading() -> impl IntoView {
     view! {
-        <div class="w-full flex items-center justify-between px-4 py-3 gap-10 ">
-            <div class="text-white font-kumbh text-xl font-bold">My Wallet</div>
-            <div class="flex items-center gap-8">
+        <div class="flex gap-10 justify-between items-center py-3 px-4 w-full">
+            <div class="text-xl font-bold text-white font-kumbh">My Wallet</div>
+            <div class="flex gap-8 items-center">
                 <div class="w-6 h-6 rounded-full bg-loading"></div>
                 <div class="w-6 h-6 rounded-full bg-loading"></div>
             </div>
@@ -157,20 +154,29 @@ pub fn Wallet() -> impl IntoView {
                 Ok(Some(principal)) => Some(view! { <WalletImpl principal /> }.into_any()),
                 Ok(None) => {
                     let auth = auth_state();
-                    Some(view! {
-                        <Suspense>
-                            {move || auth.user_principal.get().map(|res| match res {
-                                Ok(user_principal) => view! {
-                                    <Redirect path=format!("/wallet/{user_principal}") />
-                                },
-                                Err(e) => view! {
-                                    <Redirect path=format!("/error?err={e}") />
-                                }
-                            })}
-                        </Suspense>
-                    }.into_any())
+                    Some(
+                        view! {
+                            <Suspense>
+                                {move || {
+                                    auth.user_principal
+                                        .get()
+                                        .map(|res| match res {
+                                            Ok(user_principal) => {
+                                                view! {
+                                                    <Redirect path=format!("/wallet/{user_principal}") />
+                                                }
+                                            }
+                                            Err(e) => {
+                                                view! { <Redirect path=format!("/error?err={e}") /> }
+                                            }
+                                        })
+                                }}
+                            </Suspense>
+                        }
+                            .into_any(),
+                    )
                 }
-                Err(_) => None
+                Err(_) => None,
             }
         }}
     }
@@ -208,45 +214,47 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
     let page_title = app_state.unwrap().name.to_owned() + " - Wallet";
 
     view! {
-        <div class="flex flex-col gap-4 pt-4 pb-12 bg-black min-h-dvh font-kumbh mx-auto max-w-md">
-             <Title text=page_title />
-             <Suspense fallback=move || view! { <HeaderLoading/> }>
+        <div class="flex flex-col gap-4 pt-4 pb-12 mx-auto max-w-md bg-black min-h-dvh font-kumbh overflow-x-hidden">
+            <Title text=page_title />
+            <Suspense fallback=move || {
+                view! { <HeaderLoading /> }
+            }>
                 {move || Suspend::new(async move {
                     let profile_details = profile_info_res.await;
                     let logged_in_user = auth.user_principal.await;
-
                     match profile_details.and_then(|c| Ok((c, logged_in_user?))) {
                         Ok((profile_details, logged_in_user)) => {
                             let is_own_account = logged_in_user == principal;
-                            Either::Left(view! {
-                                <Header details=profile_details is_own_account/>
-                            })
+                            Either::Left(
+                                view! { <Header details=profile_details is_own_account /> },
+                            )
                         }
                         Err(e) => {
-                            Either::Right(view! {
-                                <Redirect path=format!("/error?err={e}") />
-                            })
+                            Either::Right(view! { <Redirect path=format!("/error?err={e}") /> })
                         }
                     }
                 })}
             </Suspense>
-            <div class="flex h-full w-full flex-col items-center justify-center max-w-md mx-auto px-4 gap-4">
+            <div class="flex flex-col gap-4 justify-center items-center px-4 mx-auto w-full max-w-md h-full">
                 <Suspense fallback=ProfileCardLoading>
                     {move || Suspend::new(async move {
                         let profile_details = profile_info_res.await;
                         let logged_in_user = auth.user_principal.await;
-
                         match profile_details.and_then(|c| Ok((c, logged_in_user?))) {
                             Ok((profile_details, logged_in_user)) => {
                                 let is_own_account = logged_in_user == principal;
-                                Either::Left(view! {
-                                    <ProfileCard details=profile_details is_connected is_own_account />
-                                })
+                                Either::Left(
+                                    view! {
+                                        <ProfileCard
+                                            details=profile_details
+                                            is_connected
+                                            is_own_account
+                                        />
+                                    },
+                                )
                             }
                             Err(e) => {
-                                Either::Right(view! {
-                                    <Redirect path=format!("/error?err={e}") />
-                                })
+                                Either::Right(view! { <Redirect path=format!("/error?err={e}") /> })
                             }
                         }
                     })}
@@ -255,16 +263,21 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
                     {move || Suspend::new(async move {
                         let canister_id = canister_id.await;
                         match canister_id {
-                            Ok(canister_id) => Either::Left(view! {
-                                <div class="font-kumbh self-start pt-3 font-bold text-lg text-white">
-                                    My tokens
-                                </div>
-                                <TokenList user_principal=principal user_canister=canister_id />
-                            }),
+                            Ok(canister_id) => {
+                                Either::Left(
+                                    view! {
+                                        <div class="self-start pt-3 text-lg font-bold text-white font-kumbh">
+                                            My tokens
+                                        </div>
+                                        <TokenList
+                                            user_principal=principal
+                                            user_canister=canister_id
+                                        />
+                                    },
+                                )
+                            }
                             Err(e) => {
-                                Either::Right(view! {
-                                    <Redirect path=format!("/error?err={e}") />
-                                })
+                                Either::Right(view! { <Redirect path=format!("/error?err={e}") /> })
                             }
                         }
                     })}
@@ -276,10 +289,7 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
 
 #[component]
 pub fn NotificationWallet() -> impl IntoView {
-    view! {
-        <NotificationWalletImpl />
-    }
-    .into_any()
+    view! { <NotificationWalletImpl /> }.into_any()
 }
 
 #[component]
@@ -331,21 +341,35 @@ pub fn NotificationWalletImpl() -> impl IntoView {
     });
 
     view! {
-        <div class="flex flex-col pt-4 pb-12 bg-black min-h-dvh overflow-x-hidden font-kumbh mx-auto max-w-md text-white">
+        <div class="flex overflow-x-hidden flex-col pt-4 pb-12 mx-auto max-w-md text-white bg-black min-h-dvh font-kumbh">
             <Title text=page_title />
-            <div class="sticky top-0 z-10 bg-black px-4 py-3 flex items-center justify-between">
-                <a href="/wallet" class="text-white"> // Assuming back navigates to general wallet
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+            <div class="flex sticky top-0 z-10 justify-between items-center py-3 px-4 bg-black">
+                // Assuming back navigates to general wallet
+                <a href="/wallet" class="text-white">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        class="w-6 h-6"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M15.75 19.5L8.25 12l7.5-7.5"
+                        />
                     </svg>
                 </a>
                 <h1 class="text-xl font-bold text-center grow">Notification</h1>
-                <div class="w-6"></div> // Spacer to balance the back button
+                // Spacer to balance the back button
+                <div class="w-6"></div>
             </div>
 
-            <div class="flex flex-col gap-0"> // Changed gap-4 to gap-0 for tighter packing of elements
-                <div class="flex items-center justify-between p-2 bg-neutral-900 my-4 rounded-lg">
-                    <div class="flex items-center gap-3">
+            // Changed gap-4 to gap-0 for tighter packing of elements
+            <div class="flex flex-col gap-0">
+                <div class="flex justify-between items-center p-2 my-4 rounded-lg bg-neutral-900">
+                    <div class="flex gap-3 items-center">
                         <NotificationIcon show_dot=false class="w-5 h-5 text-neutral-300" />
                         <span class="text-neutral-50">Allow Notifications</span>
                     </div>
@@ -378,19 +402,24 @@ struct NotificationCardData {
 fn NotificationCard(data: NotificationCardData) -> impl IntoView {
     let title = data.title.clone();
     view! {
-        <div class="flex items-center py-6 px-2 gap-4 border-b border-neutral-800 hover:bg-neutral-800 cursor-pointer">
-            <Show when=move || !data.is_read >
-                <div class="w-2 h-2 bg-pink-500 rounded-full self-start mt-2 shrink-0"></div>
+        <div class="flex gap-4 items-center py-6 px-2 border-b cursor-pointer border-neutral-800 hover:bg-neutral-800">
+            <Show when=move || !data.is_read>
+                <div class="self-start mt-2 w-2 h-2 bg-pink-500 rounded-full shrink-0"></div>
             </Show>
-            <Show when=move || data.is_read >
-                 <div class="w-2 h-2 shrink-0"></div> // Placeholder for alignment when read
+            <Show when=move || data.is_read>
+                // Placeholder for alignment when read
+                <div class="w-2 h-2 shrink-0"></div>
             </Show>
-            <img src=data.image_src.clone() alt="Notification Icon" class="w-10 h-10 rounded-full object-cover shrink-0"/>
+            <img
+                src=data.image_src.clone()
+                alt="Notification Icon"
+                class="object-cover w-10 h-10 rounded-full shrink-0"
+            />
             <div class="flex flex-col">
                 <Show when=move || !title.is_empty()>
                     <span class="font-semibold text-neutral-50">{data.title.clone()}</span>
                 </Show>
-                <span class="text-neutral-300 text-sm">{data.message.clone()}</span>
+                <span class="text-sm text-neutral-300">{data.message.clone()}</span>
             </div>
         </div>
     }.into_any()

@@ -26,6 +26,7 @@ pub const GOBGOB_TOTAL_COUNT: u32 = 18557;
 pub const CF_WATERMARK_UID: &str = "b5588fa1516ca33a08ebfef06c8edb33";
 pub const ACCOUNT_CONNECTED_STORE: &str = "account-connected-1";
 pub const DEVICE_ID: &str = "device_id";
+pub const AUTH_JOURNET: &str = "auth_journey";
 pub static CF_BASE_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://api.cloudflare.com/client/v4/").unwrap());
 pub const NOTIFICATIONS_ENABLED_STORE: &str = "yral-notifications-enabled";
@@ -59,7 +60,7 @@ pub const CF_KV_ML_CACHE_NAMESPACE_ID: &str = "ea145fc839bd42f9bf2d34b950ddbda5"
 pub const CLOUDFLARE_ACCOUNT_ID: &str = "a209c523d2d9646cc56227dbe6ce3ede";
 
 pub const NEW_USER_SIGNUP_REWARD: u64 = 1000;
-
+pub const REFERRAL_REWARD: u64 = 10;
 pub const MIN_WITHDRAWAL_PER_TXN: u64 = 200;
 pub const MAX_WITHDRAWAL_PER_TXN: u64 = 500;
 
@@ -80,6 +81,13 @@ pub mod auth {
     /// Refresh expiry, 29 days
     pub const REFRESH_MAX_AGE: Duration = Duration::from_secs(60 * 60 * 24 * 29);
     pub const REFRESH_TOKEN_COOKIE: &str = "user-identity";
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum LoginProvider {
+    Any,
+    Google,
+    Apple,
 }
 
 #[cfg(feature = "oauth-ssr")]

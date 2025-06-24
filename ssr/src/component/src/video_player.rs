@@ -10,7 +10,7 @@ pub fn VideoPlayer(
     #[prop(into)] view_video_url: Signal<Option<String>>,
 ) -> impl IntoView {
     view! {
-        <label class="h-full w-full absolute top-0 left-0 grid grid-cols-1 justify-items-center items-center cursor-pointer z-3">
+        <label class="grid absolute top-0 left-0 grid-cols-1 justify-items-center items-center w-full h-full cursor-pointer z-3">
             <input
                 on:change=move |_| AudioState::toggle_mute()
                 type="checkbox"
@@ -19,7 +19,7 @@ pub fn VideoPlayer(
             />
             <video
                 node_ref=node_ref
-                class="object-contain h-dvh max-h-dvh cursor-pointer"
+                class="object-contain cursor-pointer h-dvh max-h-dvh"
                 poster=view_bg_url
                 src=view_video_url
                 loop

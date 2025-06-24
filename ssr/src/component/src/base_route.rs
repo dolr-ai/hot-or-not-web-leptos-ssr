@@ -1,6 +1,7 @@
 use consts::auth::REFRESH_MAX_AGE;
 use leptos::{ev, prelude::*};
 use leptos_router::components::Outlet;
+use leptos_router::hooks::use_navigate;
 use leptos_use::{use_cookie_with_options, use_event_listener, use_window, UseCookieOptions};
 
 use codee::string::FromToStringCodec;
@@ -24,6 +25,14 @@ fn CtxProvider(children: Children) -> impl IntoView {
     provide_context(auth);
 
     let location = leptos_router::hooks::use_location();
+    let navigate = use_navigate();
+
+    // Monitor auth errors and navigate to logout if needed
+    Effect::new(move |_| {
+        if let Some(Err(_)) = auth.user_identity.get() {
+            navigate("/logout", Default::default());
+        }
+    });
 
     Effect::new(move |_| {
         let maybe_user_canister = auth.user_canister.get();
@@ -135,7 +144,7 @@ fn CtxProvider(children: Children) -> impl IntoView {
 pub fn BaseRoute() -> impl IntoView {
     view! {
         <CtxProvider>
-            <Outlet/>
+            <Outlet />
         </CtxProvider>
     }
 }

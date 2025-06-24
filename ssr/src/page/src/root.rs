@@ -90,33 +90,32 @@ pub fn YralRootPage() -> impl IntoView {
             {move || {
                 let user_refer = params.get().get("user_refer").map(|s| s.to_string());
                 Suspend::new(async move {
-                let utms = store_utms.await;
-                let mut url = match target_post.await {
-                    Ok(Some(post_item)) => {
-                        let canister_id = post_item.canister_id;
-                        let post_id = post_item.post_id;
-                        post_details_cache.post_details.update(|post_details| {
-                            post_details.insert((canister_id, post_id), post_item.clone());
-                        });
-
-                        format!("/hot-or-not/{canister_id}/{post_id}")
-                    },
-                    Ok(None) => "/error?err=No Posts Found".to_string(),
-                    Err(e) => format!("/error?err={e}"),
-                };
-
-                if let Some(user_refer) = user_refer {
-                    url.push_str(&format!("?user_refer={user_refer}"));
-                    if let Some(utms) = utms {
-                        url.push_str(&format!("&{utms}"));
+                    let utms = store_utms.await;
+                    let mut url = match target_post.await {
+                        Ok(Some(post_item)) => {
+                            let canister_id = post_item.canister_id;
+                            let post_id = post_item.post_id;
+                            post_details_cache
+                                .post_details
+                                .update(|post_details| {
+                                    post_details.insert((canister_id, post_id), post_item.clone());
+                                });
+                            format!("/hot-or-not/{canister_id}/{post_id}")
+                        }
+                        Ok(None) => "/error?err=No Posts Found".to_string(),
+                        Err(e) => format!("/error?err={e}"),
+                    };
+                    if let Some(user_refer) = user_refer {
+                        url.push_str(&format!("?user_refer={user_refer}"));
+                        if let Some(utms) = utms {
+                            url.push_str(&format!("&{utms}"));
+                        }
+                    } else if let Some(utms) = utms {
+                        url.push_str(&format!("?{utms}"));
                     }
-                } else if let Some(utms) = utms {
-                    url.push_str(&format!("?{utms}"));
-                }
-
-                view! { <Redirect path=url /> }
-            })
-        }}
+                    view! { <Redirect path=url /> }
+                })
+            }}
         </Suspense>
     }
     .into_any()

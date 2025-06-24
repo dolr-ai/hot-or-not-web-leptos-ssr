@@ -97,62 +97,76 @@ fn PreUploadView(
     });
 
     view! {
-        <div class="flex flex-col lg:flex-row w-full gap-4 lg:gap-20 mx-auto justify-center items-center min-h-screen bg-transparent p-0">
-            <div class="flex flex-col items-center justify-center w-[358px] h-[300px] sm:w-full sm:h-auto sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] rounded-2xl text-center px-2 mx-4 mt-4 mb-4 sm:px-4 sm:mx-6 lg:px-0 lg:mx-0 lg:overflow-y-auto">
-                <PreVideoUpload file_blob=file_blob uid=uid upload_file_actual_progress=upload_file_actual_progress />
-            </div>
-            <div class="flex flex-col gap-4 w-full max-w-[627px] h-auto min-h-[400px] max-h-[90vh] lg:w-[627px] lg:h-[600px] rounded-2xl p-2 justify-between overflow-y-auto">
-            <h2 class="text-[32px] font-light text-white mb-2">Upload Video</h2>
-            <div class="flex flex-col gap-y-1">
-                <label for="caption-input" class="font-light text-[20px] text-neutral-300 mb-1">Caption</label>
-                <Show when=move || { description_err.with(| description_err | ! description_err.is_empty()) }>
-                    <span class="text-red-500 text-sm">{desc_err_memo()}</span>
-                </Show>
-                <textarea
-                    id="caption-input"
-                    node_ref=desc
-                    on:input=move |ev| {
-                        let desc = event_target_value(&ev);
-                        description_err.set(description_validator(desc).err().unwrap_or_default());
-                    }
-                    class="p-3 bg-neutral-900 rounded-lg min-w-full border border-neutral-800 focus:border-pink-400 focus:ring-pink-400 outline-none transition text-[15px] placeholder:text-neutral-500 placeholder:font-light"
-                    rows=12
-                    placeholder="Enter the caption here"
-                ></textarea>
-            </div>
-            <div class="flex flex-col gap-y-1 mt-2">
-                <label for="hashtag-input" class="font-light text-[20px] text-neutral-300 mb-1">Add Hashtag</label>
-                <Show
-                    when=move || { hashtags_err.with(| hashtags_err | ! hashtags_err.is_empty()) }
-                >
-                    <span class="text-red-500 text-sm font-semibold">{hashtags_err_memo()}</span>
-                </Show>
-                <input
-                    id="hashtag-input"
-                    node_ref=hashtag_inp
-                    on:input=move |ev| {
-                        let hts = event_target_value(&ev);
-                        hashtag_on_input(hts);
-                    }
-                    class="p-3 bg-neutral-900 rounded-lg border border-neutral-800 focus:border-pink-400 focus:ring-pink-400 outline-none transition text-[15px] placeholder:text-neutral-500 placeholder:font-light"
-                    type="text"
-                    placeholder="Hit enter to add #hashtags"
+        <div class="flex flex-col gap-4 justify-center items-center p-0 mx-auto w-full min-h-screen bg-transparent lg:flex-row lg:gap-20">
+            <div class="flex flex-col justify-center items-center px-2 mx-4 mt-4 mb-4 text-center rounded-2xl sm:px-4 sm:mx-6 sm:w-full sm:h-auto lg:overflow-y-auto lg:px-0 lg:mx-0 w-[358px] h-[300px] sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px]">
+                <PreVideoUpload
+                    file_blob=file_blob
+                    uid=uid
+                    upload_file_actual_progress=upload_file_actual_progress
                 />
             </div>
-            {move || {
-                let disa = invalid_form.get();
-                view! {
-                    <HighlightedButton
-                        on_click=move || on_submit()
-                        disabled=disa
-                        classes="w-full mx-auto py-[12px] px-[20px] rounded-xl bg-linear-to-r from-pink-300 to-pink-500 text-white font-light text-[17px] transition disabled:opacity-60 disabled:cursor-not-allowed".to_string()
-                    >
-                        "Upload"
-                    </HighlightedButton>
-                }
-            }}
+            <div class="flex overflow-y-auto flex-col gap-4 justify-between p-2 w-full h-auto rounded-2xl max-w-[627px] min-h-[400px] max-h-[90vh] lg:w-[627px] lg:h-[600px]">
+                <h2 class="mb-2 font-light text-white text-[32px]">Upload Video</h2>
+                <div class="flex flex-col gap-y-1">
+                    <label for="caption-input" class="mb-1 font-light text-[20px] text-neutral-300">
+                        Caption
+                    </label>
+                    <Show when=move || {
+                        description_err.with(|description_err| !description_err.is_empty())
+                    }>
+                        <span class="text-sm text-red-500">{desc_err_memo()}</span>
+                    </Show>
+                    <textarea
+                        id="caption-input"
+                        node_ref=desc
+                        on:input=move |ev| {
+                            let desc = event_target_value(&ev);
+                            description_err
+                                .set(description_validator(desc).err().unwrap_or_default());
+                        }
+                        class="p-3 min-w-full rounded-lg border transition outline-none focus:border-pink-400 focus:ring-pink-400 bg-neutral-900 border-neutral-800 text-[15px] placeholder:text-neutral-500 placeholder:font-light"
+                        rows=12
+                        placeholder="Enter the caption here"
+                    ></textarea>
+                </div>
+                <div class="flex flex-col gap-y-1 mt-2">
+                    <label for="hashtag-input" class="mb-1 font-light text-[20px] text-neutral-300">
+                        Add Hashtag
+                    </label>
+                    <Show when=move || {
+                        hashtags_err.with(|hashtags_err| !hashtags_err.is_empty())
+                    }>
+                        <span class="text-sm font-semibold text-red-500">
+                            {hashtags_err_memo()}
+                        </span>
+                    </Show>
+                    <input
+                        id="hashtag-input"
+                        node_ref=hashtag_inp
+                        on:input=move |ev| {
+                            let hts = event_target_value(&ev);
+                            hashtag_on_input(hts);
+                        }
+                        class="p-3 rounded-lg border transition outline-none focus:border-pink-400 focus:ring-pink-400 bg-neutral-900 border-neutral-800 text-[15px] placeholder:text-neutral-500 placeholder:font-light"
+                        type="text"
+                        placeholder="Hit enter to add #hashtags"
+                    />
+                </div>
+                {move || {
+                    let disa = invalid_form.get();
+                    view! {
+                        <HighlightedButton
+                            on_click=move || on_submit()
+                            disabled=disa
+                            classes="w-full mx-auto py-[12px] px-[20px] rounded-xl bg-linear-to-r from-pink-300 to-pink-500 text-white font-light text-[17px] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                                .to_string()
+                        >
+                            "Upload"
+                        </HighlightedButton>
+                    }
+                }}
+            </div>
         </div>
-    </div>
     }
 }
 
@@ -164,16 +178,26 @@ pub fn UploadPostPage() -> impl IntoView {
 
     view! {
         <Title text="YRAL - Upload" />
-        <div class="flex flex-col min-h-dvh w-dvw items-center overflow-y-scroll gap-6 md:gap-8 lg:gap-16 pb-12 pt-4 md:pt-6 px-5 md:px-8 lg:px-12 bg-black text-white justify-center">
-            <div class="flex flex-col lg:flex-row place-content-center min-h-full w-full">
+        <div class="flex overflow-y-scroll flex-col gap-6 justify-center items-center px-5 pt-4 pb-12 text-white bg-black md:gap-8 md:px-8 md:pt-6 lg:gap-16 lg:px-12 min-h-dvh w-dvw">
+            <div class="flex flex-col place-content-center w-full min-h-full lg:flex-row">
                 <Show
-                    when=move || { trigger_upload.with(| trigger_upload | trigger_upload.is_some()) }
+                    when=move || { trigger_upload.with(|trigger_upload| trigger_upload.is_some()) }
                     fallback=move || {
-                        view! { <PreUploadView trigger_upload=trigger_upload.write_only() uid=uid upload_file_actual_progress=upload_file_actual_progress.write_only() /> }
+                        view! {
+                            <PreUploadView
+                                trigger_upload=trigger_upload.write_only()
+                                uid=uid
+                                upload_file_actual_progress=upload_file_actual_progress.write_only()
+                            />
+                        }
                     }
                 >
 
-                    <VideoUploader params=trigger_upload.get_untracked().unwrap() uid=uid upload_file_actual_progress=upload_file_actual_progress.read_only() />
+                    <VideoUploader
+                        params=trigger_upload.get_untracked().unwrap()
+                        uid=uid
+                        upload_file_actual_progress=upload_file_actual_progress.read_only()
+                    />
                 </Show>
             </div>
         </div>

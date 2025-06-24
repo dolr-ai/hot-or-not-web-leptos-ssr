@@ -17,7 +17,7 @@ pub fn MuteIconOverlay(show_mute_icon: RwSignal<bool>) -> impl IntoView {
                 on:click=move |_| AudioState::toggle_mute()
             >
                 <Icon
-                attr:class="text-white/80 animate-ping text-4xl"
+                    attr:class="text-white/80 animate-ping text-4xl"
                     icon=icondata::BiVolumeMuteSolid
                 />
             </button>
@@ -44,10 +44,10 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
     let scroll_root: NodeRef<html::Div> = NodeRef::new();
 
     let var_name = view! {
-        <div class="h-full w-full overflow-hidden overflow-y-auto">
+        <div class="overflow-hidden overflow-y-auto w-full h-full">
             <div
                 node_ref=scroll_root
-                class="snap-mandatory snap-y overflow-y-scroll h-dvh w-dvw bg-black"
+                class="overflow-y-scroll bg-black snap-mandatory snap-y h-dvh w-dvw"
                 style:scroll-snap-points-y="repeat(100vh)"
             >
 
@@ -72,9 +72,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                 {
                                     return;
                                 }
-
                                 current_idx.set(queue_idx);
-
                                 if video_queue.with_untracked(|q| q.len()).saturating_sub(queue_idx)
                                     <= threshold_trigger_fetch
                                 {
@@ -98,7 +96,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                             queue_idx.abs_diff(current_idx()) <= 6
                         });
                         view! {
-                            <div node_ref=container_ref class="snap-always snap-end w-full h-full">
+                            <div node_ref=container_ref class="w-full h-full snap-always snap-end">
                                 <Show when=show_video>
                                     <BgView video_queue idx=queue_idx>
                                         <VideoViewForQueue
@@ -110,12 +108,13 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                     </BgView>
                                 </Show>
                             </div>
-                        }.into_any()
+                        }
+                            .into_any()
                     }
                 />
 
                 <Show when=queue_end>
-                    <div class="h-full w-full relative top-0 left-0 bg-inherit z-21 flex snap-always snap-end justify-center items-center text-xl text-white/80">
+                    <div class="flex relative top-0 left-0 justify-center items-center w-full h-full text-xl bg-inherit z-21 snap-always snap-end text-white/80">
                         <span>You have reached the end!</span>
                     </div>
                 </Show>

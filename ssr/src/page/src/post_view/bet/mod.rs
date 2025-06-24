@@ -1,6 +1,5 @@
 mod server_impl;
 
-use crate::post_view::BetEligiblePostCtx;
 use component::{bullet_loader::BulletLoader, hn_icons::*, spinner::SpinnerFit};
 use hon_worker_common::{sign_vote_request, GameInfo, GameResult, WORKER_URL};
 use ic_agent::Identity;
@@ -93,6 +92,7 @@ fn HNButton(
     bet_direction: RwSignal<Option<VoteKind>>,
     kind: VoteKind,
     #[prop(into)] disabled: Signal<bool>,
+    place_bet_action: Action<VoteKind, Option<()>>,
 ) -> impl IntoView {
     let grayscale = Memo::new(move |_| bet_direction() != Some(kind) && disabled());
     let show_spinner = move || disabled() && bet_direction() == Some(kind);
@@ -107,7 +107,7 @@ fn HNButton(
             class="w-14 h-14 md:w-16 md:h-16 md:w-18 lg:h-18"
             class=("grayscale", grayscale)
             disabled=disabled
-            on:click=move |_| bet_direction.set(Some(kind))
+            on:click=move |_| {bet_direction.set(Some(kind)); place_bet_action.dispatch(kind);}
         >
             <Show when=move || !show_spinner() fallback=SpinnerFit>
                 <Icon attr:class="w-full h-full drop-shadow-lg" icon=icon />
@@ -123,118 +123,133 @@ fn HNButtonOverlay(
     coin: RwSignal<CoinState>,
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
+    audio_ref: NodeRef<Audio>,
 ) -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
 
-    let place_bet_action = Action::new(move |(bet_direction, bet_amount): &(VoteKind, u64)| {
-        let post_canister = post.canister_id;
-        let post_id = post.post_id;
-        let bet_amount = *bet_amount;
-        let bet_direction = *bet_direction;
-        let req = hon_worker_common::VoteRequest {
-            post_canister,
-            post_id,
-            vote_amount: bet_amount as u128,
-            direction: bet_direction.into(),
-        };
-        let prev_post = prev_post.as_ref().map(|p| (p.canister_id, p.post_id));
+    fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
+        #[cfg(not(feature = "hydrate"))]
+        {
+            _ = audio_ref;
+        }
+        #[cfg(feature = "hydrate")]
+        {
+            use wasm_bindgen::JsValue;
+            use web_sys::js_sys::Reflect;
 
-        let post_mix = post.clone();
-        send_wrap(async move {
-            let cans = auth.auth_cans(expect_context()).await.ok()?;
-            let identity = cans.identity();
-            let sender = identity.sender().unwrap();
-            let sig = sign_vote_request(identity, req.clone()).ok()?;
-
-            let res = vote_with_cents_on_post(sender, req, sig, prev_post).await;
-            match res {
-                Ok(res) => {
-                    let is_logged_in = is_connected.get_untracked();
-                    let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-                    let game_conclusion = match res.game_result {
-                        GameResult::Win { .. } => GameConclusion::Win,
-                        GameResult::Loss { .. } => GameConclusion::Loss,
-                    };
-                    let win_loss_amount = match res.game_result.clone() {
-                        GameResult::Win { win_amt } => {
-                            TokenBalance::new((win_amt + bet_amount).into(), 0).humanize()
-                        }
-                        GameResult::Loss { lose_amt } => {
-                            TokenBalance::new((lose_amt + 0u64).into(), 0).humanize()
-                        }
-                    };
-                    MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
-                        is_nsfw: post_mix.is_nsfw,
-                        user_id: global.user_id,
-                        visitor_id: global.visitor_id,
-                        is_logged_in: global.is_logged_in,
-                        canister_id: global.canister_id,
-                        is_nsfw_enabled: global.is_nsfw_enabled,
-                        game_type: MixpanelPostGameType::HotOrNot,
-                        option_chosen: bet_direction.into(),
-                        publisher_user_id: post_mix.poster_principal.to_text(),
-                        video_id: post_mix.uid.clone(),
-                        view_count: post_mix.views,
-                        like_count: post_mix.likes,
-                        stake_amount: bet_amount,
-                        is_game_enabled: true,
-                        stake_type: StakeType::Sats,
-                        conclusion: game_conclusion,
-                        won_loss_amount: win_loss_amount,
-                        creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
-                    });
-                    Some(())
-                }
-                Err(e) => {
-                    log::error!("{e}");
-                    None
-                }
+            let window = window();
+            let nav = window.navigator();
+            if Reflect::has(&nav, &JsValue::from_str("vibrate")).unwrap_or_default() {
+                nav.vibrate_with_duration(200);
+            } else {
+                log::debug!("browser does not support vibrate");
             }
-        })
-    });
-    let place_bet_res = place_bet_action.value();
-    Effect::new(move |_| {
-        if place_bet_res.get().flatten().is_some() {
-            refetch_bet.notify();
+            let Some(audio) = audio_ref.get_untracked() else {
+                return;
+            };
+            if won {
+                audio.set_current_time(0.);
+                audio.set_volume(0.5);
+                _ = audio.play();
+            }
         }
-    });
+    }
+
+    let place_bet_action: Action<VoteKind, Option<()>> =
+        Action::new(move |bet_direction: &VoteKind| {
+            let post_canister = post.canister_id;
+            let post_id = post.post_id;
+            let bet_amount: u64 = coin.get_untracked().into();
+            let bet_direction = *bet_direction;
+            let req = hon_worker_common::VoteRequest {
+                post_canister,
+                post_id,
+                vote_amount: bet_amount as u128,
+                direction: bet_direction.into(),
+            };
+            let prev_post = prev_post.as_ref().map(|p| (p.canister_id, p.post_id));
+
+            let post_mix = post.clone();
+            send_wrap(async move {
+                let cans = auth.auth_cans(expect_context()).await.ok()?;
+                let identity = cans.identity();
+                let sender = identity.sender().unwrap();
+                let sig = sign_vote_request(identity, req.clone()).ok()?;
+
+                let res = vote_with_cents_on_post(sender, req, sig, prev_post).await;
+                refetch_bet.notify();
+                match res {
+                    Ok(res) => {
+                        let is_logged_in = is_connected.get_untracked();
+                        let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
+                        let game_conclusion = match res.game_result {
+                            GameResult::Win { .. } => GameConclusion::Win,
+                            GameResult::Loss { .. } => GameConclusion::Loss,
+                        };
+                        let win_loss_amount = match res.game_result.clone() {
+                            GameResult::Win { win_amt } => {
+                                TokenBalance::new((win_amt + bet_amount).into(), 0).humanize()
+                            }
+                            GameResult::Loss { lose_amt } => {
+                                TokenBalance::new((lose_amt + 0u64).into(), 0).humanize()
+                            }
+                        };
+                        MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
+                            is_nsfw: post_mix.is_nsfw,
+                            user_id: global.user_id,
+                            visitor_id: global.visitor_id,
+                            is_logged_in: global.is_logged_in,
+                            canister_id: global.canister_id,
+                            is_nsfw_enabled: global.is_nsfw_enabled,
+                            game_type: MixpanelPostGameType::HotOrNot,
+                            option_chosen: bet_direction.into(),
+                            publisher_user_id: post_mix.poster_principal.to_text(),
+                            video_id: post_mix.uid.clone(),
+                            view_count: post_mix.views,
+                            like_count: post_mix.likes,
+                            stake_amount: bet_amount,
+                            is_game_enabled: true,
+                            stake_type: StakeType::Sats,
+                            conclusion: game_conclusion,
+                            won_loss_amount: win_loss_amount,
+                            creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
+                        });
+                        play_win_sound_and_vibrate(
+                            audio_ref,
+                            matches!(res.game_result, GameResult::Win { .. }),
+                        );
+                        Some(())
+                    }
+                    Err(e) => {
+                        log::error!("{e}");
+                        None
+                    }
+                }
+            })
+        });
+
     let running = place_bet_action.pending();
-
-    let BetEligiblePostCtx { can_place_bet } = expect_context();
-
-    Effect::new(move |_| {
-        if !running.get() {
-            can_place_bet.set(true)
-        } else {
-            can_place_bet.set(false)
-        }
-    });
-
-    Effect::new(move |_| {
-        let Some(bet_direction) = bet_direction() else {
-            return;
-        };
-        let bet_amount = coin.get_untracked().into();
-        place_bet_action.dispatch((bet_direction, bet_amount));
-    });
 
     view! {
         <div class="flex justify-center w-full touch-manipulation">
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
-                <Icon attr:class="justify-self-end text-2xl text-white" icon=icondata::AiUpOutlined />
+                <Icon
+                    attr:class="justify-self-end text-2xl text-white"
+                    icon=icondata::AiUpOutlined
+                />
             </button>
         </div>
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
-            <HNButton disabled=running bet_direction kind=VoteKind::Hot />
+            <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
-            <CoinStateView
-                disabled=running
-                class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-lg"
-                coin
-            />
+                <CoinStateView
+                    disabled=running
+                    class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-lg"
+                    coin
+                />
             </button>
-            <HNButton disabled=running bet_direction kind=VoteKind::Not />
+            <HNButton disabled=running bet_direction kind=VoteKind::Not place_bet_action />
         </div>
         // Bottom row: Hot <down arrow> Not
         // most of the CSS is for alignment with above icons
@@ -319,9 +334,7 @@ fn HNWonLost(game_result: GameResult, vote_amount: u64) -> impl IntoView {
             <div class="flex flex-col gap-2 w-full md:w-1/2 lg:w-1/3">
                 // <!-- Result Text -->
                 <div class="p-1 text-sm leading-snug text-white rounded-full">
-                    <p>
-                        {message}
-                    </p>
+                    <p>{message}</p>
 
                 </div>
                 {if won {
@@ -341,7 +354,6 @@ pub fn HNUserParticipation(
     post: PostDetails,
     participation: GameInfo,
     refetch_bet: Trigger,
-    audio_ref: NodeRef<Audio>,
 ) -> impl IntoView {
     let (_, _) = (post, refetch_bet); // not sure if i will need these later
     let (vote_amount, game_result) = match participation {
@@ -356,39 +368,6 @@ pub fn HNUserParticipation(
     let vote_amount: u64 = vote_amount
         .try_into()
         .expect("We only allow voting with 200 max, so this is alright");
-    let won = matches!(game_result, GameResult::Win { .. });
-
-    fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
-        #[cfg(not(feature = "hydrate"))]
-        {
-            _ = audio_ref;
-        }
-        #[cfg(feature = "hydrate")]
-        {
-            use wasm_bindgen::JsValue;
-            use web_sys::js_sys::Reflect;
-
-            let window = window();
-            let nav = window.navigator();
-            if Reflect::has(&nav, &JsValue::from_str("vibrate")).unwrap_or_default() {
-                nav.vibrate_with_duration(200);
-            } else {
-                log::debug!("browser does not support vibrate");
-            }
-            let Some(audio) = audio_ref.get() else {
-                return;
-            };
-            if won {
-                audio.set_current_time(0.);
-                audio.set_volume(0.5);
-                _ = audio.play();
-            }
-        }
-    }
-
-    Effect::new(move |_| {
-        play_win_sound_and_vibrate(audio_ref, won);
-    });
 
     view! {
         <HNWonLost game_result vote_amount />
@@ -446,17 +425,22 @@ pub fn HNGameOverlay(
     view! {
         <Suspense fallback=LoaderWithShadowBg>
 
-            {
-                move || {
-                    create_game_info.get()
+            {move || {
+                create_game_info
+                    .get()
                     .and_then(|res| {
                         let participation = try_or_redirect_opt!(res.as_ref());
                         let post = post.get_value();
                         Some(
                             if let Some(participation) = participation {
                                 view! {
-                                    <HNUserParticipation post refetch_bet participation=participation.clone() audio_ref=win_audio_ref />
-                                }.into_any()
+                                    <HNUserParticipation
+                                        post
+                                        refetch_bet
+                                        participation=participation.clone()
+                                    />
+                                }
+                                    .into_any()
                             } else {
                                 view! {
                                     <HNButtonOverlay
@@ -465,15 +449,15 @@ pub fn HNGameOverlay(
                                         bet_direction
                                         coin
                                         refetch_bet
+                                        audio_ref=win_audio_ref
                                     />
-                                }.into_any()
+                                }
+                                    .into_any()
                             },
                         )
                     })
                     .unwrap_or_else(|| view! { <LoaderWithShadowBg /> }.into_any())
-                }
-
-            }
+            }}
 
         </Suspense>
     }

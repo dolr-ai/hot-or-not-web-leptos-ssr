@@ -24,7 +24,9 @@
         // shell
         "TheNuProjectContributors.vscode-nushell-lang",
         // tailwindcss
-        "bradlc.vscode-tailwindcss"
+        "bradlc.vscode-tailwindcss",
+        // git
+        "eamodio.gitlens"
       ]
     }
   },
@@ -41,5 +43,6 @@
   "hostRequirements": {
     "cpus": 8
   },
+  "onCreateCommand": "rustup install;",
   "postCreateCommand": "nu .devcontainer/setup.nu"
 }

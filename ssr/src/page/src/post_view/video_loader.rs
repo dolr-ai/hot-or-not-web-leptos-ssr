@@ -10,7 +10,6 @@ use utils::mixpanel::mixpanel_events::*;
 use utils::send_wrap;
 use yral_canisters_client::individual_user_template::PostViewDetailsFromFrontend;
 
-use crate::post_view::BetEligiblePostCtx;
 use component::video_player::VideoPlayer;
 use utils::event_streaming::events::VideoWatched;
 use utils::{bg_url, mp4_url};
@@ -43,28 +42,24 @@ pub fn BgView(
             .unwrap_or_default()
     };
 
-    let onboarding_eligible_post_context = BetEligiblePostCtx::default();
-    provide_context(onboarding_eligible_post_context.clone());
-
     let win_audio_ref = NodeRef::<Audio>::new();
 
     view! {
-        <div class="bg-transparent w-full h-full relative overflow-hidden">
+        <div class="overflow-hidden relative w-full h-full bg-transparent">
             <div
-                class="absolute top-0 left-0 bg-cover bg-center w-full h-full z-1 blur-lg"
+                class="absolute top-0 left-0 w-full h-full bg-center bg-cover z-1 blur-lg"
                 style:background-color="rgb(0, 0, 0)"
                 style:background-image=move || format!("url({})", bg_url(uid()))
             ></div>
-            <audio class="sr-only" node_ref=win_audio_ref preload="auto" src="/img/hotornot/chaching.m4a"/>
+            <audio
+                class="sr-only"
+                node_ref=win_audio_ref
+                preload="auto"
+                src="/img/hotornot/chaching.m4a"
+            />
             {move || {
                 let (post, prev_post) = post_with_prev.get();
-                Some(view! {
-                    <VideoDetailsOverlay
-                        post=post?
-                        prev_post
-                        win_audio_ref
-                    />
-                 })
+                Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref /> })
             }}
             {children()}
         </div>
@@ -187,14 +182,6 @@ pub fn VideoView(
 
     let playing_started = RwSignal::new(false);
 
-    let _ = use_event_listener(_ref, ev::playing, move |_evt| {
-        let Some(_) = _ref.get() else {
-            return;
-        };
-        playing_started.set(true);
-        send_view_detail_action.dispatch((100, 0_u8));
-    });
-
     let mixpanel_send_view_event = Action::new(move |_| {
         send_wrap(async move {
             let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
@@ -220,6 +207,41 @@ pub fn VideoView(
             });
             playing_started.set(false);
         })
+    });
+
+    let mixpanel_video_started_event = Action::new(move |_: &()| {
+        send_wrap(async move {
+            let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
+                return;
+            };
+            let post = post_for_view.get_untracked().unwrap();
+            let is_logged_in = ev_ctx.is_connected();
+            let is_game_enabled = true;
+
+            MixPanelEvent::track_video_started(MixpanelVideoStartedProps {
+                publisher_user_id: post.poster_principal.to_text(),
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                video_id: post.uid,
+                view_count: post.views,
+                like_count: post.likes,
+                game_type: MixpanelPostGameType::HotOrNot,
+                is_nsfw: post.is_nsfw,
+                is_game_enabled,
+            });
+        })
+    });
+
+    let _ = use_event_listener(_ref, ev::playing, move |_evt| {
+        let Some(_) = _ref.get() else {
+            return;
+        };
+        playing_started.set(true);
+        send_view_detail_action.dispatch((100, 0_u8));
+        mixpanel_video_started_event.dispatch(());
     });
 
     let _ = use_event_listener(_ref, ev::timeupdate, move |_evt| {

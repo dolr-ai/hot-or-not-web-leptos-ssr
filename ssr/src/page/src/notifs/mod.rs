@@ -29,7 +29,9 @@ fn NotifInnerComponent(details: ProfileDetails) -> impl IntoView {
         <div class="flex flex-row gap-2 text-black">
             <button
                 class="p-2 bg-gray-200 rounded-md"
-                on:click=move |_| {on_token_click.dispatch(());}
+                on:click=move |_| {
+                    on_token_click.dispatch(());
+                }
             >
                 "Get Token"
             </button>
@@ -41,19 +43,21 @@ fn NotifInnerComponent(details: ProfileDetails) -> impl IntoView {
 pub fn Notif() -> impl IntoView {
     let auth = auth_state();
     view! {
-        <div class="h-screen w-screen grid grid-cols-1 justify-items-center place-content-center">
+        <div class="grid grid-cols-1 justify-items-center place-content-center w-screen h-screen">
             <Suspense>
-            {move || Suspend::new(async move {
-                let res = auth.cans_wire().await;
-                match res {
-                    Ok(cans) => Either::Left(view! {
-                        <NotifInnerComponent details=cans.profile_details />
-                    }),
-                    Err(e) => Either::Right(view! {
-                        <Redirect path=format!("/error?err={e}") />
-                    })
-                }
-            })}
+                {move || Suspend::new(async move {
+                    let res = auth.cans_wire().await;
+                    match res {
+                        Ok(cans) => {
+                            Either::Left(
+                                view! { <NotifInnerComponent details=cans.profile_details /> },
+                            )
+                        }
+                        Err(e) => {
+                            Either::Right(view! { <Redirect path=format!("/error?err={e}") /> })
+                        }
+                    }
+                })}
             </Suspense>
         </div>
     }

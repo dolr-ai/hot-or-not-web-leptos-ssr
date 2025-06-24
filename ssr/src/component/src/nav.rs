@@ -1,11 +1,22 @@
 use crate::nav_icons::*;
 use candid::Principal;
 use codee::string::FromToStringCodec;
-use consts::{AUTH_UTIL_COOKIES_MAX_AGE_MS, USER_PRINCIPAL_STORE};
+use consts::{
+    ACCOUNT_CONNECTED_STORE, AUTH_UTIL_COOKIES_MAX_AGE_MS, NSFW_TOGGLE_STORE,
+    USER_CANISTER_ID_STORE, USER_PRINCIPAL_STORE,
+};
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_router::hooks::use_location;
-use leptos_use::{use_cookie_with_options, UseCookieOptions};
+use leptos_use::{
+    storage::use_local_storage, use_cookie, use_cookie_with_options, UseCookieOptions,
+};
+use utils::{
+    mixpanel::mixpanel_events::{
+        BottomNavigationCategory, MixPanelEvent, MixpanelBottomNavigationProps, MixpanelGlobalProps,
+    },
+    types::PostParams,
+};
 
 #[derive(Clone)]
 struct NavItem {
@@ -32,13 +43,19 @@ fn yral_nav_items() -> Vec<NavItem> {
             .path("/")
             .max_age(AUTH_UTIL_COOKIES_MAX_AGE_MS),
     );
-    let home_path = RwSignal::new("/".to_string());
+    let current_post_params: RwSignal<Option<PostParams>> = expect_context();
+
     vec![
         NavItem {
             render_data: NavItemRenderData::Icon {
                 icon: HomeSymbol,
                 filled_icon: Some(HomeSymbolFilled),
-                href: home_path.into(),
+                href: Signal::derive(move || {
+                    current_post_params
+                        .get()
+                        .map(|f| format!("/hot-or-not/{}/{}", f.canister_id, f.post_id))
+                        .unwrap_or("/".to_string())
+                }),
             },
             cur_selected: Signal::derive(move || {
                 matches!(path.get().as_str(), "/") || path.get().contains("/hot-or-not")
@@ -99,17 +116,22 @@ pub fn NavBar() -> impl IntoView {
     view! {
         <Suspense>
             <div class="flex fixed bottom-0 left-0 z-50 flex-row justify-between items-center px-6 w-full bg-black/80">
-                {items.iter().map(|item| {
-                    let cur_selected = item.cur_selected;
-                    match item.render_data.clone() {
-                        NavItemRenderData::Icon { icon, filled_icon, href } => Either::Left(view! {
-                            <NavIcon href icon filled_icon cur_selected />
-                        }),
-                        NavItemRenderData::Upload => Either::Right(view! {
-                            <UploadIcon cur_selected />
-                        }),
-                    }
-                }).collect::<Vec<_>>()}
+                {items
+                    .iter()
+                    .map(|item| {
+                        let cur_selected = item.cur_selected;
+                        match item.render_data.clone() {
+                            NavItemRenderData::Icon { icon, filled_icon, href } => {
+                                Either::Left(
+                                    view! { <NavIcon href icon filled_icon cur_selected /> },
+                                )
+                            }
+                            NavItemRenderData::Upload => {
+                                Either::Right(view! { <UploadIcon cur_selected /> })
+                            }
+                        }
+                    })
+                    .collect::<Vec<_>>()}
             </div>
         </Suspense>
     }
@@ -122,8 +144,39 @@ fn NavIcon(
     #[prop(into)] filled_icon: Option<icondata_core::Icon>,
     #[prop(into)] cur_selected: Signal<bool>,
 ) -> impl IntoView {
+    let (user_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
+
+    let (user_canister, _) = use_cookie::<Principal, FromToStringCodec>(USER_CANISTER_ID_STORE);
+    let (is_connected, _) = use_cookie::<bool, FromToStringCodec>(ACCOUNT_CONNECTED_STORE);
+    let (is_nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
+
+    let on_click = move |_| {
+        if let (Some(user), Some(canister)) = (
+            user_principal.get_untracked(),
+            user_canister.get_untracked(),
+        ) {
+            let connected = is_connected.get_untracked().unwrap_or(false);
+            let category = BottomNavigationCategory::try_from(href.get_untracked());
+            if let Ok(category_name) = category {
+                let global = MixpanelGlobalProps::new(
+                    user,
+                    canister,
+                    connected,
+                    is_nsfw_enabled.get_untracked(),
+                );
+                MixPanelEvent::track_bottom_navigation_clicked(MixpanelBottomNavigationProps {
+                    category_name,
+                    user_id: global.user_id,
+                    visitor_id: global.visitor_id,
+                    canister_id: global.canister_id,
+                    is_logged_in: global.is_logged_in,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
+                });
+            }
+        }
+    };
     view! {
-        <a href=href class="flex justify-center items-center">
+        <a href=href on:click=on_click class="flex justify-center items-center">
             <Show
                 when=move || cur_selected()
                 fallback=move || {
@@ -148,8 +201,40 @@ fn NavIcon(
 
 #[component]
 fn UploadIcon(#[prop(into)] cur_selected: Signal<bool>) -> impl IntoView {
+    let (user_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
+
+    let (user_canister, _) = use_cookie::<Principal, FromToStringCodec>(USER_CANISTER_ID_STORE);
+    let (is_connected, _) = use_cookie::<bool, FromToStringCodec>(ACCOUNT_CONNECTED_STORE);
+    let (is_nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
+
+    let on_click = move |_| {
+        if let (Some(user), Some(canister)) = (
+            user_principal.get_untracked(),
+            user_canister.get_untracked(),
+        ) {
+            let connected = is_connected.get_untracked().unwrap_or(false);
+            let global = MixpanelGlobalProps::new(
+                user,
+                canister,
+                connected,
+                is_nsfw_enabled.get_untracked(),
+            );
+            MixPanelEvent::track_bottom_navigation_clicked(MixpanelBottomNavigationProps {
+                category_name: BottomNavigationCategory::UploadVideo,
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                canister_id: global.canister_id,
+                is_logged_in: global.is_logged_in,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+            });
+        }
+    };
     view! {
-        <a href="/upload" class="flex justify-center items-center text-white rounded-full">
+        <a
+            href="/upload"
+            on:click=on_click
+            class="flex justify-center items-center text-white rounded-full"
+        >
             <Show
                 when=move || cur_selected()
                 fallback=move || {
