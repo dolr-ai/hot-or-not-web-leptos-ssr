@@ -36,7 +36,7 @@ use component::icons::{
 use component::overlay::PopupOverlay;
 use component::share_popup::ShareContent;
 use component::skeleton::Skeleton;
-use component::tooltip::Tooltip;
+use component::tooltip::{Tooltip, TooltipBottomRight};
 use consts::{
     CKBTC_LEDGER_CANISTER, DOLR_AI_LEDGER_CANISTER, DOLR_AI_ROOT_CANISTER, USDC_LEDGER_CANISTER,
 };
@@ -699,7 +699,7 @@ fn AirdropInfoSection(
                 {tooltip_info
                     .map(|tooltip_info| {
                         view! {
-                            <Tooltip
+                            <TooltipBottomRight
                                 icon=Information
                                 title="Airdrop Eligibility"
                                 description=tooltip_info
