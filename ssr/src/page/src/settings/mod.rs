@@ -12,6 +12,7 @@ use leptos::web_sys::{Notification, NotificationPermission};
 use leptos::{ev, prelude::*};
 use leptos_icons::*;
 use leptos_router::components::Redirect;
+use leptos_router::hooks::use_navigate;
 use leptos_router::{hooks::use_params, params::Params};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
@@ -19,6 +20,7 @@ use state::canisters::auth_state;
 use utils::notifications::{
     get_device_registeration_token, get_fcm_token, notification_permission_granted,
 };
+use utils::send_wrap;
 use yral_canisters_common::utils::profile::ProfileDetails;
 use yral_metadata_client::MetadataClient;
 use yral_metadata_types::error::ApiError;
@@ -232,32 +234,32 @@ fn EnableNotifications() -> impl IntoView {
 
 #[component]
 fn DeleteAccountPopup(show_delete_popup: RwSignal<bool>) -> impl IntoView {
-    // let auth = auth_state();
-    // let navigate = use_navigate();
-    // let (is_deleting, set_is_deleting) = signal(false);
+    let auth = auth_state();
+    let navigate = use_navigate();
+    let (is_deleting, set_is_deleting) = signal(false);
 
-    // let handle_delete = Action::new(move |&()| {
-    //     set_is_deleting(true);
-    //     let navigate = navigate.clone();
+    let handle_delete = Action::new(move |&()| {
+        set_is_deleting(true);
+        let navigate = navigate.clone();
 
-    //     send_wrap(async move {
-    //         match auth.user_identity.await {
-    //             Ok(identity_wire) => match delete_user::initiate_delete_user(identity_wire).await {
-    //                 Ok(_) => {
-    //                     navigate("/logout", Default::default());
-    //                 }
-    //                 Err(e) => {
-    //                     leptos::logging::error!("Failed to delete account: {e:?}");
-    //                     navigate(&format!("/error?err={e}"), Default::default());
-    //                 }
-    //             },
-    //             Err(e) => {
-    //                 leptos::logging::error!("Failed to get auth canisters: {e:?}");
-    //                 navigate(&format!("/error?err={e}"), Default::default());
-    //             }
-    //         }
-    //     })
-    // });
+        send_wrap(async move {
+            match auth.user_identity.await {
+                Ok(identity_wire) => match delete_user::initiate_delete_user(identity_wire).await {
+                    Ok(_) => {
+                        navigate("/logout", Default::default());
+                    }
+                    Err(e) => {
+                        leptos::logging::error!("Failed to delete account: {e:?}");
+                        navigate(&format!("/error?err={e}"), Default::default());
+                    }
+                },
+                Err(e) => {
+                    leptos::logging::error!("Failed to get auth canisters: {e:?}");
+                    navigate(&format!("/error?err={e}"), Default::default());
+                }
+            }
+        })
+    });
 
     view! {
         <ShadowOverlay show=show_delete_popup>
@@ -266,7 +268,7 @@ fn DeleteAccountPopup(show_delete_popup: RwSignal<bool>) -> impl IntoView {
                     <button
                         on:click=move |_| show_delete_popup.set(false)
                         class="absolute top-4 right-4 text-white rounded-full bg-neutral-600 hover:bg-neutral-700 size-6 flex items-center justify-center"
-                        // disabled=move || is_deleting.get()
+                        disabled=move || is_deleting.get()
                     >
                         <Icon attr::class="w-4 h-4" icon=icondata::ChCross />
                     </button>
@@ -283,25 +285,25 @@ fn DeleteAccountPopup(show_delete_popup: RwSignal<bool>) -> impl IntoView {
                         <button
                             class="px-4 py-2 rounded-md bg-neutral-700 hover:bg-neutral-600 text-white text-sm disabled:opacity-50"
                             on:click=move |_| show_delete_popup.set(false)
-                            // disabled=move || is_deleting.get()
+                            disabled=move || is_deleting.get()
                         >
                             "No, take me back"
                         </button>
                         <button
                             class="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
                             on:click=move |_| {
+                                handle_delete.dispatch(());
                                 leptos::logging::log!("Delete account button clicked");
                             }
-                            // disabled=move || is_deleting.get()
+                            disabled=move || is_deleting.get()
                         >
-                            "Yes, Delete"
-                            // <Show
-                            //     when=move || is_deleting.get()
-                            //     fallback=|| "Yes, Delete"
-                            // >
-                            //     <div class="w-4 h-4 rounded-full border-2 border-white border-solid animate-spin border-t-transparent"></div>
-                            //     "Deleting..."
-                            // </Show>
+                            <Show
+                                when=move || is_deleting.get()
+                                fallback=|| "Yes, Delete"
+                            >
+                                <div class="w-4 h-4 rounded-full border-2 border-white border-solid animate-spin border-t-transparent"></div>
+                                "Deleting..."
+                            </Show>
                         </button>
                     </div>
                 </div>
@@ -317,7 +319,6 @@ fn DeleteAccount(show_popup: RwSignal<bool>) -> impl IntoView {
             class="flex items-center justify-between w-full"
             on:click=move |_| {
                 leptos::logging::log!("Delete account button clicked");
-                // Show the popup (will determine which one based on auth state)
                 show_popup.set(true);
             }
         >
@@ -331,46 +332,18 @@ fn DeleteAccount(show_popup: RwSignal<bool>) -> impl IntoView {
 }
 
 #[component]
-fn DeleteAccountFlow(show_popup: RwSignal<bool>) -> impl IntoView {
-    let auth = auth_state();
-
-    // Check auth state when popup should be shown
-    let is_authenticated = Resource::new(
-        move || show_popup.get(),
-        move |should_show| async move {
-            if should_show {
-                let user_principal_result = auth.user_principal.await;
-                let is_oauth = auth.is_logged_in_with_oauth().get_untracked();
-                user_principal_result.is_ok() && is_oauth
-            } else {
-                false
-            }
-        },
-    );
-
+fn DeleteAccountFlow(show_popup: RwSignal<bool>, is_authenticated: bool) -> impl IntoView {
     view! {
-        {move || {
-            if show_popup.get() {
-                leptos::logging::log!("DeleteAccountFlow: show_popup is true, showing suspense");
-                Either::Left(view! {
-                    <Suspense fallback=FullScreenSpinner>
-                        {move || Suspend::new(async move {
-                            leptos::logging::log!("DeleteAccountFlow: Starting auth check");
-                            let is_auth = is_authenticated.await;
-                            leptos::logging::log!("DeleteAccountFlow: Auth check complete, is_auth: {}", is_auth);
-
-                            if is_auth {
-                                Either::Left(view! { <DeleteAccountPopup show_delete_popup=show_popup /> })
-                            } else {
-                                Either::Right(view! { <LoginModal show=show_popup redirect_to=Some("/settings/delete".to_string()) /> })
-                            }
-                        })}
-                    </Suspense>
-                })
-            } else {
-                Either::Right(())
+        <Show when=move || show_popup.get()>
+            {
+                leptos::logging::log!("DeleteAccountFlow: show_popup is true, is_authenticated: {}", is_authenticated);
+                if is_authenticated {
+                    Either::Left(view! { <DeleteAccountPopup show_delete_popup=show_popup /> })
+                } else {
+                    Either::Right(view! { <LoginModal show=show_popup redirect_to=Some("/settings/delete".to_string()) /> })
+                }
             }
-        }}
+        </Show>
     }
 }
 
@@ -387,23 +360,45 @@ pub fn Settings() -> impl IntoView {
 
     let show_popup = RwSignal::new(action.get_untracked() == "delete");
 
+    let auth = auth_state();
+
+    // Check auth state when popup should be shown
+    let is_authenticated = Resource::new_blocking(
+        move || show_popup.get(),
+        move |should_show| async move {
+            if should_show {
+                auth.is_logged_in_with_oauth().get()
+            } else {
+                false
+            }
+        },
+    );
+
     view! {
-        <div class="flex flex-col items-center pt-2 pb-12 w-full min-h-screen text-white bg-black divide-y divide-white/10">
-            <div class="flex flex-col gap-20 items-center pb-16 w-full">
-                <TitleText justify_center=false>
-                    <div class="flex flex-row justify-between">
-                        <BackButton fallback="/menu".to_string() />
-                        <span class="text-2xl font-bold">Settings</span>
-                        <div></div>
+        <Suspense fallback=FullScreenSpinner>
+            {move || Suspend::new(async move {
+                let is_auth = is_authenticated.await;
+
+                view! {
+                    <div class="flex flex-col items-center pt-2 pb-12 w-full min-h-screen text-white bg-black divide-y divide-white/10">
+                        <div class="flex flex-col gap-20 items-center pb-16 w-full">
+                            <TitleText justify_center=false>
+                                <div class="flex flex-row justify-between">
+                                    <BackButton fallback="/menu".to_string() />
+                                    <span class="text-2xl font-bold">Settings</span>
+                                    <div></div>
+                                </div>
+                            </TitleText>
+                        </div>
+                        <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
+                            <EnableNotifications />
+                            <DeleteAccount show_popup />
+                        </div>
+                        <MenuFooter />
+                        <DeleteAccountFlow show_popup is_authenticated=is_auth />
                     </div>
-                </TitleText>
-            </div>
-            <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
-                <EnableNotifications />
-                <DeleteAccount show_popup />
-            </div>
-            <MenuFooter />
-            <DeleteAccountFlow show_popup />
-        </div>
+                }
+            })}
+        </Suspense>
     }
 }
