@@ -69,6 +69,30 @@ pub struct RefreshTokenLegacy {
     expiry_epoch_ms: u128,
 }
 
+#[derive(Clone)]
+pub struct SettingAnnonymousIdentityCookie {
+    is_setting: bool,
+}
+
+impl SettingAnnonymousIdentityCookie {
+    pub fn init() -> RwSignal<Self> {
+        let this = Self { is_setting: false };
+        let this = RwSignal::new(this);
+        provide_context(this.clone());
+        this
+    }
+
+    pub fn get() -> RwSignal<Self> {
+        use_context::<RwSignal<Self>>().unwrap_or(Self::init())
+    }
+
+    pub fn set(value: bool) {
+        Self::get().update(|s| {
+            s.is_setting = value;
+        });
+    }
+}
+
 /// Generate an anonymous identity if refresh token is not set
 #[server]
 pub async fn generate_anonymous_identity_if_required(
@@ -81,7 +105,18 @@ pub async fn generate_anonymous_identity_if_required(
 pub async fn set_anonymous_identity_cookie(
     refresh_jwt: Option<String>,
 ) -> Result<(), ServerFnError> {
-    server_impl::set_anonymous_identity_cookie_impl(refresh_jwt).await
+    if SettingAnnonymousIdentityCookie::get()
+        .get_untracked()
+        .is_setting
+    {
+        return Err(ServerFnError::new(
+            "Setting anonymous identity cookie is already in progress",
+        ));
+    }
+    SettingAnnonymousIdentityCookie::set(true);
+    let res = server_impl::set_anonymous_identity_cookie_impl(refresh_jwt).await;
+    SettingAnnonymousIdentityCookie::set(false);
+    res
 }
 
 /// Extract the identity from refresh token,
