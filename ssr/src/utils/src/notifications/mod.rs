@@ -7,8 +7,6 @@ use yral_metadata_types::{
     NotificationPayload, SendNotificationReq, WebpushConfig, WebpushFcmOptions,
 };
 
-pub mod device_id;
-
 #[wasm_bindgen(module = "/src/notifications/inline-js/setup-firebase-messaging-inline.js")]
 extern "C" {
     #[wasm_bindgen(catch, js_name = getToken)]
