@@ -107,7 +107,10 @@ fn HNButton(
             class="w-14 h-14 md:w-16 md:h-16 md:w-18 lg:h-18"
             class=("grayscale", grayscale)
             disabled=disabled
-            on:click=move |_| {bet_direction.set(Some(kind)); place_bet_action.dispatch(kind);}
+            on:click=move |_| {
+                bet_direction.set(Some(kind));
+                place_bet_action.dispatch(kind);
+            }
         >
             <Show when=move || !show_spinner() fallback=SpinnerFit>
                 <Icon attr:class="w-full h-full drop-shadow-lg" icon=icon />
