@@ -11,8 +11,7 @@ pub static PUMP_AND_DUMP_WORKER_URL: Lazy<Url> =
 
 pub const STDB_URL: &str = "https://maincloud.spacetimedb.com";
 
-// TODO: switch to prod module
-pub const BACKEND_MODULE_IDENTITY: &str = "pr-6-yral-backend";
+pub const BACKEND_MODULE_IDENTITY: &str = "yral-backend";
 
-// TODO: load secret from env
-pub static STDB_ACCESS_TOKEN: Lazy<Option<String>> = Lazy::new(|| None);
+pub static STDB_ACCESS_TOKEN: Lazy<Option<String>> =
+    Lazy::new(|| Some(std::env::var("STDB_ADMIN_ACCESS_TOKEN").unwrap()));
