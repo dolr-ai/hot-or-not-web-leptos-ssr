@@ -283,14 +283,14 @@ fn DeleteAccountPopup(show_delete_popup: RwSignal<bool>) -> impl IntoView {
 
                     <div class="flex justify-center gap-4">
                         <button
-                            class="px-4 py-2 rounded-md bg-neutral-700 hover:bg-neutral-600 text-white text-sm disabled:opacity-50"
+                            class="flex-1 px-4 py-2 rounded-md bg-neutral-700 hover:bg-neutral-600 text-white text-sm disabled:opacity-50"
                             on:click=move |_| show_delete_popup.set(false)
                             disabled=move || is_deleting.get()
                         >
                             "No, take me back"
                         </button>
                         <button
-                            class="px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-semibold disabled:opacity-50 flex items-center gap-2"
+                            class="flex-1 px-4 py-2 rounded-md bg-red-600 hover:bg-red-700 text-white text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
                             on:click=move |_| {
                                 handle_delete.dispatch(());
                                 leptos::logging::log!("Delete account button clicked");
@@ -359,17 +359,16 @@ pub fn Settings() -> impl IntoView {
 
     let show_popup = RwSignal::new(action.get_untracked() == "delete");
 
+    Effect::new(move || {
+        let current_action = action.get();
+        show_popup.set(current_action == "delete");
+    });
+
     let auth = auth_state();
 
     let is_authenticated = Resource::new_blocking(
-        move || show_popup.get(),
-        move |should_show| async move {
-            if should_show {
-                auth.is_logged_in_with_oauth().get()
-            } else {
-                false
-            }
-        },
+        move || auth.is_logged_in_with_oauth().get(),
+        move |is_auth| async move { is_auth },
     );
 
     view! {
