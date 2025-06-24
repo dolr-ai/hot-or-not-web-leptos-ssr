@@ -1,5 +1,5 @@
 #![recursion_limit = "256"]
-use auth::SettingAnnonymousIdentityCookie;
+use auth::{SettingAnnonymousIdentityCookie, SettingExtractIdentity};
 use axum::{
     body::Body as AxumBody,
     extract::{Path, State},
@@ -42,6 +42,7 @@ pub async fn server_fn_handler(
             provide_context(app_state.kv.clone());
             provide_context(app_state.cookie_key.clone());
             SettingAnnonymousIdentityCookie::init();
+            SettingExtractIdentity::init();
 
             #[cfg(feature = "oauth-ssr")]
             {

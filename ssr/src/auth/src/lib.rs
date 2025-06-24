@@ -93,6 +93,30 @@ impl SettingAnnonymousIdentityCookie {
     }
 }
 
+#[derive(Clone)]
+pub struct SettingExtractIdentity {
+    is_setting: bool,
+}
+
+impl SettingExtractIdentity {
+    pub fn init() -> RwSignal<Self> {
+        let this = Self { is_setting: false };
+        let this = RwSignal::new(this);
+        provide_context(this);
+        this
+    }
+
+    pub fn get() -> RwSignal<Self> {
+        use_context::<RwSignal<Self>>().unwrap_or(Self::init())
+    }
+
+    pub fn set(value: bool) {
+        Self::get().update(|s| {
+            s.is_setting = value;
+        });
+    }
+}
+
 /// Generate an anonymous identity if refresh token is not set
 #[server]
 pub async fn generate_anonymous_identity_if_required(
@@ -123,7 +147,15 @@ pub async fn set_anonymous_identity_cookie(
 /// returns None if refresh token doesn't exist
 #[server(endpoint = "extract_identity", input = Json, output = Json)]
 pub async fn extract_identity() -> Result<Option<DelegatedIdentityWire>, ServerFnError> {
-    server_impl::extract_identity_impl().await
+    if SettingExtractIdentity::get().get_untracked().is_setting {
+        return Err(ServerFnError::new(
+            "Setting extract identity is already in progress",
+        ));
+    }
+    SettingExtractIdentity::set(true);
+    let res = server_impl::extract_identity_impl().await;
+    SettingExtractIdentity::set(false);
+    res
 }
 
 #[server]
