@@ -66,16 +66,16 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
                 likes.update(|l| *l += 1);
                 LikeVideo.send_event(ev_ctx, post_details.clone(), likes);
 
-                if let Err(e) = send_liked_notification(
-                    canisters.user_principal(),
-                    post_details.post_id,
-                    post_details.poster_principal,
-                    post_details.canister_id,
-                )
-                .await
-                {
-                    log::warn!("Error sending liked notification: {e:?}");
-                };
+                // if let Err(e) = send_liked_notification(
+                //     canisters.user_principal(),
+                //     post_details.post_id,
+                //     post_details.poster_principal,
+                //     post_details.canister_id,
+                // )
+                // .await
+                // {
+                //     log::warn!("Error sending liked notification: {e:?}");
+                // };
 
                 let is_logged_in = is_logged_in.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
