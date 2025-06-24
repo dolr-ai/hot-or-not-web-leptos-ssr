@@ -124,9 +124,13 @@ impl Default for AuthState {
                 }
 
                 let Some(id) = temp_identity else {
-                    let id_wire = extract_identity()
-                        .await?
-                        .ok_or_else(|| ServerFnError::new("No refresh cookie set?!"))?;
+                    let id_wire = match extract_identity().await {
+                        Ok(Some(identity)) => identity,
+                        Ok(None) => return Err(ServerFnError::new("No refresh cookie set?!")),
+                        Err(e) => {
+                            return Err(ServerFnError::new(e.to_string()));
+                        }
+                    };
                     return Ok(id_wire);
                 };
 

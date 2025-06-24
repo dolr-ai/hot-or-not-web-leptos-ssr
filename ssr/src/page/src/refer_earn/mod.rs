@@ -14,6 +14,7 @@ use component::{back_btn::BackButton, buttons::HighlightedButton, title::TitleTe
 use state::app_state::AppState;
 use state::canisters::auth_state;
 use utils::event_streaming::events::{Refer, ReferShareLink};
+use utils::mixpanel::mixpanel_events::*;
 use utils::web::copy_to_clipboard;
 
 #[component]
@@ -70,11 +71,21 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
 
     let click_copy = Action::new(move |refer_link: &String| {
         let refer_link = refer_link.clone();
-
         async move {
             let _ = copy_to_clipboard(&refer_link);
 
             ReferShareLink.send_event(ev_ctx);
+            let global = MixpanelGlobalProps::from_ev_ctx(ev_ctx);
+            if let Some(global) = global {
+                MixPanelEvent::track_referral_link_copied(MixpanelReferAndEarnPageViewedProps {
+                    user_id: global.user_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
+                    referral_bonus: REFERRAL_REWARD,
+                });
+            }
 
             show_copied_popup.set(true);
             Timeout::new(1200, move || show_copied_popup.set(false)).forget();
@@ -83,6 +94,17 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
     let refer_link_share = refer_link.clone();
     let handle_share = move || {
         let text = format!("Join YRAL—the world's 1st social platform on BITCOIN\nGet FREE BITCOIN ({NEW_USER_SIGNUP_REWARD} SATS) Instantly\nAdditional BITCOIN ({REFERRAL_REWARD} SATS) when you log in using the link.");
+        let global = MixpanelGlobalProps::from_ev_ctx(ev_ctx);
+        if let Some(global) = global {
+            MixPanelEvent::track_share_invites_clicked(MixpanelReferAndEarnPageViewedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                referral_bonus: REFERRAL_REWARD,
+            });
+        }
         if share(&refer_link_share, &text).is_some() {
             return;
         }

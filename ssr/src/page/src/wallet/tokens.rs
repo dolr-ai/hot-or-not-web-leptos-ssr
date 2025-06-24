@@ -41,6 +41,7 @@ use leptos_icons::*;
 use leptos_router::hooks::use_navigate;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::host::get_host;
+use utils::mixpanel::mixpanel_events::*;
 use utils::send_wrap;
 use yral_canisters_common::utils::token::balance::TokenBalance;
 use yral_canisters_common::utils::token::{load_cents_balance, load_sats_balance};
@@ -127,7 +128,7 @@ impl WithdrawalStateFetcherType {
 }
 
 #[derive(Debug, Clone, Copy)]
-enum TokenType {
+pub enum TokenType {
     Sats,
     Btc,
     Cents,
@@ -141,6 +142,18 @@ impl From<TokenType> for WithdrawalStateFetcherType {
             TokenType::Sats => Self::Sats,
             TokenType::Cents => Self::Cents,
             _ => Self::Noop,
+        }
+    }
+}
+
+impl From<TokenType> for StakeType {
+    fn from(value: TokenType) -> Self {
+        match value {
+            TokenType::Sats => Self::Sats,
+            TokenType::Cents => Self::Cents,
+            TokenType::Btc => Self::Btc,
+            TokenType::Usdc => Self::Usdc,
+            TokenType::Dolr => Self::DolrAi,
         }
     }
 }
@@ -258,6 +271,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
                             balance
                             withdrawal_state
                             is_utility_token
+                            token_type
                         />
                     }
                 })
@@ -413,12 +427,29 @@ pub fn WithdrawSection(
         .map(|ShowLoginSignal(show_login)| show_login)
         .unwrap_or_else(|| RwSignal::new(false));
     let nav = use_navigate();
+    let auth_state = auth_state();
+    let token_name_analytics = token_name.clone();
     let withdraw_handle = move |_| {
         if !is_connected() {
             show_login.set(true);
             return;
         }
-
+        let global = MixpanelGlobalProps::from_ev_ctx(auth_state.event_ctx());
+        if let Some(global) = global {
+            let token_clicked = match token_name_analytics.as_str() {
+                s if s == SATS_TOKEN_NAME => StakeType::Sats,
+                s if s == CENT_TOKEN_NAME => StakeType::Cents,
+                _ => unimplemented!("Withdrawing is not implemented for a token"),
+            };
+            MixPanelEvent::track_withdraw_tokens_clicked(MixpanelWithdrawTokenClickedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                token_clicked,
+            });
+        }
         nav(&withdraw_url, Default::default());
     };
 
@@ -474,6 +505,7 @@ pub fn FastWalletCard(
     display_info: TokenDisplayInfo,
     balance: Resource<Result<TokenBalance, ServerFnError>>,
     withdrawal_state: OnceResource<Result<Option<WithdrawalState>, ServerFnError>>,
+    token_type: TokenType,
     #[prop(optional)] is_utility_token: bool,
 ) -> impl IntoView {
     let TokenDisplayInfo {
@@ -557,6 +589,7 @@ pub fn FastWalletCard(
         let airdrop_amount_claimed = airdrop_amount_claimed;
         let error_claiming_airdrop = error_claiming_airdrop;
         let airdropper = airdropper_c2.clone();
+        let token_type: StakeType = token_type.into();
         async move {
             if !is_connected {
                 show_login.set(true);
@@ -564,17 +597,47 @@ pub fn FastWalletCard(
             }
 
             let cans = auth.auth_cans(base).await?;
+            let global = MixpanelGlobalProps::try_get(&cans.clone(), is_connected);
+            let global_dispatched = MixpanelGlobalProps::try_get(&cans.clone(), is_connected);
+            MixPanelEvent::track_claim_airdrop_clicked(MixpanelClaimAirdropClickedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                token_type: token_type.clone(),
+            });
             error_claiming_airdrop.set(false);
             show_airdrop_popup.set(true);
             match airdropper.as_ref().unwrap().claim_airdrop(cans).await {
                 Ok(amount) => {
                     airdrop_amount_claimed.set(amount);
+                    MixPanelEvent::track_airdrop_claimed(MixpanelAirdropClaimedProps {
+                        is_success: true,
+                        claimed_amount: amount,
+                        user_id: global_dispatched.user_id,
+                        visitor_id: global_dispatched.visitor_id,
+                        is_logged_in: global.is_logged_in,
+                        canister_id: global_dispatched.canister_id,
+                        is_nsfw_enabled: global.is_nsfw_enabled,
+                        token_type,
+                    });
                     is_airdrop_claimed.set(true);
                     error_claiming_airdrop.set(false);
                     balance.refetch();
                 }
                 Err(_) => {
                     log::error!("error claiming airdrop");
+                    MixPanelEvent::track_airdrop_claimed(MixpanelAirdropClaimedProps {
+                        is_success: false,
+                        claimed_amount: 0,
+                        user_id: global_dispatched.user_id,
+                        visitor_id: global_dispatched.visitor_id,
+                        is_logged_in: global.is_logged_in,
+                        canister_id: global_dispatched.canister_id,
+                        is_nsfw_enabled: global.is_nsfw_enabled,
+                        token_type,
+                    });
                     error_claiming_airdrop.set(true);
                 }
             }
