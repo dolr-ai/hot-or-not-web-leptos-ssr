@@ -78,7 +78,7 @@ impl SettingAnnonymousIdentityCookie {
     pub fn init() -> RwSignal<Self> {
         let this = Self { is_setting: false };
         let this = RwSignal::new(this);
-        provide_context(this.clone());
+        provide_context(this);
         this
     }
 
