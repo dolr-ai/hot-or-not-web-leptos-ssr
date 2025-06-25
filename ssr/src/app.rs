@@ -173,6 +173,7 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/error") view=ServerErrorPage />
                         <Route path=path!("/menu") view=Menu />
                         <Route path=path!("/settings") view=Settings />
+                        <Route path=path!("/settings/:action") view=Settings />
                         <Route path=path!("/refer-earn") view=ReferEarn />
                         <Route path=path!("/profile/:id/:tab") view=ProfileView />
                         <Route path=path!("/profile/:tab") view=LoggedInUserProfileView />

@@ -1,7 +1,7 @@
 use candid::{Nat, Principal};
 use component::{
     back_btn::BackButton,
-    buttons::{HighlightedButton, HighlightedLinkButton},
+    buttons::{GradientLinkButton, GradientLinkText, HighlightedButton, HighlightedLinkButton},
     overlay::ShadowOverlay,
     spinner::{SpinnerCircle, SpinnerCircleStyled},
 };
@@ -9,20 +9,29 @@ use consts::{MAX_BET_AMOUNT, SATS_AIRDROP_LIMIT_RANGE};
 use hon_worker_common::{ClaimRequest, VerifiableClaimRequest, WORKER_URL};
 use leptos::prelude::*;
 use leptos_icons::Icon;
-use leptos_router::hooks::use_location;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use reqwest::Url;
+use serde::{Deserialize, Serialize};
 use state::{
     canisters::{auth_state, unauth_canisters},
     server::HonWorkerJwt,
 };
-use utils::{event_streaming::events::CentsAdded, host::get_host};
+use utils::event_streaming::events::CentsAdded;
 use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::{
     utils::token::{load_sats_balance, TokenMetadata, TokenOwner},
     Canisters,
 };
 use yral_identity::Signature;
+
+pub mod dolr_airdrop;
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+pub enum AirdropStatus {
+    Available,
+    Claimed,
+    WaitFor(web_time::Duration),
+}
 
 pub async fn is_airdrop_claimed(user_principal: Principal) -> Result<bool, ServerFnError> {
     let req_url: Url = WORKER_URL.parse().expect("url to be valid");
@@ -293,99 +302,91 @@ fn AirdropButton(
     }
 }
 
-struct PopUpButtonTextRedirection {
-    href: String,
-    text: String,
+#[derive(Debug, Clone, Copy)]
+pub enum AirdropClaimState {
+    Claiming,
+    Claimed(u64),
+    Failed,
 }
 
-fn pop_up_button_href(host: String, pathname: String) -> PopUpButtonTextRedirection {
-    if pathname.starts_with("/board") {
-        PopUpButtonTextRedirection {
-            href: "/wallet".to_string(),
-            text: "View Wallet".to_string(),
+#[component]
+fn AirdropPopUpButton(state: AirdropClaimState) -> impl IntoView {
+    match state {
+        AirdropClaimState::Claiming => view! {
+            <div class="mt-10 mb-16 max-w-100 scale-[4] z-2">
+                <SpinnerCircleStyled />
+            </div>
         }
-    } else if host.contains("yral") {
-        PopUpButtonTextRedirection {
-            href: "/".to_string(),
-            text: "Watch more Videos".to_string(),
+        .into_any(),
+        AirdropClaimState::Claimed(..) => view! {
+            <GradientLinkButton href="/wallet" classes="py-3 w-full z-2">
+                View Wallet
+            </GradientLinkButton>
         }
-    } else {
-        PopUpButtonTextRedirection {
-            href: "/wallet".to_string(),
-            text: "View Wallet".to_string(),
+        .into_any(),
+        AirdropClaimState::Failed => view! {
+            <GradientLinkText href="/wallet" classes="py-3 w-full z-2">
+                Try Again
+            </GradientLinkText>
         }
+        .into_any(),
     }
 }
 
 #[component]
-fn AirdropPopUpButton(
-    claimed: RwSignal<bool>,
-    name: String,
-    buffer_signal: RwSignal<bool>,
+fn AirdropPopupMessage(#[prop(into)] name: String, state: AirdropClaimState) -> impl IntoView {
+    match state {
+        AirdropClaimState::Claiming => view! {
+            Claim for
+            <span class="mx-2 font-bold">{name}</span>
+            is being processed
+        }
+        .into_any(),
+        AirdropClaimState::Claimed(amount) => view! {
+            <span class="mx-2 font-bold">{format!("{amount} {name}")}</span>
+            credited in your wallet
+        }
+        .into_any(),
+        AirdropClaimState::Failed => view! {
+            Claim for
+            <span class="mx-2 font-bold">{name}</span>
+            failed
+        }
+        .into_any(),
+    }
+}
+
+#[component]
+pub fn AirdropPopup(
+    #[prop(into)] name: String,
+    #[prop(into)] logo: String,
+    claim_state: ReadSignal<AirdropClaimState>,
+    airdrop_popup: WriteSignal<bool>,
 ) -> impl IntoView {
-    let host = get_host();
-    let pathname = use_location();
-    let name_c = name.clone();
-    let name_c2 = name.clone();
+    let _ = claim_state.get();
     view! {
-        <div
-            style="--duration:1500ms"
-            class="flex flex-col gap-4 justify-center items-center px-8 w-full text-xl font-bold fade-in z-2"
-        >
-            <Show
-                when=claimed
-                fallback=move || {
-                    view! {
-                        <div class="font-normal text-center">
-                            <span class="font-semibold">100 {name_c.clone()}</span>
-                            successfully claimed and added to your wallet!
-                        </div>
-                    }
-                        .into_view()
-                }
+        <div class="flex overflow-hidden relative flex-col gap-4 justify-center items-center px-8 w-full h-full text-white rounded-lg font-kumbh bg-neutral-900">
+            <button
+                on:click=move |_| airdrop_popup.set(false)
+                class="absolute top-5 right-5 z-40 p-2 rounded-full scale-125 bg-neutral-800"
             >
-                <div class="text-center">
-                    {format!("100 {}", name_c2.clone())} <br />
-                    <span class="font-normal text-center">
-                        Claim for <span class="font-semibold">100 {name_c2.clone()}</span>
-                        is being processed
-                    </span>
-                </div>
+                <Icon icon=icondata::TbX />
+            </button>
+            <Show when=move || !matches!(claim_state.get(), AirdropClaimState::Failed)>
+                <img
+                    alt="bg"
+                    src="/img/airdrop/bg.webp"
+                    id="gradient-image"
+                    class="object-cover absolute inset-0 w-full h-full z-1 fade-in"
+                />
             </Show>
             {move || {
-                if buffer_signal.get() {
-                    Some(
-                        view! {
-                            <div class="mt-10 mb-16 max-w-100 scale-[4]">
-                                <SpinnerCircleStyled />
-                            </div>
-                        }
-                            .into_any(),
-                    )
-                } else if claimed.get() {
-                    let host = host.clone();
-                    let PopUpButtonTextRedirection { href, text } = pop_up_button_href(
-                        host,
-                        pathname.pathname.get(),
-                    );
-                    Some(
-                        view! {
-                            <div class="mt-10 mb-16">
-                                <HighlightedLinkButton
-                                    alt_style=true
-                                    disabled=false
-                                    classes="max-w-96 mx-auto py-[12px] px-[20px] w-full"
-                                        .to_string()
-                                    href=href
-                                >
-                                    {text}
-                                </HighlightedLinkButton>
-                            </div>
-                        }
-                            .into_any(),
-                    )
-                } else {
-                    None
+                view! {
+                    <WalletAirdropAnimation state=claim_state.get() logo=logo.clone() />
+                    <div class="z-2">
+                        <AirdropPopupMessage name=name.clone() state=claim_state.get() />
+                    </div>
+                    <AirdropPopUpButton state=claim_state.get() />
                 }
             }}
         </div>
@@ -393,32 +394,87 @@ fn AirdropPopUpButton(
 }
 
 #[component]
-pub fn AirdropPopup(
-    name: String,
-    logo: String,
-    buffer_signal: RwSignal<bool>,
-    claimed: RwSignal<bool>,
-    airdrop_popup: RwSignal<bool>,
-) -> impl IntoView {
-    view! {
-        <div
-            style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
-            class="flex overflow-hidden relative flex-col gap-4 justify-center items-center w-full h-full text-white rounded-lg font-kumbh"
-        >
-            <button
-                on:click=move |_| airdrop_popup.set(false)
-                class="absolute top-5 right-5 z-40 p-2 rounded-full scale-125 bg-neutral-800"
-            >
-                <Icon icon=icondata::TbX />
-            </button>
-            <img
-                alt="bg"
-                src="/img/airdrop/bg.webp"
-                class="object-cover absolute inset-0 w-full h-full z-1 fade-in"
-            />
-            <AirdropAnimation claimed=claimed.into() logo=logo.clone() />
-            <AirdropPopUpButton claimed name buffer_signal />
-        </div>
+fn WalletAirdropAnimation(state: AirdropClaimState, logo: String) -> impl IntoView {
+    let logo = StoredValue::new(logo);
+    match state {
+        AirdropClaimState::Claiming => view! {
+            <div class="relative mb-20 max-h-96 z-2">
+                <div
+                    style="--y: 50px"
+                    class="flex flex-col justify-center items-center airdrop-parachute"
+                >
+                    <img
+                        alt="Parachute"
+                        src="/img/airdrop/parachute.webp"
+                        class="h-auto max-h-72"
+                    />
+
+                    <div class="p-px w-16 h-16 rounded-md rounded-full -translate-y-8">
+                        <img
+                            alt="Airdrop"
+                            src=logo.get_value()
+                            class="object-cover w-full h-full rounded-md rounded-full fade-in"
+                        />
+                    </div>
+                </div>
+                <img
+                    alt="Cloud"
+                    src="/img/airdrop/cloud.webp"
+                    style="--x: -50px"
+                    class="absolute left-0 -top-10 max-w-12 airdrop-cloud"
+                />
+                <img
+                    alt="Cloud"
+                    src="/img/airdrop/cloud.webp"
+                    style="--x: 50px"
+                    class="absolute right-10 bottom-10 max-w-16 airdrop-cloud"
+                />
+            </div>
+        }.into_any(),
+        AirdropClaimState::Claimed(..) => view! {
+            <div class="flex justify-center items-center mt-12 w-full max-h-96 lg:mb-8 h-[30vh] z-2">
+                <div class="relative gap-12 h-[22vh] w-[22vh] lg:h-[27vh] lg:w-[27vh]">
+                    <div>
+                        <img
+                            alt="tick"
+                            src="/img/hotornot/tick.webp"
+                            class="object-cover w-full h-full rounded-md fade-in"
+                        />
+                    </div>
+                    <div class="absolute -right-4 -bottom-4 p-px w-16 h-16 rounded-md fade-in">
+                        <img
+                            alt="Airdrop"
+                            src=logo.get_value()
+                            class="object-cover w-full h-full rounded-md fade-in"
+                        />
+                    </div>
+                </div>
+            </div>
+        }.into_any(),
+        AirdropClaimState::Failed => view! {
+            <div class="relative mb-20 max-h-96 z-2">
+                <div style="--y: 50px" class="flex justify-center items-center airdrop-parachute">
+                    <div class="p-px w-16 h-16 bg-black rounded-full rotate-45 translate-x-12 translate-y-4">
+                        <img
+                            alt="Airdrop"
+                            src=logo.get_value()
+                            class="object-cover w-full h-full rounded-md rounded-full fade-in"
+                        />
+                    </div>
+                    <img
+                        alt="Parachute"
+                        src="/img/airdrop/fallen-parachute.webp"
+                        class="h-auto w-50"
+                    />
+                </div>
+                <img
+                    alt="Cloud"
+                    src="/img/airdrop/cloud.webp"
+                    style="--x: -50px"
+                    class="absolute left-0 -top-10 max-w-12 airdrop-cloud grayscale"
+                />
+            </div>
+        }.into_any(),
     }
 }
 
@@ -432,11 +488,14 @@ fn AirdropAnimation(claimed: Signal<bool>, logo: String) -> impl IntoView {
                 view! {
                     <div class="flex justify-center items-center mt-12 w-full max-h-96 lg:mb-8 h-[30vh] z-2">
                         <div class="relative gap-12 h-[22vh] w-[22vh] lg:h-[27vh] lg:w-[27vh]">
-                            <AnimatedTick />
-                            <div
-                                style="--duration:1500ms; background: radial-gradient(circle, rgba(27,0,15,1) 0%, rgba(0,0,0,1) 100%); box-shadow: 0px 0px 3.43px 0px #FFFFFF29;"
-                                class="absolute -right-4 -bottom-4 p-px w-16 h-16 rounded-md fade-in"
-                            >
+                            <div>
+                                <img
+                                    alt="tick"
+                                    src="/img/hotornot/tick.webp"
+                                    class="object-cover w-full h-full rounded-md fade-in"
+                                />
+                            </div>
+                            <div class="absolute -right-4 -bottom-4 p-px w-16 h-16 rounded-md fade-in">
                                 <img
                                     alt="Airdrop"
                                     src=logo_c.clone()
@@ -459,14 +518,11 @@ fn AirdropAnimation(claimed: Signal<bool>, logo: String) -> impl IntoView {
                         class="h-auto max-h-72"
                     />
 
-                    <div
-                        style="background: radial-gradient(circle, rgb(244 141 199) 0%, rgb(255 255 255) 100%); box-shadow: 0px 0px 3.43px 0px #FFFFFF29;"
-                        class="p-px w-16 h-16 rounded-md -translate-y-8"
-                    >
+                    <div class="p-px w-16 h-16 rounded-md rounded-full -translate-y-8">
                         <img
                             alt="Airdrop"
                             src=logo.clone()
-                            class="object-cover w-full h-full rounded-md fade-in"
+                            class="object-cover w-full h-full rounded-md rounded-full fade-in"
                         />
                     </div>
                 </div>
@@ -518,12 +574,38 @@ pub fn AnimatedTick() -> impl IntoView {
 }
 
 #[component]
+pub fn StatefulAirdropPopup(
+    #[prop(into)] name: String,
+    #[prop(into)] logo: String,
+    claim_state: ReadSignal<AirdropClaimState>,
+    airdrop_popup: RwSignal<bool>,
+) -> impl IntoView {
+    let name = StoredValue::new(name);
+    let logo = StoredValue::new(logo);
+
+    view! {
+        <ShadowOverlay show=airdrop_popup>
+            <div class="flex justify-center items-center py-6 px-4 w-full h-full">
+                <div class="overflow-hidden relative items-center w-full max-w-md rounded-md cursor-auto bg-neutral-950 h-[80vh]">
+                    <AirdropPopup
+                        name=name.get_value()
+                        logo=logo.get_value()
+                        claim_state
+                        airdrop_popup=airdrop_popup.write_only()
+                    />
+                </div>
+            </div>
+        </ShadowOverlay>
+    }
+}
+
+#[component]
 pub fn SatsAirdropPopup(
     show: RwSignal<bool>,
-    claimed: RwSignal<bool>,
-    amount_claimed: RwSignal<u64>,
-    error: RwSignal<bool>,
-    try_again: Action<bool, Result<(), ServerFnError>>,
+    claimed: ReadSignal<bool>,
+    amount_claimed: ReadSignal<u64>,
+    error: ReadSignal<bool>,
+    try_again: Action<bool, Result<u64, ServerFnError>>,
 ) -> impl IntoView {
     let img_src = move || {
         if claimed.get() {
