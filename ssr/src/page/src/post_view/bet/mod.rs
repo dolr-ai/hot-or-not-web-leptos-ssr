@@ -361,7 +361,7 @@ fn HNWonLost(
 
     view! {
         <div class="flex w-full flex-col gap-3 p-4">
-            <div class="flex gap-6 justify-center items-center w-full bg-transparent rounded-xl shadow-sm">
+            <div class="flex gap-6 justify-center items-center w-full">
                 <div class="relative shrink-0 drop-shadow-lg">
                     <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin />
                     <img src=vote_kind_image class="absolute bottom-1 right-1 h-5 w-5" />
@@ -369,10 +369,12 @@ fn HNWonLost(
                 <div class="flex-1 p-1 text-xs md:text-sm font-semibold leading-snug text-white rounded-full">
                     {result_message}
                 </div>
-                <button on:click=move |_| {
+                <button
+                class="relative shrink-0 cursor-pointer"
+                on:click=move |_| {
                     show_ping.set(true);
                     show_tutorial.set(true)
-                } class="relative shrink-0">
+                    }>
                     <img src="/img/hotornot/question-mark.svg" class="h-8 w-8" />
                     <ShowAny when=move || won && show_ping.get()>
                         <span class="absolute top-1 right-1 ping rounded-full w-2 h-2 bg-red-500 text-red-500"></span>
@@ -423,7 +425,7 @@ pub fn HNUserParticipation(
         .expect("We only allow voting with 200 max, so this is alright");
 
     view! {
-        <HNWonLost game_result vote_amount bet_direction wallet_balance show_ping show_tutorial />
+        <3 game_result vote_amount bet_direction wallet_balance show_ping show_tutorial />
         <ShadowBg />
     }
 }
