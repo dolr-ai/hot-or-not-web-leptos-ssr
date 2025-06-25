@@ -1,6 +1,5 @@
 #[cfg(any(feature = "local-bin", feature = "local-lib"))]
 mod local;
-use std::ops::Range;
 
 use candid::Principal;
 #[cfg(any(feature = "local-bin", feature = "local-lib"))]
@@ -14,9 +13,9 @@ pub use remote::*;
 use once_cell::sync::Lazy;
 use reqwest::Url;
 
+pub mod limits;
+
 // TODO: make it consistent with the actual bet amount
-pub const MAX_BET_AMOUNT: usize = 20;
-pub const SATS_AIRDROP_LIMIT_RANGE: Range<u64> = 50..100;
 pub const CENTS_IN_E6S: u64 = 1_000_000;
 pub const CF_STREAM_BASE: &str = "https://customer-2p3jflss4r4hmpnz.cloudflarestream.com";
 pub const FALLBACK_PROPIC_BASE: &str = "https://api.dicebear.com/7.x/big-smile/svg";
@@ -58,11 +57,6 @@ pub const ICP_LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 
 pub const CF_KV_ML_CACHE_NAMESPACE_ID: &str = "ea145fc839bd42f9bf2d34b950ddbda5";
 pub const CLOUDFLARE_ACCOUNT_ID: &str = "a209c523d2d9646cc56227dbe6ce3ede";
-
-pub const NEW_USER_SIGNUP_REWARD: u64 = 1000;
-pub const REFERRAL_REWARD: u64 = 10;
-pub const MIN_WITHDRAWAL_PER_TXN: u64 = 200;
-pub const MAX_WITHDRAWAL_PER_TXN: u64 = 500;
 
 pub const AUTH_UTIL_COOKIES_MAX_AGE_MS: i64 = 400 * 24 * 60 * 60 * 1000; // 400 days
 
