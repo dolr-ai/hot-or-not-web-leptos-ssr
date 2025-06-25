@@ -38,7 +38,7 @@ pub fn ActionButton(
     view! {
         <button
             disabled=disabled
-            class="flex flex-col gap-1 justify-center items-center text-xs transition-colors enabled:group-hover:text-white enabled:text-neutral-300 disabled:group-hover:cursor-default disabled:text-neutral-600"
+            class="flex flex-col gap-1 justify-center items-center text-xs transition-colors enabled:group-hover:text-white enabled:text-neutral-300 disabled:cursor-default cursor-pointer disabled:text-neutral-600"
         >
             <div class="flex justify-center items-center w-4.5 h-4.5">{children()}</div>
 
