@@ -37,9 +37,6 @@ pub fn BgView(
             .unwrap_or_default()
     };
 
-    let onboarding_eligible_post_context = BetEligiblePostCtx::default();
-    provide_context(onboarding_eligible_post_context.clone());
-
     let win_audio_ref = NodeRef::<Audio>::new();
 
     view! {

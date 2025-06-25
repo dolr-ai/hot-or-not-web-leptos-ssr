@@ -88,6 +88,18 @@ pub fn PreVideoUpload(
                 .await
                 .inspect_err(|e| {
                     VideoUploadUnsuccessful.send_event(ev_ctx, e.to_string(), 0, false, true);
+                    if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                        MixPanelEvent::track_video_upload_error_shown(
+                            MixpanelVideoUploadFailureProps {
+                                user_id: global.user_id,
+                                visitor_id: global.visitor_id,
+                                is_logged_in: global.is_logged_in,
+                                canister_id: global.canister_id,
+                                is_nsfw_enabled: global.is_nsfw_enabled,
+                                error: e.to_string(),
+                            },
+                        );
+                    }
                 }));
 
                 uid.set(message.data.and_then(|m| m.uid));

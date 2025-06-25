@@ -21,8 +21,8 @@ codegen-units = 1
 
 [profile.prod-release]
 inherits = "release"
-# debug = 1
-# lto = true
+debug = 1
+lto = true
 
 # TODO: leaving this here as a reminder to be used once cargo-leptos solves the profile issue
 # [profile.preview-release]
@@ -164,6 +164,8 @@ sentry-tower = { version = "0.37.0", features = ["axum", "axum-matched-path"] }
 jsonwebtoken = "9.3.1"
 google-cloud-alloydb-v1 = "0.2.0"
 yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adbf4be5cb62a26f2a90032261321bf1df33f08b", default-features = false }
+yral-spacetime-bindings = { git = "https://github.com/dolr-ai/yral-spacetime", branch = "main", version = "0.1.0" }
+fasthash = "0.4.0"
 # ===
 # Uncomment the below lines for testing out yral-common changes locally
 # ===

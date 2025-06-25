@@ -324,7 +324,6 @@ impl VideoWatched {
                 let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
                 let duration = video.duration();
                 let current_time = video.current_time();
-
                 if current_time < 0.95 * duration {
                     set_full_video_watched.set(false);
                 }
@@ -402,7 +401,6 @@ impl VideoWatched {
                 let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
                 let duration = video.duration();
                 let current_time = video.current_time();
-
                 if current_time < 0.1 {
                     return;
                 }

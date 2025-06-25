@@ -19,7 +19,16 @@
 //!
 //! This will ensure we keep the near instant loading time while also fetching items dynmically.
 
+<<<<<<< HEAD
 use crate::wallet::airdrop::{claim_sats_airdrop, SatsAirdropPopup};
+=======
+use std::time::Duration;
+
+use crate::wallet::airdrop::dolr_airdrop::{claim_dolr_airdrop, is_user_eligible_for_dolr_airdrop};
+use crate::wallet::airdrop::{
+    claim_sats_airdrop, AirdropClaimState, AirdropStatus, SatsAirdropPopup, StatefulAirdropPopup,
+};
+>>>>>>> main
 use candid::Principal;
 use component::action_btn::{ActionButton, ActionButtonLink};
 use component::icons::information_icon::Information;
@@ -31,7 +40,11 @@ use component::icons::{
 use component::overlay::PopupOverlay;
 use component::share_popup::ShareContent;
 use component::skeleton::Skeleton;
+<<<<<<< HEAD
 use component::tooltip::Tooltip;
+=======
+use component::tooltip::{Tooltip, TooltipBottomRight};
+>>>>>>> main
 use consts::{
     CKBTC_LEDGER_CANISTER, DOLR_AI_LEDGER_CANISTER, DOLR_AI_ROOT_CANISTER, USDC_LEDGER_CANISTER,
 };
@@ -39,9 +52,18 @@ use hon_worker_common::{sign_claim_request, ClaimRequest, WithdrawalState};
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::hooks::use_navigate;
+<<<<<<< HEAD
 use state::canisters::{auth_state, unauth_canisters};
 use utils::host::get_host;
 use utils::send_wrap;
+=======
+use leptos_use::{use_interval, UseIntervalReturn};
+use state::canisters::{auth_state, unauth_canisters};
+use utils::host::get_host;
+use utils::mixpanel::mixpanel_events::*;
+use utils::send_wrap;
+use utils::time::to_hh_mm_ss;
+>>>>>>> main
 use yral_canisters_common::utils::token::balance::TokenBalance;
 use yral_canisters_common::utils::token::{load_cents_balance, load_sats_balance};
 use yral_canisters_common::{Canisters, CENT_TOKEN_NAME};
@@ -57,6 +79,52 @@ pub fn TokenViewFallback() -> impl IntoView {
     }
 }
 
+<<<<<<< HEAD
+=======
+#[allow(unused)]
+enum AirdropStatusFetcherType {
+    Sats,
+    Dolr,
+    MockAvailable,
+    MockWaiting,
+    NonAirdropable,
+}
+
+impl AirdropStatusFetcherType {
+    async fn fetch(
+        &self,
+        user_canister: Principal,
+        user_principal: Principal,
+    ) -> Result<Option<AirdropStatus>, ServerFnError> {
+        let res = match self {
+            Self::Sats => {
+                let eligible =
+                    is_user_eligible_for_sats_airdrop(user_canister, user_principal).await?;
+                Some(if eligible {
+                    AirdropStatus::Available
+                } else {
+                    AirdropStatus::Claimed
+                })
+            }
+            Self::Dolr => {
+                Some(is_user_eligible_for_dolr_airdrop(user_canister, user_principal).await?)
+            }
+            Self::MockAvailable => {
+                utils::time::sleep(Duration::from_millis(100)).await;
+                Some(AirdropStatus::Available)
+            }
+            Self::MockWaiting => {
+                utils::time::sleep(Duration::from_millis(100)).await;
+                Some(AirdropStatus::WaitFor(Duration::from_secs(24 * 3600)))
+            }
+            Self::NonAirdropable => None,
+        };
+
+        Ok(res)
+    }
+}
+
+>>>>>>> main
 /// Different strategies for loading balances of tokens as [`yral_canisters_common::utils::token::balance::TokenBalance`]
 enum BalanceFetcherType {
     Icrc1 { ledger: Principal, decimals: u8 },
@@ -127,7 +195,11 @@ impl WithdrawalStateFetcherType {
 }
 
 #[derive(Debug, Clone, Copy)]
+<<<<<<< HEAD
 enum TokenType {
+=======
+pub enum TokenType {
+>>>>>>> main
     Sats,
     Btc,
     Cents,
@@ -135,6 +207,19 @@ enum TokenType {
     Usdc,
 }
 
+<<<<<<< HEAD
+=======
+impl From<TokenType> for AirdropStatusFetcherType {
+    fn from(value: TokenType) -> Self {
+        match value {
+            TokenType::Sats => Self::Sats,
+            TokenType::Dolr => Self::Dolr,
+            _ => Self::NonAirdropable,
+        }
+    }
+}
+
+>>>>>>> main
 impl From<TokenType> for WithdrawalStateFetcherType {
     fn from(value: TokenType) -> Self {
         match value {
@@ -145,6 +230,21 @@ impl From<TokenType> for WithdrawalStateFetcherType {
     }
 }
 
+<<<<<<< HEAD
+=======
+impl From<TokenType> for StakeType {
+    fn from(value: TokenType) -> Self {
+        match value {
+            TokenType::Sats => Self::Sats,
+            TokenType::Cents => Self::Cents,
+            TokenType::Btc => Self::Btc,
+            TokenType::Usdc => Self::Usdc,
+            TokenType::Dolr => Self::DolrAi,
+        }
+    }
+}
+
+>>>>>>> main
 /// Display information for each token is loaded statically as a performance
 /// optmization
 impl From<TokenType> for TokenDisplayInfo {
@@ -232,6 +332,19 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
         })
     };
 
+<<<<<<< HEAD
+=======
+    let airdrop_status = |token_type: TokenType| {
+        Resource::new(
+            || (),
+            move |_| async move {
+                let fetcher: AirdropStatusFetcherType = token_type.into();
+                send_wrap(fetcher.fetch(user_canister, user_principal)).await
+            },
+        )
+    };
+
+>>>>>>> main
     let tokens = [
         TokenType::Sats,
         TokenType::Btc,
@@ -250,6 +363,11 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
                     let balance = balance(token_type);
                     let withdrawal_state = withdrawal_state(token_type);
                     let is_utility_token = token_type.is_utility_token();
+<<<<<<< HEAD
+=======
+                    let airdrop_status = airdrop_status(token_type);
+
+>>>>>>> main
                     view! {
                         <FastWalletCard
                             user_canister
@@ -258,6 +376,11 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
                             balance
                             withdrawal_state
                             is_utility_token
+<<<<<<< HEAD
+=======
+                            airdrop_status
+                            token_type
+>>>>>>> main
                         />
                     }
                 })
@@ -355,11 +478,121 @@ impl WithdrawImpl for WithdrawSats {
 trait AirdroppableImpl {
     async fn claim_airdrop(&self, auth: Canisters<true>) -> Result<u64, ServerFnError>;
 
+<<<<<<< HEAD
     async fn is_airdrop_claimed(
         &self,
         user_principal: Principal,
         user_canister: Principal,
     ) -> Result<bool, ServerFnError>;
+=======
+    fn show_info(&self, _status: AirdropStatus) -> bool {
+        false
+    }
+
+    fn eligility_info(&self, _status: AirdropStatus) -> Option<String> {
+        None
+    }
+
+    fn available_message(&self, _status: AirdropStatus) -> Option<String> {
+        None
+    }
+}
+
+#[derive(Clone)]
+enum Airdropper {
+    #[allow(unused)]
+    MockAirdropDolr(MockAirdropDolr),
+    AirdropDolr(AirdropDolr),
+    AirdropSats(AirdropSats),
+}
+
+// enum_dispatch doesn't work with traits with `async fn` so we doing it by hand
+// https://gitlab.com/antonok/enum_dispatch/-/issues/75
+impl AirdroppableImpl for Airdropper {
+    async fn claim_airdrop(&self, auth: Canisters<true>) -> Result<u64, ServerFnError> {
+        match self {
+            Airdropper::MockAirdropDolr(mock_airdrop_dolr) => {
+                mock_airdrop_dolr.claim_airdrop(auth).await
+            }
+            Airdropper::AirdropSats(airdrop_sats) => airdrop_sats.claim_airdrop(auth).await,
+            Airdropper::AirdropDolr(airdrop_dolr) => airdrop_dolr.claim_airdrop(auth).await,
+        }
+    }
+
+    fn show_info(&self, status: AirdropStatus) -> bool {
+        match self {
+            Airdropper::MockAirdropDolr(mock_airdrop_dolr) => mock_airdrop_dolr.show_info(status),
+            Airdropper::AirdropSats(airdrop_sats) => airdrop_sats.show_info(status),
+            Airdropper::AirdropDolr(airdrop_dolr) => airdrop_dolr.show_info(status),
+        }
+    }
+
+    fn eligility_info(&self, status: AirdropStatus) -> Option<String> {
+        match self {
+            Airdropper::MockAirdropDolr(mock_airdrop_dolr) => {
+                mock_airdrop_dolr.eligility_info(status)
+            }
+            Airdropper::AirdropSats(airdrop_sats) => airdrop_sats.eligility_info(status),
+            Airdropper::AirdropDolr(airdrop_dolr) => airdrop_dolr.eligility_info(status),
+        }
+    }
+
+    fn available_message(&self, status: AirdropStatus) -> Option<String> {
+        match self {
+            Airdropper::MockAirdropDolr(mock_airdrop_dolr) => {
+                mock_airdrop_dolr.available_message(status)
+            }
+            Airdropper::AirdropSats(airdrop_sats) => airdrop_sats.available_message(status),
+            Airdropper::AirdropDolr(airdrop_dolr) => airdrop_dolr.available_message(status),
+        }
+    }
+}
+
+#[derive(Clone)]
+struct MockAirdropDolr;
+
+impl AirdroppableImpl for MockAirdropDolr {
+    async fn claim_airdrop(&self, _auth: Canisters<true>) -> Result<u64, ServerFnError> {
+        utils::time::sleep(Duration::from_secs(2)).await;
+
+        Ok(100)
+    }
+
+    fn show_info(&self, _status: AirdropStatus) -> bool {
+        true
+    }
+
+    fn eligility_info(&self, _status: AirdropStatus) -> Option<String> {
+        Some("Claims are limited to once every 24 hours.".to_string())
+    }
+
+    fn available_message(&self, _status: AirdropStatus) -> Option<String> {
+        Some("Tap on “airdrop” to claim free tokens.".to_string())
+    }
+}
+
+#[derive(Clone)]
+struct AirdropDolr;
+
+impl AirdroppableImpl for AirdropDolr {
+    async fn claim_airdrop(&self, auth: Canisters<true>) -> Result<u64, ServerFnError> {
+        let user_canister = auth.user_canister();
+        let user_principal = auth.user_principal();
+        claim_dolr_airdrop(user_canister, user_principal).await
+    }
+
+    fn show_info(&self, _status: AirdropStatus) -> bool {
+        true
+    }
+
+    fn eligility_info(&self, _status: AirdropStatus) -> Option<String> {
+        Some("Claims are limited to once every 24 hours.".to_string())
+    }
+
+    fn available_message(&self, _status: AirdropStatus) -> Option<String> {
+        Some("Tap on “airdrop” to claim free tokens.".to_string())
+    }
+>>>>>>> main
 }
 
 #[derive(Clone)]
@@ -374,6 +607,7 @@ impl AirdroppableImpl for AirdropSats {
 
         claim_sats_airdrop(cans.user_canister(), request, signature).await
     }
+<<<<<<< HEAD
 
     async fn is_airdrop_claimed(
         &self,
@@ -387,6 +621,19 @@ impl AirdroppableImpl for AirdropSats {
 }
 
 type Airdropper = AirdropSats;
+=======
+}
+
+impl Airdropper {
+    fn choose(name: &str) -> Option<Self> {
+        match name {
+            "DOLR AI" => Some(Airdropper::AirdropDolr(AirdropDolr)),
+            s if s == SATS_TOKEN_NAME => Some(Airdropper::AirdropSats(AirdropSats)),
+            _ => None,
+        }
+    }
+}
+>>>>>>> main
 
 #[derive(Debug, Clone)]
 pub struct TokenDisplayInfo {
@@ -413,12 +660,36 @@ pub fn WithdrawSection(
         .map(|ShowLoginSignal(show_login)| show_login)
         .unwrap_or_else(|| RwSignal::new(false));
     let nav = use_navigate();
+<<<<<<< HEAD
+=======
+    let auth_state = auth_state();
+    let token_name_analytics = token_name.clone();
+>>>>>>> main
     let withdraw_handle = move |_| {
         if !is_connected() {
             show_login.set(true);
             return;
         }
+<<<<<<< HEAD
 
+=======
+        let global = MixpanelGlobalProps::from_ev_ctx(auth_state.event_ctx());
+        if let Some(global) = global {
+            let token_clicked = match token_name_analytics.as_str() {
+                s if s == SATS_TOKEN_NAME => StakeType::Sats,
+                s if s == CENT_TOKEN_NAME => StakeType::Cents,
+                _ => unimplemented!("Withdrawing is not implemented for a token"),
+            };
+            MixPanelEvent::track_withdraw_tokens_clicked(MixpanelWithdrawTokenClickedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                token_clicked,
+            });
+        }
+>>>>>>> main
         nav(&withdraw_url, Default::default());
     };
 
@@ -464,6 +735,83 @@ pub fn WithdrawSection(
     }
 }
 
+<<<<<<< HEAD
+=======
+#[component]
+fn AirdropInfoSection(
+    airdrop_status: AirdropStatus,
+    #[prop(into)] token_name: String,
+) -> impl IntoView {
+    let airdropper: Airdropper = Airdropper::choose(&token_name)
+        .expect("airdrop status returned for a non airdroppable token");
+
+    if !airdropper.show_info(airdrop_status) {
+        return None;
+    }
+
+    if matches!(airdrop_status, AirdropStatus::Claimed) {
+        return None;
+    }
+
+    let UseIntervalReturn { counter, .. } = use_interval(1000);
+    let maybe_wait_for = match airdrop_status {
+        AirdropStatus::WaitFor(duration) => Some(duration),
+        _ => None,
+    };
+
+    let timer = move || {
+        let counter = counter.get();
+        let counter = web_time::Duration::from_secs(counter);
+
+        maybe_wait_for
+            .map(|wait_for| wait_for - counter)
+            .map(to_hh_mm_ss)
+    };
+
+    let available_message = airdropper.available_message(airdrop_status)?;
+    let tooltip_info = airdropper.eligility_info(airdrop_status);
+    Some(view! {
+        <div class="flex flex-col gap-2 pt-4 border-t border-neutral-700">
+            <div class="flex justify-between items-center">
+                {match airdrop_status {
+                    AirdropStatus::Available => {
+                        view! {
+                            <div class="flex items-center">
+                                <Icon attr:class="text-neutral-300" icon=PadlockOpen />
+                                <span class="mx-2 text-xs text-neutral-400">
+                                    {available_message}
+                                </span>
+                            </div>
+                        }
+                            .into_any()
+                    }
+                    AirdropStatus::WaitFor(..) => {
+                        view! {
+                            <div class="flex gap-1.5 items-center py-1.5 px-2 rounded-full bg-neutral-900">
+                                <span class="text-xs text-400">Next Airdrop In:</span>
+                                <span class="text-xs font-semibold text-center">{timer}</span>
+                            </div>
+                        }
+                            .into_any()
+                    }
+                    _ => ().into_any(),
+                }}
+                {tooltip_info
+                    .map(|tooltip_info| {
+                        view! {
+                            <TooltipBottomRight
+                                icon=Information
+                                title="Airdrop Eligibility"
+                                description=tooltip_info
+                            />
+                        }
+                    })}
+            </div>
+        </div>
+    })
+}
+
+>>>>>>> main
 // avoid redirecting in case of error, because that will
 // render the whole wallet useless even if only a single system
 // is down
@@ -474,8 +822,17 @@ pub fn FastWalletCard(
     display_info: TokenDisplayInfo,
     balance: Resource<Result<TokenBalance, ServerFnError>>,
     withdrawal_state: OnceResource<Result<Option<WithdrawalState>, ServerFnError>>,
+<<<<<<< HEAD
     #[prop(optional)] is_utility_token: bool,
 ) -> impl IntoView {
+=======
+    airdrop_status: Resource<Result<Option<AirdropStatus>, ServerFnError>>,
+    token_type: TokenType,
+    #[prop(optional)] is_utility_token: bool,
+) -> impl IntoView {
+    let _ = user_canister;
+
+>>>>>>> main
     let TokenDisplayInfo {
         name,
         symbol,
@@ -511,11 +868,15 @@ pub fn FastWalletCard(
     });
 
     let display_info = display_info.clone();
+<<<<<<< HEAD
     let airdropper: Option<Airdropper> = if display_info.name == SATS_TOKEN_NAME {
         Some(AirdropSats)
     } else {
         None
     };
+=======
+    let airdropper: Option<Airdropper> = Airdropper::choose(&display_info.name);
+>>>>>>> main
 
     // airdrop popup state
     let show_airdrop_popup = RwSignal::new(false);
@@ -527,6 +888,7 @@ pub fn FastWalletCard(
     let airdropper_c = airdropper.clone();
     let airdropper_c2 = airdropper_c.clone();
 
+<<<<<<< HEAD
     let update_claimed = Action::new_local(move |_| {
         let airdropper = airdropper_c.clone();
         async move {
@@ -545,6 +907,20 @@ pub fn FastWalletCard(
     Effect::new(move || {
         update_claimed.dispatch(());
     });
+=======
+    Effect::new(move || {
+        let is_airdrop_available =
+            airdrop_status.map(|value| matches!(value, Ok(Some(AirdropStatus::Available))));
+
+        if let Some(true) = is_airdrop_available {
+            is_airdrop_claimed.set(false);
+        }
+    });
+
+    // any variant works as default
+    let claim_state = RwSignal::new(AirdropClaimState::Claiming);
+    let airdrop_popup = RwSignal::new(false);
+>>>>>>> main
 
     let auth = auth_state();
     let base = unauth_canisters();
@@ -557,6 +933,7 @@ pub fn FastWalletCard(
         let airdrop_amount_claimed = airdrop_amount_claimed;
         let error_claiming_airdrop = error_claiming_airdrop;
         let airdropper = airdropper_c2.clone();
+<<<<<<< HEAD
         async move {
             if !is_connected {
                 show_login.set(true);
@@ -564,11 +941,32 @@ pub fn FastWalletCard(
             }
 
             let cans = auth.auth_cans(base).await?;
+=======
+        let token_type: StakeType = token_type.into();
+        async move {
+            if !is_connected {
+                show_login.set(true);
+                return Err(ServerFnError::new("login required"));
+            }
+
+            let cans = auth.auth_cans(base).await?;
+            let global = MixpanelGlobalProps::try_get(&cans.clone(), is_connected);
+            let global_dispatched = MixpanelGlobalProps::try_get(&cans.clone(), is_connected);
+            MixPanelEvent::track_claim_airdrop_clicked(MixpanelClaimAirdropClickedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                token_type: token_type.clone(),
+            });
+>>>>>>> main
             error_claiming_airdrop.set(false);
             show_airdrop_popup.set(true);
             match airdropper.as_ref().unwrap().claim_airdrop(cans).await {
                 Ok(amount) => {
                     airdrop_amount_claimed.set(amount);
+<<<<<<< HEAD
                     is_airdrop_claimed.set(true);
                     error_claiming_airdrop.set(false);
                     balance.refetch();
@@ -582,6 +980,71 @@ pub fn FastWalletCard(
         }
     });
 
+=======
+                    MixPanelEvent::track_airdrop_claimed(MixpanelAirdropClaimedProps {
+                        is_success: true,
+                        claimed_amount: amount,
+                        user_id: global_dispatched.user_id,
+                        visitor_id: global_dispatched.visitor_id,
+                        is_logged_in: global.is_logged_in,
+                        canister_id: global_dispatched.canister_id,
+                        is_nsfw_enabled: global.is_nsfw_enabled,
+                        token_type,
+                    });
+                    is_airdrop_claimed.set(true);
+                    error_claiming_airdrop.set(false);
+                    balance.refetch();
+                    airdrop_status.refetch();
+                    Ok(amount)
+                }
+                Err(err) => {
+                    log::error!("error claiming airdrop");
+                    MixPanelEvent::track_airdrop_claimed(MixpanelAirdropClaimedProps {
+                        is_success: false,
+                        claimed_amount: 0,
+                        user_id: global_dispatched.user_id,
+                        visitor_id: global_dispatched.visitor_id,
+                        is_logged_in: global.is_logged_in,
+                        canister_id: global_dispatched.canister_id,
+                        is_nsfw_enabled: global.is_nsfw_enabled,
+                        token_type,
+                    });
+                    error_claiming_airdrop.set(true);
+                    Err(err)
+                }
+            }
+        }
+    });
+
+    let pending = claim_airdrop.pending();
+    let value = claim_airdrop.value();
+    Effect::watch(
+        move || (pending.get(), value.get()),
+        move |(pending, value), _, _| {
+            log::info!("pending: {pending} and value: {value:?}");
+            if name_c.get_value() == SATS_TOKEN_NAME {
+                log::info!("ignoring");
+                return;
+            }
+
+            if *pending {
+                airdrop_popup.set(true);
+                claim_state.set(AirdropClaimState::Claiming);
+            }
+
+            if let Some(res) = value {
+                let new_state = match res {
+                    Ok(amount) => AirdropClaimState::Claimed(*amount),
+                    Err(_) => AirdropClaimState::Failed,
+                };
+
+                claim_state.set(new_state);
+            }
+        },
+        false,
+    );
+
+>>>>>>> main
     view! {
         <div class="flex flex-col gap-4 p-4 w-full text-white rounded-lg bg-neutral-900/90 font-kumbh">
             <div class="flex flex-col gap-4 p-3 rounded-sm bg-neutral-800/70">
@@ -642,6 +1105,26 @@ pub fn FastWalletCard(
                         )
                     })}
                 </Suspense>
+<<<<<<< HEAD
+=======
+                <Suspense>
+                    {move || Suspend::new(async move {
+                        let airdrop_status = airdrop_status
+                            .await
+                            .inspect_err(|err| {
+                                log::error!("airdrop status loading failed: {err:?}");
+                            })
+                            .ok()
+                            .flatten();
+                        let airdrop_status = airdrop_status?;
+                        Some(
+                            view! {
+                                <AirdropInfoSection airdrop_status token_name=name_c.get_value() />
+                            },
+                        )
+                    })}
+                </Suspense>
+>>>>>>> main
             </div>
 
             <WalletCardOptions
@@ -659,6 +1142,7 @@ pub fn FastWalletCard(
                 />
             </PopupOverlay>
 
+<<<<<<< HEAD
             <SatsAirdropPopup
                 show=show_airdrop_popup
                 amount_claimed=airdrop_amount_claimed
@@ -668,6 +1152,29 @@ pub fn FastWalletCard(
             />
         </div>
     }.into_any()
+=======
+            {(name_c.get_value() == SATS_TOKEN_NAME)
+                .then_some(
+                    view! {
+                        <SatsAirdropPopup
+                            show=show_airdrop_popup
+                            amount_claimed=airdrop_amount_claimed.read_only()
+                            claimed=is_airdrop_claimed.read_only()
+                            error=error_claiming_airdrop.read_only()
+                            try_again=claim_airdrop
+                        />
+                    },
+                )}
+
+            <StatefulAirdropPopup
+                name=name_c.get_value()
+                logo=logo
+                claim_state=claim_state.read_only()
+                airdrop_popup
+            />
+        </div>
+    }
+>>>>>>> main
 }
 
 #[component]
@@ -675,7 +1182,11 @@ fn WalletCardOptions(
     pop_up: WriteSignal<bool>,
     share_link: WriteSignal<String>,
     airdrop_claimed: RwSignal<bool>,
+<<<<<<< HEAD
     claim_airdrop: Action<bool, Result<(), ServerFnError>>,
+=======
+    claim_airdrop: Action<bool, Result<u64, ServerFnError>>,
+>>>>>>> main
 ) -> impl IntoView {
     let WalletCardOptionsContext {
         is_utility_token,

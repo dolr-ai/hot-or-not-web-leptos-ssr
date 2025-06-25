@@ -40,12 +40,6 @@ struct PostParams {
 }
 
 #[derive(Clone, Default)]
-pub struct BetEligiblePostCtx {
-    // This is true if betting is enabled for the current post and no bet has been placed
-    pub can_place_bet: RwSignal<bool>,
-}
-
-#[derive(Clone, Default)]
 pub struct PostViewCtx {
     fetch_cursor: RwSignal<FetchCursor>,
     // TODO: this is a dead simple with no GC
@@ -318,7 +312,7 @@ pub fn PostView() -> impl IntoView {
             auth.event_ctx(),
             nsfw_enabled.get_untracked(),
         ) {
-            MixPanelEvent::track_home_page_viewed(MixpanelHomePageViewedProps {
+            MixPanelEvent::track_home_page_viewed(MixpanelBottomBarPageViewedProps {
                 user_id: global.user_id,
                 visitor_id: global.visitor_id,
                 is_logged_in: global.is_logged_in,
