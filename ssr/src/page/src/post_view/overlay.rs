@@ -543,6 +543,7 @@ pub fn VideoDetailsOverlay(
                 </HighlightedButton>
             </div>
         </Modal>
+        <HotOrNotTutorialOverlay show=show_tutorial />
     }.into_any()
 }
 
