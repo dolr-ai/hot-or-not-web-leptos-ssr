@@ -39,7 +39,7 @@ struct PostParams {
     post_id: u64,
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct PostViewCtx {
     fetch_cursor: RwSignal<FetchCursor>,
     // TODO: this is a dead simple with no GC
@@ -54,8 +54,8 @@ pub struct PostViewCtx {
     batch_cnt: RwSignal<usize>,
 }
 
-impl PostViewCtx {
-    pub fn new() -> Self {
+impl Default for PostViewCtx {
+    fn default() -> Self {
         let mut video_queue_for_feed = Vec::new();
         for i in 0..MAX_VIDEO_ELEMENTS_FOR_FEED {
             video_queue_for_feed.push(FeedPostCtx {

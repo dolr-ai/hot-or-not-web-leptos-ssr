@@ -240,6 +240,8 @@ impl MixpanelGlobalProps {
     }
 
     pub fn get_auth_journey() -> String {
+        let (auth_journey, _, _) = use_local_storage::<String, FromToStringCodec>(AUTH_JOURNET);
+        // Extracting the device ID value
         let auth_journey_value = auth_journey.get_untracked();
         if auth_journey_value.is_empty() {
             "unknown".to_string()
@@ -254,6 +256,7 @@ impl MixpanelGlobalProps {
 
     pub fn from_ev_ctx(ev_ctx: EventCtx) -> Option<Self> {
         #[cfg(not(feature = "hydrate"))]
+        {
             return None;
         }
         #[cfg(feature = "hydrate")]

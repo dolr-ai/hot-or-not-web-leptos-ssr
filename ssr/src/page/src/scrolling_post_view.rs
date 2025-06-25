@@ -77,6 +77,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                     return;
                                 }
                                 current_idx.set(queue_idx);
+
                                 if video_queue.with_untracked(|q| q.len()).saturating_sub(queue_idx)
                                     <= threshold_trigger_fetch
                                 {
@@ -106,8 +107,12 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                         let show_video = Memo::new(move |_| {
                             (queue_idx as i32 - current_idx() as i32) >= -2
                         });
+                        let to_load = Memo::new(move |_| {
                             let cidx = current_idx.get() as i32;
                             (queue_idx as i32 - cidx) <= 10 && (queue_idx as i32 - cidx) >= -2
+                        });
+                        view! {
+                            <div node_ref=container_ref class="w-full h-full snap-always snap-end">
                                 <Show when=show_video>
                                     <BgView video_queue idx=queue_idx>
                                         <VideoViewForQueue

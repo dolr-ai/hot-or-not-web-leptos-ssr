@@ -74,7 +74,6 @@ impl CursoredDataProvider for PostsProvider {
             .collect();
         let post_details_indexset: IndexSet<PostDetails> = post_details.iter().cloned().collect();
         self.video_queue.update_untracked(|vq| {
-<<<<<<< HEAD
             let start_len = vq.len();
             vq.extend(post_details_indexset);
             let end_len = vq.len();
@@ -94,9 +93,6 @@ impl CursoredDataProvider for PostsProvider {
                     }
                 });
             }
-=======
-            vq.extend(post_details_indexset);
->>>>>>> main
         });
         Ok(PageEntry {
             data: post_details,

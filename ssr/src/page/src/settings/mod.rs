@@ -1,11 +1,8 @@
 use codee::string::FromToStringCodec;
 use component::back_btn::BackButton;
-<<<<<<< HEAD
-=======
 use component::login_modal::LoginModal;
 use component::overlay::ShadowOverlay;
 use component::spinner::FullScreenSpinner;
->>>>>>> main
 use component::title::TitleText;
 use component::{social::*, toggle::Toggle};
 use consts::NOTIFICATIONS_ENABLED_STORE;
@@ -15,27 +12,19 @@ use leptos::web_sys::{Notification, NotificationPermission};
 use leptos::{ev, prelude::*};
 use leptos_icons::*;
 use leptos_router::components::Redirect;
-<<<<<<< HEAD
-=======
 use leptos_router::hooks::use_navigate;
 use leptos_router::{hooks::use_params, params::Params};
->>>>>>> main
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use state::canisters::auth_state;
 use utils::notifications::{
     get_device_registeration_token, get_fcm_token, notification_permission_granted,
 };
-<<<<<<< HEAD
-=======
 use utils::send_wrap;
->>>>>>> main
 use yral_canisters_common::utils::profile::ProfileDetails;
 use yral_metadata_client::MetadataClient;
 use yral_metadata_types::error::ApiError;
 
-<<<<<<< HEAD
-=======
 mod delete_user;
 
 #[derive(Params, PartialEq, Clone)]
@@ -43,7 +32,6 @@ struct SettingsParams {
     action: String,
 }
 
->>>>>>> main
 #[component]
 #[allow(dead_code)]
 fn MenuItem(
@@ -232,21 +220,12 @@ fn EnableNotifications() -> impl IntoView {
     });
 
     view! {
-<<<<<<< HEAD
-        <div class="grid grid-cols-2 items-center w-full">
-            <div class="flex flex-row gap-4 items-center">
-                <Icon attr:class="text-2xl" icon=icondata::BiCommentDotsRegular />
-                <span>Enable Notifications</span>
-            </div>
-            <div class="justify-self-end">
-=======
         <div class="flex items-center justify-between w-full">
             <div class="flex flex-row gap-4 items-center flex-1">
                 <Icon attr:class="text-2xl flex-shrink-0" icon=icondata::BiCommentDotsRegular />
                 <span class="text-wrap">Enable Notifications</span>
             </div>
             <div class="flex-shrink-0">
->>>>>>> main
                 <Toggle checked=notifs_enabled_der node_ref=toggle_ref />
             </div>
         </div>
@@ -254,25 +233,6 @@ fn EnableNotifications() -> impl IntoView {
 }
 
 #[component]
-<<<<<<< HEAD
-pub fn Settings() -> impl IntoView {
-    view! {
-        <div class="flex flex-col items-center pt-2 pb-12 w-full min-h-screen text-white bg-black divide-y divide-white/10">
-            <div class="flex flex-col gap-20 items-center pb-16 w-full">
-                <TitleText justify_center=false>
-                    <div class="flex flex-row justify-between">
-                        <BackButton fallback="/menu".to_string() />
-                        <span class="text-2xl font-bold">Settings</span>
-                        <div></div>
-                    </div>
-                </TitleText>
-            </div>
-            <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
-                <EnableNotifications />
-            </div>
-            <MenuFooter />
-        </div>
-=======
 fn DeleteAccountPopup(show_delete_popup: RwSignal<bool>) -> impl IntoView {
     let auth = auth_state();
     let navigate = use_navigate();
@@ -437,6 +397,5 @@ pub fn Settings() -> impl IntoView {
                 }
             })}
         </Suspense>
->>>>>>> main
     }
 }

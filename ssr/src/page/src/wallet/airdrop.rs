@@ -1,11 +1,7 @@
 use candid::{Nat, Principal};
 use component::{
     back_btn::BackButton,
-<<<<<<< HEAD
-    buttons::{HighlightedButton, HighlightedLinkButton},
-=======
     buttons::{GradientLinkButton, GradientLinkText, HighlightedButton, HighlightedLinkButton},
->>>>>>> main
     overlay::ShadowOverlay,
     spinner::{SpinnerCircle, SpinnerCircleStyled},
 };
@@ -13,24 +9,14 @@ use consts::{MAX_BET_AMOUNT, SATS_AIRDROP_LIMIT_RANGE};
 use hon_worker_common::{ClaimRequest, VerifiableClaimRequest, WORKER_URL};
 use leptos::prelude::*;
 use leptos_icons::Icon;
-<<<<<<< HEAD
-use leptos_router::hooks::use_location;
-use rand::{rngs::SmallRng, Rng, SeedableRng};
-use reqwest::Url;
-=======
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
->>>>>>> main
 use state::{
     canisters::{auth_state, unauth_canisters},
     server::HonWorkerJwt,
 };
-<<<<<<< HEAD
-use utils::{event_streaming::events::CentsAdded, host::get_host};
-=======
 use utils::event_streaming::events::CentsAdded;
->>>>>>> main
 use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::{
     utils::token::{load_sats_balance, TokenMetadata, TokenOwner},
@@ -38,8 +24,6 @@ use yral_canisters_common::{
 };
 use yral_identity::Signature;
 
-<<<<<<< HEAD
-=======
 pub mod dolr_airdrop;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
@@ -49,7 +33,6 @@ pub enum AirdropStatus {
     WaitFor(web_time::Duration),
 }
 
->>>>>>> main
 pub async fn is_airdrop_claimed(user_principal: Principal) -> Result<bool, ServerFnError> {
     let req_url: Url = WORKER_URL.parse().expect("url to be valid");
     let req_url = req_url
@@ -319,29 +302,6 @@ fn AirdropButton(
     }
 }
 
-<<<<<<< HEAD
-struct PopUpButtonTextRedirection {
-    href: String,
-    text: String,
-}
-
-fn pop_up_button_href(host: String, pathname: String) -> PopUpButtonTextRedirection {
-    if pathname.starts_with("/board") {
-        PopUpButtonTextRedirection {
-            href: "/wallet".to_string(),
-            text: "View Wallet".to_string(),
-        }
-    } else if host.contains("yral") {
-        PopUpButtonTextRedirection {
-            href: "/".to_string(),
-            text: "Watch more Videos".to_string(),
-        }
-    } else {
-        PopUpButtonTextRedirection {
-            href: "/wallet".to_string(),
-            text: "View Wallet".to_string(),
-        }
-=======
 #[derive(Debug, Clone, Copy)]
 pub enum AirdropClaimState {
     Claiming,
@@ -370,81 +330,10 @@ fn AirdropPopUpButton(state: AirdropClaimState) -> impl IntoView {
             </GradientLinkText>
         }
         .into_any(),
->>>>>>> main
     }
 }
 
 #[component]
-<<<<<<< HEAD
-fn AirdropPopUpButton(
-    claimed: RwSignal<bool>,
-    name: String,
-    buffer_signal: RwSignal<bool>,
-) -> impl IntoView {
-    let host = get_host();
-    let pathname = use_location();
-    let name_c = name.clone();
-    let name_c2 = name.clone();
-    view! {
-        <div
-            style="--duration:1500ms"
-            class="flex flex-col gap-4 justify-center items-center px-8 w-full text-xl font-bold fade-in z-2"
-        >
-            <Show
-                when=claimed
-                fallback=move || {
-                    view! {
-                        <div class="font-normal text-center">
-                            <span class="font-semibold">100 {name_c.clone()}</span>
-                            successfully claimed and added to your wallet!
-                        </div>
-                    }
-                        .into_view()
-                }
-            >
-                <div class="text-center">
-                    {format!("100 {}", name_c2.clone())} <br />
-                    <span class="font-normal text-center">
-                        Claim for <span class="font-semibold">100 {name_c2.clone()}</span>
-                        is being processed
-                    </span>
-                </div>
-            </Show>
-            {move || {
-                if buffer_signal.get() {
-                    Some(
-                        view! {
-                            <div class="mt-10 mb-16 max-w-100 scale-[4]">
-                                <SpinnerCircleStyled />
-                            </div>
-                        }
-                            .into_any(),
-                    )
-                } else if claimed.get() {
-                    let host = host.clone();
-                    let PopUpButtonTextRedirection { href, text } = pop_up_button_href(
-                        host,
-                        pathname.pathname.get(),
-                    );
-                    Some(
-                        view! {
-                            <div class="mt-10 mb-16">
-                                <HighlightedLinkButton
-                                    alt_style=true
-                                    disabled=false
-                                    classes="max-w-96 mx-auto py-[12px] px-[20px] w-full"
-                                        .to_string()
-                                    href=href
-                                >
-                                    {text}
-                                </HighlightedLinkButton>
-                            </div>
-                        }
-                            .into_any(),
-                    )
-                } else {
-                    None
-=======
 fn AirdropPopupMessage(#[prop(into)] name: String, state: AirdropClaimState) -> impl IntoView {
     match state {
         AirdropClaimState::Claiming => view! {
@@ -498,7 +387,6 @@ pub fn AirdropPopup(
                         <AirdropPopupMessage name=name.clone() state=claim_state.get() />
                     </div>
                     <AirdropPopUpButton state=claim_state.get() />
->>>>>>> main
                 }
             }}
         </div>
@@ -506,34 +394,6 @@ pub fn AirdropPopup(
 }
 
 #[component]
-<<<<<<< HEAD
-pub fn AirdropPopup(
-    name: String,
-    logo: String,
-    buffer_signal: RwSignal<bool>,
-    claimed: RwSignal<bool>,
-    airdrop_popup: RwSignal<bool>,
-) -> impl IntoView {
-    view! {
-        <div
-            style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
-            class="flex overflow-hidden relative flex-col gap-4 justify-center items-center w-full h-full text-white rounded-lg font-kumbh"
-        >
-            <button
-                on:click=move |_| airdrop_popup.set(false)
-                class="absolute top-5 right-5 z-40 p-2 rounded-full scale-125 bg-neutral-800"
-            >
-                <Icon icon=icondata::TbX />
-            </button>
-            <img
-                alt="bg"
-                src="/img/airdrop/bg.webp"
-                class="object-cover absolute inset-0 w-full h-full z-1 fade-in"
-            />
-            <AirdropAnimation claimed=claimed.into() logo=logo.clone() />
-            <AirdropPopUpButton claimed name buffer_signal />
-        </div>
-=======
 fn WalletAirdropAnimation(state: AirdropClaimState, logo: String) -> impl IntoView {
     let logo = StoredValue::new(logo);
     match state {
@@ -615,7 +475,6 @@ fn WalletAirdropAnimation(state: AirdropClaimState, logo: String) -> impl IntoVi
                 />
             </div>
         }.into_any(),
->>>>>>> main
     }
 }
 
@@ -629,13 +488,6 @@ fn AirdropAnimation(claimed: Signal<bool>, logo: String) -> impl IntoView {
                 view! {
                     <div class="flex justify-center items-center mt-12 w-full max-h-96 lg:mb-8 h-[30vh] z-2">
                         <div class="relative gap-12 h-[22vh] w-[22vh] lg:h-[27vh] lg:w-[27vh]">
-<<<<<<< HEAD
-                            <AnimatedTick />
-                            <div
-                                style="--duration:1500ms; background: radial-gradient(circle, rgba(27,0,15,1) 0%, rgba(0,0,0,1) 100%); box-shadow: 0px 0px 3.43px 0px #FFFFFF29;"
-                                class="absolute -right-4 -bottom-4 p-px w-16 h-16 rounded-md fade-in"
-                            >
-=======
                             <div>
                                 <img
                                     alt="tick"
@@ -644,7 +496,6 @@ fn AirdropAnimation(claimed: Signal<bool>, logo: String) -> impl IntoView {
                                 />
                             </div>
                             <div class="absolute -right-4 -bottom-4 p-px w-16 h-16 rounded-md fade-in">
->>>>>>> main
                                 <img
                                     alt="Airdrop"
                                     src=logo_c.clone()
@@ -667,22 +518,11 @@ fn AirdropAnimation(claimed: Signal<bool>, logo: String) -> impl IntoView {
                         class="h-auto max-h-72"
                     />
 
-<<<<<<< HEAD
-                    <div
-                        style="background: radial-gradient(circle, rgb(244 141 199) 0%, rgb(255 255 255) 100%); box-shadow: 0px 0px 3.43px 0px #FFFFFF29;"
-                        class="p-px w-16 h-16 rounded-md -translate-y-8"
-                    >
-                        <img
-                            alt="Airdrop"
-                            src=logo.clone()
-                            class="object-cover w-full h-full rounded-md fade-in"
-=======
                     <div class="p-px w-16 h-16 rounded-md rounded-full -translate-y-8">
                         <img
                             alt="Airdrop"
                             src=logo.clone()
                             class="object-cover w-full h-full rounded-md rounded-full fade-in"
->>>>>>> main
                         />
                     </div>
                 </div>
@@ -734,14 +574,6 @@ pub fn AnimatedTick() -> impl IntoView {
 }
 
 #[component]
-<<<<<<< HEAD
-pub fn SatsAirdropPopup(
-    show: RwSignal<bool>,
-    claimed: RwSignal<bool>,
-    amount_claimed: RwSignal<u64>,
-    error: RwSignal<bool>,
-    try_again: Action<bool, Result<(), ServerFnError>>,
-=======
 pub fn StatefulAirdropPopup(
     #[prop(into)] name: String,
     #[prop(into)] logo: String,
@@ -774,7 +606,6 @@ pub fn SatsAirdropPopup(
     amount_claimed: ReadSignal<u64>,
     error: ReadSignal<bool>,
     try_again: Action<bool, Result<u64, ServerFnError>>,
->>>>>>> main
 ) -> impl IntoView {
     let img_src = move || {
         if claimed.get() {

@@ -98,7 +98,7 @@ pub fn App() -> impl IntoView {
     // Existing context providers
     provide_context(Canisters::default());
     provide_context(ContentSeedClient::default());
-    provide_context(PostViewCtx::new());
+    provide_context(PostViewCtx::default());
     provide_context(ProfilePostsContext::default());
     provide_context(AuthorizedUserToSeedContent::default());
     provide_context(AudioState::default());
@@ -126,94 +126,91 @@ pub fn App() -> impl IntoView {
     }
 
     view! {
-            <Title text=app_state.name />
+        <Title text=app_state.name />
 
-            // Favicon
-            <Link
-                rel="icon"
-                type_="image/svg+xml"
-                href=format!("/{}/favicon.svg", app_state.asset_path())
-            />
-            <Link rel="shortcut icon" href=format!("/{}/favicon.ico", app_state.asset_path()) />
-            <Link
-                rel="apple-touch-icon"
-                sizes="180x180"
-                href=format!("/{}/favicon-apple.png", app_state.asset_path())
-            />
+        // Favicon
+        <Link
+            rel="icon"
+            type_="image/svg+xml"
+            href=format!("/{}/favicon.svg", app_state.asset_path())
+        />
+        <Link rel="shortcut icon" href=format!("/{}/favicon.ico", app_state.asset_path()) />
+        <Link
+            rel="apple-touch-icon"
+            sizes="180x180"
+            href=format!("/{}/favicon-apple.png", app_state.asset_path())
+        />
 
-            // Meta
-            <Meta name="apple-mobile-web-app-title" content=app_state.name />
+        // Meta
+        <Meta name="apple-mobile-web-app-title" content=app_state.name />
 
-            // App manifest
-            <Link rel="manifest" href=format!("/{}/manifest.json", app_state.asset_path()) />
+        // App manifest
+        <Link rel="manifest" href=format!("/{}/manifest.json", app_state.asset_path()) />
 
-            <Router>
-                <main class="bg-black" id="body">
-                    <Routes fallback=|| view! { <NotFound /> }.into_view()>
-                        // auth redirect routes exist outside main context
-                        <GoogleAuthRedirectHandlerRoute />
-                        <Route path=path!("/") view=YralRootPage />
-                        <ParentRoute path=path!("") view=BaseRoute>
-                            <Route
-                                path=path!("/hot-or-not/withdraw")
-                                view=hon::withdrawal::HonWithdrawal
-                            />
-                            <Route
-                                path=path!("/hot-or-not/withdraw/success")
-                                view=hon::withdrawal::result::Success
-                            />
-                            <Route
-                                path=path!("/hot-or-not/withdraw/failure")
-                                view=hon::withdrawal::result::Failure
-                            />
-                            <Route path=path!("/hot-or-not/:canister_id/:post_id") view=PostView />
-                            <Route path=path!("/post/:canister_id/:post_id") view=SinglePost />
-                            <Route path=path!("/profile/:canister_id/post/:post_id") view=ProfilePost />
-                            <Route path=path!("/upload") view=UploadPostPage />
-                            <Route path=path!("/error") view=ServerErrorPage />
-                            <Route path=path!("/menu") view=Menu />
-                            <Route path=path!("/settings") view=Settings />
-    <<<<<<< HEAD
-    =======
-                            <Route path=path!("/settings/:action") view=Settings />
-    >>>>>>> main
-                            <Route path=path!("/refer-earn") view=ReferEarn />
-                            <Route path=path!("/profile/:id/:tab") view=ProfileView />
-                            <Route path=path!("/profile/:tab") view=LoggedInUserProfileView />
-                            <Route path=path!("/terms-of-service") view=TermsOfService />
-                            <Route path=path!("/privacy-policy") view=PrivacyPolicy />
-                            <Route path=path!("/about-us") view=AboutUs />
-                            <Route path=path!("/wallet/:id") view=Wallet />
-                            <Route path=path!("/wallet") view=Wallet />
-                            <Route path=path!("/leaderboard") view=Leaderboard />
-                            <Route path=path!("/logout") view=Logout />
-                            <Route
-                                path=path!("/token/info/:token_root/:key_principal")
-                                view=TokenInfo
-                            />
-                            <Route path=path!("/token/info/:token_root") view=TokenInfo />
-                            <Route path=path!("/token/transfer/:token_root") view=TokenTransfer />
-                            <Route
-                                path=path!("/pnd/withdraw")
-                                view=pumpdump::withdrawal::PndWithdrawal
-                            />
-                            <Route
-                                path=path!("/pnd/withdraw/success")
-                                view=pumpdump::withdrawal::result::Success
-                            />
-                            <Route
-                                path=path!("/pnd/withdraw/failure")
-                                view=pumpdump::withdrawal::result::Failure
-                            />
-                            <Route path=path!("/terms-ios") view=TermsIos />
-                            <Route path=path!("/terms-android") view=TermsAndroid />
-                        </ParentRoute>
-                    </Routes>
+        <Router>
+            <main class="bg-black" id="body">
+                <Routes fallback=|| view! { <NotFound /> }.into_view()>
+                    // auth redirect routes exist outside main context
+                    <GoogleAuthRedirectHandlerRoute />
+                    <Route path=path!("/") view=YralRootPage />
+                    <ParentRoute path=path!("") view=BaseRoute>
+                        <Route
+                            path=path!("/hot-or-not/withdraw")
+                            view=hon::withdrawal::HonWithdrawal
+                        />
+                        <Route
+                            path=path!("/hot-or-not/withdraw/success")
+                            view=hon::withdrawal::result::Success
+                        />
+                        <Route
+                            path=path!("/hot-or-not/withdraw/failure")
+                            view=hon::withdrawal::result::Failure
+                        />
+                        <Route path=path!("/hot-or-not/:canister_id/:post_id") view=PostView />
+                        <Route path=path!("/post/:canister_id/:post_id") view=SinglePost />
+                        <Route path=path!("/profile/:canister_id/post/:post_id") view=ProfilePost />
+                        <Route path=path!("/upload") view=UploadPostPage />
+                        <Route path=path!("/error") view=ServerErrorPage />
+                        <Route path=path!("/menu") view=Menu />
+                        <Route path=path!("/settings") view=Settings />
+                        <Route path=path!("/settings/:action") view=Settings />
+                        <Route path=path!("/refer-earn") view=ReferEarn />
+                        <Route path=path!("/profile/:id/:tab") view=ProfileView />
+                        <Route path=path!("/profile/:tab") view=LoggedInUserProfileView />
+                        <Route path=path!("/terms-of-service") view=TermsOfService />
+                        <Route path=path!("/privacy-policy") view=PrivacyPolicy />
+                        <Route path=path!("/about-us") view=AboutUs />
+                        <Route path=path!("/wallet/:id") view=Wallet />
+                        <Route path=path!("/wallet") view=Wallet />
+                        <Route path=path!("/leaderboard") view=Leaderboard />
+                        <Route path=path!("/logout") view=Logout />
+                        <Route
+                            path=path!("/token/info/:token_root/:key_principal")
+                            view=TokenInfo
+                        />
+                        <Route path=path!("/token/info/:token_root") view=TokenInfo />
+                        <Route path=path!("/token/transfer/:token_root") view=TokenTransfer />
+                        <Route
+                            path=path!("/pnd/withdraw")
+                            view=pumpdump::withdrawal::PndWithdrawal
+                        />
+                        <Route
+                            path=path!("/pnd/withdraw/success")
+                            view=pumpdump::withdrawal::result::Success
+                        />
+                        <Route
+                            path=path!("/pnd/withdraw/failure")
+                            view=pumpdump::withdrawal::result::Failure
+                        />
+                        <Route path=path!("/terms-ios") view=TermsIos />
+                        <Route path=path!("/terms-android") view=TermsAndroid />
+                    </ParentRoute>
+                </Routes>
 
-                </main>
-                <nav>
-                    <NavBar />
-                </nav>
-            </Router>
-        }
+            </main>
+            <nav>
+                <NavBar />
+            </nav>
+        </Router>
+    }
 }

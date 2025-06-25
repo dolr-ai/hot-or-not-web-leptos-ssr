@@ -5,7 +5,6 @@ use leptos::{html::Video, prelude::*};
 use state::canisters::auth_state;
 use utils::event_streaming::events::VideoWatched;
 
-use crate::post_view::BetEligiblePostCtx;
 use component::video_player::VideoPlayer;
 use utils::{bg_url, mp4_url};
 
