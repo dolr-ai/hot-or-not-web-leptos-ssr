@@ -3441,7 +3441,7 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#bc2953f3d05878e6708b0e92119c2a2982c91a77"
+source = "git+https://github.com/dolr-ai/yral-common?rev=cd0fc100ec57729690ccccc12f17b4f0a312c80c#cd0fc100ec57729690ccccc12f17b4f0a312c80c"
 dependencies = [
  "candid",
  "ic-agent",
@@ -7677,7 +7677,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#bc2953f3d05878e6708b0e92119c2a2982c91a77"
+source = "git+https://github.com/dolr-ai/yral-common?rev=cd0fc100ec57729690ccccc12f17b4f0a312c80c#cd0fc100ec57729690ccccc12f17b4f0a312c80c"
 dependencies = [
  "candid",
  "humantime",
@@ -9679,22 +9679,27 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#bc2953f3d05878e6708b0e92119c2a2982c91a77"
+source = "git+https://github.com/dolr-ai/yral-common?rev=cd0fc100ec57729690ccccc12f17b4f0a312c80c#cd0fc100ec57729690ccccc12f17b4f0a312c80c"
 dependencies = [
  "anyhow",
  "candid",
  "candid_parser",
  "convert_case 0.6.0",
  "ic-agent",
+ "prettyplease",
+ "proc-macro2",
+ "quote",
  "serde",
  "serde_bytes",
  "serde_json",
+ "syn 2.0.101",
+ "tokio",
 ]
 
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#bc2953f3d05878e6708b0e92119c2a2982c91a77"
+source = "git+https://github.com/dolr-ai/yral-common?rev=cd0fc100ec57729690ccccc12f17b4f0a312c80c#cd0fc100ec57729690ccccc12f17b4f0a312c80c"
 dependencies = [
  "candid",
  "ciborium",
@@ -9799,7 +9804,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#bc2953f3d05878e6708b0e92119c2a2982c91a77"
+source = "git+https://github.com/dolr-ai/yral-common?rev=cd0fc100ec57729690ccccc12f17b4f0a312c80c#cd0fc100ec57729690ccccc12f17b4f0a312c80c"
 dependencies = [
  "candid",
  "ic-agent",
@@ -9833,7 +9838,7 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#bc2953f3d05878e6708b0e92119c2a2982c91a77"
+source = "git+https://github.com/dolr-ai/yral-common?rev=cd0fc100ec57729690ccccc12f17b4f0a312c80c#cd0fc100ec57729690ccccc12f17b4f0a312c80c"
 dependencies = [
  "ic-agent",
  "k256",

@@ -1,6 +1,7 @@
 mod server_impl;
 
 use component::{bullet_loader::BulletLoader, hn_icons::*, spinner::SpinnerFit};
+use hon_worker_common::limits::CoinState;
 use hon_worker_common::{sign_vote_request, GameInfo, GameResult, WORKER_URL};
 use ic_agent::Identity;
 use leptos::html::Audio;
@@ -14,19 +15,12 @@ use yral_canisters_common::utils::{
     posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum CoinState {
-    C10,
-    C20,
-    C50,
-    C100,
-    C200,
+trait CoinStateExt {
+    fn wrapping_next(self) -> Self;
+    fn wrapping_prev(self) -> Self;
 }
 
-const BET_COIN_ENABLED_STATES: [CoinState; 2] = [CoinState::C10, CoinState::C20];
-const DEFAULT_BET_COIN_STATE: CoinState = CoinState::C10;
-
-impl CoinState {
+impl CoinStateExt for CoinState {
     fn wrapping_next(self) -> Self {
         let current_index = BET_COIN_ENABLED_STATES.iter().position(|&x| x == self);
         match current_index {

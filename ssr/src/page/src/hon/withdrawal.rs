@@ -3,9 +3,8 @@ use component::{
     auth_providers::handle_user_login, back_btn::BackButton,
     icons::notification_icon::NotificationIcon, title::TitleText,
 };
-use consts::{MAX_WITHDRAWAL_PER_TXN, MIN_WITHDRAWAL_PER_TXN};
 use futures::TryFutureExt;
-use hon_worker_common::{HoNGameWithdrawReq, SatsBalanceInfo};
+use hon_worker_common::{limits::{MAX_WITHDRAWAL_PER_TXN, MIN_WITHDRAWAL_PER_TXN}, HoNGameWithdrawReq, SatsBalanceInfo};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
