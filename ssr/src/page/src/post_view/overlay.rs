@@ -163,6 +163,8 @@ pub fn VideoDetailsOverlay(
     post: PostDetails,
     prev_post: Option<PostDetails>,
     win_audio_ref: NodeRef<Audio>,
+    wallet_balance: RwSignal<u64>,
+    show_result_help_ping: RwSignal<bool>,
 ) -> impl IntoView {
     let show_share = RwSignal::new(false);
     let show_report = RwSignal::new(false);
@@ -376,6 +378,8 @@ pub fn VideoDetailsOverlay(
         });
     };
 
+    let show_tutorial = RwSignal::new(false);
+
     view! {
         <div class="flex absolute bottom-0 left-0 flex-col flex-nowrap justify-between pt-5 pb-20 w-full h-full text-white bg-transparent pointer-events-none px-[16px] z-4 md:px-[16px]">
             <div class="flex flex-row justify-between items-center w-full pointer-events-auto">
@@ -444,7 +448,7 @@ pub fn VideoDetailsOverlay(
                     </button>
                 </div>
                 <div class="w-full bg-transparent pointer-events-auto">
-                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref />
+                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref wallet_balance show_ping=show_result_help_ping show_tutorial />
                 </div>
             </div>
         </div>
@@ -554,5 +558,102 @@ fn ExpandableText(description: String) -> impl IntoView {
         >
             {description}
         </span>
+    }
+}
+
+
+#[component]
+pub fn OnboardingWelcomePopup(show: RwSignal<bool>) -> impl IntoView {
+    view! {
+        <ShadowOverlay show=show >
+            <div class="px-4 py-6 w-full h-full flex items-center justify-center">
+                <div class="overflow-hidden h-fit max-w-md items-center pt-16 cursor-auto bg-neutral-950 rounded-md w-full relative">
+                    <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
+                    <div
+                        style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
+                        class="absolute z-[1] -left-1/2 bottom-1/3 size-[32rem]" >
+                    </div>
+                    <button
+                        on:click=move |_| show.set(false)
+                        class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[2] top-4 right-4"
+                    >
+                        <Icon icon=icondata::ChCross />
+                    </button>
+                    <div class="flex z-[2] flex-col items-center gap-16 text-white justify-center p-12">
+                        <img src="/img/hotornot/onboarding-welcome.webp" class="h-60" />
+                        <div class="text-center text-2xl font-semibold">Bitcoin credited to<br/> your wallet!</div>
+                        <div class="text-center">
+                            "You've got free "<span class="font-semibold">Bitcoin (100 SATS)</span>.
+                            <br/>
+                            "Here's how to make it grow"
+                        </div>
+                        <HighlightedButton
+                            alt_style=false
+                            disabled=false
+                            on_click=move || { show.set(false) }
+                        >
+                            "Start Playing"
+                        </HighlightedButton>
+                    </div>
+                </div>
+            </div>
+        </ShadowOverlay>
+    }
+}
+
+
+#[component]
+pub fn HotOrNotTutorialOverlay(show: RwSignal<bool>) -> impl IntoView {
+    view! {
+        <ShadowOverlay show=show >
+            <div class="px-4 py-6 w-full h-full flex items-center justify-center">
+                <div class="overflow-hidden h-fit max-w-md items-center pt-16 cursor-auto bg-neutral-950 rounded-md w-full relative">
+                    <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
+                    <div
+                        style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
+                        class="absolute z-[1] -left-1/2 bottom-1/3 size-[32rem]" >
+                    </div>
+                    <button
+                        on:click=move |_| show.set(false)
+                        class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[2] top-4 right-4"
+                    >
+                        <Icon icon=icondata::ChCross />
+                    </button>
+                    <div class="flex z-[2] flex-col items-center gap-16 text-white justify-center p-12">
+                        <div>"How to play?"</div>
+                        <div>"Stake Bitcoin (SATS) to vote HOT or NOT."</div>
+                        <div class="border border-neutral-800 bg-neutral-950 flex p-3 gap-4 items-center">
+                            <img src="/img/hotornot/hot-circular.svg" class="size-12 shrink-0" />
+                            <div><span class="font-bold">"'Hot'"</span>" = Higher engagement score than the previous"</div>
+                        </div>
+                        <div class="border border-neutral-800 bg-neutral-950 flex p-3 gap-4 items-center">
+                            <div><span class="font-bold">"'Not'"</span>" = Lower engagement score than the previous"</div>
+                            <img src="/img/hotornot/hot-circular.svg" class="size-12 shrink-0" />
+                        </div>
+                        <div class="border border-neutral-800 bg-neutral-950 flex flex-col p-3 gap-1 items-center justify-center">
+                            <div>Example</div>
+                            <div class="text-center">
+                                <div>"Previous video score: 36"</div>
+                                <div>"Your vote on the current video: HOT 🔥"</div>
+                                <div>"Current video score: 42"</div>
+                                <div>"You scored it right. Bitcoin coming your way!"</div>
+                            </div>
+                            <div class="text-xs"><span class="font-bold">"Note: "</span>"First video results are random."</div>
+                        </div>
+                        <div class="border border-neutral-800 bg-neutral-950 flex flex-col p-3 gap-1 items-center justify-center">
+                            "You make the content, you take the cut — 10% of all SATS staked!"
+                        </div>
+
+                        <HighlightedButton
+                            alt_style=false
+                            disabled=false
+                            on_click=move || { show.set(false) }
+                        >
+                            "Keep Playing"
+                        </HighlightedButton>
+                    </div>
+                </div>
+            </div>
+        </ShadowOverlay>
     }
 }
