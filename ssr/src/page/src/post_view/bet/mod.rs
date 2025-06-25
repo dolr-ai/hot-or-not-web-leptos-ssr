@@ -358,7 +358,7 @@ fn HNWonLost(
     let vote_kind_image = match bet_direction.get() {
         Some(VoteKind::Hot) => "/img/hotornot/hot-circular.svg",
         Some(VoteKind::Not) => "/img/hotornot/not-circular.svg",
-        None => "",
+        None => "/img/hotornot/not-circular.svg",
     };
 
     let (onboarding_store, _, _) =
@@ -396,13 +396,13 @@ fn HNWonLost(
             {
                 if won {
                     view! {
-                        <div style="background: #B38929" class="flex  items-center text-white text-sm font-semibold justify-center p-2 rounded-full">
+                        <div class="flex  items-center text-white bg-green-500 text-sm font-semibold justify-center p-2 rounded-full">
                             {format!("Total balance: {} SATS", wallet_balance.get())}
                         </div>
                     }.into_any()
                 } else {
                     view! {
-                        <div style="background: #B38929" class="flex  items-center text-white text-sm font-semibold justify-center p-2 rounded-full">
+                        <div class="flex  items-center bg-red-500 text-white text-sm font-semibold justify-center p-2 rounded-full">
                             "You lost! 🥺"
                         </div>
                     }.into_any()
