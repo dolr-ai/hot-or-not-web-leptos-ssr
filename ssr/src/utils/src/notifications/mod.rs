@@ -1,7 +1,6 @@
 use leptos::prelude::ServerFnError;
 use wasm_bindgen::prelude::*;
 use yral_metadata_types::DeviceRegistrationToken;
-pub mod device_id;
 
 #[wasm_bindgen(module = "/src/notifications/inline-js/setup-firebase-messaging-inline.js")]
 extern "C" {
@@ -50,5 +49,3 @@ pub async fn get_device_registeration_token() -> Result<DeviceRegistrationToken,
     }
     get_fcm_token().await
 }
-
-const METADATA_SERVER_URL: &str = "https://yral-metadata.fly.dev";
