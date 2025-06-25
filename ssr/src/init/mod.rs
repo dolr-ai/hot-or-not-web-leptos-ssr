@@ -238,6 +238,10 @@ impl AppStateBuilder {
 
                 HonWorkerJwt(std::sync::Arc::new(jwt))
             },
+            #[cfg(feature = "stdb-backend")]
+            dolr_airdrop_stbd: state::stdb_dolr_airdrop::WrappedContext::new()
+                .await
+                .expect("connect to stdb backend module"),
         };
 
         AppStateRes {

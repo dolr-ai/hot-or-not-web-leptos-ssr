@@ -8,3 +8,10 @@ pub const AGENT_URL: &str = "https://ic0.app";
 
 pub static PUMP_AND_DUMP_WORKER_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://yral-pump-n-dump.go-bazzinga.workers.dev/").unwrap());
+
+pub const STDB_URL: &str = "https://maincloud.spacetimedb.com";
+
+pub const BACKEND_MODULE_IDENTITY: &str = "yral-backend";
+
+pub static STDB_ACCESS_TOKEN: Lazy<Option<String>> =
+    Lazy::new(|| Some(std::env::var("STDB_ADMIN_ACCESS_TOKEN").unwrap()));
