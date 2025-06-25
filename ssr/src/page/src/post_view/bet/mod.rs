@@ -153,8 +153,8 @@ fn HNButtonOverlay(
             }
         }
     }
-        
-        let place_bet_action: Action<VoteKind, Option<()>> =
+
+    let place_bet_action: Action<VoteKind, Option<()>> =
         Action::new(move |bet_direction: &VoteKind| {
             let post_canister = post.canister_id;
             let post_id = post.post_id;
