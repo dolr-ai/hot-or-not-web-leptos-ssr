@@ -105,7 +105,7 @@ fn HNButton(
 
     view! {
         <button
-            class="w-14 h-14 md:w-16 md:h-16 md:w-18 lg:h-18 shrink-0"
+            class="size-14 md:size-16 lg:size-16 shrink-0"
             class=("grayscale", grayscale)
             disabled=disabled
             on:click=move |_| {bet_direction.set(Some(kind)); place_bet_action.dispatch(kind);}
