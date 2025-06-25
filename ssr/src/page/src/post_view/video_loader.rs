@@ -1,9 +1,12 @@
 use std::cmp::Ordering;
 
+use component::buttons::HighlightedButton;
+use component::overlay::ShadowOverlay;
 use indexmap::IndexSet;
 use leptos::html::Audio;
 use leptos::{ev, logging};
 use leptos::{html::Video, prelude::*};
+use leptos_icons::*;
 use leptos_use::use_event_listener;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::mixpanel::mixpanel_events::*;
@@ -43,6 +46,8 @@ pub fn BgView(
     };
 
     let win_audio_ref = NodeRef::<Audio>::new();
+    let wallet_balance = RwSignal::new(0);
+    let show_result_help_ping = RwSignal::new(false);
 
     view! {
         <div class="overflow-hidden relative w-full h-full bg-transparent">
@@ -59,7 +64,7 @@ pub fn BgView(
             />
             {move || {
                 let (post, prev_post) = post_with_prev.get();
-                Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref /> })
+                Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref wallet_balance show_result_help_ping /> })
             }}
             {children()}
         </div>
@@ -303,4 +308,43 @@ pub fn VideoViewForQueue(
     let post = Signal::derive(move || video_queue.with(|q| q.get_index(idx).cloned()));
 
     view! { <VideoView post _ref=container_ref muted /> }.into_any()
+}
+
+#[component]
+pub fn OnboardingWelcomePopup(show: RwSignal<bool>) -> impl IntoView {
+    view! {
+        <ShadowOverlay show=show >
+            <div class="px-4 py-6 w-full h-full flex items-center justify-center">
+                <div class="overflow-hidden h-fit max-w-md items-center pt-16 cursor-auto bg-neutral-950 rounded-md w-full relative">
+                    <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
+                    <div
+                        style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
+                        class="absolute z-[1] -left-1/2 bottom-1/3 size-[32rem]" >
+                    </div>
+                    <button
+                        on:click=move |_| show.set(false)
+                        class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[2] top-4 right-4"
+                    >
+                        <Icon icon=icondata::ChCross />
+                    </button>
+                    <div class="flex z-[2] flex-col items-center gap-16 text-white justify-center p-12">
+                        <img src="/img/hotornot/onboarding-welcome.webp" class="h-60" />
+                        <div class="text-center text-2xl font-semibold">Bitcoin credited to<br/> your wallet!</div>
+                        <div class="text-center">
+                            "You've got free "<span class="font-semibold">Bitcoin (100 SATS)</span>.
+                            <br/>
+                            "Here's how to make it grow"
+                        </div>
+                        <HighlightedButton
+                            alt_style=false
+                            disabled=false
+                            on_click=move || { show.set(false) }
+                        >
+                            "Start Playing"
+                        </HighlightedButton>
+                    </div>
+                </div>
+            </div>
+        </ShadowOverlay>
+    }
 }
