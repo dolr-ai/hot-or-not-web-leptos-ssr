@@ -5,6 +5,7 @@ on:
 permissions:
   deployments: write
   pull-requests: read
+  packages: write
 
 env:
   FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
