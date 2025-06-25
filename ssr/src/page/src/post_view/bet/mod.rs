@@ -105,7 +105,7 @@ fn HNButton(
 
     view! {
         <button
-            class="w-14 h-14 md:w-16 md:h-16 md:w-18 lg:h-18"
+            class="w-14 h-14 md:w-16 md:h-16 md:w-18 lg:h-18 shrink-0"
             class=("grayscale", grayscale)
             disabled=disabled
             on:click=move |_| {bet_direction.set(Some(kind)); place_bet_action.dispatch(kind);}
@@ -364,7 +364,7 @@ fn HNWonLost(
             <div class="flex gap-6 justify-center items-center w-full">
                 <div class="relative shrink-0 drop-shadow-lg">
                     <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin />
-                    <img src=vote_kind_image class="absolute bottom-1 right-1 h-5 w-5" />
+                    <img src=vote_kind_image class="absolute bottom-0 -right-1 h-7 w-7" />
                 </div>
                 <div class="flex-1 p-1 text-xs md:text-sm font-semibold leading-snug text-white rounded-full">
                     {result_message}
@@ -425,7 +425,7 @@ pub fn HNUserParticipation(
         .expect("We only allow voting with 200 max, so this is alright");
 
     view! {
-        <3 game_result vote_amount bet_direction wallet_balance show_ping show_tutorial />
+        <HNWonLost game_result vote_amount bet_direction wallet_balance show_ping show_tutorial />
         <ShadowBg />
     }
 }
