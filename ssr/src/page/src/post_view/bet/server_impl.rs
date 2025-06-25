@@ -117,7 +117,7 @@ mod alloydb {
 
 #[cfg(not(feature = "alloydb"))]
 mod mock {
-    use hon_worker_common::GameResult;
+    use hon_worker_common::GameResultV2;
 
     use super::*;
 
@@ -127,10 +127,11 @@ mod mock {
         _req: VoteRequest,
         _sig: Signature,
         _prev_video_info: Option<(Principal, u64)>,
-    ) -> Result<VoteRes, ServerFnError> {
-        Ok(VoteRes {
-            game_result: GameResult::Win {
+    ) -> Result<VoteResV2, ServerFnError> {
+        Ok(VoteResV2 {
+            game_result: GameResultV2::Win {
                 win_amt: 0u32.into(),
+                updated_balance: 0u32.into(),
             },
         })
     }
