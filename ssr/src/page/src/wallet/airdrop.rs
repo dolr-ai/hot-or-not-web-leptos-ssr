@@ -5,7 +5,10 @@ use component::{
     overlay::ShadowOverlay,
     spinner::{SpinnerCircle, SpinnerCircleStyled},
 };
-use hon_worker_common::{limits::{MAX_BET_AMOUNT, SATS_AIRDROP_LIMIT_RANGE}, ClaimRequest, VerifiableClaimRequest, WORKER_URL};
+use hon_worker_common::{
+    limits::{MAX_BET_AMOUNT, SATS_AIRDROP_LIMIT_RANGE},
+    ClaimRequest, VerifiableClaimRequest, WORKER_URL,
+};
 use leptos::prelude::*;
 use leptos_icons::Icon;
 use rand::{rngs::SmallRng, Rng, SeedableRng};

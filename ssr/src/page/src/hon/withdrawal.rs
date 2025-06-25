@@ -4,7 +4,10 @@ use component::{
     icons::notification_icon::NotificationIcon, title::TitleText,
 };
 use futures::TryFutureExt;
-use hon_worker_common::{limits::{MAX_WITHDRAWAL_PER_TXN, MIN_WITHDRAWAL_PER_TXN}, HoNGameWithdrawReq, SatsBalanceInfo};
+use hon_worker_common::{
+    limits::{MAX_WITHDRAWAL_PER_TXN, MIN_WITHDRAWAL_PER_TXN},
+    HoNGameWithdrawReq, SatsBalanceInfo,
+};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
