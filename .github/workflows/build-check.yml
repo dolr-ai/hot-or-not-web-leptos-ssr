@@ -26,24 +26,24 @@ jobs:
     steps:
       - name: Checkout repo and submodules
         uses: actions/checkout@v3
-          with:
-            submodules: recursive
-              - name: Login to GitHub Container Registry
-          uses: docker/login-action@v2
-          with:
-            registry: ghcr.io
-            username: ${{ github.repository_owner }}
-            password: ${{ secrets.GITHUB_TOKEN }}
-              - name: Pre-build devcontainer image and run commands in dev container
-          uses: devcontainers/ci@v0.3
-          with:
-            imageName: ghcr.io/${{ github.repository}}
-            cacheFrom: ghcr.io/${{ github.repository}}
-            push: always
-            runCmd: |
-              cargo fmt --check
-              cargo clippy --no-deps --all-features --release -- -D warnings
+        with:
+          submodules: recursive
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pre-build devcontainer image and run commands in dev container
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ghcr.io/${{ github.repository}}
+          cacheFrom: ghcr.io/${{ github.repository}}
+          push: always
+          runCmd: |
+            cargo fmt --check
+            cargo clippy --no-deps --all-features --release -- -D warnings
 
-              cargo leptos build --release
+            cargo leptos build --release
         permissions:
           contents: read
