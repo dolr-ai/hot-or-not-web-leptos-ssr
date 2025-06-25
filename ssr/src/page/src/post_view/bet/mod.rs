@@ -1,7 +1,7 @@
 mod server_impl;
 
 use component::{bullet_loader::BulletLoader, hn_icons::*, spinner::SpinnerFit};
-use hon_worker_common::limits::CoinState;
+use hon_worker_common::limits::{CoinState, BET_COIN_ENABLED_STATES, DEFAULT_BET_COIN_STATE};
 use hon_worker_common::{sign_vote_request, GameInfo, GameResult, WORKER_URL};
 use ic_agent::Identity;
 use leptos::html::Audio;
@@ -48,9 +48,13 @@ impl CoinStateExt for CoinState {
     }
 }
 
-impl From<CoinState> for u64 {
-    fn from(coin: CoinState) -> u64 {
-        match coin {
+trait ToCents {
+    fn to_cents(&self) -> u64;
+}
+
+impl ToCents for CoinState {
+    fn to_cents(&self) -> u64 {
+        match self {
             CoinState::C10 => 10,
             CoinState::C20 => 20,
             CoinState::C50 => 50,
@@ -149,12 +153,12 @@ fn HNButtonOverlay(
             }
         }
     }
-
-    let place_bet_action: Action<VoteKind, Option<()>> =
+        
+        let place_bet_action: Action<VoteKind, Option<()>> =
         Action::new(move |bet_direction: &VoteKind| {
             let post_canister = post.canister_id;
             let post_id = post.post_id;
-            let bet_amount: u64 = coin.get_untracked().into();
+            let bet_amount: u64 = coin.get_untracked().to_cents();
             let bet_direction = *bet_direction;
             let req = hon_worker_common::VoteRequest {
                 post_canister,
