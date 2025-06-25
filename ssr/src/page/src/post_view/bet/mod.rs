@@ -1,6 +1,7 @@
 mod server_impl;
 
 use component::{bullet_loader::BulletLoader, hn_icons::*, spinner::SpinnerFit};
+use consts::limits::{CoinState, BET_COIN_ENABLED_STATES, DEFAULT_BET_COIN_STATE};
 use hon_worker_common::{sign_vote_request, GameInfo, GameResult, WORKER_URL};
 use ic_agent::Identity;
 use leptos::html::Audio;
@@ -14,19 +15,12 @@ use yral_canisters_common::utils::{
     posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum CoinState {
-    C10,
-    C20,
-    C50,
-    C100,
-    C200,
+trait CoinStateWrapping {
+    fn wrapping_next(self) -> Self;
+    fn wrapping_prev(self) -> Self;
 }
 
-const BET_COIN_ENABLED_STATES: [CoinState; 2] = [CoinState::C10, CoinState::C20];
-const DEFAULT_BET_COIN_STATE: CoinState = CoinState::C10;
-
-impl CoinState {
+impl CoinStateWrapping for CoinState {
     fn wrapping_next(self) -> Self {
         let current_index = BET_COIN_ENABLED_STATES.iter().position(|&x| x == self);
         match current_index {
@@ -54,9 +48,13 @@ impl CoinState {
     }
 }
 
-impl From<CoinState> for u64 {
-    fn from(coin: CoinState) -> u64 {
-        match coin {
+trait CoinStateToCents {
+    fn to_cents(&self) -> u64;
+}
+
+impl CoinStateToCents for CoinState {
+    fn to_cents(&self) -> u64 {
+        match self {
             CoinState::C10 => 10,
             CoinState::C20 => 20,
             CoinState::C50 => 50,
@@ -160,7 +158,7 @@ fn HNButtonOverlay(
         Action::new(move |bet_direction: &VoteKind| {
             let post_canister = post.canister_id;
             let post_id = post.post_id;
-            let bet_amount: u64 = coin.get_untracked().into();
+            let bet_amount: u64 = coin.get_untracked().to_cents();
             let bet_direction = *bet_direction;
             let req = hon_worker_common::VoteRequest {
                 post_canister,

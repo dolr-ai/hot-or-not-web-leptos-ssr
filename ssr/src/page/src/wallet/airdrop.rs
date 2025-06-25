@@ -5,7 +5,7 @@ use component::{
     overlay::ShadowOverlay,
     spinner::{SpinnerCircle, SpinnerCircleStyled},
 };
-use consts::{MAX_BET_AMOUNT, SATS_AIRDROP_LIMIT_RANGE};
+use consts::limits::{MAX_BET_AMOUNT, SATS_AIRDROP_LIMIT_RANGE};
 use hon_worker_common::{ClaimRequest, VerifiableClaimRequest, WORKER_URL};
 use leptos::prelude::*;
 use leptos_icons::Icon;

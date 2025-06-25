@@ -1,9 +1,9 @@
 use candid::Principal;
 use codee::string::FromToStringCodec;
+use consts::limits::REFERRAL_REWARD;
 use consts::AUTH_JOURNET;
 use consts::DEVICE_ID;
 use consts::NSFW_TOGGLE_STORE;
-use consts::REFERRAL_REWARD;
 use leptos::logging;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
