@@ -1,6 +1,5 @@
 #[cfg(any(feature = "local-bin", feature = "local-lib"))]
 mod local;
-use std::ops::Range;
 
 use candid::Principal;
 #[cfg(any(feature = "local-bin", feature = "local-lib"))]
