@@ -45,5 +45,3 @@ jobs:
             cargo clippy --no-deps --all-features --release -- -D warnings
 
             cargo leptos build --release
-        permissions:
-          contents: read
