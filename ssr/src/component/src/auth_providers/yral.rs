@@ -52,7 +52,16 @@ pub fn YralAuthProvider() -> impl IntoView {
                 let id = DelegatedIdentity::try_from(id_wire)?;
                 let login_hint = yral_auth_login_hint(&id)?;
 
-                yral_auth_login_url(login_hint, provider).await
+                yral_auth_login_url(login_hint, provider)
+                    .await
+                    .map(|mut url| {
+                        if !url.contains("scope=") {
+                            url.push_str("&scope=openid%20email");
+                        } else if !url.contains("email") {
+                            url = url.replace("scope=openid", "scope=openid%20email");
+                        }
+                        url
+                    })
             };
 
             async move {
