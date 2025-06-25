@@ -112,7 +112,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                             (queue_idx as i32 - cidx) <= 10 && (queue_idx as i32 - cidx) >= -2
                         });
                         view! {
-                            <div node_ref=container_ref class="w-full h-full snap-always snap-end">
+                            <div node_ref=container_ref class="w-full h-full snap-always snap-end"> //  class:hidden=move || !post.get().is_some()
                                 <Show when=show_video>
                                     <BgView video_queue idx=queue_idx>
                                         <VideoViewForQueue

@@ -104,7 +104,7 @@ impl HistoryCtx {
 use crate::event_streaming::{send_event_ssr_spawn, send_event_warehouse_ssr_spawn};
 use crate::mixpanel::mixpanel_events::{
     MixPanelEvent, MixpanelGlobalProps, MixpanelPostGameType, MixpanelVideoClickedCTAType,
-    MixpanelVideoClickedProps, MixpanelVideoViewedProps,
+    MixpanelVideoClickedProps, MixpanelVideoStartedProps, MixpanelVideoViewedProps,
 };
 use leptos::html::Video;
 use yral_canisters_common::{
@@ -309,6 +309,39 @@ impl VideoWatched {
             //     stop_stall_timeout_canplay();
             //     stall_start_time.set(None);
             // });
+
+            // Track video started - mixpanel
+            let _ = use_event_listener(container_ref, ev::playing, move |_evt| {
+                let Some(_) = container_ref.get() else {
+                    return;
+                };
+                playing_started.set(true);
+
+                let Some(global) = MixpanelGlobalProps::from_ev_ctx(ctx) else {
+                    return;
+                };
+                let post_o = vid_details();
+                let post = post_o.as_ref();
+                if let Some(post) = post {
+                    let is_logged_in = ctx.is_connected();
+                    let is_game_enabled = true;
+
+                    MixPanelEvent::track_video_started(MixpanelVideoStartedProps {
+                        publisher_user_id: post.poster_principal.to_text(),
+                        user_id: global.user_id,
+                        visitor_id: global.visitor_id,
+                        is_logged_in,
+                        canister_id: global.canister_id,
+                        is_nsfw_enabled: global.is_nsfw_enabled,
+                        video_id: post.uid.clone(),
+                        view_count: post.views,
+                        like_count: post.likes,
+                        game_type: MixpanelPostGameType::HotOrNot,
+                        is_nsfw: post.is_nsfw,
+                        is_game_enabled,
+                    });
+                }
+            });
 
             let _ = use_event_listener(container_ref, ev::timeupdate, move |evt| {
                 let Some(user) = ctx.user_details() else {
