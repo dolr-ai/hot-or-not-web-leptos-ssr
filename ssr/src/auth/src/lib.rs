@@ -25,6 +25,12 @@ pub struct AnonymousIdentity {
     pub refresh_token: String,
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct YralAuthResponse {
+    pub delegated_identity: DelegatedIdentityWire,
+    pub email: Option<String>,
+}
+
 fn delegate_identity_with_max_age(
     from: &impl Identity,
     max_age: Duration,

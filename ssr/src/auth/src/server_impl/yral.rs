@@ -35,6 +35,8 @@ use yral_types::delegated_identity::DelegatedIdentityWire;
 //     DelegatedIdentityWire,
 // };
 
+use crate::YralAuthResponse;
+
 use super::{set_cookies, update_user_identity};
 
 const PKCE_VERIFIER_COOKIE: &str = "google-pkce-verifier";
@@ -159,12 +161,6 @@ pub async fn yral_auth_url_impl(
 
 pub fn no_op_nonce_verifier(_: Option<&Nonce>) -> Result<(), String> {
     Ok(())
-}
-
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct YralAuthResponse {
-    pub delegated_identity: DelegatedIdentityWire,
-    pub email: Option<String>,
 }
 
 pub async fn perform_yral_auth_impl(

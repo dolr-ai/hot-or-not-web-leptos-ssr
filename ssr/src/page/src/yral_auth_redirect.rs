@@ -1,4 +1,4 @@
-use auth::server_impl::yral::YralAuthResponse;
+use auth::YralAuthResponse;
 use component::auth_providers::yral::YralAuthMessage;
 use component::loading::Loading;
 use leptos::prelude::*;

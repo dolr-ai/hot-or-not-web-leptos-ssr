@@ -1,4 +1,4 @@
-use auth::server_impl::yral::YralAuthResponse;
+use auth::YralAuthResponse;
 use codee::string::FromToStringCodec;
 use consts::{LoginProvider, NOTIFICATIONS_ENABLED_STORE};
 use ic_agent::identity::DelegatedIdentity;
