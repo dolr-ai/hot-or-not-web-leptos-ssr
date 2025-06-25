@@ -1,5 +1,6 @@
 use codee::string::FromToStringCodec;
 use component::buttons::HighlightedButton;
+use component::overlay::ShadowOverlay;
 use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption};
 
 use consts::NSFW_TOGGLE_STORE;
@@ -561,7 +562,6 @@ fn ExpandableText(description: String) -> impl IntoView {
     }
 }
 
-
 #[component]
 pub fn OnboardingWelcomePopup(show: RwSignal<bool>) -> impl IntoView {
     view! {
@@ -600,7 +600,6 @@ pub fn OnboardingWelcomePopup(show: RwSignal<bool>) -> impl IntoView {
         </ShadowOverlay>
     }
 }
-
 
 #[component]
 pub fn HotOrNotTutorialOverlay(show: RwSignal<bool>) -> impl IntoView {

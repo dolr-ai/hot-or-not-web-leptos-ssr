@@ -1,6 +1,6 @@
 mod server_impl;
 
-use component::{bullet_loader::BulletLoader, hn_icons::*, spinner::SpinnerFit, show_any::ShowAny};
+use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
 use hon_worker_common::{sign_vote_request, GameInfo, GameResult, GameResultV2, WORKER_URL};
 use ic_agent::Identity;
 use leptos::html::Audio;
@@ -322,9 +322,10 @@ fn HNWonLost(
 ) -> impl IntoView {
     let won = matches!(game_result, GameResult::Win { .. });
     let creator_reward = (vote_amount * crate::consts::CREATOR_COMMISION_PERCENT) / 100;
-    let bet_direction_text = match bet_direction {
-        VoteKind::Hot => "Hot",
-        VoteKind::Not => "Not",
+    let bet_direction_text = match bet_direction.get() {
+        Some(VoteKind::Hot) => "Hot",
+        Some(VoteKind::Not) => "Not",
+        None => "",
     };
     let result_message = match game_result {
         GameResult::Win { win_amt } => format!(
@@ -351,9 +352,10 @@ fn HNWonLost(
         }
     };
 
-    let vote_kind_image = match bet_direction {
-        VoteKind::Hot => "/img/hotornot/hot-circular.svg",
-        VoteKind::Not => "/img/hotornot/not-circular.svg",
+    let vote_kind_image = match bet_direction.get() {
+        Some(VoteKind::Hot) => "/img/hotornot/hot-circular.svg",
+        Some(VoteKind::Not) => "/img/hotornot/not-circular.svg",
+        None => "",
     };
 
     view! {
@@ -400,7 +402,7 @@ pub fn HNUserParticipation(
     post: PostDetails,
     participation: GameInfo,
     refetch_bet: Trigger,
-    bet_direction: VoteKind,
+    bet_direction: RwSignal<Option<VoteKind>>,
     wallet_balance: RwSignal<u64>,
     show_ping: RwSignal<bool>,
     show_tutorial: RwSignal<bool>,
