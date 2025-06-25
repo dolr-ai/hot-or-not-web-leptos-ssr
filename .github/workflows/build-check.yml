@@ -23,6 +23,8 @@ on:
 jobs:
   build_check:
     runs-on: large-runner-8c-32m
+    permissions:
+      packages: write
     steps:
       - name: Checkout repo and submodules
         uses: actions/checkout@v3
