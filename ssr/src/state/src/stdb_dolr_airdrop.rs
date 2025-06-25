@@ -114,14 +114,15 @@ impl WrappedContext {
             .mark_airdrop_claimed(user_principal.to_text(), duration.into(), now.into())
             .context("Couldn't send reducer request")?;
 
+        let now = Instant::now();
         let res = loop {
-            let (recv_hash, data) = tokio::time::timeout(Duration::from_secs(60), rx.recv())
-                .await
-                .context("timeout reached before receiving result")??;
+            let (recv_hash, data) = rx.recv().await?;
             if recv_hash == search_hash {
                 break data;
             }
         };
+
+        println!("reducer took {:?} to mark airdrop", now.elapsed());
 
         Ok(res)
     }
