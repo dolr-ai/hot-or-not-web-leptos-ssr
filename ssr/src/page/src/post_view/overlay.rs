@@ -448,7 +448,7 @@ pub fn VideoDetailsOverlay(
                         <Icon attr:class="drop-shadow-lg" icon=HomeFeedShareIcon />
                     </button>
                 </div>
-                <div class="w-full bg-transparent pointer-events-auto">
+                <div class="w-full bg-transparent pointer-events-auto max-w-lg mx-auto">
                     <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref wallet_balance show_ping=show_result_help_ping show_tutorial />
                 </div>
             </div>
