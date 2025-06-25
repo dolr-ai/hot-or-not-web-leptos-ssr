@@ -372,8 +372,8 @@ fn HNWonLost(
                 <button
                 class="relative shrink-0 cursor-pointer"
                 on:click=move |_| {
-                    show_ping.set(true);
-                    show_tutorial.set(true)
+                        show_ping.set(false);
+                        show_tutorial.set(true)
                     }>
                     <img src="/img/hotornot/question-mark.svg" class="h-8 w-8" />
                     <ShowAny when=move || won && show_ping.get()>
