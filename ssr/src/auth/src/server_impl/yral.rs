@@ -161,6 +161,7 @@ pub fn no_op_nonce_verifier(_: Option<&Nonce>) -> Result<(), String> {
     Ok(())
 }
 
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct YralAuthResponse {
     pub delegated_identity: DelegatedIdentityWire,
     pub email: Option<String>,
@@ -215,7 +216,10 @@ pub async fn perform_yral_auth_impl(
 
     update_user_identity(&resp, jar, refresh_token.secret().clone())?;
 
-    Ok(YralAuthResponse { delegated_identity: identity, email })
+    Ok(YralAuthResponse {
+        delegated_identity: identity,
+        email,
+    })
 }
 
 // based on https://github.com/dolr-ai/yral-auth-v2/blob/main/src/oauth/jwt/generate.rs

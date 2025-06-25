@@ -2,12 +2,11 @@ use auth::server_impl::yral::YralAuthResponse;
 use codee::string::FromToStringCodec;
 use consts::{LoginProvider, NOTIFICATIONS_ENABLED_STORE};
 use ic_agent::identity::DelegatedIdentity;
-use leptos::{ev, prelude::*};
+use leptos::{ev, logging, prelude::*};
 use leptos_use::{storage::use_local_storage, use_event_listener, use_interval_fn, use_window};
 use state::canisters::auth_state;
 use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
 use yral_canisters_common::yral_auth_login_hint;
-use yral_types::delegated_identity::DelegatedIdentityWire;
 
 pub type YralAuthMessage = Result<YralAuthResponse, String>;
 
@@ -113,12 +112,13 @@ pub fn YralAuthProvider() -> impl IntoView {
                     return;
                 }
             };
+            logging::log!("yral auth response: {:?}", &res);
             done_guard.set(true);
             (pause.pause)();
             _ = target.close();
             ctx.set_processing.set(None);
             set_notifs_enabled.set(false);
-            ctx.login_complete.set(res);
+            ctx.login_complete.set(res.delegated_identity);
         });
     };
 
