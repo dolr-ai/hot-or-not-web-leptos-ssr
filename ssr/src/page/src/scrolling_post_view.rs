@@ -37,6 +37,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
     queue_end: RwSignal<bool>,
     #[prop(optional, into)] overlay: Option<ViewFn>,
     threshold_trigger_fetch: usize,
+    #[prop(optional, into)] hard_refresh_target: RwSignal<String>,
 ) -> impl IntoView {
     let AudioState {
         muted,
@@ -62,6 +63,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                     children=move |feedpost| {
                         let queue_idx = feedpost.key;
                         let post = feedpost.value;
+                        let hard_refresh_target = hard_refresh_target.clone();
                         let container_ref = NodeRef::<html::Div>::new();
                         let next_videos = fetch_next_videos.clone();
                         use_intersection_observer_with_options(
@@ -90,12 +92,11 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                 .root(Some(scroll_root)),
                         );
                         Effect::new(move |_| {
-                            if current_idx() > MAX_VIDEO_ELEMENTS_FOR_FEED-1 {
-                                // hard refresh window
+                            if current_idx() > MAX_VIDEO_ELEMENTS_FOR_FEED - 1 {
                                 let window = window();
                                 let _ = window
                                     .location()
-                                    .set_href("/");
+                                    .set_href(&hard_refresh_target.get_untracked());
                             }
                             let Some(container) = container_ref.get() else {
                                 return;

@@ -155,6 +155,8 @@ pub fn CommonPostViewWithUpdates(
         );
     });
 
+    let hard_refresh_target = RwSignal::new("/".to_string());
+    
     view! {
         <ScrollingPostView
             video_queue
@@ -164,6 +166,7 @@ pub fn CommonPostViewWithUpdates(
             fetch_next_videos=next_videos
             queue_end
             threshold_trigger_fetch
+            hard_refresh_target
         />
     }
     .into_any()
