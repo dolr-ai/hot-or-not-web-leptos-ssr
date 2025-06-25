@@ -19,7 +19,8 @@ on:
 
 jobs:
   build_check:
-    runs-on: large-runner-8c-32m
+    # runs-on: large-runner-8c-32m
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repo and submodules
         uses: actions/checkout@v3
