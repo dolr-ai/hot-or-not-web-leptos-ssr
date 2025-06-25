@@ -1,7 +1,12 @@
 name: Build and Check linting for preview release
 
 on:
+  workflow_call:
     inputs:
+      publish-artifact:
+        default: false
+        required: false
+        type: boolean
       erase_components:
         description: "Enable type erasure. Default is false."
         required: false
