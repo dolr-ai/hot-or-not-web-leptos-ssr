@@ -77,6 +77,8 @@ impl WrappedContext {
                     Status::OutOfEnergy => Err("Out of energy".into()),
                 };
 
+                println!("on mark callback with principal: {user_principal} and res {res:?}");
+
                 // channel must be not be closed
                 tx_clone.send((search_hash, res)).unwrap();
             });
