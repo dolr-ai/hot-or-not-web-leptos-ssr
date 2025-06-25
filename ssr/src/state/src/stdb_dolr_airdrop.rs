@@ -115,7 +115,7 @@ impl WrappedContext {
             .context("Couldn't send reducer request")?;
 
         let res = loop {
-            let (recv_hash, data) = tokio::time::timeout(Duration::from_secs(5), rx.recv())
+            let (recv_hash, data) = tokio::time::timeout(Duration::from_secs(60), rx.recv())
                 .await
                 .context("timeout reached before receiving result")??;
             if recv_hash == search_hash {
