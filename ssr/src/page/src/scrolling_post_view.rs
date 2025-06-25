@@ -1,5 +1,4 @@
 use crate::post_view::video_loader::{BgView, VideoViewForQueue};
-use crate::post_view::FeedPostCtx;
 use indexmap::IndexSet;
 use leptos::html;
 use leptos::prelude::*;
@@ -7,6 +6,7 @@ use leptos_icons::*;
 use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserverOptions};
 
 use state::audio_state::AudioState;
+use utils::posts::FeedPostCtx;
 use yral_canisters_common::utils::posts::PostDetails;
 
 #[component]

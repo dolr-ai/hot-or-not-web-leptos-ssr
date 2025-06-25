@@ -75,11 +75,18 @@ fn Post(details: PostDetails, user_canister: Principal, _ref: NodeRef<html::Div>
 pub fn ProfilePosts(user_canister: Principal) -> impl IntoView {
     let ProfilePostsContext {
         video_queue,
+        video_queue_for_feed,
         start_index,
         ..
     } = expect_context();
 
-    let provider = PostsProvider::new(unauth_canisters(), video_queue, start_index, user_canister);
+    let provider = PostsProvider::new(
+        unauth_canisters(),
+        video_queue,
+        video_queue_for_feed,
+        start_index,
+        user_canister,
+    );
 
     view! {
         <ProfileStream

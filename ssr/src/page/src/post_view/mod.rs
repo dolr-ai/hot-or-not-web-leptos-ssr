@@ -6,7 +6,7 @@ pub mod video_iter;
 pub mod video_loader;
 use crate::scrolling_post_view::ScrollingPostView;
 use component::spinner::FullScreenSpinner;
-use consts::NSFW_TOGGLE_STORE;
+use consts::{MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_TOGGLE_STORE};
 use indexmap::IndexSet;
 use priority_queue::DoublePriorityQueue;
 use state::canisters::{auth_state, unauth_canisters};
@@ -23,8 +23,11 @@ use leptos_router::{
 };
 use leptos_use::{storage::use_local_storage, use_debounce_fn};
 use utils::{
-    mixpanel::mixpanel_events::*, posts::FetchCursor, route::failure_redirect, send_wrap,
-    try_or_redirect, types::PostId,
+    mixpanel::mixpanel_events::*,
+    posts::{FeedPostCtx, FetchCursor},
+    route::failure_redirect,
+    send_wrap, try_or_redirect,
+    types::PostId,
 };
 
 use video_iter::{new_video_fetch_stream, new_video_fetch_stream_auth, FeedResultType};
@@ -57,16 +60,10 @@ pub struct PostViewCtx {
     batch_cnt: RwSignal<usize>,
 }
 
-#[derive(Clone, Default)]
-pub struct FeedPostCtx {
-    pub key: usize,
-    pub value: RwSignal<Option<PostDetails>>,
-}
-
 impl PostViewCtx {
     pub fn new() -> Self {
         let mut video_queue_for_feed = Vec::new();
-        for i in 0..200 {
+        for i in 0..MAX_VIDEO_ELEMENTS_FOR_FEED {
             video_queue_for_feed.push(FeedPostCtx {
                 key: i,
                 value: RwSignal::new(None),
@@ -209,7 +206,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                     video_queue.update(|vq| {
                         if vq.insert(next.clone()) {
                             let len_vq = vq.len();
-                            if len_vq > 200 {
+                            if len_vq > MAX_VIDEO_ELEMENTS_FOR_FEED {
                                 return;
                             }
 
@@ -268,7 +265,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                             video_queue.update(|vq| {
                                 if vq.insert(post_detail.clone()) {
                                     let len_vq = vq.len();
-                                    if len_vq > 200 {
+                                    if len_vq > MAX_VIDEO_ELEMENTS_FOR_FEED {
                                         return;
                                     }
                                     video_queue_for_feed.update(|vqf| {

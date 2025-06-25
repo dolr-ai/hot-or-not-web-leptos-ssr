@@ -7,6 +7,7 @@ mod speculation;
 
 use candid::Principal;
 use component::{connect::ConnectLogin, spinner::FullScreenSpinner};
+use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
 use indexmap::IndexSet;
 use leptos::prelude::*;
 use leptos_icons::*;
@@ -18,13 +19,13 @@ use state::{
     app_state::AppState,
     canisters::{auth_state, unauth_canisters},
 };
-use utils::send_wrap;
+use utils::{posts::FeedPostCtx, send_wrap};
 use yral_canisters_common::utils::{posts::PostDetails, profile::ProfileDetails};
 
 #[derive(Clone)]
 pub struct ProfilePostsContext {
     video_queue: RwSignal<IndexSet<PostDetails>>,
-    video_queue_for_feed: RwSignal<Vec<crate::post_view::FeedPostCtx>>,
+    video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
     start_index: RwSignal<usize>,
     current_index: RwSignal<usize>,
     queue_end: RwSignal<bool>,
@@ -33,8 +34,8 @@ pub struct ProfilePostsContext {
 impl Default for ProfilePostsContext {
     fn default() -> Self {
         let mut video_queue_for_feed = Vec::new();
-        for i in 0..200 {
-            video_queue_for_feed.push(crate::post_view::FeedPostCtx {
+        for i in 0..MAX_VIDEO_ELEMENTS_FOR_FEED {
+            video_queue_for_feed.push(FeedPostCtx {
                 key: i,
                 value: RwSignal::new(None),
             });

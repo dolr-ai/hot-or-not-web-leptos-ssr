@@ -1,4 +1,5 @@
 use candid::Principal;
+use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
 use ic_agent::AgentError;
 use indexmap::IndexSet;
 use leptos::prelude::*;
@@ -10,12 +11,15 @@ use yral_canisters_common::{
     Canisters,
 };
 
+use crate::posts::FeedPostCtx;
+
 pub const PROFILE_CHUNK_SZ: usize = 10;
 
 #[derive(Clone)]
 pub struct PostsProvider {
     canisters: Canisters<false>,
     video_queue: RwSignal<IndexSet<PostDetails>>,
+    video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
     start_index: RwSignal<usize>,
     user: Principal,
 }
@@ -24,12 +28,14 @@ impl PostsProvider {
     pub fn new(
         canisters: Canisters<false>,
         video_queue: RwSignal<IndexSet<PostDetails>>,
+        video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
         start_index: RwSignal<usize>,
         user: Principal,
     ) -> Self {
         Self {
             canisters,
             video_queue,
+            video_queue_for_feed,
             start_index,
             user,
         }
@@ -68,7 +74,25 @@ impl CursoredDataProvider for PostsProvider {
             .collect();
         let post_details_indexset: IndexSet<PostDetails> = post_details.iter().cloned().collect();
         self.video_queue.update_untracked(|vq| {
+            let start_len = vq.len();
             vq.extend(post_details_indexset);
+            let end_len = vq.len();
+
+            // Update video_queue_for_feed for newly added posts
+            if end_len > start_len {
+                self.video_queue_for_feed.update_untracked(|vqf| {
+                    for i in start_len..end_len {
+                        if i >= MAX_VIDEO_ELEMENTS_FOR_FEED {
+                            break;
+                        }
+                        if i < vqf.len() {
+                            if let Some(post) = vq.get_index(i) {
+                                vqf[i].value.set(Some(post.clone()));
+                            }
+                        }
+                    }
+                });
+            }
         });
         Ok(PageEntry {
             data: post_details,

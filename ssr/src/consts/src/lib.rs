@@ -65,6 +65,8 @@ pub const MAX_WITHDRAWAL_PER_TXN: u64 = 500;
 
 pub const AUTH_UTIL_COOKIES_MAX_AGE_MS: i64 = 400 * 24 * 60 * 60 * 1000; // 400 days
 
+pub const MAX_VIDEO_ELEMENTS_FOR_FEED: usize = 200;
+
 pub mod social {
     pub const TELEGRAM_YRAL: &str = "https://t.me/+c-LTX0Cp-ENmMzI1";
     pub const DISCORD: &str = "https://discord.gg/GZ9QemnZuj";

@@ -1,5 +1,3 @@
-// use std::cmp::Ordering;
-
 use indexmap::IndexSet;
 use leptos::html::Audio;
 use leptos::logging;
@@ -80,6 +78,8 @@ pub fn VideoView(
         if !to_load() {
             return None;
         }
+        // let vid = _ref.get()?;
+        // vid.set_hidden(false);
         post_for_uid.with(|p| p.as_ref().map(|p| p.uid.clone()))
     });
     let view_bg_url = move || uid().map(bg_url);
@@ -155,8 +155,6 @@ pub fn VideoViewForQueue(
             is_playing.set(true);
             vid.set_autoplay(true);
 
-            // Small delay to ensure video is ready
-            // gloo::timers::callback::Timeout::new(500, move || {
             if let Some(vid) = container_ref.get() {
                 let promise = vid.play();
                 if let Ok(promise) = promise {
@@ -170,7 +168,6 @@ pub fn VideoViewForQueue(
                     logging::error!("Failed to play video");
                 }
             }
-            // });
         }
     });
 
