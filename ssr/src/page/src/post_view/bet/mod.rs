@@ -1,11 +1,14 @@
 mod server_impl;
 
+use codee::string::JsonSerdeCodec;
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
+use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY};
 use hon_worker_common::{sign_vote_request, GameInfo, GameResult, GameResultV2, WORKER_URL};
 use ic_agent::Identity;
 use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
+use leptos_use::storage::use_local_storage;
 use num_traits::cast::ToPrimitive;
 use server_impl::vote_with_cents_on_post;
 use state::canisters::auth_state;
@@ -318,7 +321,6 @@ fn HNWonLost(
     vote_amount: u64,
     bet_direction: RwSignal<Option<VoteKind>>,
     wallet_balance: RwSignal<u64>,
-    show_ping: RwSignal<bool>,
     show_tutorial: RwSignal<bool>,
 ) -> impl IntoView {
     let won = matches!(game_result, GameResult::Win { .. });
@@ -359,6 +361,16 @@ fn HNWonLost(
         None => "",
     };
 
+    let (onboarding_store, _, _) =
+        use_local_storage::<UserOnboardingStore, JsonSerdeCodec>(USER_ONBOARDING_STORE_KEY);
+    let show_help_ping = RwSignal::new(true);
+
+    Effect::new(move |_| {
+        if onboarding_store.get_untracked().has_seen_hon_bet_help {
+            show_help_ping.set(false);
+        }
+    });
+
     view! {
         <div class="flex w-full flex-col gap-3 p-4">
             <div class="flex gap-6 justify-center items-center w-full">
@@ -372,11 +384,11 @@ fn HNWonLost(
                 <button
                 class="relative shrink-0 cursor-pointer"
                 on:click=move |_| {
-                        show_ping.set(false);
+                        show_help_ping.set(false);
                         show_tutorial.set(true)
                     }>
                     <img src="/img/hotornot/question-mark.svg" class="h-8 w-8" />
-                    <ShowAny when=move || won && show_ping.get()>
+                    <ShowAny when=move || won && show_help_ping.get()>
                         <span class="absolute top-1 right-1 ping rounded-full w-2 h-2 bg-red-500 text-red-500"></span>
                     </ShowAny>
                 </button>
@@ -407,7 +419,6 @@ pub fn HNUserParticipation(
     refetch_bet: Trigger,
     bet_direction: RwSignal<Option<VoteKind>>,
     wallet_balance: RwSignal<u64>,
-    show_ping: RwSignal<bool>,
     show_tutorial: RwSignal<bool>,
 ) -> impl IntoView {
     let (_, _) = (post, refetch_bet); // not sure if i will need these later
@@ -425,7 +436,7 @@ pub fn HNUserParticipation(
         .expect("We only allow voting with 200 max, so this is alright");
 
     view! {
-        <HNWonLost game_result vote_amount bet_direction wallet_balance show_ping show_tutorial />
+        <HNWonLost game_result vote_amount bet_direction wallet_balance show_tutorial />
         <ShadowBg />
     }
 }
@@ -454,7 +465,6 @@ pub fn HNGameOverlay(
     prev_post: Option<PostDetails>,
     win_audio_ref: NodeRef<Audio>,
     wallet_balance: RwSignal<u64>,
-    show_ping: RwSignal<bool>,
     show_tutorial: RwSignal<bool>,
 ) -> impl IntoView {
     let bet_direction = RwSignal::new(None::<VoteKind>);
@@ -497,7 +507,6 @@ pub fn HNGameOverlay(
                                         refetch_bet
                                         participation=participation.clone()
                                         wallet_balance
-                                        show_ping
                                         bet_direction
                                         show_tutorial
                                     />

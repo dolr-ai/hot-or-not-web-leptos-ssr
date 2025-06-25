@@ -47,7 +47,6 @@ pub fn BgView(
 
     let win_audio_ref = NodeRef::<Audio>::new();
     let wallet_balance = RwSignal::new(0);
-    let show_result_help_ping = RwSignal::new(false);
 
     view! {
         <div class="overflow-hidden relative w-full h-full bg-transparent">
@@ -64,7 +63,7 @@ pub fn BgView(
             />
             {move || {
                 let (post, prev_post) = post_with_prev.get();
-                Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref wallet_balance show_result_help_ping /> })
+                Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref wallet_balance /> })
             }}
             {children()}
         </div>

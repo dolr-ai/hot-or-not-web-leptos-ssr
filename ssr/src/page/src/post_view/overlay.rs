@@ -1,9 +1,9 @@
-use codee::string::FromToStringCodec;
+use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::buttons::HighlightedButton;
 use component::overlay::ShadowOverlay;
 use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption};
 
-use consts::NSFW_TOGGLE_STORE;
+use consts::{UserOnboardingStore, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY};
 use gloo::timers::callback::Timeout;
 use leptos::html::Audio;
 use leptos::{prelude::*, task::spawn_local};
@@ -43,7 +43,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
     let post_id = post.post_id;
     let initial_liked = (post.liked_by_user, post.likes);
 
-    let auth = auth_state();
+    let auth: state::canisters::AuthState = auth_state();
     let is_logged_in = auth.is_logged_in_with_oauth();
     let ev_ctx = auth.event_ctx();
 
@@ -165,7 +165,6 @@ pub fn VideoDetailsOverlay(
     prev_post: Option<PostDetails>,
     win_audio_ref: NodeRef<Audio>,
     wallet_balance: RwSignal<u64>,
-    show_result_help_ping: RwSignal<bool>,
 ) -> impl IntoView {
     let show_share = RwSignal::new(false);
     let show_report = RwSignal::new(false);
@@ -379,7 +378,35 @@ pub fn VideoDetailsOverlay(
         });
     };
 
-    let show_tutorial = RwSignal::new(false);
+    let show_tutorial: RwSignal<bool> = RwSignal::new(false);
+
+    let (onboarding_store, set_onboarding_store, _) =
+        use_local_storage::<UserOnboardingStore, JsonSerdeCodec>(USER_ONBOARDING_STORE_KEY);
+
+    let show_onboarding_popup = RwSignal::new(false);
+
+    let close_onboarding_action = Action::new(move |_: &()| {
+        set_onboarding_store.update(|store| {
+            store.has_seen_onboarding = true;
+        });
+        show_onboarding_popup.set(false);
+        async move {}
+    });
+
+    Effect::new(move |_| {
+        if !(onboarding_store.get_untracked().has_seen_onboarding)
+            && !auth.is_logged_in_with_oauth().get_untracked()
+        {
+            show_onboarding_popup.set(true);
+        }
+    });
+
+    let close_help_popup_action = Action::new(move |_: &()| {
+        set_onboarding_store.update(|store| {
+            store.has_seen_hon_bet_help = true;
+        });
+        async move {}
+    });
 
     view! {
         <div class="flex absolute bottom-0 left-0 flex-col flex-nowrap justify-between pt-5 pb-20 w-full h-full text-white bg-transparent pointer-events-none px-[16px] z-4 md:px-[16px]">
@@ -449,7 +476,7 @@ pub fn VideoDetailsOverlay(
                     </button>
                 </div>
                 <div class="w-full bg-transparent pointer-events-auto max-w-lg mx-auto">
-                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref wallet_balance show_ping=show_result_help_ping show_tutorial />
+                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref wallet_balance show_tutorial />
                 </div>
             </div>
         </div>
@@ -543,7 +570,9 @@ pub fn VideoDetailsOverlay(
                 </HighlightedButton>
             </div>
         </Modal>
-        <HotOrNotTutorialOverlay show=show_tutorial />
+        <HotOrNotTutorialOverlay show=show_tutorial close_action=close_help_popup_action />
+        <OnboardingWelcomePopup show=show_onboarding_popup close_action=close_onboarding_action />
+
     }.into_any()
 }
 
@@ -564,7 +593,10 @@ fn ExpandableText(description: String) -> impl IntoView {
 }
 
 #[component]
-pub fn HotOrNotTutorialOverlay(show: RwSignal<bool>) -> impl IntoView {
+pub fn HotOrNotTutorialOverlay(
+    show: RwSignal<bool>,
+    close_action: Action<(), ()>,
+) -> impl IntoView {
     view! {
         <ShadowOverlay show=show >
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
@@ -575,8 +607,11 @@ pub fn HotOrNotTutorialOverlay(show: RwSignal<bool>) -> impl IntoView {
                         class="absolute z-[1] -left-1/2 top-0 size-[32rem]" >
                     </div>
                     <button
-                        on:click=move |_| show.set(false)
-                        class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[2] top-4 right-4"
+                        on:click=move |_| {
+                            show.set(false);
+                            close_action.dispatch(());
+                        }
+                        class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[3] top-4 right-4"
                     >
                         <Icon icon=icondata::ChCross />
                     </button>
@@ -611,6 +646,47 @@ pub fn HotOrNotTutorialOverlay(show: RwSignal<bool>) -> impl IntoView {
                             on_click=move || { show.set(false) }
                         >
                             "Keep Playing"
+                        </HighlightedButton>
+                    </div>
+                </div>
+            </div>
+        </ShadowOverlay>
+    }
+}
+
+#[component]
+pub fn OnboardingWelcomePopup(show: RwSignal<bool>, close_action: Action<(), ()>) -> impl IntoView {
+    view! {
+        <ShadowOverlay show=show >
+            <div class="px-4 py-6 w-full h-full flex items-center justify-center">
+                <div class="overflow-hidden h-fit max-w-md items-center pt-16 cursor-auto bg-neutral-950 rounded-md w-full relative">
+                    <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
+                    <div
+                        style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
+                        class="absolute z-[1] -left-1/2 bottom-1/3 size-[32rem]" >
+                    </div>
+                    <button
+                        on:click=move |_| {
+                            close_action.dispatch(());
+                        }
+                        class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[2] top-4 right-4"
+                    >
+                        <Icon icon=icondata::ChCross />
+                    </button>
+                    <div class="flex z-[2] flex-col items-center gap-16 text-white justify-center p-12">
+                        <img src="/img/hotornot/onboarding-welcome.webp" class="h-60" />
+                        <div class="text-center text-2xl font-semibold">Bitcoin credited to<br/> your wallet!</div>
+                        <div class="text-center">
+                            "You've got free "<span class="font-semibold">Bitcoin (100 SATS)</span>.
+                            <br/>
+                            "Here's how to make it grow"
+                        </div>
+                        <HighlightedButton
+                            alt_style=false
+                            disabled=false
+                            on_click=move || { close_action.dispatch(()); }
+                        >
+                            "Start Playing"
                         </HighlightedButton>
                     </div>
                 </div>
