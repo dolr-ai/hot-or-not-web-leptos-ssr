@@ -7,7 +7,8 @@ chmod +x ~/.local/bin/cargo-binstall;
 rm cargo-binstall.tgz;
 
 # Install cargo-leptos with cargo binstall
-cargo binstall cargo-leptos --no-confirm;
+# cargo binstall cargo-leptos --no-confirm;
+cargo install --locked cargo-leptos --git https://github.com/saikatdas0790/cargo-leptos --branch saikatdas0790/fix-wasm-opt
 
 # Install leptosfmt using cargo binstall
 cargo binstall leptosfmt --no-confirm;
@@ -19,6 +20,6 @@ git submodule update --init --recursive;
 cp .env.example .env;
 
 # Make the cargo husky hooks executable
-chmod +x .cargo-husky/hooks/*;
+# chmod +x .cargo-husky/hooks/*;
 # Git hook for cargo husky gets registered with cargo test. Please run
 # cargo test --all-features;
