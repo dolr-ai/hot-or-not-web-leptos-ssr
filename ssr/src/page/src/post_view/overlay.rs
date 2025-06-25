@@ -617,7 +617,7 @@ pub fn HotOrNotTutorialOverlay(
                     </button>
                     <div class="flex z-[2] relative flex-col items-center gap-2 text-white justify-center p-12">
                         <div class="text-lg font-bold">"How to play?"</div>
-                        <div class="font-bold text-yellow-500">"Stake Bitcoin (SATS) to vote HOT or NOT."</div>
+                        <div class="font-bold text-yellow-500 pb-4">"Stake Bitcoin (SATS) to vote HOT or NOT."</div>
                         <div class="border rounded-md border-neutral-800 bg-neutral-950 flex p-3 gap-4 items-center">
                             <img src="/img/hotornot/hot-circular.svg" class="size-12 shrink-0" />
                             <div class="text-neutral-400"><span class="font-bold text-white">"'Hot'"</span>" = Higher engagement score than the previous"</div>
@@ -636,7 +636,7 @@ pub fn HotOrNotTutorialOverlay(
                             </div>
                             <div class="text-sm text-neutral-400"><span class="font-bold text-neutral-300">"Note: "</span>"First video results are random."</div>
                         </div>
-                        <div class="text-yellow-500 font-bold text-center">
+                        <div class="text-yellow-500 font-bold text-center py-4">
                             "You make the content, you take the cut — 10% of all SATS staked!"
                         </div>
 
