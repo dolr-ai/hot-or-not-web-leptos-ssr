@@ -1,3 +1,4 @@
+use auth::server_impl::yral::YralAuthResponse;
 use component::auth_providers::yral::YralAuthMessage;
 use component::loading::Loading;
 use leptos::prelude::*;
@@ -11,7 +12,7 @@ use utils::route::go_to_root;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
 #[server(input = Json, output = Json)]
-async fn perform_yral_oauth(oauth: OAuthQuery) -> Result<DelegatedIdentityWire, ServerFnError> {
+async fn perform_yral_oauth(oauth: OAuthQuery) -> Result<YralAuthResponse, ServerFnError> {
     use auth::server_impl::yral::perform_yral_auth_impl;
     use auth::server_impl::yral::YralOAuthClient;
 
@@ -27,8 +28,9 @@ pub struct OAuthQuery {
 
 #[component]
 pub fn IdentitySender(identity_res: YralAuthMessage) -> impl IntoView {
+    
     Effect::new(move |_| {
-        let _id = &identity_res;
+        let _id = &identity_res.delegated_identity;
         #[cfg(feature = "hydrate")]
         {
             use web_sys::Window;
@@ -54,10 +56,10 @@ pub fn IdentitySender(identity_res: YralAuthMessage) -> impl IntoView {
 }
 
 async fn handle_oauth_query(oauth_query: OAuthQuery) -> YralAuthMessage {
-    let delegated = perform_yral_oauth(oauth_query)
+    let res = perform_yral_oauth(oauth_query)
         .await
         .map_err(|e| e.to_string())?;
-    Ok(delegated)
+    Ok(res)
 }
 
 #[server]
@@ -99,7 +101,7 @@ pub fn YralAuthRedirectHandler() -> impl IntoView {
         <Loading text="Logging out...".to_string()>
             <Suspense>
                 {move || Suspend::new(async move {
-                    let identity_res = identity_resource.await;
+                    let identity_res = identity_resource.await.;
                     view! { <IdentitySender identity_res /> }
                 })}
             </Suspense>

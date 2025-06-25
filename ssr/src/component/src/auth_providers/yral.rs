@@ -1,3 +1,4 @@
+use auth::server_impl::yral::YralAuthResponse;
 use codee::string::FromToStringCodec;
 use consts::{LoginProvider, NOTIFICATIONS_ENABLED_STORE};
 use ic_agent::identity::DelegatedIdentity;
@@ -8,7 +9,7 @@ use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
 use yral_canisters_common::yral_auth_login_hint;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
-pub type YralAuthMessage = Result<DelegatedIdentityWire, String>;
+pub type YralAuthMessage = Result<YralAuthResponse, String>;
 
 use super::{LoginProvButton, LoginProvCtx, ProviderKind};
 

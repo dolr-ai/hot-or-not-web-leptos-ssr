@@ -117,6 +117,7 @@ pub async fn yral_auth_url_impl(
             Nonce::new_random,
         )
         .add_scope(Scope::new("openid".into()))
+        .add_scope(Scope::new("email".into()))
         .set_pkce_challenge(pkce_challenge)
         .set_login_hint(LoginHint::new(login_hint));
 
@@ -160,11 +161,16 @@ pub fn no_op_nonce_verifier(_: Option<&Nonce>) -> Result<(), String> {
     Ok(())
 }
 
+pub struct YralAuthResponse {
+    pub delegated_identity: DelegatedIdentityWire,
+    pub email: Option<String>,
+}
+
 pub async fn perform_yral_auth_impl(
     provided_csrf: String,
     auth_code: String,
     oauth2: YralOAuthClient,
-) -> Result<DelegatedIdentityWire, ServerFnError> {
+) -> Result<YralAuthResponse, ServerFnError> {
     let key: Key = expect_context();
     let mut jar: PrivateCookieJar = extract_with_state(&key).await?;
 
@@ -199,6 +205,7 @@ pub async fn perform_yral_auth_impl(
     // we don't use a nonce
     let claims = id_token.claims(&id_token_verifier, no_op_nonce_verifier)?;
     let identity = claims.additional_claims().ext_delegated_identity.clone();
+    let email = claims.email().map(|f| f.as_str().to_string());
 
     let jar: SignedCookieJar = extract_with_state(&key).await?;
 
@@ -208,7 +215,7 @@ pub async fn perform_yral_auth_impl(
 
     update_user_identity(&resp, jar, refresh_token.secret().clone())?;
 
-    Ok(identity)
+    Ok(YralAuthResponse { delegated_identity: identity, email })
 }
 
 // based on https://github.com/dolr-ai/yral-auth-v2/blob/main/src/oauth/jwt/generate.rs
