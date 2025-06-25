@@ -564,45 +564,6 @@ fn ExpandableText(description: String) -> impl IntoView {
 }
 
 #[component]
-pub fn OnboardingWelcomePopup(show: RwSignal<bool>) -> impl IntoView {
-    view! {
-        <ShadowOverlay show=show >
-            <div class="px-4 py-6 w-full h-full flex items-center justify-center">
-                <div class="overflow-hidden h-fit max-w-md items-center pt-16 cursor-auto bg-neutral-950 rounded-md w-full relative">
-                    <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
-                    <div
-                        style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
-                        class="absolute z-[1] -left-1/2 bottom-1/3 size-[32rem]" >
-                    </div>
-                    <button
-                        on:click=move |_| show.set(false)
-                        class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[2] top-4 right-4"
-                    >
-                        <Icon icon=icondata::ChCross />
-                    </button>
-                    <div class="flex z-[2] flex-col items-center gap-16 text-white justify-center p-12">
-                        <img src="/img/hotornot/onboarding-welcome.webp" class="h-60" />
-                        <div class="text-center text-2xl font-semibold">Bitcoin credited to<br/> your wallet!</div>
-                        <div class="text-center">
-                            "You've got free "<span class="font-semibold">Bitcoin (100 SATS)</span>.
-                            <br/>
-                            "Here's how to make it grow"
-                        </div>
-                        <HighlightedButton
-                            alt_style=false
-                            disabled=false
-                            on_click=move || { show.set(false) }
-                        >
-                            "Start Playing"
-                        </HighlightedButton>
-                    </div>
-                </div>
-            </div>
-        </ShadowOverlay>
-    }
-}
-
-#[component]
 pub fn HotOrNotTutorialOverlay(show: RwSignal<bool>) -> impl IntoView {
     view! {
         <ShadowOverlay show=show >
