@@ -1,6 +1,4 @@
 name: Build and Check linting for preview release
-permissions:
-  contents: read
 
 on:
     inputs:
@@ -19,8 +17,7 @@ on:
 
 jobs:
   build_check:
-    # runs-on: large-runner-8c-32m
-    runs-on: ubuntu-latest
+    runs-on: large-runner-8c-32m
     steps:
       - name: Checkout repo and submodules
         uses: actions/checkout@v3
