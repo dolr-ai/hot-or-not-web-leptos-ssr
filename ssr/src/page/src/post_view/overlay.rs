@@ -607,11 +607,11 @@ pub fn HotOrNotTutorialOverlay(show: RwSignal<bool>) -> impl IntoView {
     view! {
         <ShadowOverlay show=show >
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
-                <div class="overflow-hidden h-fit max-w-md items-center pt-16 cursor-auto bg-neutral-950 rounded-md w-full relative">
+                <div class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
                     <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
                     <div
                         style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
-                        class="absolute z-[1] -left-1/2 bottom-1/3 size-[32rem]" >
+                        class="absolute z-[1] -left-1/2 top-0 size-[32rem]" >
                     </div>
                     <button
                         on:click=move |_| show.set(false)
@@ -619,28 +619,28 @@ pub fn HotOrNotTutorialOverlay(show: RwSignal<bool>) -> impl IntoView {
                     >
                         <Icon icon=icondata::ChCross />
                     </button>
-                    <div class="flex z-[2] flex-col items-center gap-16 text-white justify-center p-12">
-                        <div>"How to play?"</div>
-                        <div>"Stake Bitcoin (SATS) to vote HOT or NOT."</div>
-                        <div class="border border-neutral-800 bg-neutral-950 flex p-3 gap-4 items-center">
+                    <div class="flex z-[2] relative flex-col items-center gap-2 text-white justify-center p-12">
+                        <div class="text-lg font-bold">"How to play?"</div>
+                        <div class="font-bold text-yellow-500">"Stake Bitcoin (SATS) to vote HOT or NOT."</div>
+                        <div class="border rounded-md border-neutral-800 bg-neutral-950 flex p-3 gap-4 items-center">
                             <img src="/img/hotornot/hot-circular.svg" class="size-12 shrink-0" />
-                            <div><span class="font-bold">"'Hot'"</span>" = Higher engagement score than the previous"</div>
+                            <div class="text-neutral-400"><span class="font-bold text-white">"'Hot'"</span>" = Higher engagement score than the previous"</div>
                         </div>
-                        <div class="border border-neutral-800 bg-neutral-950 flex p-3 gap-4 items-center">
-                            <div><span class="font-bold">"'Not'"</span>" = Lower engagement score than the previous"</div>
+                        <div class="border rounded-md border-neutral-800 bg-neutral-950 flex p-3 gap-4 items-center">
+                            <div class="text-neutral-400"><span class="font-bold text-white">"'Not'"</span>" = Lower engagement score than the previous"</div>
                             <img src="/img/hotornot/hot-circular.svg" class="size-12 shrink-0" />
                         </div>
-                        <div class="border border-neutral-800 bg-neutral-950 flex flex-col p-3 gap-1 items-center justify-center">
-                            <div>Example</div>
-                            <div class="text-center">
+                        <div class="border rounded-md border-neutral-800 bg-neutral-950 flex flex-col p-3 gap-1 items-center justify-center">
+                            <div class="text-neutral-400">Example</div>
+                            <div class="text-center font-bold text-neutral-300">
                                 <div>"Previous video score: 36"</div>
                                 <div>"Your vote on the current video: HOT 🔥"</div>
                                 <div>"Current video score: 42"</div>
-                                <div>"You scored it right. Bitcoin coming your way!"</div>
+                                <div class="font-semibold">"You scored it right. Bitcoin coming your way!"</div>
                             </div>
-                            <div class="text-xs"><span class="font-bold">"Note: "</span>"First video results are random."</div>
+                            <div class="text-sm text-neutral-400"><span class="font-bold text-neutral-300">"Note: "</span>"First video results are random."</div>
                         </div>
-                        <div class="border border-neutral-800 bg-neutral-950 flex flex-col p-3 gap-1 items-center justify-center">
+                        <div class="text-yellow-500 font-bold text-center">
                             "You make the content, you take the cut — 10% of all SATS staked!"
                         </div>
 
