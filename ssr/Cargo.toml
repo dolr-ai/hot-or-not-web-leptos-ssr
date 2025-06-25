@@ -168,7 +168,6 @@ ssr = [
     "dep:tracing-futures",
     "dep:sentry",
     "dep:sentry-tower",
-    "stdb-backend",
 ]
 # Fetch mock referral history instead of history via canister
 mock-referral-history = [
@@ -304,7 +303,6 @@ local-bin = [
     "state/local-bin",
     "component/local-bin",
     "page/local-bin",
-    "stdb-backend",
 ]
 local-lib = [
     "hydrate",

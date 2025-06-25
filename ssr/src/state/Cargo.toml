@@ -184,7 +184,6 @@ local-bin = [
     "ssr",
     "redis-kv",
     "backend-admin",
-    "stdb-backend",
     "dep:testcontainers",
     "dep:yral-testcontainers",
     "yral-canisters-common/local",

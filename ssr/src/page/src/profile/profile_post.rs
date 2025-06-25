@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 
 use candid::Principal;
 use component::{back_btn::BackButton, spinner::FullScreenSpinner};
+use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
 use leptos::prelude::*;
 use leptos_router::params::Params;
 use leptos_router::{
@@ -86,7 +87,7 @@ fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
             video_queue.try_update(|q| {
                 if q.insert(p.clone()) {
                     let len_vq = q.len();
-                    if len_vq <= 200 {
+                    if len_vq <= MAX_VIDEO_ELEMENTS_FOR_FEED {
                         video_queue_for_feed.update(|vqf| {
                             vqf[len_vq - 1].value.set(Some(p));
                         });

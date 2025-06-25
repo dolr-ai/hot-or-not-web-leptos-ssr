@@ -2,8 +2,8 @@ use indexmap::IndexSet;
 use leptos::html::Audio;
 use leptos::logging;
 use leptos::{html::Video, prelude::*};
-// use state::canisters::auth_state;
-// use utils::event_streaming::events::VideoWatched;
+use state::canisters::auth_state;
+use utils::event_streaming::events::VideoWatched;
 
 use component::video_player::VideoPlayer;
 use utils::{bg_url, mp4_url};
@@ -81,8 +81,8 @@ pub fn VideoView(
     let view_bg_url = move || uid().map(bg_url);
     let view_video_url = move || uid().map(mp4_url);
 
-    // let auth = auth_state();
-    // let ev_ctx = auth.event_ctx();
+    let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
 
     // Handles mute/unmute
     Effect::new(move |_| {
@@ -104,9 +104,9 @@ pub fn VideoView(
     });
 
     // Initialize video watched tracking in an effect to prevent multiple initializations
-    // Effect::new(move |_| {
-    //     VideoWatched.send_event(ev_ctx, post, _ref, muted);
-    // });
+    Effect::new(move |_| {
+        VideoWatched.send_event(ev_ctx, post, _ref, muted);
+    });
 
     view! {
         <VideoPlayer
