@@ -1,7 +1,8 @@
 name: Build and Check linting for preview release
+permissions:
+  contents: read
 
 on:
-  workflow_call:
     inputs:
       erase_components:
         description: "Enable type erasure. Default is false."
