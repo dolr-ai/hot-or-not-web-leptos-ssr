@@ -6,6 +6,7 @@ use ic_agent::Identity;
 use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
+use num_traits::cast::ToPrimitive;
 use server_impl::vote_with_cents_on_post;
 use state::canisters::auth_state;
 use utils::try_or_redirect_opt;
@@ -13,7 +14,6 @@ use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
     posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
 };
-use num_traits::cast::ToPrimitive;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CoinState {
