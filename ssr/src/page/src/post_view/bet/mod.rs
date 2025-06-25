@@ -13,6 +13,7 @@ use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
     posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
 };
+use num_traits::cast::ToPrimitive;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CoinState {
@@ -203,11 +204,11 @@ fn HNButtonOverlay(
                             GameResultV2::Win {
                                 win_amt: _,
                                 updated_balance,
-                            } => TokenBalance::new(updated_balance.into(), 0).humanize(),
+                            } => updated_balance.to_u64().unwrap_or(0),
                             GameResultV2::Loss {
                                 lose_amt: _,
                                 updated_balance,
-                            } => TokenBalance::new(updated_balance.into(), 0).humanize(),
+                            } => updated_balance.to_u64().unwrap_or(0),
                         });
 
                         MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
