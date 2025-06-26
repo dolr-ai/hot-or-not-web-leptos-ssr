@@ -243,6 +243,31 @@ impl VideoWatched {
     ) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
+            // Make video details reactive for logging
+            let log_video_id = Memo::new(move |_| {
+                vid_details.with(|post| {
+                    post.as_ref()
+                        .map(|p| p.uid.clone())
+                        .unwrap_or_else(|| "unknown".to_string())
+                })
+            });
+            
+            let log_publisher_canister_id = Memo::new(move |_| {
+                vid_details.with(|post| {
+                    post.as_ref()
+                        .map(|p| p.canister_id.to_text())
+                        .unwrap_or_else(|| "unknown".to_string())
+                })
+            });
+            
+            let log_post_id = Memo::new(move |_| {
+                vid_details.with(|post| {
+                    post.as_ref()
+                        .map(|p| p.post_id.to_string())
+                        .unwrap_or_else(|| "unknown".to_string())
+                })
+            });
+
             // video_viewed - analytics
             let (video_watched, set_video_watched) = signal(false);
             let (full_video_watched, set_full_video_watched) = signal(false);
@@ -262,7 +287,12 @@ impl VideoWatched {
 
                 // Clear stall state when video resumes playing
                 if progress_stalled.get_untracked() {
-                    leptos::logging::log!("Video resumed playing after stall");
+                    leptos::logging::log!(
+                        "Video resumed playing after stall, video_id={}, publisher_canister_id={}, post_id={}",
+                        log_video_id.get_untracked(),
+                        log_publisher_canister_id.get_untracked(),
+                        log_post_id.get_untracked()
+                    );
                     progress_stalled.set(false);
                 }
 
@@ -291,26 +321,37 @@ impl VideoWatched {
                             // Check if video progress is less than 3 seconds since last check
                             if time_diff < VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS && !has_looped {
                                 if !progress_stalled.get_untracked() {
-                                    leptos::logging::warn!(
-                                        "video_log: Video progress stalled - expected progress: {:.2}s, actual progress: {:.2}s at position={:.2}s",
+                                    leptos::logging::log!(
+                                        "video_log: Video progress stalled - expected progress: {:.2}s, actual progress: {:.2}s at position={:.2}s, video_id={}, publisher_canister_id={}, post_id={}",
                                         VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS,
                                         time_diff,
-                                        current_time
+                                        current_time,
+                                        log_video_id.get_untracked(),
+                                        log_publisher_canister_id.get_untracked(),
+                                        log_post_id.get_untracked()
                                     );
                                     progress_stalled.set(true);
 
                                     // Log error immediately since we're already past the threshold
                                     leptos::logging::error!(
-                                        "video_log: Video stalled for more than {} seconds at position={:.2}s",
+                                        "video_log: Video stalled for more than {} seconds at position={:.2}s, video_id={}, publisher_canister_id={}, post_id={}",
                                         VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS,
-                                        current_time
+                                        current_time,
+                                        log_video_id.get_untracked(),
+                                        log_publisher_canister_id.get_untracked(),
+                                        log_post_id.get_untracked()
                                     );
                                 }
                             } else if progress_stalled.get_untracked()
                                 && (time_diff >= VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS || has_looped)
                             {
                                 // Video has resumed normal playback
-                                leptos::logging::log!("Video progress resumed");
+                                leptos::logging::log!(
+                                    "Video progress resumed, video_id={}, publisher_canister_id={}, post_id={}",
+                                    log_video_id.get_untracked(),
+                                    log_publisher_canister_id.get_untracked(),
+                                    log_post_id.get_untracked()
+                                );
                                 progress_stalled.set(false);
                             }
 
