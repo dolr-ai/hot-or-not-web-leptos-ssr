@@ -16,7 +16,7 @@ jobs:
     uses: ./.github/workflows/build-check.yml
     with:
       publish-artifact: true
-      erase_components: ${{ contains(github.event.pull_request.labels.*.name, 'type erasured') }}
+      # erase_components: ${{ contains(github.event.pull_request.labels.*.name, 'type erasured') }}
     secrets: inherit
 
   destroy_preview:
