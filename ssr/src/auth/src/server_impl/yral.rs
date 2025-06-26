@@ -112,14 +112,17 @@ pub async fn yral_auth_url_impl(
         client_redirect_uri,
     };
 
-    let oauth2_request = oauth2
-        .authorize_url(
-            CoreAuthenticationFlow::AuthorizationCode,
-            move || CsrfToken::new(serde_json::to_string(&oauth_state).unwrap()),
-            Nonce::new_random,
-        )
-        .add_scope(Scope::new("openid".into()))
-        .add_scope(Scope::new("email".into()))
+    let mut oauth2_request = oauth2.authorize_url(
+        CoreAuthenticationFlow::AuthorizationCode,
+        move || CsrfToken::new(serde_json::to_string(&oauth_state).unwrap()),
+        Nonce::new_random,
+    );
+
+    for scope in &["openid", "email"] {
+        oauth2_request = oauth2_request.add_scope(Scope::new(scope.to_string()));
+    }
+
+    oauth2_request = oauth2_request
         .set_pkce_challenge(pkce_challenge)
         .set_login_hint(LoginHint::new(login_hint));
 
