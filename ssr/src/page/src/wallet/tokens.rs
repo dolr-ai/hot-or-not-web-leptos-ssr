@@ -1023,7 +1023,7 @@ pub fn FastWalletCard(
                 )}
 
             <StatefulAirdropPopup
-                name=name_c.get_value()
+                name=display_info.symbol.clone()
                 logo=logo
                 claim_state=claim_state.read_only()
                 airdrop_popup
