@@ -63,12 +63,13 @@ impl WrappedContext {
         let (tx, _) = broadcast::channel(65536);
         let tx_clone = tx.clone();
 
-        conn.reducers
-            .on_mark_airdrop_claimed(move |event, user_principal, duration, now| {
+        conn.reducers.on_mark_airdrop_claimed(
+            move |event, user_principal, duration, now, last_airdrop_at| {
                 let search_hash = fast_hash(InputData {
                     user_principal: user_principal.clone(),
                     duration: *duration,
                     now: *now,
+                    last_airdrop_at: *last_airdrop_at,
                 });
 
                 let res = match event.event.status {
@@ -81,7 +82,8 @@ impl WrappedContext {
 
                 // channel must be not be closed
                 tx_clone.send((search_hash, res)).unwrap();
-            });
+            },
+        );
 
         let (trigger_tx, trigger_rx) = tokio::sync::oneshot::channel();
         let start = Instant::now();
@@ -104,16 +106,23 @@ impl WrappedContext {
         user_principal: Principal,
         duration: Duration,
         now: SystemTime,
+        last_airdrop_at: Option<impl Into<Timestamp> + Copy>,
     ) -> anyhow::Result<ReducerResult> {
         let search_hash = fast_hash(InputData {
             user_principal: user_principal.to_text(),
             duration: duration.into(),
             now: now.into(),
+            last_airdrop_at: last_airdrop_at.map(|t| t.into()),
         });
         let mut rx = self.tx.subscribe();
         self.conn
             .reducers
-            .mark_airdrop_claimed(user_principal.to_text(), duration.into(), now.into())
+            .mark_airdrop_claimed(
+                user_principal.to_text(),
+                duration.into(),
+                now.into(),
+                last_airdrop_at.map(|t| t.into()),
+            )
             .context("Couldn't send reducer request")?;
 
         let now = Instant::now();
@@ -135,4 +144,5 @@ struct InputData {
     user_principal: String,
     duration: TimeDuration,
     now: Timestamp,
+    last_airdrop_at: Option<Timestamp>,
 }

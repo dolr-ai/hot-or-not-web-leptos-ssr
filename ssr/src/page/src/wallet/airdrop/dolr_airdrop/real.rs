@@ -16,12 +16,14 @@ const MAX_AIRDROP_COUNT_WITHIN_DURATION: u64 = 1;
 /// in e0s
 const DOLR_AIRDROP_AMOUNT_RANGE: std::ops::Range<u64> = 5..10;
 
+type LastAirdropAt = Option<Timestamp>;
+
 /// returns either ok, or the how long after which airdrop will be available
 async fn is_dolr_airdrop_available(
     _user_canister: Principal,
     user_principal: Principal,
     now: web_time::SystemTime,
-) -> Result<(), web_time::Duration> {
+) -> Result<LastAirdropAt, web_time::Duration> {
     let ctx: state::stdb_dolr_airdrop::WrappedContext = expect_context();
 
     let Some(airdrop_info) = ctx
@@ -32,7 +34,7 @@ async fn is_dolr_airdrop_available(
         .find(&user_principal.to_text())
     else {
         // user has never claimed airdrop before
-        return Ok(());
+        return Ok(None);
     };
 
     let now: Timestamp = now.into();
@@ -48,7 +50,7 @@ async fn is_dolr_airdrop_available(
         }
     }
 
-    Ok(())
+    Ok(Some(airdrop_info.last_airdrop_at))
 }
 
 #[server(input = server_fn::codec::Json)]
@@ -137,23 +139,24 @@ pub async fn claim_dolr_airdrop(
     }
 
     let now = web_time::SystemTime::now();
-    if is_dolr_airdrop_available(user_canister, user_principal, now)
-        .await
-        .is_err()
-    {
+    let Ok(last_airdrop_at) = is_dolr_airdrop_available(user_canister, user_principal, now).await
+    else {
         return Err(ServerFnError::new(
             "Not allowed to claim: max claims reached within allowed duration",
         ));
-    }
+    };
 
     let ctx: state::stdb_dolr_airdrop::WrappedContext = expect_context();
 
-    ctx.mark_airdrop_claimed(user_principal, DOLR_AIRDROP_LIMIT_DURATION, now)
-        .await
-        .map_err(ServerFnError::new)?
-        // this is not likely to happen with current impl on stdb, but good to
-        // be cautious
-        .map_err(ServerFnError::new)?;
+    ctx.mark_airdrop_claimed(
+        user_principal,
+        DOLR_AIRDROP_LIMIT_DURATION,
+        now,
+        last_airdrop_at,
+    )
+    .await
+    .map_err(ServerFnError::new)?
+    .map_err(ServerFnError::new)?;
 
     let mut rng = SmallRng::from_os_rng();
     let amount = rng.random_range(DOLR_AIRDROP_AMOUNT_RANGE);

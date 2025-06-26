@@ -164,7 +164,7 @@ sentry-tower = { version = "0.37.0", features = ["axum", "axum-matched-path"] }
 jsonwebtoken = "9.3.1"
 google-cloud-alloydb-v1 = "0.2.0"
 yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adbf4be5cb62a26f2a90032261321bf1df33f08b", default-features = false }
-yral-spacetime-bindings = { git = "https://github.com/dolr-ai/yral-spacetime", branch = "main", version = "0.1.0" }
+yral-spacetime-bindings = { git = "https://github.com/dolr-ai/yral-spacetime", branch = "feat/optimisic-concurrency", version = "0.1.0" }
 fasthash = "0.4.0"
 # ===
 # Uncomment the below lines for testing out yral-common changes locally
