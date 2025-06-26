@@ -118,9 +118,7 @@ pub async fn yral_auth_url_impl(
         Nonce::new_random,
     );
 
-    for scope in &["email"] {
-        oauth2_request = oauth2_request.add_scope(Scope::new(scope.to_string()));
-    }
+    oauth2_request = oauth2_request.add_scope(Scope::new("email".to_string()));
 
     oauth2_request = oauth2_request
         .set_pkce_challenge(pkce_challenge)
