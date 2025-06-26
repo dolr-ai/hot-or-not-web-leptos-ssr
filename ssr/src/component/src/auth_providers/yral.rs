@@ -60,6 +60,9 @@ pub fn YralAuthProvider() -> impl IntoView {
                         } else if !url.contains("email") {
                             url = url.replace("scope=openid", "scope=openid%20email");
                         }
+                        logging::log!(
+                            "yral auth url: {url}"
+                        );
                         url
                     })
             };
