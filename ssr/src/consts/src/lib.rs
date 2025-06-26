@@ -39,13 +39,13 @@ pub const USER_ONBOARDING_STORE: &str = "user-onboarding";
 pub const USER_INTERNAL_STORE: &str = "user-internal";
 
 pub static OFF_CHAIN_AGENT_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev").unwrap());
+    Lazy::new(|| Url::parse("https://pr-216-dolr-ai-off-chain-agent.fly.dev").unwrap());
 
 pub static ANALYTICS_SERVER_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://marketing-analytics-server.fly.dev").unwrap());
 pub static OFF_CHAIN_AGENT_GRPC_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev:443").unwrap()); // pr-91-yral-dapp-off-chain-agent https://icp-off-chain-agent.fly.dev:443
-                                                                                  // G-6W5Q2MRX0E to test locally | G-PLNNETMSLM
+    Lazy::new(|| Url::parse("https://pr-216-dolr-ai-off-chain-agent.fly.dev:443").unwrap()); // pr-91-yral-dapp-off-chain-agent https://icp-off-chain-agent.fly.dev:443
+                                                                                             // G-6W5Q2MRX0E to test locally | G-PLNNETMSLM
 pub static DOWNLOAD_UPLOAD_SERVICE: Lazy<Url> =
     Lazy::new(|| Url::parse("https://download-upload-service.fly.dev").unwrap());
 pub static ML_FEED_URL: Lazy<Url> =

@@ -10,6 +10,9 @@ use serde_json::json;
 use sns_validation::pbs::sns_pb::SnsInitPayload;
 use wasm_bindgen::JsCast;
 
+/// Maximum pause duration in seconds before logging an error
+const VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS: f64 = 3.0;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProviderKind {
     #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
@@ -165,6 +168,7 @@ impl EventCtx {
 pub struct VideoEventData {
     pub publisher_user_id: Option<Principal>,
     pub user_id: Principal,
+    #[serde(rename = "is_loggedIn")]
     pub is_logged_in: bool,
     pub display_name: Option<String>,
     pub canister_id: Principal,
@@ -172,7 +176,9 @@ pub struct VideoEventData {
     pub video_category: String,
     pub creator_category: String,
     pub hashtag_count: Option<usize>,
+    #[serde(rename = "is_NSFW", skip_serializing_if = "Option::is_none")]
     pub is_nsfw: Option<bool>,
+    #[serde(rename = "is_hotorNot", skip_serializing_if = "Option::is_none")]
     pub is_hotor_not: Option<bool>,
     pub feed_type: String,
     pub view_count: Option<u64>,
@@ -237,78 +243,14 @@ impl VideoWatched {
     ) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            // use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
-
             // video_viewed - analytics
             let (video_watched, set_video_watched) = signal(false);
             let (full_video_watched, set_full_video_watched) = signal(false);
             let playing_started = RwSignal::new(false);
-            // let stall_start_time = RwSignal::new(None::<f64>);
 
-            // // Setup 5-second stall/buffer timeout
-            // let UseTimeoutFnReturn {
-            //     start: start_stall_timeout,
-            //     stop: stop_stall_timeout,
-            //     ..
-            // } = use_timeout_fn(
-            //     move |_| {
-            //         leptos::logging::error!(
-            //             "Video has been stalled/buffering for more than 5 seconds"
-            //         );
-            //     },
-            //     5000.0, // 5 seconds
-            // );
-
-            // Clone timeout functions for use in multiple closures
-            // let stop_stall_timeout_playing = stop_stall_timeout.clone();
-            // let start_stall_timeout_waiting = start_stall_timeout.clone();
-            // let start_stall_timeout_stalled = start_stall_timeout.clone();
-            // let stop_stall_timeout_canplay = stop_stall_timeout.clone();
-            // let stop_stall_timeout_ended = stop_stall_timeout.clone();
-
-            // let _ = use_event_listener(container_ref, ev::playing, move |_evt| {
-            //     let Some(_) = container_ref.get() else {
-            //         return;
-            //     };
-            //     playing_started.set(true);
-            //     // Video is playing, stop the stall timeout
-            //     stop_stall_timeout_playing();
-            //     stall_start_time.set(None);
-            // });
-
-            // // Track when video starts buffering/waiting for data
-            // let _ = use_event_listener(container_ref, ev::waiting, move |evt| {
-            //     let Some(target) = evt.target() else {
-            //         return;
-            //     };
-            //     let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
-            //     let current_time = video.current_time();
-
-            //     leptos::logging::warn!("Video waiting/buffering at time: {}", current_time);
-            //     stall_start_time.set(Some(current_time));
-            //     start_stall_timeout_waiting(());
-            // });
-
-            // Track when video stalls
-            // let _ = use_event_listener(container_ref, ev::stalled, move |evt| {
-            //     let Some(target) = evt.target() else {
-            //         return;
-            //     };
-            //     // let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
-            //     // let current_time = video.current_time();
-
-            //     // leptos::logging::warn!("Video stalled at time: {}", current_time);
-            //     // if stall_start_time.get().is_none() {
-            //     //     stall_start_time.set(Some(current_time));
-            //     //     start_stall_timeout_stalled(());
-            //     // }
-            // });
-
-            // Stop stall timeout when video can play through
-            // let _ = use_event_listener(container_ref, ev::canplaythrough, move |_evt| {
-            //     stop_stall_timeout_canplay();
-            //     stall_start_time.set(None);
-            // });
+            // Stall/buffer tracking state
+            let stall_start_time = RwSignal::new(None::<f64>);
+            let stall_error_logged = RwSignal::new(false);
 
             // Track video started - mixpanel
             let _ = use_event_listener(container_ref, ev::playing, move |_evt| {
@@ -316,6 +258,13 @@ impl VideoWatched {
                     return;
                 };
                 playing_started.set(true);
+
+                // Clear stall state when video resumes playing
+                if stall_start_time.get_untracked().is_some() {
+                    leptos::logging::log!("Video resumed playing after stall");
+                    stall_start_time.set(None);
+                    stall_error_logged.set(false);
+                }
 
                 let Some(global) = MixpanelGlobalProps::from_ev_ctx(ctx) else {
                     return;
@@ -351,7 +300,9 @@ impl VideoWatched {
                 let post = post_o.as_ref();
 
                 let Some(target) = evt.target() else {
-                    leptos::logging::error!("No target found for video timeupdate event");
+                    leptos::logging::error!(
+                        "video_log: No target found for video timeupdate event"
+                    );
                     return;
                 };
                 let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
@@ -452,11 +403,60 @@ impl VideoWatched {
                 );
             });
 
-            // Stop stall timeout when video ends
-            // let _ = use_event_listener(container_ref, ev::ended, move |_evt| {
-            //     stop_stall_timeout_ended();
-            //     stall_start_time.set(None);
-            // });
+            // Helper function to handle stall events
+            let handle_stall_event = move |event_type: &str| {
+                let Some(video_el) = container_ref.get() else {
+                    return;
+                };
+
+                let current_time = video_el.current_time();
+
+                // Log warning for the stall event
+                leptos::logging::warn!(
+                    "video_log: Video {} event at position={:.2}s",
+                    event_type,
+                    current_time
+                );
+
+                // Only set up timeout if we haven't already
+                if stall_start_time.get_untracked().is_none() {
+                    stall_start_time.set(Some(current_time));
+
+                    // Create timeout to log error if video doesn't resume
+                    let timeout = use_timeout_fn(
+                        move |_| {
+                            if let Some(stall_time) = stall_start_time.get_untracked() {
+                                if !stall_error_logged.get_untracked() {
+                                    leptos::logging::error!(
+                                        "video_log: Video stalled for more than {} seconds at position={:.2}s",
+                                        VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS,
+                                        stall_time
+                                    );
+                                    stall_error_logged.set(true);
+                                }
+                            }
+                        },
+                        VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS * 1000.0,
+                    );
+
+                    (timeout.start)(());
+                }
+            };
+
+            // Track waiting event (buffering)
+            let _ = use_event_listener(container_ref, ev::waiting, move |_evt| {
+                handle_stall_event("waiting");
+            });
+
+            // Track stalled event (data not arriving)
+            let _ = use_event_listener(container_ref, ev::stalled, move |_evt| {
+                handle_stall_event("stalled");
+            });
+
+            // Track suspend event (data loading suspended)
+            let _ = use_event_listener(container_ref, ev::suspend, move |_evt| {
+                handle_stall_event("suspend");
+            });
 
             // Track mute/unmute events
             let mixpanel_video_muted = RwSignal::new(muted.get_untracked());

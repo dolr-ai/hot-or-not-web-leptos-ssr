@@ -85,8 +85,6 @@ pub fn PostViewWithUpdatesProfile(
     let fetch_video_action: Action<_, _> = Action::new_unsync(move |_| {
         async move {
             let cursor = fetch_cursor.get_untracked();
-            leptos::logging::log!("Fetching next videos : cursor {:?}", cursor);
-
             let canisters = unauth_canisters();
             let posts_res = if let Some(canisters) = auth.auth_cans_if_available(canisters.clone())
             {
@@ -96,13 +94,6 @@ pub fn PostViewWithUpdatesProfile(
             };
 
             let res = try_or_redirect!(posts_res);
-
-            leptos::logging::log!(
-                "Fetched next videos resend {:?} reslen {:?}, prev length : {:?}",
-                res.end,
-                res.posts.len(),
-                video_queue.with_untracked(|vq| vq.len())
-            );
 
             queue_end.set(res.end);
             res.posts.into_iter().for_each(|p| {
@@ -125,10 +116,7 @@ pub fn PostViewWithUpdatesProfile(
                     }
                 });
             });
-            leptos::logging::log!(
-                "Updated video queue with new posts, current length: {}",
-                video_queue.with_untracked(|q| q.len())
-            );
+
             fetch_cursor.try_update(|c| {
                 c.advance();
             });
@@ -211,10 +199,9 @@ fn ProfilePostBase<
         ..
     } = expect_context();
 
-    // Set start_index from the passed parameter if available (do this immediately)
+    // Set start_index from the passed parameter if available
     if let Some(next_idx) = next_start_idx.get_untracked() {
         start_index.set(next_idx);
-        leptos::logging::log!("Set start_index to {} from query params", next_idx);
     }
 
     let intial_post = Resource::new(canister_and_post, move |params| {
@@ -231,19 +218,10 @@ fn ProfilePostBase<
             });
 
             video_queue.update(|vq| {
-                leptos::logging::log!(
-                    "Post index in video queue: {:?} for canister: {}, post_id: {} ; vide_q len : {:?}",
-                    post_idx,
-                    canister_id.to_string(),
-                    post_id,
-                    vq.len()
-                );
-
                 if let Some(idx) = post_idx {
                     // Remove all posts before the target post
                     if idx > 0 {
                         vq.drain(0..idx);
-
                         // Update start_index to account for the removed posts
                         start_index.update(|si| *si += idx);
                     }
@@ -251,22 +229,12 @@ fn ProfilePostBase<
                     // Always update video_queue_for_feed to reflect the new state
                     video_queue_for_feed.update(|vqf| {
                         // Re-populate from the updated video_queue
-                        for (i, post) in vq.iter().take(MAX_VIDEO_ELEMENTS_FOR_FEED).enumerate()
-                        {
+                        for (i, post) in vq.iter().take(MAX_VIDEO_ELEMENTS_FOR_FEED).enumerate() {
                             vqf[i].value.set(Some(post.clone()));
                         }
                     });
                     // Now current_index is 0 since we removed all previous posts
                     current_index.set(0);
-
-                    leptos::logging::log!(
-                        "Retrieved post from video queue: {:?} for canister: {}, post_id: {} ; start_index: {:?}",
-                        vq.get_index(0),
-                        canister_id.to_string(),
-                        post_id,
-                        start_index.get_untracked()
-                    );
-
                 }
             });
 
@@ -323,7 +291,6 @@ struct ProfileQueryParams {
 pub fn ProfilePost() -> impl IntoView {
     let params = use_params::<ProfileVideoParams>();
     let query_params = use_query::<ProfileQueryParams>();
-    leptos::logging::log!("next params: {:?}", query_params.get_untracked());
 
     let canister_and_post = Signal::derive(move || {
         params.with_untracked(|p| {

@@ -6,7 +6,12 @@ use state::canisters::auth_state;
 use utils::event_streaming::events::VideoWatched;
 
 use component::video_player::VideoPlayer;
+use futures::FutureExt;
+use gloo::timers::future::TimeoutFuture;
 use utils::{bg_url, mp4_url};
+
+/// Maximum time in milliseconds to wait for video play promise to resolve
+const VIDEO_PLAY_TIMEOUT_MS: u64 = 5000;
 
 use super::{overlay::VideoDetailsOverlay, PostDetails};
 
@@ -155,13 +160,25 @@ pub fn VideoViewForQueue(
                 let promise = vid.play();
                 if let Ok(promise) = promise {
                     wasm_bindgen_futures::spawn_local(async move {
-                        let rr = wasm_bindgen_futures::JsFuture::from(promise).await;
-                        if let Err(e) = rr {
-                            logging::error!("promise failed: {e:?}");
+                        // Create futures
+                        let mut play_future = wasm_bindgen_futures::JsFuture::from(promise).fuse();
+                        let mut timeout_future =
+                            TimeoutFuture::new(VIDEO_PLAY_TIMEOUT_MS as u32).fuse();
+
+                        // Race between play and timeout
+                        futures::select! {
+                            play_result = play_future => {
+                                if let Err(e) = play_result {
+                                    logging::error!("video_log: Video play() promise failed: {e:?}");
+                                }
+                            }
+                            _ = timeout_future => {
+                                logging::error!("video_log: Video play() did not resolve within 5 seconds");
+                            }
                         }
                     });
                 } else {
-                    logging::error!("Failed to play video");
+                    logging::error!("video_log: Failed to play video");
                 }
             }
         }
