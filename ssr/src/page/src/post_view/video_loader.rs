@@ -73,9 +73,6 @@ pub fn VideoView(
     #[prop(optional)] autoplay_at_render: bool,
     to_load: Memo<bool>,
     muted: RwSignal<bool>,
-    #[prop(optional)] current_idx: Option<RwSignal<usize>>,
-    #[prop(optional)] idx: Option<usize>,
-    #[prop(optional)] _is_playing: Option<RwSignal<bool>>,
 ) -> impl IntoView {
     let post_for_uid = post;
     let uid = Memo::new(move |_| {
@@ -111,52 +108,7 @@ pub fn VideoView(
         Some(())
     });
 
-    // Initialize video watched tracking in an effect to prevent multiple initializations
-    // Only set up event listeners if we have current_idx and idx (VideoViewForQueue case)
-    if let (Some(current_idx_signal), Some(idx_val)) = (current_idx, idx) {
-        // Store cleanup function
-        let event_cleanup: RwSignal<Option<Box<dyn Fn() + Send + Sync>>> = RwSignal::new(None);
-
-        Effect::new(move |_| {
-            let is_current = idx_val == current_idx_signal();
-
-            if !is_current {
-                // Clean up event listeners when video goes out of scope
-                event_cleanup.with_untracked(|cleanup_opt| {
-                    if let Some(cleanup_fn) = cleanup_opt {
-                        leptos::logging::log!(
-                            "video_log: Cleaning up event listeners for video at idx {}",
-                            idx_val
-                        );
-                        cleanup_fn();
-                    }
-                });
-                event_cleanup.set(None);
-                return;
-            }
-
-            // Set up event listeners only when video becomes current
-            let should_setup = event_cleanup.with_untracked(|cleanup_opt| cleanup_opt.is_none());
-            if should_setup {
-                leptos::logging::log!(
-                    "video_log: Setting up event listeners for video at idx {}",
-                    idx_val
-                );
-                let cleanup = VideoWatched.send_event(ev_ctx, post, _ref, muted);
-                event_cleanup.set(Some(cleanup));
-            }
-        });
-    } else {
-        // For regular VideoView usage (without queue), set up event listeners immediately
-        Effect::new(move |_| {
-            let cleanup = VideoWatched.send_event(ev_ctx, post, _ref, muted);
-
-            // Return cleanup as the effect's cleanup function
-            on_cleanup(move || {
-                cleanup();
-            });
-        });
-    }
+    VideoWatched.send_event(ev_ctx, post, _ref, muted);
 
     view! {
         <VideoPlayer
@@ -235,9 +187,6 @@ pub fn VideoViewForQueue(
             _ref=container_ref
             to_load
             muted
-            current_idx
-            idx
-            _is_playing=is_playing
         />
     }
     .into_any()
