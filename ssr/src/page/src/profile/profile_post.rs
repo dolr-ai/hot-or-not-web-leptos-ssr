@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use candid::Principal;
 use component::{back_btn::BackButton, spinner::FullScreenSpinner};
 use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
@@ -23,11 +21,13 @@ use super::{
 
 use yral_canisters_common::utils::posts::PostDetails;
 
+const PROFILE_POST_LIMIT: u64 = 25;
+type DefProfileVidStream = ProfileVideoStream<PROFILE_POST_LIMIT>;
+
 #[component]
-fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
+pub fn PostViewWithUpdatesProfile(
     initial_post: PostDetails,
     user_canister: Principal,
-    #[prop(optional)] _stream_phantom: PhantomData<VidStream>,
 ) -> impl IntoView {
     let ProfilePostsContext {
         video_queue,
@@ -36,17 +36,20 @@ fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
         current_index,
         queue_end,
     } = expect_context();
-    let recovering_state = RwSignal::new(true);
-    // Create a RwSignal for hard refresh target
+
+    let auth = auth_state();
+    let recovering_state = RwSignal::new(false);
     let hard_refresh_target = RwSignal::new("/".to_string());
+
     // Initialize cursor to fetch posts after the ones already in video_queue
     let initial_cursor_start =
         start_index.get_untracked() + video_queue.with_untracked(|vq| vq.len());
-    let fetch_cursor = RwSignal::new(FixedFetchCursor::<LIMIT> {
+    let fetch_cursor = RwSignal::new(FixedFetchCursor::<PROFILE_POST_LIMIT> {
         start: initial_cursor_start as u64,
-        limit: 10,
+        limit: PROFILE_POST_LIMIT,
     });
-    let auth = auth_state();
+
+    // Create overlay function
     let overlay = move || {
         view! {
             <Suspense>
@@ -79,23 +82,27 @@ fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
         recovering_state.set(true);
     }
 
-    let next_videos: Action<_, _> = Action::new_unsync(move |_| {
-        leptos::logging::log!("Fetching next videos");
-        let hard_refresh_target = hard_refresh_target.clone();
+    let fetch_video_action: Action<_, _> = Action::new_unsync(move |_| {
         async move {
             let cursor = fetch_cursor.get_untracked();
+            leptos::logging::log!("Fetching next videos : cursor {:?}", cursor);
 
             let canisters = unauth_canisters();
             let posts_res = if let Some(canisters) = auth.auth_cans_if_available(canisters.clone())
             {
-                VidStream::fetch_next_posts(cursor, &canisters, user_canister).await
+                DefProfileVidStream::fetch_next_posts(cursor, &canisters, user_canister).await
             } else {
-                VidStream::fetch_next_posts(cursor, &canisters, user_canister).await
+                DefProfileVidStream::fetch_next_posts(cursor, &canisters, user_canister).await
             };
 
-            leptos::logging::log!("Fetched next videos");
-
             let res = try_or_redirect!(posts_res);
+
+            leptos::logging::log!(
+                "Fetched next videos resend {:?} reslen {:?}, prev length : {:?}",
+                res.end,
+                res.posts.len(),
+                video_queue.with_untracked(|vq| vq.len())
+            );
 
             queue_end.set(res.end);
             res.posts.into_iter().for_each(|p| {
@@ -107,10 +114,13 @@ fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
                                 vqf[len_vq - 1].value.set(Some(p.clone()));
                             });
                             // Update hard refresh target to this post
-                            let next_start_idx = start_index.get_untracked() + len_vq;
-                            hard_refresh_target.set(
-                                format!("/profile/{}/post/{}?next={}", p.canister_id, p.post_id, next_start_idx)
-                            );
+                            let next_start_idx = fetch_cursor.with_untracked(|c| c.start + c.limit);
+                            hard_refresh_target.set(format!(
+                                "/profile/{}/post/{}?next={}",
+                                p.canister_id,
+                                p.post_id,
+                                next_start_idx - 1
+                            ));
                         }
                     }
                 });
@@ -128,15 +138,15 @@ fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
     // Trigger initial fetch if not recovering state
     Effect::new(move || {
         if !recovering_state.get_untracked() && video_queue.with_untracked(|vq| vq.len()) <= 1 {
-            next_videos.dispatch(());
+            fetch_video_action.dispatch(());
         }
     });
 
     let fetch_next_videos = use_debounce_fn(
         move || {
-            if !next_videos.pending().get_untracked() && !queue_end.get_untracked() {
+            if !fetch_video_action.pending().get_untracked() && !queue_end.get_untracked() {
                 log::debug!("trigger rerender");
-                next_videos.dispatch(());
+                fetch_video_action.dispatch(());
             }
         },
         200.0,
@@ -150,7 +160,7 @@ fn ProfilePostWithUpdates<const LIMIT: u64, VidStream: ProfVideoStream<LIMIT>>(
         })
     });
 
-    Effect::new(move |_| {
+    Effect::new(move || {
         let Some((canister_id, post_id)) = current_post_base.get() else {
             return;
         };
@@ -201,12 +211,11 @@ fn ProfilePostBase<
         ..
     } = expect_context();
 
-    // Set start_index from the passed parameter if available
-    Effect::new(move |_| {
-        if let Some(next_idx) = next_start_idx.get() {
-            start_index.set(next_idx);
-        }
-    });
+    // Set start_index from the passed parameter if available (do this immediately)
+    if let Some(next_idx) = next_start_idx.get_untracked() {
+        start_index.set(next_idx);
+        leptos::logging::log!("Set start_index to {} from query params", next_idx);
+    }
 
     let intial_post = Resource::new(canister_and_post, move |params| {
         let canisters = unauth_canisters();
@@ -221,7 +230,7 @@ fn ProfilePostBase<
                     .position(|post| post.canister_id == canister_id && post.post_id == post_id)
             });
 
-            let _ = video_queue.update(|vq| {
+            video_queue.update(|vq| {
                 leptos::logging::log!(
                     "Post index in video queue: {:?} for canister: {}, post_id: {} ; vide_q len : {:?}",
                     post_idx,
@@ -238,20 +247,15 @@ fn ProfilePostBase<
                         // Update start_index to account for the removed posts
                         start_index.update(|si| *si += idx);
                     }
-                    
+
                     // Always update video_queue_for_feed to reflect the new state
                     video_queue_for_feed.update(|vqf| {
-                        // Clear all entries
-                        for i in 0..MAX_VIDEO_ELEMENTS_FOR_FEED {
-                            vqf[i].value.set(None);
-                        }
                         // Re-populate from the updated video_queue
                         for (i, post) in vq.iter().take(MAX_VIDEO_ELEMENTS_FOR_FEED).enumerate()
                         {
                             vqf[i].value.set(Some(post.clone()));
                         }
                     });
-                    
                     // Now current_index is 0 since we removed all previous posts
                     current_index.set(0);
 
@@ -310,18 +314,16 @@ struct ProfileVideoParams {
     post_id: u64,
 }
 
-#[derive(Params, PartialEq, Clone)]
+#[derive(Params, PartialEq, Clone, Debug)]
 struct ProfileQueryParams {
     next: Option<usize>,
 }
-
-const PROFILE_POST_LIMIT: u64 = 25;
-type DefProfileVidStream = ProfileVideoStream<PROFILE_POST_LIMIT>;
 
 #[component]
 pub fn ProfilePost() -> impl IntoView {
     let params = use_params::<ProfileVideoParams>();
     let query_params = use_query::<ProfileQueryParams>();
+    leptos::logging::log!("next params: {:?}", query_params.get_untracked());
 
     let canister_and_post = Signal::derive(move || {
         params.with_untracked(|p| {
@@ -329,49 +331,14 @@ pub fn ProfilePost() -> impl IntoView {
             Some((p.canister_id, p.post_id))
         })
     });
-    
-    let next_start_idx = Signal::derive(move || {
-        query_params.with_untracked(|q| {
-            q.as_ref().ok()?.next
-        })
-    });
+
+    let next_start_idx =
+        Signal::derive(move || query_params.with_untracked(|q| q.as_ref().ok()?.next));
 
     view! {
         <ProfilePostBase canister_and_post next_start_idx let:pd>
-            <ProfilePostWithUpdates<
-            PROFILE_POST_LIMIT,
-            DefProfileVidStream,
-        > user_canister=pd.canister_id initial_post=pd />
+            <PostViewWithUpdatesProfile user_canister=pd.canister_id initial_post=pd />
         </ProfilePostBase>
     }
     .into_any()
 }
-
-// TODO: handle custom context management for bets
-// #[derive(Params, PartialEq)]
-// struct ProfileBetsParams {
-//     bet_canister: Principal,
-//     post_canister: Principal,
-//     post_id: u64,
-// }
-
-// const PROFILE_POST_BET_LIMIT: u64 = 10;
-
-// #[component]
-// pub fn ProfilePostBets() -> impl IntoView {
-//     let params = use_params::<ProfileBetsParams>();
-
-//     let user_canister = params.with_untracked(|p| p.as_ref().map(|p| p.bet_canister).unwrap_or(Principal::anonymous()));
-//     let canister_and_post = Signal::derive(move || {
-//         params.with_untracked(|p| {
-//             let p = p.as_ref().ok()?;
-//             Some((p.post_canister, p.post_id))
-//         })
-//     });
-
-//     view! {
-//         <ProfilePostBase canister_and_post let:pd>
-//             <ProfilePostWithUpdates<PROFILE_POST_BET_LIMIT, ProfileVideoBetsStream> user_canister initial_post=pd/>
-//         </ProfilePostBase>
-//     }
-// }

@@ -156,7 +156,7 @@ pub fn CommonPostViewWithUpdates(
     });
 
     let hard_refresh_target = RwSignal::new("/".to_string());
-    
+
     view! {
         <ScrollingPostView
             video_queue

@@ -63,7 +63,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                     children=move |feedpost| {
                         let queue_idx = feedpost.key;
                         let post = feedpost.value;
-                        let hard_refresh_target = hard_refresh_target.clone();
+                        let hard_refresh_target = hard_refresh_target;
                         let container_ref = NodeRef::<html::Div>::new();
                         let next_videos = fetch_next_videos.clone();
                         use_intersection_observer_with_options(
@@ -92,7 +92,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                 .root(Some(scroll_root)),
                         );
                         Effect::new(move |_| {
-                            if current_idx() > MAX_VIDEO_ELEMENTS_FOR_FEED - 1 {
+                            if current_idx() >= MAX_VIDEO_ELEMENTS_FOR_FEED - 1 {
                                 let window = window();
                                 let _ = window
                                     .location()
