@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Instant};
 use web_time::{Duration, SystemTime};
 
 use anyhow::Context;
-use consts::{BACKEND_MODULE_IDENTITY, STDB_ACCESS_TOKEN, STDB_URL};
+use consts::{BACKEND_MODULE_IDENTITY, STDB_URL};
 use fasthash::{BufHasher, HasherExt, MetroHasherExt};
 use tokio::sync::broadcast;
 use yral_spacetime_bindings::{
@@ -33,11 +33,11 @@ pub struct WrappedContext {
 }
 
 impl WrappedContext {
-    pub async fn new() -> anyhow::Result<Self> {
+    pub async fn new(token: Option<impl Into<String>>) -> anyhow::Result<Self> {
         let conn = backend::DbConnection::builder()
             .with_uri(STDB_URL)
             .with_module_name(BACKEND_MODULE_IDENTITY)
-            .with_token(STDB_ACCESS_TOKEN.as_ref())
+            .with_token(token)
             .build()
             .context("Couldn't connect to the db")?;
 
@@ -115,7 +115,7 @@ impl WrappedContext {
             .context("Couldn't send reducer request")?;
 
         let res = loop {
-            let (recv_hash, data) = tokio::time::timeout(Duration::from_secs(5), rx.recv())
+            let (recv_hash, data) = tokio::time::timeout(Duration::from_secs(60), rx.recv())
                 .await
                 .context("timeout reached before receiving result")??;
             if recv_hash == search_hash {
