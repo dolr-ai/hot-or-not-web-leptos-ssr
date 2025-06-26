@@ -14,6 +14,9 @@ env:
 jobs:
   build_check:
     uses: ./.github/workflows/build-check.yml
+    permissions:
+      packages: write
+      contents: read
     with:
       publish-artifact: true
       # erase_components: ${{ contains(github.event.pull_request.labels.*.name, 'type erasured') }}
