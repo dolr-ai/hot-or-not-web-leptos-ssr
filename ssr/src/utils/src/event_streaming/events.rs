@@ -240,7 +240,7 @@ impl VideoWatched {
         vid_details: Signal<Option<PostDetails>>,
         container_ref: NodeRef<Video>,
         muted: RwSignal<bool>,
-    ) {
+    ) -> Box<dyn Fn() + Send + Sync> {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // video_viewed - analytics
@@ -253,7 +253,7 @@ impl VideoWatched {
             let stall_error_logged = RwSignal::new(false);
 
             // Track video started - mixpanel
-            let _ = use_event_listener(container_ref, ev::playing, move |_evt| {
+            let cleanup_playing = use_event_listener(container_ref, ev::playing, move |_evt| {
                 let Some(_) = container_ref.get() else {
                     return;
                 };
@@ -292,86 +292,87 @@ impl VideoWatched {
                 }
             });
 
-            let _ = use_event_listener(container_ref, ev::timeupdate, move |evt| {
-                let Some(user) = ctx.user_details() else {
-                    return;
-                };
-                let post_o = vid_details();
-                let post = post_o.as_ref();
-
-                let Some(target) = evt.target() else {
-                    leptos::logging::error!(
-                        "video_log: No target found for video timeupdate event"
-                    );
-                    return;
-                };
-                let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
-                let duration = video.duration();
-                let current_time = video.current_time();
-                if current_time < 0.95 * duration {
-                    set_full_video_watched.set(false);
-                }
-
-                // send bigquery event when video is watched > 95%
-                if current_time >= 0.95 * duration && !full_video_watched.get() {
-                    // Initialize base event data and add duration-specific fields
-                    let mut event_data = VideoEventData::from_details(&user, post, &ctx);
-                    event_data.percentage_watched = Some(100.0);
-                    event_data.absolute_watched = Some(duration);
-                    event_data.video_duration = Some(duration);
-
-                    send_event_warehouse_ssr_spawn(
-                        "video_duration_watched".to_string(),
-                        serde_json::to_string(&event_data).unwrap_or_default(),
-                    );
-
-                    set_full_video_watched.set(true);
-                }
-
-                if video_watched.get() {
-                    return;
-                }
-
-                if current_time >= 3.0 && playing_started() {
-                    // Initialize event data for video_viewed event
-                    let event_data = VideoEventData::from_details(&user, post, &ctx);
-
-                    let _ = send_event_ssr_spawn(
-                        "video_viewed".to_string(),
-                        serde_json::to_string(&event_data).unwrap_or_default(),
-                    );
-
-                    // Mixpanel tracking
-                    let Some(global) = MixpanelGlobalProps::from_ev_ctx(ctx) else {
+            let cleanup_timeupdate =
+                use_event_listener(container_ref, ev::timeupdate, move |evt| {
+                    let Some(user) = ctx.user_details() else {
                         return;
                     };
-                    if let Some(post) = post {
-                        let is_logged_in = ctx.is_connected();
-                        let is_game_enabled = true;
+                    let post_o = vid_details();
+                    let post = post_o.as_ref();
 
-                        MixPanelEvent::track_video_viewed(MixpanelVideoViewedProps {
-                            publisher_user_id: post.poster_principal.to_text(),
-                            user_id: global.user_id,
-                            visitor_id: global.visitor_id,
-                            is_logged_in,
-                            canister_id: global.canister_id,
-                            is_nsfw_enabled: global.is_nsfw_enabled,
-                            video_id: post.uid.clone(),
-                            view_count: post.views,
-                            like_count: post.likes,
-                            game_type: MixpanelPostGameType::HotOrNot,
-                            is_nsfw: post.is_nsfw,
-                            is_game_enabled,
-                        });
+                    let Some(target) = evt.target() else {
+                        leptos::logging::error!(
+                            "video_log: No target found for video timeupdate event"
+                        );
+                        return;
+                    };
+                    let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
+                    let duration = video.duration();
+                    let current_time = video.current_time();
+                    if current_time < 0.95 * duration {
+                        set_full_video_watched.set(false);
                     }
-                    playing_started.set(false);
 
-                    set_video_watched.set(true);
-                }
-            });
+                    // send bigquery event when video is watched > 95%
+                    if current_time >= 0.95 * duration && !full_video_watched.get() {
+                        // Initialize base event data and add duration-specific fields
+                        let mut event_data = VideoEventData::from_details(&user, post, &ctx);
+                        event_data.percentage_watched = Some(100.0);
+                        event_data.absolute_watched = Some(duration);
+                        event_data.video_duration = Some(duration);
+
+                        send_event_warehouse_ssr_spawn(
+                            "video_duration_watched".to_string(),
+                            serde_json::to_string(&event_data).unwrap_or_default(),
+                        );
+
+                        set_full_video_watched.set(true);
+                    }
+
+                    if video_watched.get() {
+                        return;
+                    }
+
+                    if current_time >= 3.0 && playing_started() {
+                        // Initialize event data for video_viewed event
+                        let event_data = VideoEventData::from_details(&user, post, &ctx);
+
+                        let _ = send_event_ssr_spawn(
+                            "video_viewed".to_string(),
+                            serde_json::to_string(&event_data).unwrap_or_default(),
+                        );
+
+                        // Mixpanel tracking
+                        let Some(global) = MixpanelGlobalProps::from_ev_ctx(ctx) else {
+                            return;
+                        };
+                        if let Some(post) = post {
+                            let is_logged_in = ctx.is_connected();
+                            let is_game_enabled = true;
+
+                            MixPanelEvent::track_video_viewed(MixpanelVideoViewedProps {
+                                publisher_user_id: post.poster_principal.to_text(),
+                                user_id: global.user_id,
+                                visitor_id: global.visitor_id,
+                                is_logged_in,
+                                canister_id: global.canister_id,
+                                is_nsfw_enabled: global.is_nsfw_enabled,
+                                video_id: post.uid.clone(),
+                                view_count: post.views,
+                                like_count: post.likes,
+                                game_type: MixpanelPostGameType::HotOrNot,
+                                is_nsfw: post.is_nsfw,
+                                is_game_enabled,
+                            });
+                        }
+                        playing_started.set(false);
+
+                        set_video_watched.set(true);
+                    }
+                });
 
             // video duration watched - warehousing
-            let _ = use_event_listener(container_ref, ev::pause, move |evt| {
+            let cleanup_pause = use_event_listener(container_ref, ev::pause, move |evt| {
                 let Some(user) = ctx.user_details() else {
                     return;
                 };
@@ -444,17 +445,17 @@ impl VideoWatched {
             };
 
             // Track waiting event (buffering)
-            let _ = use_event_listener(container_ref, ev::waiting, move |_evt| {
+            let cleanup_waiting = use_event_listener(container_ref, ev::waiting, move |_evt| {
                 handle_stall_event("waiting");
             });
 
             // Track stalled event (data not arriving)
-            let _ = use_event_listener(container_ref, ev::stalled, move |_evt| {
+            let cleanup_stalled = use_event_listener(container_ref, ev::stalled, move |_evt| {
                 handle_stall_event("stalled");
             });
 
             // Track suspend event (data loading suspended)
-            let _ = use_event_listener(container_ref, ev::suspend, move |_evt| {
+            let cleanup_suspend = use_event_listener(container_ref, ev::suspend, move |_evt| {
                 handle_stall_event("suspend");
             });
 
@@ -499,6 +500,22 @@ impl VideoWatched {
                     });
                 }
             });
+
+            // Return cleanup function that calls all cleanup functions
+            Box::new(move || {
+                cleanup_playing();
+                cleanup_timeupdate();
+                cleanup_pause();
+                cleanup_waiting();
+                cleanup_stalled();
+                cleanup_suspend();
+            })
+        }
+
+        #[cfg(not(all(feature = "hydrate", feature = "ga4")))]
+        {
+            // Return no-op cleanup function for non-hydrate builds
+            Box::new(|| {})
         }
     }
 }
@@ -897,6 +914,8 @@ impl LoginMethodSelected {
                     "login_method": match prov {
                         #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
                         ProviderKind::YralAuth => "yral",
+                        #[cfg(not(any(feature = "oauth-ssr", feature = "oauth-hydrate")))]
+                        _ => "local",
                     },
                     "attempt_count": 1,
                 })
