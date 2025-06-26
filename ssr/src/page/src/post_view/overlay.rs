@@ -164,7 +164,6 @@ pub fn VideoDetailsOverlay(
     post: PostDetails,
     prev_post: Option<PostDetails>,
     win_audio_ref: NodeRef<Audio>,
-    wallet_balance: RwSignal<u64>,
 ) -> impl IntoView {
     let show_share = RwSignal::new(false);
     let show_report = RwSignal::new(false);
@@ -458,7 +457,7 @@ pub fn VideoDetailsOverlay(
                     </button>
                 </div>
                 <div class="w-full bg-transparent pointer-events-auto max-w-lg mx-auto">
-                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref wallet_balance show_tutorial />
+                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref show_tutorial />
                 </div>
             </div>
         </div>

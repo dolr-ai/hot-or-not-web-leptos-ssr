@@ -389,7 +389,7 @@ pub fn OnboardingWelcomePopup(show: RwSignal<bool>, close_action: Action<(), ()>
                     >
                         <Icon icon=icondata::ChCross />
                     </button>
-                    <div class="flex z-[2] flex-col items-center gap-16 text-white justify-center p-12">
+                    <div class="flex z-[2] relative flex-col items-center gap-16 text-white justify-center p-12">
                         <img src="/img/hotornot/onboarding-welcome.webp" class="h-60" />
                         <div class="text-center text-2xl font-semibold">Bitcoin credited to<br/> your wallet!</div>
                         <div class="text-center">

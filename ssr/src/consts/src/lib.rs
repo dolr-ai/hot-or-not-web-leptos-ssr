@@ -37,6 +37,7 @@ pub const REFERRER_COOKIE: &str = "referrer";
 pub const USER_CANISTER_ID_STORE: &str = "user-canister-id";
 pub const USER_PRINCIPAL_STORE: &str = "user-principal";
 pub const USER_INTERNAL_STORE: &str = "user-internal";
+pub const WALLET_BALANCE_STORE_KEY: &str = "wallet-balance-sats";
 
 pub static OFF_CHAIN_AGENT_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev").unwrap());

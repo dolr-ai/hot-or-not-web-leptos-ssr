@@ -1,8 +1,8 @@
 mod server_impl;
 
-use codee::string::JsonSerdeCodec;
+use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
-use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY};
+use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
 use hon_worker_common::{sign_vote_request, GameInfo, GameResult, GameResultV2, WORKER_URL};
 use ic_agent::Identity;
 use leptos::html::Audio;
@@ -128,7 +128,6 @@ fn HNButtonOverlay(
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
     audio_ref: NodeRef<Audio>,
-    wallet_balance: RwSignal<u64>,
 ) -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
@@ -203,7 +202,10 @@ fn HNButtonOverlay(
                             } => TokenBalance::new((lose_amt + 0u64).into(), 0).humanize(),
                         };
 
-                        wallet_balance.set(match res.game_result.clone() {
+                        let (_, set_wallet_balalnce_store, _) =
+                            use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+
+                        set_wallet_balalnce_store.set(match res.game_result.clone() {
                             GameResultV2::Win {
                                 win_amt: _,
                                 updated_balance,
@@ -320,7 +322,6 @@ fn HNWonLost(
     game_result: GameResult,
     vote_amount: u64,
     bet_direction: RwSignal<Option<VoteKind>>,
-    wallet_balance: RwSignal<u64>,
     show_tutorial: RwSignal<bool>,
 ) -> impl IntoView {
     let won = matches!(game_result, GameResult::Win { .. });
@@ -338,8 +339,10 @@ fn HNWonLost(
             creator_reward
         ),
         GameResult::Loss { lose_amt } => format!(
-            "You lost {} SATS.",
-            TokenBalance::new(lose_amt.into(), 0).humanize()
+            "You voted {} - better luck next time. You lost {} SATS, the creator gets {} SATS",
+            bet_direction_text,
+            TokenBalance::new(lose_amt.into(), 0).humanize(),
+            creator_reward
         ),
     };
     let bet_amount = vote_amount;
@@ -371,6 +374,9 @@ fn HNWonLost(
         }
     });
 
+    let (wallet_balance, _, _) =
+        use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+
     view! {
         <div class="flex w-full flex-col gap-3 p-4">
             <div class="flex gap-6 justify-center items-center w-full">
@@ -388,26 +394,14 @@ fn HNWonLost(
                         show_tutorial.set(true)
                     }>
                     <img src="/img/hotornot/question-mark.svg" class="h-8 w-8" />
-                    <ShowAny when=move || won && show_help_ping.get()>
+                    <ShowAny when=move || !won && show_help_ping.get()>
                         <span class="absolute top-1 right-1 ping rounded-full w-2 h-2 bg-red-500 text-red-500"></span>
                     </ShowAny>
                 </button>
             </div>
-            {
-                if won {
-                    view! {
-                        <div class="flex  items-center text-white bg-green-500 text-sm font-semibold justify-center p-2 rounded-full">
-                            {format!("Total balance: {} SATS", wallet_balance.get())}
-                        </div>
-                    }.into_any()
-                } else {
-                    view! {
-                        <div class="flex  items-center bg-red-500 text-white text-sm font-semibold justify-center p-2 rounded-full">
-                            "You lost! 🥺"
-                        </div>
-                    }.into_any()
-                }
-            }
+            <div class=format!("flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-green-500" } else { "bg-red-500" })>
+                {format!("Total balance: {} SATS", wallet_balance.get())}
+            </div>
         </div>
     }
 }
@@ -418,7 +412,6 @@ pub fn HNUserParticipation(
     participation: GameInfo,
     refetch_bet: Trigger,
     bet_direction: RwSignal<Option<VoteKind>>,
-    wallet_balance: RwSignal<u64>,
     show_tutorial: RwSignal<bool>,
 ) -> impl IntoView {
     let (_, _) = (post, refetch_bet); // not sure if i will need these later
@@ -436,7 +429,7 @@ pub fn HNUserParticipation(
         .expect("We only allow voting with 200 max, so this is alright");
 
     view! {
-        <HNWonLost game_result vote_amount bet_direction wallet_balance show_tutorial />
+        <HNWonLost game_result vote_amount bet_direction show_tutorial />
         <ShadowBg />
     }
 }
@@ -464,7 +457,6 @@ pub fn HNGameOverlay(
     post: PostDetails,
     prev_post: Option<PostDetails>,
     win_audio_ref: NodeRef<Audio>,
-    wallet_balance: RwSignal<u64>,
     show_tutorial: RwSignal<bool>,
 ) -> impl IntoView {
     let bet_direction = RwSignal::new(None::<VoteKind>);
@@ -506,7 +498,6 @@ pub fn HNGameOverlay(
                                         post
                                         refetch_bet
                                         participation=participation.clone()
-                                        wallet_balance
                                         bet_direction
                                         show_tutorial
                                     />
@@ -521,7 +512,6 @@ pub fn HNGameOverlay(
                                         coin
                                         refetch_bet
                                         audio_ref=win_audio_ref
-                                        wallet_balance
                                     />
                                 }
                                     .into_any()
