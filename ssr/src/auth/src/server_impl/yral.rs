@@ -126,7 +126,6 @@ pub async fn yral_auth_url_impl(
         .set_pkce_challenge(pkce_challenge)
         .set_login_hint(LoginHint::new(login_hint));
 
-    let mut oauth2_request = oauth2_request;
     if provider != LoginProvider::Any {
         let provider = match provider {
             LoginProvider::Google => "google",
