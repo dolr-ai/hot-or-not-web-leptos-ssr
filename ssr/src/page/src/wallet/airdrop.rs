@@ -441,11 +441,11 @@ fn WalletAirdropAnimation(state: AirdropClaimState, logo: String) -> impl IntoVi
                             class="object-cover w-full h-full rounded-md fade-in"
                         />
                     </div>
-                    <div class="absolute -right-4 -bottom-4 p-px w-16 h-16 rounded-md fade-in">
+                    <div class="absolute right-0 bottom-0 p-px w-16 h-16 rounded-full fade-in bg-black">
                         <img
                             alt="Airdrop"
                             src=logo.get_value()
-                            class="object-cover w-full h-full rounded-md fade-in"
+                            class="object-cover w-full h-full rounded-full fade-in"
                         />
                     </div>
                 </div>

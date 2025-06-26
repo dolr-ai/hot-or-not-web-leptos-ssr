@@ -15,5 +15,3 @@ pub static PUMP_AND_DUMP_WORKER_URL: Lazy<Url> =
 pub const STDB_URL: &str = "http://localhost:5000";
 
 pub const BACKEND_MODULE_IDENTITY: &str = "local-backend";
-
-pub static STDB_ACCESS_TOKEN: Lazy<Option<String>> = Lazy::new(|| None);
