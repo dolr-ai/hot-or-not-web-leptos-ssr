@@ -8,7 +8,7 @@ use leptos_router::params::Params;
 use openidconnect::CsrfToken;
 use serde::{Deserialize, Serialize};
 use server_fn::codec::Json;
-use utils::route::go_to_root;
+// use utils::route::go_to_root;
 
 #[server(input = Json, output = Json)]
 async fn perform_yral_oauth(oauth: OAuthQuery) -> Result<YralAuthResponse, ServerFnError> {
@@ -31,17 +31,20 @@ pub fn IdentitySender(identity_res: YralAuthMessage) -> impl IntoView {
         let _id = &identity_res;
         #[cfg(feature = "hydrate")]
         {
-            use web_sys::Window;
+            use leptos::logging;
 
-            let win = window();
-            let origin = win.origin();
-            let opener = win.opener().unwrap();
-            if opener.is_null() {
-                go_to_root();
-            }
-            let opener = Window::from(opener);
-            let msg = serde_json::to_string(&_id).unwrap();
-            _ = opener.post_message(&msg.into(), &origin);
+            logging::log!("IdentitySender: Received identity response: {:?}", _id);
+            // use web_sys::Window;
+
+            // let win = window();
+            // let origin = win.origin();
+            // let opener = win.opener().unwrap();
+            // if opener.is_null() {
+            //     go_to_root();
+            // }
+            // let opener = Window::from(opener);
+            // let msg = serde_json::to_string(&_id).unwrap();
+            // _ = opener.post_message(&msg.into(), &origin);
         }
     });
 
