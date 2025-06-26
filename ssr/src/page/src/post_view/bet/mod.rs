@@ -374,8 +374,17 @@ fn HNWonLost(
         }
     });
 
-    let (wallet_balance, _, _) =
+    let (wallet_balance_store, _, _) =
         use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+
+    let total_balance_text = move || {
+        let balance = wallet_balance_store.get();
+        format!("Total balance: {} SATS", balance)
+    };
+
+    let show_ping = move || {
+        show_help_ping.get() && !won
+    };
 
     view! {
         <div class="flex w-full flex-col gap-3 p-4">
@@ -394,13 +403,13 @@ fn HNWonLost(
                         show_tutorial.set(true)
                     }>
                     <img src="/img/hotornot/question-mark.svg" class="h-8 w-8" />
-                    <ShowAny when=move || !won && show_help_ping.get()>
+                    <ShowAny when=move || show_ping()>
                         <span class="absolute top-1 right-1 ping rounded-full w-2 h-2 bg-red-500 text-red-500"></span>
                     </ShowAny>
                 </button>
             </div>
             <div style="background: #B38929" class="flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full">
-                {format!("Total balance: {} SATS", wallet_balance.get())}
+                {total_balance_text}
             </div>
         </div>
     }
