@@ -399,7 +399,7 @@ fn HNWonLost(
                     </ShowAny>
                 </button>
             </div>
-            <div class=format!("flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-green-500" } else { "bg-red-500" })>
+            <div style="background: #B38929" class="flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full">
                 {format!("Total balance: {} SATS", wallet_balance.get())}
             </div>
         </div>
