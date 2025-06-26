@@ -404,11 +404,11 @@ fn HNWonLost(
                     }>
                     <img src="/img/hotornot/question-mark.svg" class="h-8 w-8" />
                     <ShowAny when=move || show_ping()>
-                        <span class="absolute top-1 right-1 ping rounded-full w-2 h-2 bg-red-500 text-red-500"></span>
+                        <span class="absolute top-1 right-1 ping rounded-full w-2 h-2 bg-[#F14331] text-[#F14331]"></span>
                     </ShowAny>
                 </button>
             </div>
-            <div style="background: #B38929" class="flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full">
+            <div class=format!("flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full, {}", if won { "bg-[#158F5C]" } else { "bg-[#F14331]" })>
                 {total_balance_text}
             </div>
         </div>
