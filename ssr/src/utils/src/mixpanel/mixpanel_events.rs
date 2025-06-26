@@ -227,31 +227,11 @@ impl MixpanelGlobalProps {
     }
 
     pub fn get_device_id() -> String {
-        let (device_id, set_device_id, _) =
-            use_local_storage::<String, FromToStringCodec>(DEVICE_ID);
-        // Extracting the device ID value
-        let device_id_value = device_id.get_untracked();
-        if device_id_value.is_empty() {
-            let new_device_id = uuid::Uuid::new_v4().to_string();
-            set_device_id.set(new_device_id.clone());
-            new_device_id
-        } else {
-            device_id_value
-        }
+        crate::local_storage::LocalStorage::uuid_get_or_init(DEVICE_ID)
     }
 
     pub fn get_custom_device_id() -> String {
-        let (device_id, set_device_id, _) =
-            use_local_storage::<String, FromToStringCodec>(CUSTOM_DEVICE_ID);
-        // Extracting the device ID value
-        let device_id_value = device_id.get_untracked();
-        if device_id_value.is_empty() {
-            let new_device_id = uuid::Uuid::new_v4().to_string();
-            set_device_id.set(new_device_id.clone());
-            new_device_id
-        } else {
-            device_id_value
-        }
+        crate::local_storage::LocalStorage::uuid_get_or_init(CUSTOM_DEVICE_ID)
     }
 
     pub fn get_auth_journey() -> String {
