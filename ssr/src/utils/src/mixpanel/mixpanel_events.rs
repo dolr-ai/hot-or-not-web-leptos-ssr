@@ -1,9 +1,9 @@
 use candid::Principal;
 use codee::string::FromToStringCodec;
 use consts::AUTH_JOURNET;
-use consts::DEVICE_ID;
 use consts::NSFW_TOGGLE_STORE;
 use consts::REFERRAL_REWARD;
+use consts::{CUSTOM_DEVICE_ID, DEVICE_ID};
 use leptos::logging;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -126,6 +126,7 @@ where
     let mut props = serde_json::to_value(&props).unwrap();
     props["event"] = event_name.into();
     props["$device_id"] = MixpanelGlobalProps::get_device_id().into();
+    props["custom_device_id"] = MixpanelGlobalProps::get_custom_device_id().into();
     let user_id = props.get("user_id").and_then(Value::as_str);
     props["principal"] = if user_id.is_some() {
         user_id.into()
@@ -228,6 +229,20 @@ impl MixpanelGlobalProps {
     pub fn get_device_id() -> String {
         let (device_id, set_device_id, _) =
             use_local_storage::<String, FromToStringCodec>(DEVICE_ID);
+        // Extracting the device ID value
+        let device_id_value = device_id.get_untracked();
+        if device_id_value.is_empty() {
+            let new_device_id = uuid::Uuid::new_v4().to_string();
+            set_device_id.set(new_device_id.clone());
+            new_device_id
+        } else {
+            device_id_value
+        }
+    }
+
+    pub fn get_custom_device_id() -> String {
+        let (device_id, set_device_id, _) =
+            use_local_storage::<String, FromToStringCodec>(CUSTOM_DEVICE_ID);
         // Extracting the device ID value
         let device_id_value = device_id.get_untracked();
         if device_id_value.is_empty() {
