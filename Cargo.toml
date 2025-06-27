@@ -166,6 +166,8 @@ google-cloud-alloydb-v1 = "0.2.0"
 yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adbf4be5cb62a26f2a90032261321bf1df33f08b", default-features = false }
 yral-spacetime-bindings = { git = "https://github.com/dolr-ai/yral-spacetime", branch = "main", version = "0.1.0" }
 fasthash = "0.4.0"
+cargo-husky = { version = "1.5.0", features = ["user-hooks"] }
+
 # ===
 # Uncomment the below lines for testing out yral-common changes locally
 # ===
@@ -188,17 +190,16 @@ fasthash = "0.4.0"
 # ===
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], branch = "master", version = "0.1.0" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
+], rev = "cf79156f02fe08f954b9b26099a260a87047e711", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", rev = "cf79156f02fe08f954b9b26099a260a87047e711" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", rev = "cf79156f02fe08f954b9b26099a260a87047e711" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev = "cf79156f02fe08f954b9b26099a260a87047e711", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "cf79156f02fe08f954b9b26099a260a87047e711" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], branch = "master", version = "0.1.0" }
-cargo-husky = { version = "1.5.0", features = ["user-hooks"] }
+], rev = "cf79156f02fe08f954b9b26099a260a87047e711", version = "0.1.0" }
 limits = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
 ], rev = "cf79156f02fe08f954b9b26099a260a87047e711", version = "0.1.0" }
