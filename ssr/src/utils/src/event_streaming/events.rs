@@ -251,7 +251,7 @@ impl VideoWatched {
                         .unwrap_or_else(|| "unknown".to_string())
                 })
             });
-            
+
             let log_publisher_canister_id = Memo::new(move |_| {
                 vid_details.with(|post| {
                     post.as_ref()
@@ -259,7 +259,7 @@ impl VideoWatched {
                         .unwrap_or_else(|| "unknown".to_string())
                 })
             });
-            
+
             let log_post_id = Memo::new(move |_| {
                 vid_details.with(|post| {
                     post.as_ref()
@@ -318,28 +318,23 @@ impl VideoWatched {
                                 current_time - prev_time
                             };
 
-                            // Check if video progress is less than 3 seconds since last check
-                            if time_diff < VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS && !has_looped {
+                            // Check if video progress is less than 1.5 seconds since last check
+                            if time_diff < (VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS * 0.7)
+                                && !has_looped
+                            {
                                 if !progress_stalled.get_untracked() {
-                                    leptos::logging::log!(
-                                        "video_log: Video progress stalled - expected progress: {:.2}s, actual progress: {:.2}s at position={:.2}s, video_id={}, publisher_canister_id={}, post_id={}",
+                                    progress_stalled.set(true);
+                                    // Log error immediately since we're already past the threshold
+                                    leptos::logging::error!(
+                                        "video_log: Video stalled for more than {} seconds at position={:.2}s, video_id={}, publisher_canister_id={}, post_id={} ; expected progress: {:.2}s, actual progress: {:.2}s at position={:.2}s",
+                                        VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS * 0.7,
+                                        current_time,
+                                        log_video_id.get_untracked(),
+                                        log_publisher_canister_id.get_untracked(),
+                                        log_post_id.get_untracked(),
                                         VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS,
                                         time_diff,
                                         current_time,
-                                        log_video_id.get_untracked(),
-                                        log_publisher_canister_id.get_untracked(),
-                                        log_post_id.get_untracked()
-                                    );
-                                    progress_stalled.set(true);
-
-                                    // Log error immediately since we're already past the threshold
-                                    leptos::logging::error!(
-                                        "video_log: Video stalled for more than {} seconds at position={:.2}s, video_id={}, publisher_canister_id={}, post_id={}",
-                                        VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS,
-                                        current_time,
-                                        log_video_id.get_untracked(),
-                                        log_publisher_canister_id.get_untracked(),
-                                        log_post_id.get_untracked()
                                     );
                                 }
                             } else if progress_stalled.get_untracked()
