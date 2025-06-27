@@ -22,35 +22,112 @@ on:
 
 jobs:
   build_check:
-    runs-on: large-runner-8c-32m
-    permissions:
-      packages: write
-      contents: read
+    runs-on: warp-ubuntu-latest-x64-32x
     steps:
+      - name: Set Swap Space # Needed to fix OOM error in runner
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 8
+
       - name: Checkout repo and submodules
         uses: actions/checkout@v3
         with:
           submodules: recursive
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pre-build devcontainer image and run commands in dev container
-        uses: devcontainers/ci@v0.3
-        with:
-          imageName: ghcr.io/${{ github.repository}}
-          cacheFrom: ghcr.io/${{ github.repository}}
-          push: always
-          runCmd: |
-            # cargo fmt --check
-            # cargo clippy --no-deps --all-features --release -- -D warnings
 
-            # RUSTFLAGS_VALUE=""
-            # if [[ "${{ inputs.erase_components }}" == "true" ]]; then
-            #   RUSTFLAGS_VALUE="--cfg=erase_components"
-            # fi
-            # echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
-            # RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release
-            echo
+      - name: Install mold linker
+        uses: rui314/setup-mold@v1
+
+      - name: Rust Setup
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "nightly-2025-01-09"
+          targets: "wasm32-unknown-unknown"
+          components: "clippy,rustfmt"
+          override: true
+
+      - uses: cargo-bins/cargo-binstall@main
+      - name: cargo-leptos setup
+        run: cargo binstall --no-confirm cargo-leptos --version 0.2.35 --locked
+
+      - name: Cache rust dependencies and build output
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: pnpm/action-setup@v3
+        name: Install pnpm
+        with:
+          version: 8
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v4
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install npm deps
+        run: pnpm install
+
+      - uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: protobuf-compiler pkg-config libssl-dev
+          version: 1.0
+
+      - name: Install clippy
+        run: |
+          rustup component add clippy
+          rustup component add rustfmt
+
+      - name: lint check
+        run: |
+          cargo fmt --check
+          cargo clippy --no-deps --all-features --release -- -D warnings
+        env:
+          RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
+
+      - name: Print Rust and Cargo version
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Build the Leptos project to output
+        run: |
+          RUSTFLAGS_VALUE=""
+          if [[ "${{ inputs.erase_components }}" == "true" ]]; then
+            RUSTFLAGS_VALUE="--cfg=erase_components"
+          fi
+          echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
+          RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release --lib-features release-lib --bin-features release-bin
+        env:
+          RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
+          LEPTOS_HASH_FILES: true
+          LEPTOS_TAILWIND_VERSION: v4.1.7
+      - run: touch .empty
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v4
+        if: ${{ inputs.publish-artifact }}
+        with:
+          name: build
+          path: |
+            target/prod-release/hot-or-not-web-leptos-ssr
+            target/prod-release/hash.txt
+            target/site
+            .empty
+
+      - name: Find and display hash file
+        run: |
+          find . -name "hash.txt" -type f
+      # - name: Tree files
+      #   run: |
+      #     tree

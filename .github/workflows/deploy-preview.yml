@@ -5,7 +5,6 @@ on:
 permissions:
   deployments: write
   pull-requests: read
-  packages: write
 
 env:
   FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
@@ -14,12 +13,9 @@ env:
 jobs:
   build_check:
     uses: ./.github/workflows/build-check.yml
-    permissions:
-      packages: write
-      contents: read
     with:
       publish-artifact: true
-      # erase_components: ${{ contains(github.event.pull_request.labels.*.name, 'type erasured') }}
+      erase_components: ${{ contains(github.event.pull_request.labels.*.name, 'type erasured') }}
     secrets: inherit
 
   destroy_preview:
