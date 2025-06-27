@@ -379,7 +379,7 @@ fn HNWonLost(
 
     let total_balance_text = move || {
         let balance = wallet_balance_store.get();
-        format!("Total balance: {} SATS", balance)
+        format!("Total balance: {balance} SATS")
     };
 
     let show_ping = move || show_help_ping.get() && !won;
