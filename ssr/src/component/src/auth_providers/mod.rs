@@ -1,8 +1,6 @@
 #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
 pub mod yral;
 use candid::Principal;
-use consts::NEW_USER_SIGNUP_REWARD;
-use hon_worker_common::limits::REFERRAL_REWARD;
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
 use ic_agent::Identity;
@@ -10,6 +8,7 @@ use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
 use leptos_icons::Icon;
 use leptos_router::hooks::use_navigate;
+use limits::{NEW_USER_SIGNUP_REWARD, REFERRAL_REWARD};
 use state::canisters::auth_state;
 use utils::event_streaming::events::CentsAdded;
 use utils::event_streaming::events::EventCtx;

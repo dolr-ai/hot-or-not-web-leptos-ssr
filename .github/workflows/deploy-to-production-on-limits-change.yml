@@ -1,0 +1,78 @@
+name: Deploy app to production
+
+on:
+  repository_dispatch:
+    types: [limits-common-change]
+
+jobs:
+  build_check:
+    uses: ./.github/workflows/build-check-prod.yml
+    with:
+      publish-artifact: true
+    secrets: inherit
+
+  deploy:
+    name: Deploy
+    needs: build_check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download build
+        uses: actions/download-artifact@v4
+        with:
+          name: build
+      - run: chmod +x target/prod-release/hot-or-not-web-leptos-ssr
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Set secret tokens
+        run: |
+          flyctl secrets set CF_TOKEN="$CF_TOKEN" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set BACKEND_ADMIN_IDENTITY="$BACKEND_ADMIN_IDENTITY" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set COOKIE_KEY="$COOKIE_KEY" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set REDIS_URL="$REDIS_URL" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set GRPC_AUTH_TOKEN="$GRPC_AUTH_TOKEN" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set "HON_GOOGLE_SERVICE_ACCOUNT=$HON_GOOGLE_SERVICE_ACCOUNT" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set QSTASH_TOKEN="$QSTASH_TOKEN" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set GA4_API_SECRET="$GA4_API_SECRET" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set NSFW_GRPC_TOKEN="$NSFW_GRPC_TOKEN" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set ALLOYDB_INSTANCE="$ALLOYDB_INSTANCE" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set ALLOYDB_DB_PASSWORD="$ALLOYDB_DB_PASSWORD" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set ALLOYDB_SERVICE_ACCOUNT_JSON="$ALLOYDB_SERVICE_ACCOUNT_JSON" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set HON_WORKER_JWT="$HON_WORKER_JWT" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set ANALYTICS_SERVER_TOKEN="$ANALYTICS_SERVER_TOKEN" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set YRAL_AUTH_CLIENT_SECRET="$YRAL_AUTH_CLIENT_SECRET" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set YRAL_AUTH_MIGRATION_ES256_PEM="$YRAL_AUTH_MIGRATION_ES256_PEM" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set YRAL_METADATA_NOTIFICATION_API_KEY="$YRAL_METADATA_NOTIFICATION_API_KEY" --app "hot-or-not-web-leptos-ssr" --stage
+          flyctl secrets set STDB_ADMIN_ACCESS_TOKEN="$STDB_ADMIN_ACCESS_TOKEN" --app "hot-or-not-web-leptos-ssr" --stage
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET }}
+          BACKEND_ADMIN_IDENTITY: ${{ secrets.YRAL_DAPP_BACKEND_APP_ADMIN_AND_PROPOSAL_SUBMITTER_IDENTITY_PRIVATE_KEY }}
+          COOKIE_KEY: ${{ secrets.AUTH_SESSION_COOKIE_SIGNING_SECRET_KEY }}
+          REDIS_URL: ${{ secrets.AUTH_FLY_IO_UPSTASH_REDIS_DATABASE_CONNECTION_STRING }}
+          FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
+          GRPC_AUTH_TOKEN: ${{ secrets.OFF_CHAIN_AGENT_GRPC_AUTH_TOKEN }}
+          HON_GOOGLE_SERVICE_ACCOUNT: ${{ secrets.HOT_OR_NOT_FEED_INTELLIGENCE_FIREBASE_PROJECT_EVENTS_BQ_SERVICE_ACCOUNT_JSON_FOR_WEB_LEPTOS_SSR_APP }}
+          QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
+          GA4_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET }}
+          NSFW_GRPC_TOKEN: ${{ secrets.TOKEN_TO_SIGN_OUTGOING_CALLS_TO_NSFW_DETECT_SERVICE }}
+          ALLOYDB_INSTANCE: ${{ secrets.HOT_OR_NOT_ALLOYDB_INSTANCE }}
+          ALLOYDB_DB_PASSWORD: ${{ secrets.HOT_OR_NOT_ALLOYDB_DB_PASSWORD }}
+          ALLOYDB_SERVICE_ACCOUNT_JSON: ${{ secrets.HOT_OR_NOT_ALLOYDB_SERVICE_ACCOUNT }}
+          HON_WORKER_JWT: ${{ secrets.HOT_OR_NOT_WORKER_JWT }}
+          ANALYTICS_SERVER_TOKEN: ${{ secrets.ANALYTICS_SERVER_TOKEN }}
+          YRAL_AUTH_CLIENT_SECRET: ${{ secrets.YRAL_AUTH_V2_SECRET_KEY }}
+          YRAL_AUTH_MIGRATION_ES256_PEM: ${{ secrets.AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM }}
+          YRAL_METADATA_NOTIFICATION_API_KEY: ${{ secrets.YRAL_METADATA_NOTIFICATION_API_KEY }}
+          STDB_ADMIN_ACCESS_TOKEN: ${{ secrets.STDB_ADMIN_ACCESS_TOKEN }}
+
+      - name: Deploy a docker container to Fly.io
+        run: flyctl deploy --remote-only -c fly-prod.toml
+        env:
+          FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
+
+  e2e-tests:
+    needs: deploy
+    uses: ./.github/workflows/e2e-tests.yml
+    secrets: inherit
+    with:
+      preview_url: https://yral.com
+      build_name: main-commit-${{github.sha}}-attempt-${{github.run_attempt}}
