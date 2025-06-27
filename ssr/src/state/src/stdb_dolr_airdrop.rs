@@ -3,7 +3,7 @@ use std::{sync::Arc, time::Instant};
 use web_time::{Duration, SystemTime};
 
 use anyhow::Context;
-use consts::{BACKEND_MODULE_IDENTITY, STDB_ACCESS_TOKEN, STDB_URL};
+use consts::{BACKEND_MODULE_IDENTITY, STDB_URL};
 use fasthash::{BufHasher, HasherExt, MetroHasherExt};
 use tokio::sync::broadcast;
 use yral_spacetime_bindings::{
@@ -33,11 +33,11 @@ pub struct WrappedContext {
 }
 
 impl WrappedContext {
-    pub async fn new() -> anyhow::Result<Self> {
+    pub async fn new(token: Option<impl Into<String>>) -> anyhow::Result<Self> {
         let conn = backend::DbConnection::builder()
             .with_uri(STDB_URL)
             .with_module_name(BACKEND_MODULE_IDENTITY)
-            .with_token(STDB_ACCESS_TOKEN.as_ref())
+            .with_token(token)
             .build()
             .context("Couldn't connect to the db")?;
 
@@ -77,6 +77,8 @@ impl WrappedContext {
                     Status::OutOfEnergy => Err("Out of energy".into()),
                 };
 
+                println!("on mark callback with principal: {user_principal} and res {res:?}");
+
                 // channel must be not be closed
                 tx_clone.send((search_hash, res)).unwrap();
             });
@@ -114,14 +116,15 @@ impl WrappedContext {
             .mark_airdrop_claimed(user_principal.to_text(), duration.into(), now.into())
             .context("Couldn't send reducer request")?;
 
+        let now = Instant::now();
         let res = loop {
-            let (recv_hash, data) = tokio::time::timeout(Duration::from_secs(60), rx.recv())
-                .await
-                .context("timeout reached before receiving result")??;
+            let (recv_hash, data) = rx.recv().await?;
             if recv_hash == search_hash {
                 break data;
             }
         };
+
+        println!("reducer took {:?} to mark airdrop", now.elapsed());
 
         Ok(res)
     }

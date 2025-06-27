@@ -239,9 +239,14 @@ impl AppStateBuilder {
                 HonWorkerJwt(std::sync::Arc::new(jwt))
             },
             #[cfg(feature = "stdb-backend")]
-            dolr_airdrop_stbd: state::stdb_dolr_airdrop::WrappedContext::new()
-                .await
-                .expect("connect to stdb backend module"),
+            dolr_airdrop_stbd: {
+                let token = env::var("STDB_ADMIN_ACCESS_TOKEN")
+                    .expect("`STDB_ADMIN_ACCESS_TOKEN` is required!");
+
+                state::stdb_dolr_airdrop::WrappedContext::new(Some(token))
+                    .await
+                    .expect("connect to stdb backend module")
+            },
         };
 
         AppStateRes {
