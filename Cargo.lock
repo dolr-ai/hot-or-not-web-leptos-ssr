@@ -3245,7 +3245,7 @@ dependencies = [
  "futures-sink",
  "futures-util",
  "http 0.2.12",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "slab",
  "tokio",
  "tokio-util",
@@ -3264,7 +3264,7 @@ dependencies = [
  "futures-core",
  "futures-sink",
  "http 1.3.1",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "slab",
  "tokio",
  "tokio-util",
@@ -3441,7 +3441,7 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#cfff51282ec58947e5be08c9a697f85fc4c5ef69"
+source = "git+https://github.com/dolr-ai/yral-common?branch=master#5ebf1f0840ab80918daf7b5188abb39b9a23b50f"
 dependencies = [
  "candid",
  "ic-agent",
@@ -3503,7 +3503,7 @@ dependencies = [
  "icondata",
  "icondata_core",
  "icp-ledger",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "js-sys",
  "jsonwebtoken",
  "k256",
@@ -4575,9 +4575,9 @@ dependencies = [
 
 [[package]]
 name = "indexmap"
-version = "2.9.0"
+version = "2.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cea70ddb795996207ad57735b50c5982d8844f38ba9ee5f1aedcfb708a2aa11e"
+checksum = "fe4cd85333e22411419a0bcae1297d25e58c9443848b11dc6a86fefe8c78a661"
 dependencies = [
  "equivalent",
  "hashbrown 0.15.4",
@@ -4911,7 +4911,7 @@ checksum = "597f84532609518092960ac241741963c90c216ee11f752e1b238b846f043640"
 dependencies = [
  "anyhow",
  "camino",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "parking_lot",
  "proc-macro2",
  "quote",
@@ -4976,7 +4976,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c03b2d5e0a9e7060bce4862c009ced3c2ad0afe45d005eaa4defa3872d2d2aac"
 dependencies = [
  "futures",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "leptos",
  "once_cell",
  "or_poisoned",
@@ -5645,7 +5645,7 @@ dependencies = [
  "icondata",
  "icondata_core",
  "icp-ledger",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "js-sys",
  "k256",
  "leptos",
@@ -5809,7 +5809,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4c5cc86750666a3ed20bdaf5ca2a0344f9c67674cae0515bec2da16fbaa47db"
 dependencies = [
  "fixedbitset 0.4.2",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
 ]
 
 [[package]]
@@ -5819,7 +5819,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3672b37090dbd86368a4145bc067582552b29c27377cad4e0a306c97f9bd7772"
 dependencies = [
  "fixedbitset 0.5.7",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
 ]
 
 [[package]]
@@ -5925,7 +5925,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d77244ce2d584cd84f6a15f86195b8c9b2a0dfbfd817c09e0464244091a58ed"
 dependencies = [
  "base64 0.22.1",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "quick-xml",
  "serde",
  "time",
@@ -6021,7 +6021,7 @@ checksum = "5676d703dda103cbb035b653a9f11448c0a7216c7926bd35fcb5865475d0c970"
 dependencies = [
  "autocfg",
  "equivalent",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
 ]
 
 [[package]]
@@ -7449,7 +7449,7 @@ dependencies = [
  "chrono",
  "hex",
  "indexmap 1.9.3",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "schemars",
  "serde",
  "serde_derive",
@@ -7706,7 +7706,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#cfff51282ec58947e5be08c9a697f85fc4c5ef69"
+source = "git+https://github.com/dolr-ai/yral-common?branch=master#5ebf1f0840ab80918daf7b5188abb39b9a23b50f"
 dependencies = [
  "candid",
  "humantime",
@@ -8227,7 +8227,7 @@ dependencies = [
  "erased",
  "futures",
  "html-escape",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "itertools 0.14.0",
  "js-sys",
  "linear-map",
@@ -8588,7 +8588,7 @@ version = "0.19.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1b5bb770da30e5cbfde35a2d7b9b8a2c4b8ef89548a7a6aeab5c9a576e3e7421"
 dependencies = [
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "toml_datetime",
  "winnow 0.5.40",
 ]
@@ -8599,7 +8599,7 @@ version = "0.22.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "41fe8c660ae4257887cf66394862d21dbca4a6ddd26f04a3560410406a2f819a"
 dependencies = [
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "serde",
  "serde_spanned",
  "toml_datetime",
@@ -9053,7 +9053,7 @@ dependencies = [
  "icondata",
  "icondata_core",
  "icp-ledger",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "js-sys",
  "k256",
  "leptos",
@@ -9111,7 +9111,7 @@ version = "5.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fcc29c80c21c31608227e0912b2d7fddba57ad76b606890627ba8ee7964e993"
 dependencies = [
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "serde",
  "serde_json",
  "utoipa-gen",
@@ -9780,7 +9780,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#cfff51282ec58947e5be08c9a697f85fc4c5ef69"
+source = "git+https://github.com/dolr-ai/yral-common?branch=master#5ebf1f0840ab80918daf7b5188abb39b9a23b50f"
 dependencies = [
  "anyhow",
  "candid",
@@ -9800,7 +9800,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#cfff51282ec58947e5be08c9a697f85fc4c5ef69"
+source = "git+https://github.com/dolr-ai/yral-common?branch=master#5ebf1f0840ab80918daf7b5188abb39b9a23b50f"
 dependencies = [
  "candid",
  "ciborium",
@@ -9905,7 +9905,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#cfff51282ec58947e5be08c9a697f85fc4c5ef69"
+source = "git+https://github.com/dolr-ai/yral-common?branch=master#5ebf1f0840ab80918daf7b5188abb39b9a23b50f"
 dependencies = [
  "candid",
  "ic-agent",
@@ -9939,7 +9939,7 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#cfff51282ec58947e5be08c9a697f85fc4c5ef69"
+source = "git+https://github.com/dolr-ai/yral-common?branch=master#5ebf1f0840ab80918daf7b5188abb39b9a23b50f"
 dependencies = [
  "ic-agent",
  "k256",
@@ -10035,7 +10035,7 @@ dependencies = [
  "arbitrary",
  "crc32fast",
  "flate2",
- "indexmap 2.9.0",
+ "indexmap 2.10.0",
  "memchr",
  "zopfli",
 ]
