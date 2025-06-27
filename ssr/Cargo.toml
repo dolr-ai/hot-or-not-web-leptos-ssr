@@ -169,7 +169,6 @@ ssr = [
     "dep:tracing-futures",
     "dep:sentry",
     "dep:sentry-tower",
-    "stdb-backend",
 ]
 # Fetch mock referral history instead of history via canister
 mock-referral-history = [
