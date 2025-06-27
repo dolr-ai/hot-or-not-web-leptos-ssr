@@ -214,7 +214,7 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
     let page_title = app_state.unwrap().name.to_owned() + " - Wallet";
 
     view! {
-        <div class="flex flex-col gap-4 pt-4 pb-12 mx-auto max-w-md bg-black min-h-dvh font-kumbh">
+        <div class="flex flex-col gap-4 pt-4 pb-12 mx-auto max-w-md bg-black min-h-dvh font-kumbh overflow-x-hidden">
             <Title text=page_title />
             <Suspense fallback=move || {
                 view! { <HeaderLoading /> }

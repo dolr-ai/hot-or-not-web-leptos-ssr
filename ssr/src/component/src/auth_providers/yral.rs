@@ -4,6 +4,7 @@ use ic_agent::identity::DelegatedIdentity;
 use leptos::{ev, prelude::*};
 use leptos_use::{storage::use_local_storage, use_event_listener, use_interval_fn, use_window};
 use state::canisters::auth_state;
+use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
 use yral_canisters_common::yral_auth_login_hint;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
@@ -127,6 +128,7 @@ pub fn YralAuthProvider() -> impl IntoView {
             on_click=move |ev| {
                 ev.stop_propagation();
                 signing_in_provider.set(LoginProvider::Google);
+                MixpanelGlobalProps::set_auth_journey("google".to_string());
                 on_click(signing_in_provider.get())
             }
         >
@@ -148,6 +150,7 @@ pub fn YralAuthProvider() -> impl IntoView {
             on_click=move |ev| {
                 ev.stop_propagation();
                 signing_in_provider.set(LoginProvider::Apple);
+                MixpanelGlobalProps::set_auth_journey("apple".to_string());
                 on_click(signing_in_provider.get())
             }
         >

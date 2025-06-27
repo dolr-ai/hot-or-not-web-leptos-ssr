@@ -108,13 +108,13 @@ fn init_admin_canisters() -> state::admin_canisters::AdminCanisters {
 
     #[cfg(not(feature = "local-bin"))]
     {
-        use ic_agent::identity::BasicIdentity;
+        use ic_agent::identity::Secp256k1Identity;
 
         let admin_id_pem =
             env::var("BACKEND_ADMIN_IDENTITY").expect("`BACKEND_ADMIN_IDENTITY` is required!");
         let admin_id_pem_by = admin_id_pem.as_bytes();
         let admin_id =
-            BasicIdentity::from_pem(admin_id_pem_by).expect("Invalid `BACKEND_ADMIN_IDENTITY`");
+            Secp256k1Identity::from_pem(admin_id_pem_by).expect("Invalid `BACKEND_ADMIN_IDENTITY`");
         AdminCanisters::new(admin_id)
     }
 }
@@ -237,6 +237,15 @@ impl AppStateBuilder {
                 let jwt = env::var("HON_WORKER_JWT").expect("`HON_WORKER_JWT` is required!");
 
                 HonWorkerJwt(std::sync::Arc::new(jwt))
+            },
+            #[cfg(feature = "stdb-backend")]
+            dolr_airdrop_stbd: {
+                let token = env::var("STDB_ADMIN_ACCESS_TOKEN")
+                    .expect("`STDB_ADMIN_ACCESS_TOKEN` is required!");
+
+                state::stdb_dolr_airdrop::WrappedContext::new(Some(token))
+                    .await
+                    .expect("connect to stdb backend module")
             },
         };
 
