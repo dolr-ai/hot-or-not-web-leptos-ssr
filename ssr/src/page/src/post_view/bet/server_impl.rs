@@ -15,6 +15,16 @@ pub async fn vote_with_cents_on_post(
     #[cfg(not(feature = "alloydb"))]
     use mock::vote_with_cents_on_post;
 
+    // validate request against limits
+
+    use limits::MAX_BET_AMOUNT;
+    if req.bet_amount > MAX_BET_AMOUNT {
+        return Err(ServerFnError::new(format!(
+            "bet amount exceeds maximum allowed: {} > {}",
+            req.bet_amount, MAX_BET_AMOUNT
+        )));
+    }
+
     vote_with_cents_on_post(sender, req, sig, prev_video_info).await
 }
 
