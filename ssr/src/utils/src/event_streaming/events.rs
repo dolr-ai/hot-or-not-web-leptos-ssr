@@ -318,8 +318,8 @@ impl VideoWatched {
                                 current_time - prev_time
                             };
 
-                            // Check if video progress is less than 1.5 seconds since last check
-                            if time_diff < (VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS * 0.7)
+                            // Check if video progress is less than 1.8 seconds since last check
+                            if time_diff < (VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS * 0.6)
                                 && !has_looped
                             {
                                 if !progress_stalled.get_untracked() {
@@ -327,7 +327,7 @@ impl VideoWatched {
                                     // Log error immediately since we're already past the threshold
                                     leptos::logging::error!(
                                         "video_log: Video stalled for more than {} seconds at position={:.2}s, video_id={}, publisher_canister_id={}, post_id={} ; expected progress: {:.2}s, actual progress: {:.2}s at position={:.2}s",
-                                        VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS * 0.7,
+                                        VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS * 0.6,
                                         current_time,
                                         log_video_id.get_untracked(),
                                         log_publisher_canister_id.get_untracked(),
