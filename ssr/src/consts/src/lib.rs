@@ -39,13 +39,13 @@ pub const USER_ONBOARDING_STORE: &str = "user-onboarding";
 pub const USER_INTERNAL_STORE: &str = "user-internal";
 
 pub static OFF_CHAIN_AGENT_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev").unwrap());
+    Lazy::new(|| Url::parse("https://pr-216-dolr-ai-off-chain-agent.fly.dev").unwrap());
 
 pub static ANALYTICS_SERVER_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://marketing-analytics-server.fly.dev").unwrap());
 pub static OFF_CHAIN_AGENT_GRPC_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev:443").unwrap()); // pr-91-yral-dapp-off-chain-agent https://icp-off-chain-agent.fly.dev:443
-                                                                                  // G-6W5Q2MRX0E to test locally | G-PLNNETMSLM
+    Lazy::new(|| Url::parse("https://pr-216-dolr-ai-off-chain-agent.fly.dev:443").unwrap()); // pr-91-yral-dapp-off-chain-agent https://icp-off-chain-agent.fly.dev:443
+                                                                                             // G-6W5Q2MRX0E to test locally | G-PLNNETMSLM
 pub static DOWNLOAD_UPLOAD_SERVICE: Lazy<Url> =
     Lazy::new(|| Url::parse("https://download-upload-service.fly.dev").unwrap());
 pub static ML_FEED_URL: Lazy<Url> =
@@ -65,6 +65,8 @@ pub const MIN_WITHDRAWAL_PER_TXN: u64 = 200;
 pub const MAX_WITHDRAWAL_PER_TXN: u64 = 500;
 
 pub const AUTH_UTIL_COOKIES_MAX_AGE_MS: i64 = 400 * 24 * 60 * 60 * 1000; // 400 days
+
+pub const MAX_VIDEO_ELEMENTS_FOR_FEED: usize = 200;
 
 pub mod social {
     pub const TELEGRAM_YRAL: &str = "https://t.me/+c-LTX0Cp-ENmMzI1";

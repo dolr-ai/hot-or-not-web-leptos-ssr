@@ -151,10 +151,7 @@ mock-referral-history = ["dep:rand_chacha", "k256/arithmetic"]
 mock-history = ["mock-referral-history", "mock-wallet-history"]
 oauth-ssr = ["dep:openidconnect", "dep:jsonwebtoken"]
 oauth-hydrate = []
-stdb-backend = [
-    "dep:yral-spacetime-bindings",
-    "dep:fasthash"
-]
+stdb-backend = ["dep:yral-spacetime-bindings", "dep:fasthash"]
 redis-kv = []
 cloudflare = ["dep:gob-cloudflare"]
 backend-admin = []
@@ -187,7 +184,6 @@ local-bin = [
     "ssr",
     "redis-kv",
     "backend-admin",
-    "stdb-backend",
     "dep:testcontainers",
     "dep:yral-testcontainers",
     "yral-canisters-common/local",

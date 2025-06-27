@@ -1,3 +1,6 @@
+use leptos::prelude::RwSignal;
+use yral_canisters_common::utils::posts::PostDetails;
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct FetchCursor {
     pub start: u64,
@@ -45,3 +48,9 @@ impl FetchCursor {
 //         }
 //     }
 // }
+
+#[derive(Clone, Default)]
+pub struct FeedPostCtx {
+    pub key: usize,
+    pub value: RwSignal<Option<PostDetails>>,
+}

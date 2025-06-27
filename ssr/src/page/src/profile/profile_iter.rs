@@ -3,7 +3,7 @@ use yral_canisters_client::individual_user_template::{GetPostsOfUserProfileError
 
 use yral_canisters_common::{utils::posts::PostDetails, Canisters, Error as CanistersError};
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct FixedFetchCursor<const LIMIT: u64> {
     pub start: u64,
     pub limit: u64,
