@@ -316,6 +316,16 @@ pub struct MixpanelBottomBarPageViewedProps {
     pub is_nsfw_enabled: bool,
 }
 
+#[derive(Serialize, Clone)]
+pub struct MixpanelDeleteAccountClickedProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub page_name: String,
+}
+
 #[derive(Serialize)]
 pub struct MixpanelReferAndEarnPageViewedProps {
     pub user_id: Option<String>,
@@ -677,6 +687,15 @@ impl MixPanelEvent {
     }
     pub fn track_menu_page_viewed(p: MixpanelBottomBarPageViewedProps) {
         send_event_to_server("menu_page_viewed", p);
+    }
+    pub fn track_delete_account_clicked(p: MixpanelDeleteAccountClickedProps) {
+        send_event_to_server("delete_account_clicked", p);
+    }
+    pub fn track_delete_account_confirmed(p: MixpanelDeleteAccountClickedProps) {
+        send_event_to_server("delete_account_confirmed", p);
+    }
+    pub fn track_account_deleted(p: MixpanelDeleteAccountClickedProps) {
+        send_event_to_server("account_deleted", p);
     }
     pub fn track_refer_and_earn_page_viewed(p: MixpanelReferAndEarnPageViewedProps) {
         send_event_to_server("refer_and_earn_page_viewed", p);
