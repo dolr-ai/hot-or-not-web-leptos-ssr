@@ -5,7 +5,7 @@
   "features": {
     // rust toolchain
     "ghcr.io/devcontainers/features/rust:1": {
-      "version": "nightly",
+      "version": "nightly-2025-06-26",
       "profile": "default",
       "targets": "wasm32-unknown-unknown"
     },
