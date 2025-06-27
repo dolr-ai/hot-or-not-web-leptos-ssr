@@ -1,5 +1,5 @@
 use candid::Principal;
-use consts::NEW_USER_SIGNUP_REWARD;
+use limits::NEW_USER_SIGNUP_REWARD;
 use gloo::timers::callback::Timeout;
 use leptos::either::Either;
 use leptos::prelude::*;
