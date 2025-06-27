@@ -382,9 +382,7 @@ fn HNWonLost(
         format!("Total balance: {} SATS", balance)
     };
 
-    let show_ping = move || {
-        show_help_ping.get() && !won
-    };
+    let show_ping = move || show_help_ping.get() && !won;
 
     view! {
         <div class="flex w-full flex-col gap-3 p-4">
