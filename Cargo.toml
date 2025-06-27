@@ -200,6 +200,4 @@ yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", re
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
 ], rev = "cf79156f02fe08f954b9b26099a260a87047e711", version = "0.1.0" }
-limits = { git = "https://github.com/dolr-ai/yral-common", features = [
-    "client",
-], rev = "cf79156f02fe08f954b9b26099a260a87047e711", version = "0.1.0" }
+limits = { git = "https://github.com/dolr-ai/yral-common", rev = "cf79156f02fe08f954b9b26099a260a87047e711", version = "0.1.0" }
