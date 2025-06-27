@@ -14,4 +14,4 @@ cargo install --locked cargo-leptos --git https://github.com/saikatdas0790/cargo
 cargo binstall leptosfmt --no-confirm;
 
 # cargo leptos build --release
-# cargo leptos build --release --lib-features release-lib --bin-features release-bin
+cargo leptos build --release --lib-features release-lib --bin-features release-bin
