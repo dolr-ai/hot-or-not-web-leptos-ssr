@@ -89,6 +89,7 @@ indexmap.workspace = true
 yral-identity.workspace = true
 yral-spacetime-bindings = { workspace = true, optional = true }
 fasthash = { workspace = true, optional = true }
+num-traits.workspace = true
 
 # local deps`
 auth = { workspace = true }

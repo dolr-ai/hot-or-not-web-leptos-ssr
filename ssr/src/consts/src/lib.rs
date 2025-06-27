@@ -13,6 +13,7 @@ pub use remote::*;
 
 use once_cell::sync::Lazy;
 use reqwest::Url;
+use serde::{Deserialize, Serialize};
 
 // TODO: make it consistent with the actual bet amount
 pub const MAX_BET_AMOUNT: usize = 20;
@@ -36,8 +37,8 @@ pub const NSFW_TOGGLE_STORE: &str = "nsfw-enabled";
 pub const REFERRER_COOKIE: &str = "referrer";
 pub const USER_CANISTER_ID_STORE: &str = "user-canister-id";
 pub const USER_PRINCIPAL_STORE: &str = "user-principal";
-pub const USER_ONBOARDING_STORE: &str = "user-onboarding";
 pub const USER_INTERNAL_STORE: &str = "user-internal";
+pub const WALLET_BALANCE_STORE_KEY: &str = "wallet-balance-sats";
 
 pub static OFF_CHAIN_AGENT_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev").unwrap());
@@ -104,3 +105,10 @@ pub const DOLR_AI_ROOT_CANISTER: &str = "67bll-riaaa-aaaaq-aaauq-cai";
 pub const DOLR_AI_LEDGER_CANISTER: &str = "6rdgd-kyaaa-aaaaq-aaavq-cai";
 pub const CKBTC_LEDGER_CANISTER: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
 pub const USDC_LEDGER_CANISTER: &str = "xevnm-gaaaa-aaaar-qafnq-cai";
+
+pub const USER_ONBOARDING_STORE_KEY: &str = "user-onboarding";
+#[derive(Serialize, Deserialize, Clone, PartialEq, Default)]
+pub struct UserOnboardingStore {
+    pub has_seen_onboarding: bool,
+    pub has_seen_hon_bet_help: bool,
+}
