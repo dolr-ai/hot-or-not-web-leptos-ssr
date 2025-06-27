@@ -39,5 +39,5 @@ jobs:
           imageName: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           cacheFrom: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           push: always
-          runCmd: |
-            cargo leptos build --release --lib-features release-lib --bin-features release-bin
+          # runCmd: |
+          # cargo leptos build --release --lib-features release-lib --bin-features release-bin
