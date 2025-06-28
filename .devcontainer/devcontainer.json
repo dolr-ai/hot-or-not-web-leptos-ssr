@@ -26,23 +26,25 @@
         // tailwindcss
         "bradlc.vscode-tailwindcss",
         // git
-        "eamodio.gitlens"
+        "eamodio.gitlens",
+        // webdev
+        "ms-edgedevtools.vscode-edge-devtools"
       ]
     }
   },
   "features": {
-    // rust toolchain
-    "ghcr.io/devcontainers/features/rust:1": {},
-    // kickass shell
-    "ghcr.io/eitsupi/devcontainer-features/nushell:0": {},
-    // for clang required to build ring
-    "ghcr.io/devcontainers-community/features/llvm": {},
-    // build dependency for ml-feed-server bindings
-    "ghcr.io/devcontainers-extra/features/protoc:1": {}
+    // // rust toolchain
+    // "ghcr.io/devcontainers/features/rust:1": {},
+    // // kickass shell
+    // "ghcr.io/eitsupi/devcontainer-features/nushell:0": {},
+    // // for clang required to build ring
+    // "ghcr.io/devcontainers-community/features/llvm": {},
+    // // build dependency for ml-feed-server bindings
+    // "ghcr.io/devcontainers-extra/features/protoc:1": {}
   },
   "hostRequirements": {
     "cpus": 8
   },
-  "onCreateCommand": "rustup install;",
-  "postCreateCommand": "nu .devcontainer/setup.nu"
+  // "onCreateCommand": "rustup install;",
+  // "postCreateCommand": "nu .devcontainer/setup.nu"
 }
