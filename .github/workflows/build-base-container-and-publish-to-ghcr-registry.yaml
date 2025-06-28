@@ -6,7 +6,8 @@ name: Build Base Container and Publish to GHCR
 
 on:
   push:
-    branches: [main, saikatdas0790/devcontainer-image-for-ci]
+    # branches: [main, saikatdas0790/devcontainer-image-for-ci]
+    branches: [main]
 
 env:
   REGISTRY: ghcr.io
