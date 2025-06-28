@@ -7,7 +7,9 @@ RUN sudo apt full-upgrade --yes
 RUN sudo apt install --yes software-properties-common
 
 # Add the main repository for mold
-RUN sudo add-apt-repository main --yes
+RUN sudo add-apt-repository main universe --yes
 
 # Install mold
-RUN sudo apt install --yes mold pkg-config
+RUN sudo apt install --yes mold pkg-config rustup
+
+RUN rustup install
