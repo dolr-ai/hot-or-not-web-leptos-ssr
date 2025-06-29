@@ -1,56 +1,21 @@
 use super::{
+    ai_server::{fetch_video_bytes, generate_video_from_prompt, GenerateVideoRequest},
     validators::{description_validator, hashtags_validator},
     UploadParams,
 };
 use crate::upload::video_upload::VideoUploader;
 use component::buttons::HighlightedButton;
-use gloo::net::http::Request;
 use leptos::web_sys::Blob;
 use leptos::{
     html::{Input, Textarea, Video},
     prelude::*,
 };
 use leptos_meta::Title;
-use serde::{Deserialize, Serialize};
 use state::canisters::auth_state;
 use utils::{
     event_streaming::events::{VideoUploadInitiated, VideoUploadUploadButtonClicked},
     web::FileWithUrl,
 };
-
-const API_KEY: &str = "d364f1fe-209b-43e5-9dff-386c39b67682";
-const API_BASE_URL: &str = "https://veo3-video-generator-874803795683.us-central1.run.app";
-
-#[derive(Serialize)]
-struct GenerateVideoRequest {
-    prompt: String,
-    sample_count: u32,
-    generate_audio: bool,
-    aspect_ratio: String,
-    negative_prompt: String,
-    duration_seconds: u32,
-}
-
-#[derive(Deserialize)]
-#[allow(dead_code)]
-struct GenerateVideoResponse {
-    operation_name: String,
-    message: String,
-}
-
-#[derive(Serialize)]
-struct CheckStatusRequest {
-    operation_name: String,
-}
-
-#[derive(Deserialize)]
-#[allow(dead_code)]
-struct CheckStatusResponse {
-    completed: bool,
-    gcs_uri: Option<String>,
-    operation_name: String,
-    message: String,
-}
 
 #[component]
 fn PreUploadAiView(
@@ -104,9 +69,8 @@ fn PreUploadAiView(
                 return;
             }
 
-            // is_generating.set(true);
             generation_error.set(None);
-            polling_status.set("Generating video...".to_string());
+            polling_status.set("Generating video... This may take a few minutes.".to_string());
 
             let request_body = GenerateVideoRequest {
                 prompt,
@@ -117,56 +81,23 @@ fn PreUploadAiView(
                 duration_seconds: 8,
             };
 
-            match Request::post(&format!("{}/generate_video_from_prompt", API_BASE_URL))
-                .header("accept", "application/json")
-                .header("X-API-Key", API_KEY)
-                .header("Content-Type", "application/json")
-                .json(&request_body)
-                .expect("Failed to build request")
-                .send()
-                .await
-            {
-                Ok(response) => {
-                    if response.ok() {
-                        match response.json::<GenerateVideoResponse>().await {
-                            Ok(gen_response) => {
-                                polling_status.set(
-                                    "Video generation started, polling for completion..."
-                                        .to_string(),
-                                );
-                                #[cfg(feature = "hydrate")]
-                                poll_for_video(
-                                    gen_response.operation_name,
-                                    file_blob,
-                                    // is_generating,
-                                    generation_error,
-                                    polling_status,
-                                    video_ref,
-                                )
-                                .await;
+            match generate_video_from_prompt(request_body).await {
+                Ok(result) => {
+                    polling_status.set("Video generated! Loading...".to_string());
 
-                                #[cfg(not(feature = "hydrate"))]
-                                {
-                                    generation_error.set(Some(
-                                        "Video generation is only supported in the browser"
-                                            .to_string(),
-                                    ));
-                                }
-                            }
-                            Err(e) => {
-                                generation_error
-                                    .set(Some(format!("Failed to parse response: {}", e)));
-                                // is_generating.set(false);
-                            }
-                        }
-                    } else {
-                        generation_error.set(Some(format!("API error: {}", response.status())));
-                        // is_generating.set(false);
+                    #[cfg(feature = "hydrate")]
+                    load_video_from_url(result.video_url, file_blob, generation_error, video_ref)
+                        .await;
+
+                    #[cfg(not(feature = "hydrate"))]
+                    {
+                        generation_error.set(Some(
+                            "Video generation is only supported in the browser".to_string(),
+                        ));
                     }
                 }
                 Err(e) => {
-                    generation_error.set(Some(format!("Request failed: {}", e)));
-                    // is_generating.set(false);
+                    generation_error.set(Some(format!("Video generation failed: {}", e)));
                 }
             }
         }
@@ -238,13 +169,13 @@ fn PreUploadAiView(
                             <Show when=move || generate_action.pending().get()>
                                 <div class="text-white text-sm animate-pulse">{move || polling_status.get()}</div>
                             </Show>
-                            <button
-                                on:click=move |_| { generate_action.dispatch(()); }
+                            <HighlightedButton
+                                on_click=move || { generate_action.dispatch(()); }
                                 disabled=false
-                                class="w-full mx-auto py-[12px] px-[20px] rounded-xl bg-linear-to-r from-pink-300 to-pink-500 text-white font-light text-[17px] transition disabled:opacity-60 disabled:cursor-not-allowed".to_string()
+                                classes="w-full mx-auto py-[12px] px-[20px] rounded-xl bg-linear-to-r from-pink-300 to-pink-500 text-white font-light text-[17px] transition disabled:opacity-60 disabled:cursor-not-allowed".to_string()
                             >
                                 {move || if generate_action.pending().get() { "Generating..." } else { "Generate Video" }}
-                            </button>
+                            </HighlightedButton>
                         </div>
                     }
                 >
@@ -252,8 +183,12 @@ fn PreUploadAiView(
                         <video
                             node_ref=video_ref
                             class="w-full h-full object-contain rounded-lg"
-                            controls=true
-                            autoplay=true
+                            playsinline
+                            muted
+                            autoplay
+                            loop
+                            oncanplay="this.muted=true"
+                            src=move || file_blob.with(|file| file.as_ref().map(|f| f.url.to_string()))
                         ></video>
                         <button
                             on:click=move |_| {
@@ -270,235 +205,142 @@ fn PreUploadAiView(
                     </div>
                 </Show>
             </div>
-            // <div class="flex overflow-y-auto flex-col gap-4 justify-between p-2 w-full h-auto rounded-2xl max-w-[627px] min-h-[400px] max-h-[90vh] lg:w-[627px] lg:h-[600px]">
-            //     <h2 class="mb-2 font-light text-white text-[32px]">Upload AI Video</h2>
-            //     <div class="flex flex-col gap-y-1">
-            //         <label for="caption-input" class="mb-1 font-light text-[20px] text-neutral-300">
-            //             Caption
-            //         </label>
-            //         <Show when=move || {
-            //             description_err.with(|description_err| !description_err.is_empty())
-            //         }>
-            //             <span class="text-sm text-red-500">{desc_err_memo()}</span>
-            //         </Show>
-            //         <textarea
-            //             id="caption-input"
-            //             node_ref=desc
-            //             on:input=move |ev| {
-            //                 let desc = event_target_value(&ev);
-            //                 description_err
-            //                     .set(description_validator(desc).err().unwrap_or_default());
-            //             }
-            //             class="p-3 min-w-full rounded-lg border transition outline-none focus:border-pink-400 focus:ring-pink-400 bg-neutral-900 border-neutral-800 text-[15px] placeholder:text-neutral-500 placeholder:font-light"
-            //             rows=12
-            //             placeholder="Enter the caption here"
-            //             disabled=move || file_blob.with(|f| f.is_none())
-            //         ></textarea>
-            //     </div>
-            //     <div class="flex flex-col gap-y-1 mt-2">
-            //         <label for="hashtag-input" class="mb-1 font-light text-[20px] text-neutral-300">
-            //             Add Hashtag
-            //         </label>
-            //         <Show when=move || {
-            //             hashtags_err.with(|hashtags_err| !hashtags_err.is_empty())
-            //         }>
-            //             <span class="text-sm font-semibold text-red-500">
-            //                 {hashtags_err_memo()}
-            //             </span>
-            //         </Show>
-            //         <input
-            //             id="hashtag-input"
-            //             node_ref=hashtag_inp
-            //             on:input=move |ev| {
-            //                 let hts = event_target_value(&ev);
-            //                 hashtag_on_input(hts);
-            //             }
-            //             class="p-3 rounded-lg border transition outline-none focus:border-pink-400 focus:ring-pink-400 bg-neutral-900 border-neutral-800 text-[15px] placeholder:text-neutral-500 placeholder:font-light"
-            //             type="text"
-            //             placeholder="Hit enter to add #hashtags"
-            //             disabled=move || file_blob.with(|f| f.is_none())
-            //         />
-            //     </div>
-            //     <div class="flex items-center gap-2">
-            //         <input
-            //             id="nsfw-checkbox"
-            //             node_ref=is_nsfw
-            //             type="checkbox"
-            //             class="w-4 h-4 text-pink-500 bg-gray-100 border-gray-300 rounded focus:ring-pink-400"
-            //             disabled=move || file_blob.with(|f| f.is_none())
-            //         />
-            //         <label for="nsfw-checkbox" class="text-neutral-300 text-sm">
-            //             This content is NSFW
-            //         </label>
-            //     </div>
-            //     {move || {
-            //         let disa = invalid_form.get() || file_blob.with(|f| f.is_none());
-            //         view! {
-            //             <HighlightedButton
-            //                 on_click=move || on_submit()
-            //                 disabled=disa
-            //                 classes="w-full mx-auto py-[12px] px-[20px] rounded-xl bg-linear-to-r from-pink-300 to-pink-500 text-white font-light text-[17px] transition disabled:opacity-60 disabled:cursor-not-allowed"
-            //                     .to_string()
-            //             >
-            //                 "Upload"
-            //             </HighlightedButton>
-            //         }
-            //     }}
-            // </div>
+            <div class="flex overflow-y-auto flex-col gap-4 justify-between p-2 w-full h-auto rounded-2xl max-w-[627px] min-h-[400px] max-h-[90vh] lg:w-[627px] lg:h-[600px]">
+                <h2 class="mb-2 font-light text-white text-[32px]">Upload AI Video</h2>
+                <div class="flex flex-col gap-y-1">
+                    <label for="caption-input" class="mb-1 font-light text-[20px] text-neutral-300">
+                        Caption
+                    </label>
+                    <Show when=move || {
+                        description_err.with(|description_err| !description_err.is_empty())
+                    }>
+                        <span class="text-sm text-red-500">{desc_err_memo()}</span>
+                    </Show>
+                    <textarea
+                        id="caption-input"
+                        node_ref=desc
+                        on:input=move |ev| {
+                            let desc = event_target_value(&ev);
+                            description_err
+                                .set(description_validator(desc).err().unwrap_or_default());
+                        }
+                        class="p-3 min-w-full rounded-lg border transition outline-none focus:border-pink-400 focus:ring-pink-400 bg-neutral-900 border-neutral-800 text-[15px] placeholder:text-neutral-500 placeholder:font-light"
+                        rows=12
+                        placeholder="Enter the caption here"
+                        disabled=move || file_blob.with(|f| f.is_none())
+                    ></textarea>
+                </div>
+                <div class="flex flex-col gap-y-1 mt-2">
+                    <label for="hashtag-input" class="mb-1 font-light text-[20px] text-neutral-300">
+                        Add Hashtag
+                    </label>
+                    <Show when=move || {
+                        hashtags_err.with(|hashtags_err| !hashtags_err.is_empty())
+                    }>
+                        <span class="text-sm font-semibold text-red-500">
+                            {hashtags_err_memo()}
+                        </span>
+                    </Show>
+                    <input
+                        id="hashtag-input"
+                        node_ref=hashtag_inp
+                        on:input=move |ev| {
+                            let hts = event_target_value(&ev);
+                            hashtag_on_input(hts);
+                        }
+                        class="p-3 rounded-lg border transition outline-none focus:border-pink-400 focus:ring-pink-400 bg-neutral-900 border-neutral-800 text-[15px] placeholder:text-neutral-500 placeholder:font-light"
+                        type="text"
+                        placeholder="Hit enter to add #hashtags"
+                        disabled=move || file_blob.with(|f| f.is_none())
+                    />
+                </div>
+                <div class="flex items-center gap-2">
+                    <input
+                        id="nsfw-checkbox"
+                        node_ref=is_nsfw
+                        type="checkbox"
+                        class="w-4 h-4 text-pink-500 bg-gray-100 border-gray-300 rounded focus:ring-pink-400"
+                        disabled=move || file_blob.with(|f| f.is_none())
+                    />
+                    <label for="nsfw-checkbox" class="text-neutral-300 text-sm">
+                        This content is NSFW
+                    </label>
+                </div>
+                {move || {
+                    let disa = invalid_form.get() || file_blob.with(|f| f.is_none());
+                    view! {
+                        <HighlightedButton
+                            on_click=move || on_submit()
+                            disabled=disa
+                            classes="w-full mx-auto py-[12px] px-[20px] rounded-xl bg-linear-to-r from-pink-300 to-pink-500 text-white font-light text-[17px] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                                .to_string()
+                        >
+                            "Upload"
+                        </HighlightedButton>
+                    }
+                }}
+            </div>
         </div>
     }
 }
 
 #[cfg(feature = "hydrate")]
-async fn poll_for_video(
-    operation_name: String,
-    file_blob: RwSignal<Option<FileWithUrl>, LocalStorage>,
-    // is_generating: RwSignal<bool>,
-    generation_error: RwSignal<Option<String>>,
-    polling_status: RwSignal<String>,
-    video_ref: NodeRef<Video>,
-) {
-    let mut attempts = 0;
-    const MAX_ATTEMPTS: u32 = 60; // Poll for up to 5 minutes (60 * 5 seconds)
-
-    loop {
-        if attempts >= MAX_ATTEMPTS {
-            generation_error.set(Some("Video generation timed out".to_string()));
-            break;
-        }
-
-        attempts += 1;
-        polling_status.set(format!("Checking status... (attempt {})", attempts));
-
-        // Wait 5 seconds before polling
-        gloo::timers::future::sleep(std::time::Duration::from_secs(5)).await;
-
-        let request_body = CheckStatusRequest {
-            operation_name: operation_name.clone(),
-        };
-
-        match Request::post(&format!("{}/check_generation_status", API_BASE_URL))
-            .header("accept", "application/json")
-            .header("X-API-Key", API_KEY)
-            .header("Content-Type", "application/json")
-            .json(&request_body)
-            .expect("Failed to build request")
-            .send()
-            .await
-        {
-            Ok(response) => {
-                if response.ok() {
-                    match response.json::<CheckStatusResponse>().await {
-                        Ok(status_response) => {
-                            if status_response.completed {
-                                if let Some(gcs_uri) = status_response.gcs_uri {
-                                    polling_status.set("Video generated! Loading...".to_string());
-                                    convert_gcs_to_blob(
-                                        gcs_uri,
-                                        file_blob,
-                                        generation_error,
-                                        video_ref,
-                                    )
-                                    .await;
-                                    break;
-                                } else {
-                                    generation_error.set(Some(
-                                        "Video completed but no URL provided".to_string(),
-                                    ));
-                                    // is_generating.set(false);
-                                    break;
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            generation_error
-                                .set(Some(format!("Failed to parse status response: {}", e)));
-                            // is_generating.set(false);
-                            break;
-                        }
-                    }
-                } else {
-                    generation_error.set(Some(format!(
-                        "Status check API error: {}",
-                        response.status()
-                    )));
-                    // is_generating.set(false);
-                    break;
-                }
-            }
-            Err(e) => {
-                generation_error.set(Some(format!("Status check request failed: {}", e)));
-                // is_generating.set(false);
-                break;
-            }
-        }
-    }
-}
-
-#[cfg(feature = "hydrate")]
-async fn convert_gcs_to_blob(
-    _gcs_uri: String,
+async fn load_video_from_url(
+    video_url: String,
     file_blob: RwSignal<Option<FileWithUrl>, LocalStorage>,
     generation_error: RwSignal<Option<String>>,
     video_ref: NodeRef<Video>,
 ) {
-    // Convert GCS URI to a public URL
-    // For now, we'll assume the video is publicly accessible
-    // In production, you might need to use a signed URL or proxy through your backend
-    // let public_url = gcs_uri.replace("gs://", "https://storage.googleapis.com/");
+    leptos::logging::log!("Attempting to load video from URL: {}", video_url);
 
-    // for testing
-    let public_url = "https://customer-2p3jflss4r4hmpnz.cloudflarestream.com/2472e3f1cbb742038f0e86a27c8ac98a/downloads/default.mp4";
+    // Use server function to fetch video to avoid CORS issues
+    match fetch_video_bytes(video_url).await {
+        Ok(bytes) => {
+            leptos::logging::log!("Received {} bytes from server", bytes.len());
 
-    match Request::get(&public_url).send().await {
-        Ok(response) => {
-            if response.ok() {
-                match response.binary().await {
-                    Ok(bytes) => {
-                        let array = js_sys::Uint8Array::from(&bytes[..]);
-                        let blob = Blob::new_with_u8_array_sequence(&js_sys::Array::of1(&array))
-                            .expect("Failed to create blob");
+            // Create a Uint8Array from the bytes
+            let uint8_array = js_sys::Uint8Array::new_with_length(bytes.len() as u32);
+            uint8_array.copy_from(&bytes[..]);
 
-                        // Create a File from the Blob
-                        let file_options = web_sys::FilePropertyBag::new();
-                        file_options.set_type("video/mp4");
-                        let file = web_sys::File::new_with_blob_sequence_and_options(
-                            &js_sys::Array::of1(&blob),
-                            "generated_video.mp4",
-                            &file_options,
-                        )
-                        .expect("Failed to create file");
+            // Create blob with proper options
+            let blob_parts = js_sys::Array::new();
+            blob_parts.push(&uint8_array.into());
 
-                        let gloo_file = gloo::file::File::from(file);
-                        let object_url = gloo::file::ObjectUrl::from(gloo_file.clone());
-                        let video_url = String::from(&*object_url);
+            let mut blob_options = web_sys::BlobPropertyBag::new();
+            blob_options.type_("video/mp4");
 
-                        let file_with_url = FileWithUrl {
-                            file: gloo_file,
-                            url: object_url,
-                        };
+            let blob =
+                web_sys::Blob::new_with_u8_array_sequence_and_options(&blob_parts, &blob_options)
+                    .expect("Failed to create blob");
 
-                        file_blob.set(Some(file_with_url));
+            leptos::logging::log!("Created blob with size: {}", blob.size());
 
-                        if let Some(video) = video_ref.get() {
-                            video.set_src(&video_url);
-                        }
+            // Create a File from the Blob
+            let file_options = web_sys::FilePropertyBag::new();
+            file_options.set_type("video/mp4");
+            let file = web_sys::File::new_with_blob_sequence_and_options(
+                &js_sys::Array::of1(&blob),
+                "generated_video.mp4",
+                &file_options,
+            )
+            .expect("Failed to create file");
 
-                        generation_error.set(None);
-                    }
-                    Err(e) => {
-                        generation_error.set(Some(format!("Failed to get video binary: {}", e)));
-                    }
-                }
-            } else {
-                generation_error.set(Some(format!(
-                    "Failed to fetch video: {}",
-                    response.status()
-                )));
-            }
+            let file_with_url = FileWithUrl::new(file.into());
+
+            file_blob.set(Some(file_with_url));
+
+            // if let Some(video) = video_ref.get() {
+            //     video.set_src(&video_url);
+            //     // Force a load to ensure video starts properly
+            //     let _ = video.load();
+            //     leptos::logging::log!("Set video src and called load()");
+            // }
+
+            generation_error.set(None);
         }
         Err(e) => {
-            generation_error.set(Some(format!("Failed to download video: {}", e)));
+            leptos::logging::log!("Error fetching video: {}", e);
+            generation_error.set(Some(format!("Failed to fetch video: {}", e)));
         }
     }
 }
