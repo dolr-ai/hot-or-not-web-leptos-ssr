@@ -1,5 +1,9 @@
+mod ai;
+mod ai_server;
 mod validators;
 mod video_upload;
+
+pub use ai::UploadAiPostPage;
 use leptos_meta::*;
 
 use state::canisters::auth_state;

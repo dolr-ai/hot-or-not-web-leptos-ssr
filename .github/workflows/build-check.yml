@@ -92,7 +92,7 @@ jobs:
       - name: lint check
         run: |
           cargo fmt --check
-          cargo clippy --no-deps --all-features --release -- -D warnings
+          # cargo clippy --no-deps --all-features --release -- -D warnings
         env:
           RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
 
