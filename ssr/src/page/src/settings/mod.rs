@@ -17,6 +17,9 @@ use leptos_router::{hooks::use_params, params::Params};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use state::canisters::auth_state;
+use utils::mixpanel::mixpanel_events::{
+    MixPanelEvent, MixpanelGlobalProps, MixpanelNotificationPropsClickedProps,
+};
 use utils::notifications::{
     get_device_registeration_token, get_fcm_token, notification_permission_granted,
 };
@@ -159,9 +162,20 @@ fn EnableNotifications() -> impl IntoView {
             .auth_cans(use_context().unwrap_or_default())
             .await
             .unwrap();
-
         let browser_permission = Notification::permission();
         let notifs_enabled_val = notifs_enabled.get_untracked();
+
+        let global =
+            MixpanelGlobalProps::try_get(&cans, auth.is_logged_in_with_oauth().get_untracked());
+
+        MixPanelEvent::track_notification_toggled(MixpanelNotificationPropsClickedProps {
+            toggle: notifs_enabled_val,
+            user_id: global.user_id,
+            visitor_id: global.visitor_id,
+            canister_id: global.canister_id,
+            is_logged_in: global.is_logged_in,
+            is_nsfw_enabled: global.is_nsfw_enabled,
+        });
 
         if notifs_enabled_val && matches!(browser_permission, NotificationPermission::Default) {
             match notification_permission_granted().await {

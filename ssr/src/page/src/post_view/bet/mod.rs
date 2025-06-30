@@ -173,6 +173,25 @@ fn HNButtonOverlay(
             let post_mix = post.clone();
             send_wrap(async move {
                 let cans = auth.auth_cans(expect_context()).await.ok()?;
+                let is_logged_in = is_connected.get_untracked();
+                let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
+                MixPanelEvent::track_game_clicked(MixpanelGameClickedProps {
+                    is_nsfw: post_mix.is_nsfw,
+                    user_id: global.user_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
+                    game_type: MixpanelPostGameType::HotOrNot,
+                    option_chosen: bet_direction.into(),
+                    publisher_user_id: post_mix.poster_principal.to_text(),
+                    video_id: post_mix.uid.clone(),
+                    view_count: post_mix.views,
+                    like_count: post_mix.likes,
+                    stake_amount: bet_amount,
+                    is_game_enabled: true,
+                    stake_type: StakeType::Sats,
+                });
                 let identity = cans.identity();
                 let sender = identity.sender().unwrap();
                 let sig = sign_vote_request(identity, req.clone()).ok()?;
