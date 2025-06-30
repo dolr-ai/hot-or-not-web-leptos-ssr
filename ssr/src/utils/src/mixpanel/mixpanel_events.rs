@@ -611,7 +611,7 @@ pub struct MixpanelVideoClickedProfileProps {
     pub video_id: String,
     pub game_type: MixpanelPostGameType,
     pub cta_type: MixpanelVideoClickedCTAType,
-    // pub position: u64,
+    pub position: Option<u64>,
     pub is_own_profile: bool,
     pub is_nsfw: bool,
     pub page_name: String,
@@ -681,6 +681,7 @@ pub enum MixpanelVideoClickedCTAType {
     Mute,
     Unmute,
     CreatorProfile,
+    VideoPlay,
 }
 
 #[derive(Serialize, Clone)]
@@ -1051,7 +1052,7 @@ impl MixPanelEvent {
     }
 
     pub fn track_video_clicked_profile(p: MixpanelVideoClickedProfileProps) {
-        track_event("video_clicked_profile", p);
+        track_event("video_clicked", p);
     }
 
     pub fn track_refer_and_earn(p: MixpanelReferAndEarnProps) {
