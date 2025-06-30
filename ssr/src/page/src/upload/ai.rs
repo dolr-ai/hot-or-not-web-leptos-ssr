@@ -3,9 +3,12 @@ use super::{
     validators::{description_validator, hashtags_validator},
     UploadParams,
 };
-use crate::scrolling_post_view::MuteIconOverlay;
-use crate::upload::video_upload::VideoUploader;
-use component::buttons::HighlightedButton;
+// Remove the import of MuteIconOverlay from scrolling_post_view
+use crate::upload::video_upload::{
+    PostUploadScreen, SerializablePostDetailsFromFrontend, VideoMetadata, VideoUploader,
+};
+use auth::delegate_short_lived_identity;
+use component::{buttons::HighlightedButton, notification_nudge::NotificationNudge};
 use consts::UPLOAD_URL;
 use leptos::{
     ev::durationchange,
@@ -15,10 +18,12 @@ use leptos::{
 use leptos_icons::*;
 use leptos_meta::Title;
 use leptos_use::use_event_listener;
-use state::canisters::auth_state;
+use serde_json::json;
+use state::canisters::{auth_state, unauth_canisters};
 use utils::{
     event_streaming::events::{
-        VideoUploadInitiated, VideoUploadUnsuccessful, VideoUploadUploadButtonClicked,
+        VideoUploadInitiated, VideoUploadSuccessful, VideoUploadUnsuccessful,
+        VideoUploadUploadButtonClicked,
     },
     mixpanel::mixpanel_events::*,
     try_or_redirect_opt,
@@ -26,9 +31,28 @@ use utils::{
 };
 
 #[component]
+fn AiMuteIconOverlay(show_mute_icon: RwSignal<bool>) -> impl IntoView {
+    view! {
+        <Show when=show_mute_icon>
+            <button
+                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 cursor-pointer pointer-events-none"
+                on:click=move |_| {
+                    show_mute_icon.set(false);
+                }
+            >
+                <Icon
+                    attr:class="text-white/80 animate-ping text-4xl"
+                    icon=icondata::BiVolumeMuteSolid
+                />
+            </button>
+        </Show>
+    }
+}
+
+#[component]
 fn PreUploadAiView(
     trigger_upload: WriteSignal<Option<UploadParams>, LocalStorage>,
-    uid: RwSignal<Option<String>, LocalStorage>,
+    uid: RwSignal<Option<String>>,
     upload_file_actual_progress: WriteSignal<f64>,
 ) -> impl IntoView {
     let description_err = RwSignal::new(String::new());
@@ -59,91 +83,95 @@ fn PreUploadAiView(
     let ev_ctx = auth.event_ctx();
     VideoUploadInitiated.send_event(ev_ctx);
 
-    let upload_action: Action<(), _> = Action::new_local(move |_| {
-        let captured_progress_signal = upload_file_actual_progress;
+    let upload_action: Action<(), _> = Action::new_unsync(move |_| {
         async move {
             #[cfg(feature = "hydrate")]
             {
+                use leptos::task::spawn_local;
+
                 use crate::upload::video_upload::upload_video_part;
 
-                let message = try_or_redirect_opt!(upload_video_part(
-                    UPLOAD_URL,
-                    "file",
-                    file_blob.get_untracked().unwrap().file.as_ref(),
-                    captured_progress_signal,
-                )
-                .await
-                .inspect_err(|e| {
-                    VideoUploadUnsuccessful.send_event(ev_ctx, e.to_string(), 0, false, true);
-                    if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                        MixPanelEvent::track_video_upload_error_shown(
-                            MixpanelVideoUploadFailureProps {
-                                user_id: global.user_id,
-                                visitor_id: global.visitor_id,
-                                is_logged_in: global.is_logged_in,
-                                canister_id: global.canister_id,
-                                is_nsfw_enabled: global.is_nsfw_enabled,
-                                error: e.to_string(),
-                            },
-                        );
-                    }
-                }));
+                // Clone signals for use in spawn_local
+                let uid_signal = uid;
+                let file_blob_signal = file_blob;
+                let captured_progress_signal = upload_file_actual_progress;
 
-                uid.set(message.data.and_then(|m| m.uid));
+                spawn_local(async move {
+                    let file_data = file_blob_signal.get_untracked();
+                    if let Some(file_with_url) = file_data {
+                        let message = upload_video_part(
+                            UPLOAD_URL,
+                            "file",
+                            file_with_url.file.as_ref(),
+                            captured_progress_signal,
+                        )
+                        .await
+                        .unwrap();
+
+                        uid_signal.set(message.data.and_then(|m| m.uid));
+                    };
+                });
             }
 
             Some(())
         }
     });
 
-    let generate_action: Action<(), _> = Action::new_local(move |_| {
-        leptos::logging::log!("Generating video from prompt...");
-        let prompt_input = prompt_input.clone();
-        let generation_error = generation_error.clone();
-        let polling_status = polling_status.clone();
-        let file_blob = file_blob.clone();
-        let video_ref = video_ref.clone();
+    let generate_action: Action<(), _> = Action::new_unsync(move |_| async move {
+        #[cfg(feature = "hydrate")]
+        {
+            use leptos::task::spawn_local;
 
-        async move {
-            let Some(prompt_elem) = prompt_input.get() else {
-                return;
-            };
+            spawn_local(async move {
+                leptos::logging::log!("Generating video from prompt...");
 
-            let prompt = prompt_elem.value();
-            if prompt.is_empty() {
-                generation_error.set(Some("Please enter a prompt".to_string()));
-                return;
-            }
+                let Some(prompt_elem) = prompt_input.get() else {
+                    return;
+                };
 
-            generation_error.set(None);
-            polling_status.set("Generating video... This may take a few minutes.".to_string());
+                let prompt = prompt_elem.value();
+                if prompt.is_empty() {
+                    generation_error.set(Some("Please enter a prompt".to_string()));
+                    return;
+                }
 
-            let request_body = GenerateVideoRequest {
-                prompt,
-                user_id: uuid::Uuid::new_v4().to_string(),
-                generate_audio: true,
-                negative_prompt: String::new(),
-            };
+                generation_error.set(None);
+                polling_status.set("Generating video... This may take a few minutes.".to_string());
 
-            match generate_video_from_prompt(request_body).await {
-                Ok(result) => {
-                    polling_status.set("Video generated! Loading...".to_string());
+                let request_body = GenerateVideoRequest {
+                    prompt,
+                    user_id: uuid::Uuid::new_v4().to_string(),
+                    generate_audio: true,
+                    negative_prompt: String::new(),
+                };
 
-                    #[cfg(feature = "hydrate")]
-                    load_video_from_url(result.video_url, file_blob, generation_error, video_ref)
+                match generate_video_from_prompt(request_body).await {
+                    Ok(result) => {
+                        polling_status.set("Video generated! Loading...".to_string());
+                        load_video_from_url(
+                            result.video_url,
+                            file_blob,
+                            generation_error,
+                            video_ref,
+                        )
                         .await;
-
-                    #[cfg(not(feature = "hydrate"))]
-                    {
-                        generation_error.set(Some(
-                            "Video generation is only supported in the browser".to_string(),
-                        ));
+                    }
+                    Err(e) => {
+                        generation_error.set(Some(format!("Video generation failed: {}", e)));
                     }
                 }
-                Err(e) => {
-                    generation_error.set(Some(format!("Video generation failed: {}", e)));
-                }
-            }
+            });
+        }
+
+        #[cfg(not(feature = "hydrate"))]
+        {
+            use leptos::task::spawn_local;
+
+            spawn_local(async move {
+                generation_error.set(Some(
+                    "Video generation is only supported in the browser".to_string(),
+                ));
+            });
         }
     });
 
@@ -262,7 +290,7 @@ fn PreUploadAiView(
                             }
                             src=move || file_blob.with(|file| file.as_ref().map(|f| f.url.to_string()))
                         ></video>
-                        <MuteIconOverlay show_mute_icon=show_mute_icon />
+                        <AiMuteIconOverlay show_mute_icon=show_mute_icon />
                         <button
                             on:click=move |_| {
                                 file_blob.set(None);
@@ -421,7 +449,7 @@ async fn load_video_from_url(
 #[component]
 pub fn UploadAiPostPage() -> impl IntoView {
     let trigger_upload = RwSignal::new_local(None::<UploadParams>);
-    let uid = RwSignal::new_local(None);
+    let uid = RwSignal::new(None);
     let upload_file_actual_progress = RwSignal::new(0.0f64);
 
     view! {
@@ -440,7 +468,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                         }
                     }
                 >
-                    <VideoUploader
+                    <VideoAiUploader
                         params=trigger_upload.get_untracked().unwrap()
                         uid=uid
                         upload_file_actual_progress=upload_file_actual_progress.read_only()
@@ -449,4 +477,194 @@ pub fn UploadAiPostPage() -> impl IntoView {
             </div>
         </div>
     }
+}
+
+#[component]
+pub fn VideoAiUploader(
+    params: UploadParams,
+    uid: RwSignal<Option<String>>,
+    upload_file_actual_progress: ReadSignal<f64>,
+) -> impl IntoView {
+    let file_blob = params.file_blob;
+    let hashtags = params.hashtags;
+    let description = params.description;
+
+    let published = RwSignal::new(false);
+    let video_url = StoredValue::new_local(file_blob.url);
+
+    let is_nsfw = params.is_nsfw;
+    let enable_hot_or_not = params.enable_hot_or_not;
+
+    let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
+    let ev_ctx = auth.event_ctx();
+
+    let notification_nudge = RwSignal::new(false);
+
+    let publish_action: Action<_, _> = Action::new_unsync(move |&()| {
+        leptos::logging::log!("Publish action triggered");
+        let unauth_cans = unauth_canisters();
+        let hashtags = hashtags.clone();
+        let hashtags_len = hashtags.len();
+        let description = description.clone();
+        leptos::logging::log!("Publish action called");
+
+        async move {
+            let uid_value = uid.get_untracked()?;
+
+            let canisters = auth.auth_cans(unauth_cans).await.ok()?;
+            let id = canisters.identity();
+            let delegated_identity = delegate_short_lived_identity(id);
+            let res: std::result::Result<reqwest::Response, ServerFnError> = {
+                let client = reqwest::Client::new();
+                notification_nudge.set(true);
+                let req = client
+                    .post(format!("{UPLOAD_URL}/update_metadata"))
+                    .json(&json!({
+                        "video_uid": uid,
+                        "delegated_identity_wire": delegated_identity,
+                        "meta": VideoMetadata{
+                            title: description.clone(),
+                            description: description.clone(),
+                            tags: hashtags.join(",")
+                        },
+                        "post_details": SerializablePostDetailsFromFrontend{
+                            is_nsfw,
+                            hashtags,
+                            description,
+                            video_uid: uid_value.clone(),
+                            creator_consent_for_inclusion_in_hot_or_not: enable_hot_or_not,
+                        }
+                    }));
+
+                req.send()
+                    .await
+                    .map_err(|e| ServerFnError::new(e.to_string()))
+            };
+
+            match res {
+                Ok(_) => {
+                    let is_logged_in = is_connected.get_untracked();
+                    let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
+                    MixPanelEvent::track_video_upload_success(MixpanelVideoUploadSuccessProps {
+                        user_id: global.user_id,
+                        visitor_id: global.visitor_id,
+                        is_logged_in: global.is_logged_in,
+                        canister_id: global.canister_id,
+                        is_nsfw_enabled: global.is_nsfw_enabled,
+                        video_id: uid_value.clone(),
+                        is_game_enabled: true,
+                        creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
+                        game_type: MixpanelPostGameType::HotOrNot,
+                    });
+                    published.set(true)
+                }
+                Err(_) => {
+                    let e = res.as_ref().err().unwrap().to_string();
+                    VideoUploadUnsuccessful.send_event(
+                        ev_ctx,
+                        e,
+                        hashtags_len,
+                        is_nsfw,
+                        enable_hot_or_not,
+                    );
+                }
+            }
+            try_or_redirect_opt!(res);
+
+            VideoUploadSuccessful.send_event(
+                ev_ctx,
+                uid_value.clone(),
+                hashtags_len,
+                is_nsfw,
+                enable_hot_or_not,
+                0,
+            );
+
+            Some(())
+        }
+    });
+
+    Effect::new(move |prev_tracked_uid_val: Option<Option<String>>| {
+        let current_uid_val = uid.get();
+        let prev_uid_from_last_run: Option<String> = prev_tracked_uid_val.flatten();
+        if current_uid_val.is_some()
+            && (prev_uid_from_last_run.is_none() || prev_uid_from_last_run != current_uid_val)
+            && !publish_action.pending().get()
+            && !published.get()
+        {
+            publish_action.dispatch(());
+        }
+        current_uid_val
+    });
+
+    let video_uploaded_base_width = 200.0 / 3.0;
+    let metadata_publish_total_width = 100.0 / 3.0;
+
+    view! {
+        <div class="flex flex-col-reverse gap-4 justify-center items-center p-0 mx-auto w-full min-h-screen bg-transparent lg:flex-row lg:gap-20">
+            <NotificationNudge pop_up=notification_nudge />
+            <div class="flex flex-col justify-center items-center px-4 mt-0 mb-0 w-full h-auto text-center rounded-2xl sm:px-6 sm:mt-0 sm:mb-0 lg:overflow-y-auto lg:px-0 min-h-[200px] max-h-[60vh] sm:min-h-[300px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] lg:min-h-[600px] lg:max-h-[600px]">
+                <video
+                    class="object-contain p-2 w-full h-full bg-black rounded-xl"
+                    playsinline
+                    muted
+                    autoplay
+                    loop
+                    oncanplay="this.muted=true"
+                    src=move || video_url.get_value().to_string()
+                ></video>
+            </div>
+            <div class="flex overflow-y-auto flex-col gap-4 justify-center p-2 w-full h-auto rounded-2xl max-w-[627px] min-h-[400px] max-h-[90vh] lg:w-[627px] lg:h-[600px]">
+                <h2 class="mb-2 font-light text-white text-[32px]">Uploading Video</h2>
+                <div class="flex flex-col gap-y-1">
+                    <p>
+                        This may take a moment. Feel free to explore more videos on the home page while you wait!
+                    </p>
+                </div>
+                <div class="mt-2 w-full h-2.5 rounded-full bg-neutral-800">
+                    <div
+                        class="h-2.5 rounded-full duration-500 ease-in-out bg-linear-to-r from-[#EC55A7] to-[#E2017B] transition-width"
+                        style:width=move || {
+                            if published.get() {
+                                "100%".to_string()
+                            } else if publish_action.pending().get() {
+                                format!(
+                                    "{:.2}%",
+                                    video_uploaded_base_width + metadata_publish_total_width * 0.7,
+                                )
+                            } else if uid.with(|u| u.is_some()) {
+                                format!("{video_uploaded_base_width:.2}%")
+                            } else {
+                                format!(
+                                    "{:.2}%",
+                                    upload_file_actual_progress.get() * video_uploaded_base_width,
+                                )
+                            }
+                        }
+                    ></div>
+                </div>
+                <p class="mt-1 text-sm text-center text-gray-400">
+                    {move || {
+                        if published.get() {
+                            "Upload complete!".to_string()
+                        } else if publish_action.pending().get() {
+                            "Processing video metadata...".to_string()
+                        } else if uid.with(|u| u.is_none()) {
+                            "Uploading video file...".to_string()
+                        } else if uid.with(|u| u.is_some()) && !publish_action.pending().get()
+                            && !published.get()
+                        {
+                            "Video file uploaded. Waiting to publish metadata...".to_string()
+                        } else {
+                            "Waiting to upload...".to_string()
+                        }
+                    }}
+                </p>
+            </div>
+        </div>
+        <Show when=published>
+            <PostUploadScreen />
+        </Show>
+    }.into_any()
 }

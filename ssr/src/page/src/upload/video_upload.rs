@@ -540,7 +540,7 @@ pub fn VideoUploader(
 
 // post as in after not the content post
 #[component]
-fn PostUploadScreen() -> impl IntoView {
+pub fn PostUploadScreen() -> impl IntoView {
     view! {
         <div
             style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
