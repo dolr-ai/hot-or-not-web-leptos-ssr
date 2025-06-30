@@ -336,6 +336,14 @@ pub struct MixpanelReferAndEarnPageViewedProps {
     pub referral_bonus: u64,
 }
 #[derive(Serialize)]
+pub struct MixpanelOnboardingPopupViewProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+}
+#[derive(Serialize)]
 pub struct MixpanelVideoUploadFailureProps {
     pub user_id: Option<String>,
     pub visitor_id: Option<String>,
@@ -736,6 +744,9 @@ impl MixPanelEvent {
     }
     pub fn track_video_upload_error_shown(p: MixpanelVideoUploadFailureProps) {
         send_event_to_server("video_upload_error_shown", p);
+    }
+    pub fn track_onboarding_popup(p: MixpanelOnboardingPopupViewProps) {
+        send_event_to_server("onboarding_bitcoin_popup", p);
     }
 
     pub fn track_page_viewed(p: MixpanelPageViewedProps) {
