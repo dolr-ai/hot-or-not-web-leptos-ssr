@@ -44,12 +44,12 @@ pub struct VideoGenerationResult {
 pub async fn generate_video_from_prompt(
     req: GenerateVideoRequest,
 ) -> Result<VideoGenerationResult, ServerFnError> {
-    let video_url = "https://storage.googleapis.com/yral_ai_generated_videos/veo-output/1361752829448622169/sample_0.mp4".to_string();
+    // let video_url = "https://storage.googleapis.com/yral_ai_generated_videos/veo-output/1361752829448622169/sample_0.mp4".to_string();
 
-    return Ok(VideoGenerationResult {
-        video_url,
-        message: "Video generated successfully".to_string(),
-    });
+    // return Ok(VideoGenerationResult {
+    //     video_url,
+    //     message: "Video generated successfully".to_string(),
+    // });
 
     let client = reqwest::Client::new();
 
