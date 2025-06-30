@@ -5,11 +5,12 @@ use super::{
 };
 // Remove the import of MuteIconOverlay from scrolling_post_view
 use crate::upload::video_upload::{
-    PostUploadScreen, SerializablePostDetailsFromFrontend, VideoMetadata, VideoUploader,
+    PostUploadScreen, SerializablePostDetailsFromFrontend, VideoMetadata,
 };
 use auth::delegate_short_lived_identity;
 use component::{buttons::HighlightedButton, notification_nudge::NotificationNudge};
 use consts::UPLOAD_URL;
+use leptos::reactive::send_wrapper_ext::SendOption;
 use leptos::{
     ev::durationchange,
     html::{Input, Textarea, Video},
@@ -51,7 +52,7 @@ fn AiMuteIconOverlay(show_mute_icon: RwSignal<bool>) -> impl IntoView {
 
 #[component]
 fn PreUploadAiView(
-    trigger_upload: WriteSignal<Option<UploadParams>, LocalStorage>,
+    trigger_upload: WriteSignal<SendOption<UploadParams>>,
     uid: RwSignal<Option<String>>,
     upload_file_actual_progress: WriteSignal<f64>,
 ) -> impl IntoView {
@@ -60,7 +61,7 @@ fn PreUploadAiView(
     let hashtags = RwSignal::new(Vec::new());
     let hashtags_err = RwSignal::new(String::new());
     let hashtags_err_memo = Memo::new(move |_| hashtags_err());
-    let file_blob = RwSignal::new_local(None::<FileWithUrl>);
+    let file_blob = RwSignal::new(SendOption::<FileWithUrl>::new_local(None));
     let desc = NodeRef::<Textarea>::new();
     let prompt_input = NodeRef::<Textarea>::new();
     let video_ref = NodeRef::<Video>::new();
@@ -98,7 +99,7 @@ fn PreUploadAiView(
 
                 spawn_local(async move {
                     let file_data = file_blob_signal.get_untracked();
-                    if let Some(file_with_url) = file_data {
+                    if let Some(file_with_url) = file_data.take() {
                         let message = upload_video_part(
                             UPLOAD_URL,
                             "file",
@@ -180,10 +181,10 @@ fn PreUploadAiView(
 
         let description = desc.get_untracked().unwrap().value();
         let hashtags = hashtags.get_untracked();
-        let Some(file_blob) = file_blob.get_untracked() else {
+        let Some(file_blob) = file_blob.get_untracked().as_ref().cloned() else {
             return;
         };
-        trigger_upload.set(Some(UploadParams {
+        trigger_upload.set(SendOption::new_local(Some(UploadParams {
             file_blob,
             hashtags,
             description,
@@ -192,7 +193,7 @@ fn PreUploadAiView(
                 .get_untracked()
                 .map(|v| v.checked())
                 .unwrap_or_default(),
-        }));
+        })));
     };
 
     let hashtag_on_input = move |hts| match hashtags_validator(hts) {
@@ -219,7 +220,7 @@ fn PreUploadAiView(
             .get_untracked()
             .map(|v| v.duration())
             .unwrap_or_default();
-        let Some(_vid_file) = file_blob.get_untracked() else {
+        let Some(_vid_file) = file_blob.get_untracked().as_ref() else {
             return;
         };
         if duration <= 60.0 || duration.is_nan() {
@@ -230,7 +231,7 @@ fn PreUploadAiView(
         generation_error.set(Some(
             "Generated video is longer than 60 seconds".to_string(),
         ));
-        file_blob.set(None);
+        file_blob.set(SendOption::new_local(None));
         uid.set(None);
     });
 
@@ -238,7 +239,7 @@ fn PreUploadAiView(
         <div class="flex flex-col gap-4 justify-center items-center p-0 mx-auto w-full min-h-screen bg-transparent lg:flex-row lg:gap-20">
             <div class="flex flex-col justify-center items-center px-2 mx-4 mt-4 mb-4 text-center rounded-2xl sm:px-4 sm:mx-6 sm:w-full sm:h-auto lg:overflow-y-auto lg:px-0 lg:mx-0 w-[358px] h-[300px] sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px]">
                 <Show
-                    when=move || file_blob.with(|f| f.is_some())
+                    when=move || file_blob.with(|f| (**f).is_some())
                     fallback=move || view! {
                         <div class="flex flex-col gap-4 w-full">
                             <h3 class="text-2xl font-light text-white">AI Video Generator</h3>
@@ -288,12 +289,12 @@ fn PreUploadAiView(
                                     }
                                 }
                             }
-                            src=move || file_blob.with(|file| file.as_ref().map(|f| f.url.to_string()))
+                            src=move || file_blob.with(|file| (**file).as_ref().map(|f| f.url.to_string()))
                         ></video>
                         <AiMuteIconOverlay show_mute_icon=show_mute_icon />
                         <button
                             on:click=move |_| {
-                                file_blob.set(None);
+                                file_blob.set(SendOption::new_local(None));
                                 generation_error.set(None);
                                 if let Some(video) = video_ref.get() {
                                     video.set_src("");
@@ -328,7 +329,7 @@ fn PreUploadAiView(
                         class="p-3 min-w-full rounded-lg border transition outline-none focus:border-pink-400 focus:ring-pink-400 bg-neutral-900 border-neutral-800 text-[15px] placeholder:text-neutral-500 placeholder:font-light"
                         rows=12
                         placeholder="Enter the caption here"
-                        disabled=move || file_blob.with(|f| f.is_none())
+                        disabled=move || file_blob.with(|f| (**f).is_none())
                     ></textarea>
                 </div>
                 <div class="flex flex-col gap-y-1 mt-2">
@@ -352,7 +353,7 @@ fn PreUploadAiView(
                         class="p-3 rounded-lg border transition outline-none focus:border-pink-400 focus:ring-pink-400 bg-neutral-900 border-neutral-800 text-[15px] placeholder:text-neutral-500 placeholder:font-light"
                         type="text"
                         placeholder="Hit enter to add #hashtags"
-                        disabled=move || file_blob.with(|f| f.is_none())
+                        disabled=move || file_blob.with(|f| (**f).is_none())
                     />
                 </div>
                 <div class="flex items-center gap-2">
@@ -361,14 +362,14 @@ fn PreUploadAiView(
                         node_ref=is_nsfw
                         type="checkbox"
                         class="w-4 h-4 text-pink-500 bg-gray-100 border-gray-300 rounded focus:ring-pink-400"
-                        disabled=move || file_blob.with(|f| f.is_none())
+                        disabled=move || file_blob.with(|f| (**f).is_none())
                     />
                     <label for="nsfw-checkbox" class="text-neutral-300 text-sm">
                         This content is NSFW
                     </label>
                 </div>
                 {move || {
-                    let disa = invalid_form.get() || file_blob.with(|f| f.is_none());
+                    let disa = invalid_form.get() || file_blob.with(|f| (**f).is_none());
                     view! {
                         <HighlightedButton
                             on_click=move || on_submit()
@@ -388,7 +389,7 @@ fn PreUploadAiView(
 #[cfg(feature = "hydrate")]
 async fn load_video_from_url(
     video_url: String,
-    file_blob: RwSignal<Option<FileWithUrl>, LocalStorage>,
+    file_blob: RwSignal<SendOption<FileWithUrl>>,
     generation_error: RwSignal<Option<String>>,
     _video_ref: NodeRef<Video>,
 ) {
@@ -428,7 +429,7 @@ async fn load_video_from_url(
 
             let file_with_url = FileWithUrl::new(file.into());
 
-            file_blob.set(Some(file_with_url));
+            file_blob.set(SendOption::new_local(Some(file_with_url)));
 
             // if let Some(video) = video_ref.get() {
             //     video.set_src(&video_url);
@@ -448,7 +449,7 @@ async fn load_video_from_url(
 
 #[component]
 pub fn UploadAiPostPage() -> impl IntoView {
-    let trigger_upload = RwSignal::new_local(None::<UploadParams>);
+    let trigger_upload = RwSignal::new(SendOption::<UploadParams>::new_local(None));
     let uid = RwSignal::new(None);
     let upload_file_actual_progress = RwSignal::new(0.0f64);
 
@@ -457,7 +458,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
         <div class="flex overflow-y-scroll flex-col gap-6 justify-center items-center px-5 pt-4 pb-12 text-white bg-black md:gap-8 md:px-8 md:pt-6 lg:gap-16 lg:px-12 min-h-dvh w-dvw">
             <div class="flex flex-col place-content-center w-full min-h-full lg:flex-row">
                 <Show
-                    when=move || { trigger_upload.with(|trigger_upload| trigger_upload.is_some()) }
+                    when=move || { trigger_upload.with(|trigger_upload| (**trigger_upload).is_some()) }
                     fallback=move || {
                         view! {
                             <PreUploadAiView
@@ -469,7 +470,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                     }
                 >
                     <VideoAiUploader
-                        params=trigger_upload.get_untracked().unwrap()
+                        params=trigger_upload.get_untracked().as_ref().unwrap().clone()
                         uid=uid
                         upload_file_actual_progress=upload_file_actual_progress.read_only()
                     />
