@@ -11,4 +11,4 @@ pub static PUMP_AND_DUMP_WORKER_URL: Lazy<Url> =
 
 pub const STDB_URL: &str = "https://maincloud.spacetimedb.com";
 
-pub const BACKEND_MODULE_IDENTITY: &str = "yral-backend";
+pub const BACKEND_MODULE_IDENTITY: &str = "pr-8-yral-backend";
