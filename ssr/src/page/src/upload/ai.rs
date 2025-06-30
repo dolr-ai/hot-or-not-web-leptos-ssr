@@ -74,11 +74,9 @@ fn PreUploadAiView(
 
             let request_body = GenerateVideoRequest {
                 prompt,
-                sample_count: 1,
+                user_id: uuid::Uuid::new_v4().to_string(),
                 generate_audio: true,
-                aspect_ratio: "16:9".to_string(),
                 negative_prompt: String::new(),
-                duration_seconds: 8,
             };
 
             match generate_video_from_prompt(request_body).await {
