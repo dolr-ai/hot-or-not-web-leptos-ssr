@@ -57,11 +57,10 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
                 user_id: global.user_id.clone(),
                 visitor_id: global.visitor_id.clone(),
                 is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
+                canister_id: global.canister_id.clone(),
                 is_nsfw_enabled: global.is_nsfw_enabled,
                 cta_type,
-                is_own_profile: global.user_id.unwrap_or(global.visitor_id.unwrap())
-                    == user_principal.to_text(),
+                is_own_profile: global.canister_id == user_canister.to_text(),
                 publisher_user_id: user_principal.to_string(),
             });
         }
