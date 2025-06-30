@@ -51,7 +51,7 @@ fn Post(
                 position: post_index.map(|i| i as u64),
                 is_own_profile: user_canister.to_text() == global.canister_id,
                 is_nsfw: post_details.is_nsfw,
-                page_name: "Profile".to_string(),
+                page_name: "profile".to_string(),
             });
         }
     };
