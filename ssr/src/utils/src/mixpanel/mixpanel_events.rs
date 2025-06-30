@@ -355,6 +355,18 @@ pub struct MixpanelBottomBarPageViewedProps {
     pub is_nsfw_enabled: bool,
 }
 #[derive(Serialize)]
+pub struct MixpanelProfileClickedProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub is_own_profile: bool,
+    pub publisher_user_id: String,
+    pub cta_type: MixpanelProfileClickedCTAType,
+}
+
+#[derive(Serialize)]
 pub struct MixpanelMenuClickedProps {
     pub user_id: Option<String>,
     pub visitor_id: Option<String>,
@@ -564,6 +576,22 @@ pub struct MixpanelVideoClickedProps {
 }
 
 #[derive(Serialize)]
+pub struct MixpanelVideoReportedProps {
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub publisher_user_id: String,
+    pub is_game_enabled: bool,
+    pub video_id: String,
+    pub game_type: MixpanelPostGameType,
+    pub is_nsfw: bool,
+    pub report_reason: String,
+}
+
+#[derive(Serialize)]
 pub struct MixpanelVideoClickedProfileProps {
     // #[serde(flatten)]
     pub user_id: Option<String>,
@@ -578,7 +606,7 @@ pub struct MixpanelVideoClickedProfileProps {
     pub video_id: String,
     pub game_type: MixpanelPostGameType,
     pub cta_type: MixpanelVideoClickedCTAType,
-    pub position: u64,
+    // pub position: u64,
     pub is_own_profile: bool,
     pub is_nsfw: bool,
     pub page_name: String,
@@ -664,6 +692,14 @@ pub enum MixpanelMenuClickedCTAType {
     AboutUs,
     ViewProfile,
     Follow,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum MixpanelProfileClickedCTAType {
+    Videos,
+    GamesPlayed,
+    MemeCoin,
 }
 
 #[derive(Serialize)]
@@ -814,6 +850,9 @@ impl MixPanelEvent {
     }
     pub fn track_menu_clicked(p: MixpanelMenuClickedProps) {
         send_event_to_server("menu_clicked", p);
+    }
+    pub fn track_profile_clicked(p: MixpanelProfileClickedProps) {
+        send_event_to_server("profile_clicked", p);
     }
     pub fn track_refer_and_earn_page_viewed(p: MixpanelReferAndEarnPageViewedProps) {
         send_event_to_server("refer_and_earn_page_viewed", p);
@@ -993,6 +1032,10 @@ impl MixPanelEvent {
         track_event("video_clicked", p);
     }
 
+    pub fn track_video_reported(p: MixpanelVideoReportedProps) {
+        send_event_to_server("video_reported", p);
+    }
+
     pub fn track_video_clicked_profile(p: MixpanelVideoClickedProfileProps) {
         track_event("video_clicked_profile", p);
     }
@@ -1003,6 +1046,10 @@ impl MixPanelEvent {
 
     pub fn track_video_viewed(p: MixpanelVideoViewedProps) {
         track_event("video_viewed", p);
+    }
+
+    pub fn track_video_impression(p: MixpanelVideoViewedProps) {
+        send_event_to_server("video_impression", p);
     }
 
     pub fn track_video_started(p: MixpanelVideoStartedProps) {
