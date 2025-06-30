@@ -230,7 +230,7 @@ pub struct SerializablePostDetailsFromFrontend {
 }
 
 #[cfg(feature = "hydrate")]
-async fn upload_video_part(
+pub async fn upload_video_part(
     upload_base_url: &str,
     form_field_name: &str,
     file_blob: &Blob,
@@ -371,11 +371,12 @@ pub fn VideoUploader(
     let notification_nudge = RwSignal::new(false);
 
     let publish_action: Action<_, _> = Action::new_unsync(move |&()| {
+        leptos::logging::log!("Publish action triggered");
         let unauth_cans = unauth_canisters();
         let hashtags = hashtags.clone();
         let hashtags_len = hashtags.len();
         let description = description.clone();
-        log::info!("Publish action called");
+        leptos::logging::log!("Publish action called");
 
         async move {
             let uid_value = uid.get_untracked()?;

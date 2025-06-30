@@ -5,23 +5,29 @@ use super::{
 };
 use crate::upload::video_upload::VideoUploader;
 use component::buttons::HighlightedButton;
-use leptos::web_sys::Blob;
+use consts::UPLOAD_URL;
 use leptos::{
+    ev::durationchange,
     html::{Input, Textarea, Video},
     prelude::*,
 };
 use leptos_meta::Title;
+use leptos_use::use_event_listener;
 use state::canisters::auth_state;
 use utils::{
-    event_streaming::events::{VideoUploadInitiated, VideoUploadUploadButtonClicked},
+    event_streaming::events::{
+        VideoUploadInitiated, VideoUploadUnsuccessful, VideoUploadUploadButtonClicked,
+    },
+    mixpanel::mixpanel_events::*,
+    try_or_redirect_opt,
     web::FileWithUrl,
 };
 
 #[component]
 fn PreUploadAiView(
     trigger_upload: WriteSignal<Option<UploadParams>, LocalStorage>,
-    _uid: RwSignal<Option<String>, LocalStorage>,
-    _upload_file_actual_progress: WriteSignal<f64>,
+    uid: RwSignal<Option<String>, LocalStorage>,
+    upload_file_actual_progress: WriteSignal<f64>,
 ) -> impl IntoView {
     let description_err = RwSignal::new(String::new());
     let desc_err_memo = Memo::new(move |_| description_err());
@@ -49,6 +55,43 @@ fn PreUploadAiView(
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
     VideoUploadInitiated.send_event(ev_ctx);
+
+    let upload_action: Action<(), _> = Action::new_local(move |_| {
+        let captured_progress_signal = upload_file_actual_progress;
+        async move {
+            #[cfg(feature = "hydrate")]
+            {
+                use crate::upload::video_upload::upload_video_part;
+
+                let message = try_or_redirect_opt!(upload_video_part(
+                    UPLOAD_URL,
+                    "file",
+                    file_blob.get_untracked().unwrap().file.as_ref(),
+                    captured_progress_signal,
+                )
+                .await
+                .inspect_err(|e| {
+                    VideoUploadUnsuccessful.send_event(ev_ctx, e.to_string(), 0, false, true);
+                    if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                        MixPanelEvent::track_video_upload_error_shown(
+                            MixpanelVideoUploadFailureProps {
+                                user_id: global.user_id,
+                                visitor_id: global.visitor_id,
+                                is_logged_in: global.is_logged_in,
+                                canister_id: global.canister_id,
+                                is_nsfw_enabled: global.is_nsfw_enabled,
+                                error: e.to_string(),
+                            },
+                        );
+                    }
+                }));
+
+                uid.set(message.data.and_then(|m| m.uid));
+            }
+
+            Some(())
+        }
+    });
 
     let generate_action: Action<(), _> = Action::new_local(move |_| {
         leptos::logging::log!("Generating video from prompt...");
@@ -140,6 +183,26 @@ fn PreUploadAiView(
         }
     });
 
+    _ = use_event_listener(video_ref, durationchange, move |_| {
+        let duration = video_ref
+            .get_untracked()
+            .map(|v| v.duration())
+            .unwrap_or_default();
+        let Some(_vid_file) = file_blob.get_untracked() else {
+            return;
+        };
+        if duration <= 60.0 || duration.is_nan() {
+            upload_action.dispatch(());
+            return;
+        }
+        // Video is too long, handle error
+        generation_error.set(Some(
+            "Generated video is longer than 60 seconds".to_string(),
+        ));
+        file_blob.set(None);
+        uid.set(None);
+    });
+
     view! {
         <div class="flex flex-col gap-4 justify-center items-center p-0 mx-auto w-full min-h-screen bg-transparent lg:flex-row lg:gap-20">
             <div class="flex flex-col justify-center items-center px-2 mx-4 mt-4 mb-4 text-center rounded-2xl sm:px-4 sm:mx-6 sm:w-full sm:h-auto lg:overflow-y-auto lg:px-0 lg:mx-0 w-[358px] h-[300px] sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px]">
@@ -182,10 +245,8 @@ fn PreUploadAiView(
                             node_ref=video_ref
                             class="w-full h-full object-contain rounded-lg"
                             playsinline
-                            muted
                             autoplay
                             loop
-                            oncanplay="this.muted=true"
                             src=move || file_blob.with(|file| file.as_ref().map(|f| f.url.to_string()))
                         ></video>
                         <button
@@ -287,7 +348,7 @@ async fn load_video_from_url(
     video_url: String,
     file_blob: RwSignal<Option<FileWithUrl>, LocalStorage>,
     generation_error: RwSignal<Option<String>>,
-    video_ref: NodeRef<Video>,
+    _video_ref: NodeRef<Video>,
 ) {
     leptos::logging::log!("Attempting to load video from URL: {}", video_url);
 
@@ -359,8 +420,8 @@ pub fn UploadAiPostPage() -> impl IntoView {
                         view! {
                             <PreUploadAiView
                                 trigger_upload=trigger_upload.write_only()
-                                _uid=uid
-                                _upload_file_actual_progress=upload_file_actual_progress.write_only()
+                                uid=uid
+                                upload_file_actual_progress=upload_file_actual_progress.write_only()
                             />
                         }
                     }

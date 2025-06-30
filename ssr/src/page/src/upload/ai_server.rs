@@ -44,6 +44,13 @@ pub struct VideoGenerationResult {
 pub async fn generate_video_from_prompt(
     req: GenerateVideoRequest,
 ) -> Result<VideoGenerationResult, ServerFnError> {
+    let video_url = "https://storage.googleapis.com/yral_ai_generated_videos/veo-output/1361752829448622169/sample_0.mp4".to_string();
+
+    return Ok(VideoGenerationResult {
+        video_url,
+        message: "Video generated successfully".to_string(),
+    });
+
     let client = reqwest::Client::new();
 
     // Step 1: Initiate video generation
@@ -123,14 +130,14 @@ pub async fn generate_video_from_prompt(
         if status.completed {
             if let Some(gcs_uri) = status.gcs_uri {
                 // Convert GCS URI to public URL or use test URL
-                let video_url = if gcs_uri.starts_with("gs://") {
-                    gcs_uri.replace("gs://", "https://storage.googleapis.com/")
-                } else {
-                    // For testing
-                    "https://customer-2p3jflss4r4hmpnz.cloudflarestream.com/2472e3f1cbb742038f0e86a27c8ac98a/downloads/default.mp4".to_string()
-                };
+                // let video_url = if gcs_uri.starts_with("gs://") {
+                //     gcs_uri.replace("gs://", "https://storage.googleapis.com/")
+                // } else {
+                //     // For testing
+                //     "https://customer-2p3jflss4r4hmpnz.cloudflarestream.com/2472e3f1cbb742038f0e86a27c8ac98a/downloads/default.mp4".to_string()
+                // };
                 // For testing purposes, we will use a hardcoded URL
-                // let video_url = "https://customer-2p3jflss4r4hmpnz.cloudflarestream.com/2472e3f1cbb742038f0e86a27c8ac98a/downloads/default.mp4".to_string();
+                let video_url = "https://storage.googleapis.com/yral_ai_generated_videos/veo-output/1361752829448622169/sample_0.mp4".to_string();
 
                 return Ok(VideoGenerationResult {
                     video_url,
