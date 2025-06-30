@@ -85,9 +85,6 @@ impl WrappedContext {
             })
             .subscribe_to_all_tables();
         println!("subscribing to all stdb tables. this may take a while");
-        let end = trigger_rx.await.unwrap();
-
-        println!("subcription took {:?}", end - start);
 
         tokio::spawn(async move {
             let Err(err) = conn_for_ticking.run_async().await else {
@@ -97,6 +94,8 @@ impl WrappedContext {
             log::error!("connection to dedup index broke with an error: {err:#?}");
         });
 
+        let end = trigger_rx.await.unwrap();
+        println!("subcription took {:?}", end - start);
         Ok(Self { conn, tx })
     }
 
