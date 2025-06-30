@@ -452,7 +452,7 @@ pub fn HNUserParticipation(
     show_tutorial: RwSignal<bool>,
 ) -> impl IntoView {
     // let (_, _) = (post, refetch_bet); // not sure if i will need these later
-    let (_) = (refetch_bet); // not sure if i will need these later
+    let _ = refetch_bet; // not sure if i will need these later
     let (vote_amount, game_result) = match participation {
         GameInfo::CreatorReward(..) => unreachable!(
             "When a game result is accessed, backend should never return creator reward"
