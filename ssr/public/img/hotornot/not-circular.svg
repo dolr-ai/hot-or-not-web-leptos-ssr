@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="62" height="62" viewBox="0 0 62 62" fill="none">
+  <g filter="url(#filter0_d_1786_1577)">
+    <rect x="6" y="2" width="50" height="50" rx="25" fill="white" shape-rendering="crispEdges"/>
+    <path d="M34.6213 12.3504C34.6213 12.3504 35.1035 17.1048 34.3791 17.871C33.6547 18.6372 29.184 20.4097 28.3374 21.8592C27.4908 23.3087 28.1367 25.8081 22.7387 30.3617C20.7335 32.0535 21.7634 39.9011 23.2623 41.4008C24.9948 43.134 33.4082 44.9022 37.1567 42.4879C40.0957 40.5931 41.023 35.7994 40.903 34.3499C40.783 32.9004 36.513 26.4128 35.3042 24.6402C34.0955 22.8677 37.1174 21.9007 37.3989 20.652C37.6825 19.4012 36.9581 14.1622 34.6213 12.3504Z" fill="#E2017B"/>
+    <path d="M23.8688 24.9917C24.6325 25.5178 26.1642 23.7518 26.1642 22.7062C26.1642 21.6583 24.4514 20.246 24.794 17.5894C24.7962 17.5872 22.2193 23.8522 23.8688 24.9917Z" fill="#E2017B"/>
+    <path d="M30.3143 17.5872C31.4991 16.797 32.2867 15.4916 32.086 14.363C31.8853 13.2344 30.4343 10.9795 30.4757 10.3333C30.4757 10.3333 30.8794 14.0399 30.3143 15.0485C29.7492 16.057 29.3477 18.2333 30.3143 17.5872Z" fill="#E2017B"/>
+    <path d="M38.7298 27.1768C38.7298 27.1768 36.6766 25.0812 37.6432 23.4702C38.6098 21.8592 38.972 20.4491 38.9327 19.3598C38.9306 19.3598 40.8244 25.7667 38.7298 27.1768Z" fill="#E2017B"/>
+    <path d="M37.1763 35.9609L36.9494 33.9373L36.3123 31.8745L34.5253 30.0976L32.782 29.2484L29.7666 29.3881L28.2589 30.1434L26.9214 31.5361L25.8828 34.2211L26.1556 36.7664L25.933 38.6372L28.4225 39.4885L28.4836 40.1478L29.2124 40.7088L30.1397 40.3704L30.4692 41.2196L31.5514 41.1694L31.8132 40.3246L32.1601 40.9096L33.022 41.1017L33.5391 40.5342L33.4606 39.6784L34.4402 40.4643L35.145 40.0714L35.1144 39.1786L36.8491 38.3643L37.58 37.3995L37.1763 35.9609ZM30.4757 35.6357L29.6662 36.5241L28.464 36.5787L27.576 35.7688L27.5214 34.566L28.3309 33.6776L29.5331 33.623L30.4212 34.4329L30.4757 35.6357ZM32.2082 38.1242L31.3048 38.1657L30.9863 37.3209L31.691 36.7555L32.446 37.2532L32.2082 38.1242ZM35.4505 35.3279L34.641 36.2163L33.4387 36.2709L32.5507 35.461L32.4962 34.2582L33.3056 33.3698L34.5079 33.3152L35.3959 34.1251L35.4505 35.3279Z" fill="white"/>
+  </g>
+  <defs>
+    <filter id="filter0_d_1786_1577" x="0" y="0" width="62" height="62" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="4"/>
+      <feGaussianBlur stdDeviation="3"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.28 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1786_1577"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1786_1577" result="shape"/>
+    </filter>
+  </defs>
+  <style xmlns="" class="darkreader darkreader--fallback">html, body, body :not(iframe) {
+    background-color: var(--darkreader-background-ffffff, #161718) !important;
+    border-color: var(--darkreader-border-404040, #6b6358) !important;
+    color: var(--darkreader-text-000000, #d1cfcc) !important; } div[style*="background-color: rgb(135, 135, 135)"] {
+    background-color: #878787 !important;
+}</style>
+</svg>

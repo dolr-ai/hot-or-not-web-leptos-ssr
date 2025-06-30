@@ -1,8 +1,9 @@
-use codee::string::FromToStringCodec;
+use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::buttons::HighlightedButton;
+use component::overlay::ShadowOverlay;
 use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption};
 
-use consts::NSFW_TOGGLE_STORE;
+use consts::{UserOnboardingStore, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY};
 use gloo::timers::callback::Timeout;
 use leptos::html::Audio;
 use leptos::{prelude::*, task::spawn_local};
@@ -41,7 +42,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
     let post_id = post.post_id;
     let initial_liked = (post.liked_by_user, post.likes);
 
-    let auth = auth_state();
+    let auth: state::canisters::AuthState = auth_state();
     let is_logged_in = auth.is_logged_in_with_oauth();
     let ev_ctx = auth.event_ctx();
 
@@ -364,6 +365,18 @@ pub fn VideoDetailsOverlay(
         });
     };
 
+    let show_tutorial: RwSignal<bool> = RwSignal::new(false);
+
+    let (_, set_onboarding_store, _) =
+        use_local_storage::<UserOnboardingStore, JsonSerdeCodec>(USER_ONBOARDING_STORE_KEY);
+
+    let close_help_popup_action = Action::new(move |_: &()| {
+        set_onboarding_store.update(|store| {
+            store.has_seen_hon_bet_help = true;
+        });
+        async move {}
+    });
+
     view! {
         <div class="flex absolute bottom-0 left-0 flex-col flex-nowrap justify-between pt-5 pb-20 w-full h-full text-white bg-transparent pointer-events-none px-[16px] z-4 md:px-[16px]">
             <div class="flex flex-row justify-between items-center w-full pointer-events-auto">
@@ -431,8 +444,8 @@ pub fn VideoDetailsOverlay(
                         <Icon attr:class="drop-shadow-lg" icon=HomeFeedShareIcon />
                     </button>
                 </div>
-                <div class="w-full bg-transparent pointer-events-auto">
-                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref />
+                <div class="w-full bg-transparent pointer-events-auto max-w-lg mx-auto">
+                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref show_tutorial />
                 </div>
             </div>
         </div>
@@ -526,6 +539,8 @@ pub fn VideoDetailsOverlay(
                 </HighlightedButton>
             </div>
         </Modal>
+        <HotOrNotTutorialOverlay show=show_tutorial close_action=close_help_popup_action />
+
     }.into_any()
 }
 
@@ -542,5 +557,67 @@ fn ExpandableText(description: String) -> impl IntoView {
         >
             {description}
         </span>
+    }
+}
+
+#[component]
+pub fn HotOrNotTutorialOverlay(
+    show: RwSignal<bool>,
+    close_action: Action<(), ()>,
+) -> impl IntoView {
+    view! {
+        <ShadowOverlay show=show >
+            <div class="px-4 py-6 w-full h-full flex items-center justify-center">
+                <div class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
+                    <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
+                    <div
+                        style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
+                        class="absolute z-[1] -left-1/2 top-0 size-[32rem]" >
+                    </div>
+                    <button
+                        on:click=move |_| {
+                            show.set(false);
+                            close_action.dispatch(());
+                        }
+                        class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[3] top-4 right-4"
+                    >
+                        <Icon icon=icondata::ChCross />
+                    </button>
+                    <div class="flex z-[2] relative flex-col items-center gap-2 text-white justify-center p-12">
+                        <div class="text-lg font-bold">"How to play?"</div>
+                        <div class="font-bold text-yellow-500 pb-4">"Stake Bitcoin (SATS) to vote HOT or NOT."</div>
+                        <div class="border rounded-md border-neutral-800 bg-neutral-950 flex p-3 gap-4 items-center">
+                            <img src="/img/hotornot/hot-circular.svg" class="size-12 shrink-0" />
+                            <div class="text-neutral-400"><span class="font-bold text-white">"'Hot'"</span>" = Higher engagement score than the previous"</div>
+                        </div>
+                        <div class="border rounded-md border-neutral-800 bg-neutral-950 flex p-3 gap-4 items-center">
+                            <div class="text-neutral-400"><span class="font-bold text-white">"'Not'"</span>" = Lower engagement score than the previous"</div>
+                            <img src="/img/hotornot/hot-circular.svg" class="size-12 shrink-0" />
+                        </div>
+                        <div class="border rounded-md border-neutral-800 bg-neutral-950 flex flex-col p-3 gap-1 items-center justify-center">
+                            <div class="text-neutral-400">Example</div>
+                            <div class="text-center font-bold text-neutral-300">
+                                <div>"Previous video score: 36"</div>
+                                <div>"Your vote on the current video: HOT 🔥"</div>
+                                <div>"Current video score: 42"</div>
+                                <div class="font-semibold">"You scored it right. Bitcoin coming your way!"</div>
+                            </div>
+                            <div class="text-sm text-neutral-400"><span class="font-bold text-neutral-300">"Note: "</span>"First video results are random."</div>
+                        </div>
+                        <div class="text-yellow-500 font-bold text-center py-4">
+                            "You make the content, you take the cut — 10% of all SATS staked!"
+                        </div>
+
+                        <HighlightedButton
+                            alt_style=false
+                            disabled=false
+                            on_click=move || { show.set(false) }
+                        >
+                            "Keep Playing"
+                        </HighlightedButton>
+                    </div>
+                </div>
+            </div>
+        </ShadowOverlay>
     }
 }

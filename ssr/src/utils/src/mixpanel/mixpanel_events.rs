@@ -1,9 +1,9 @@
 use candid::Principal;
 use codee::string::FromToStringCodec;
 use consts::AUTH_JOURNET;
-use consts::DEVICE_ID;
 use consts::NSFW_TOGGLE_STORE;
 use consts::REFERRAL_REWARD;
+use consts::{CUSTOM_DEVICE_ID, DEVICE_ID};
 use leptos::logging;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -126,6 +126,7 @@ where
     let mut props = serde_json::to_value(&props).unwrap();
     props["event"] = event_name.into();
     props["$device_id"] = MixpanelGlobalProps::get_device_id().into();
+    props["custom_device_id"] = MixpanelGlobalProps::get_custom_device_id().into();
     let user_id = props.get("user_id").and_then(Value::as_str);
     props["principal"] = if user_id.is_some() {
         user_id.into()
@@ -226,17 +227,11 @@ impl MixpanelGlobalProps {
     }
 
     pub fn get_device_id() -> String {
-        let (device_id, set_device_id, _) =
-            use_local_storage::<String, FromToStringCodec>(DEVICE_ID);
-        // Extracting the device ID value
-        let device_id_value = device_id.get_untracked();
-        if device_id_value.is_empty() {
-            let new_device_id = uuid::Uuid::new_v4().to_string();
-            set_device_id.set(new_device_id.clone());
-            new_device_id
-        } else {
-            device_id_value
-        }
+        crate::local_storage::LocalStorage::uuid_get_or_init(DEVICE_ID)
+    }
+
+    pub fn get_custom_device_id() -> String {
+        crate::local_storage::LocalStorage::uuid_get_or_init(CUSTOM_DEVICE_ID)
     }
 
     pub fn get_auth_journey() -> String {
@@ -319,6 +314,16 @@ pub struct MixpanelBottomBarPageViewedProps {
     pub is_logged_in: bool,
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
+}
+
+#[derive(Serialize, Clone)]
+pub struct MixpanelDeleteAccountClickedProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub page_name: String,
 }
 
 #[derive(Serialize)]
@@ -682,6 +687,15 @@ impl MixPanelEvent {
     }
     pub fn track_menu_page_viewed(p: MixpanelBottomBarPageViewedProps) {
         send_event_to_server("menu_page_viewed", p);
+    }
+    pub fn track_delete_account_clicked(p: MixpanelDeleteAccountClickedProps) {
+        send_event_to_server("delete_account_clicked", p);
+    }
+    pub fn track_delete_account_confirmed(p: MixpanelDeleteAccountClickedProps) {
+        send_event_to_server("delete_account_confirmed", p);
+    }
+    pub fn track_account_deleted(p: MixpanelDeleteAccountClickedProps) {
+        send_event_to_server("account_deleted", p);
     }
     pub fn track_refer_and_earn_page_viewed(p: MixpanelReferAndEarnPageViewedProps) {
         send_event_to_server("refer_and_earn_page_viewed", p);
