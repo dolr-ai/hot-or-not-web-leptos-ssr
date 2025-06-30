@@ -48,7 +48,7 @@ fn Post(
                 video_id: post_details.uid.clone(),
                 game_type: MixpanelPostGameType::HotOrNot,
                 cta_type: MixpanelVideoClickedCTAType::VideoPlay,
-                position: post_index.map(|i| i as u64),
+                position: post_index.map(|i| i as u64 + 1),
                 is_own_profile: user_canister.to_text() == global.canister_id,
                 is_nsfw: post_details.is_nsfw,
                 page_name: "profile".to_string(),
