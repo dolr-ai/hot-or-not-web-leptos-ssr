@@ -88,8 +88,6 @@ fn PreUploadAiView(
         async move {
             #[cfg(feature = "hydrate")]
             {
-                use leptos::task::spawn_local;
-
                 use crate::upload::video_upload::upload_video_part;
 
                 // Clone signals for use in spawn_local
@@ -97,21 +95,19 @@ fn PreUploadAiView(
                 let file_blob_signal = file_blob;
                 let captured_progress_signal = upload_file_actual_progress;
 
-                spawn_local(async move {
-                    let file_data = file_blob_signal.get_untracked();
-                    if let Some(file_with_url) = file_data.take() {
-                        let message = upload_video_part(
-                            UPLOAD_URL,
-                            "file",
-                            file_with_url.file.as_ref(),
-                            captured_progress_signal,
-                        )
-                        .await
-                        .unwrap();
+                let file_data = file_blob_signal.get_untracked();
+                if let Some(file_with_url) = file_data.take() {
+                    let message = upload_video_part(
+                        UPLOAD_URL,
+                        "file",
+                        file_with_url.file.as_ref(),
+                        captured_progress_signal,
+                    )
+                    .await
+                    .unwrap();
 
-                        uid_signal.set(message.data.and_then(|m| m.uid));
-                    };
-                });
+                    uid_signal.set(message.data.and_then(|m| m.uid));
+                };
             }
 
             Some(())
@@ -121,47 +117,38 @@ fn PreUploadAiView(
     let generate_action: Action<(), _> = Action::new_unsync(move |_| async move {
         #[cfg(feature = "hydrate")]
         {
-            use leptos::task::spawn_local;
+            leptos::logging::log!("Generating video from prompt...");
 
-            spawn_local(async move {
-                leptos::logging::log!("Generating video from prompt...");
+            let Some(prompt_elem) = prompt_input.get() else {
+                return;
+            };
 
-                let Some(prompt_elem) = prompt_input.get() else {
-                    return;
-                };
+            let prompt = prompt_elem.value();
+            if prompt.is_empty() {
+                generation_error.set(Some("Please enter a prompt".to_string()));
+                return;
+            }
 
-                let prompt = prompt_elem.value();
-                if prompt.is_empty() {
-                    generation_error.set(Some("Please enter a prompt".to_string()));
-                    return;
-                }
+            generation_error.set(None);
+            polling_status.set("Generating video... This may take a few minutes.".to_string());
 
-                generation_error.set(None);
-                polling_status.set("Generating video... This may take a few minutes.".to_string());
+            let request_body = GenerateVideoRequest {
+                prompt,
+                user_id: uuid::Uuid::new_v4().to_string(),
+                generate_audio: true,
+                negative_prompt: String::new(),
+            };
 
-                let request_body = GenerateVideoRequest {
-                    prompt,
-                    user_id: uuid::Uuid::new_v4().to_string(),
-                    generate_audio: true,
-                    negative_prompt: String::new(),
-                };
-
-                match generate_video_from_prompt(request_body).await {
-                    Ok(result) => {
-                        polling_status.set("Video generated! Loading...".to_string());
-                        load_video_from_url(
-                            result.video_url,
-                            file_blob,
-                            generation_error,
-                            video_ref,
-                        )
+            match generate_video_from_prompt(request_body).await {
+                Ok(result) => {
+                    polling_status.set("Video generated! Loading...".to_string());
+                    load_video_from_url(result.video_url, file_blob, generation_error, video_ref)
                         .await;
-                    }
-                    Err(e) => {
-                        generation_error.set(Some(format!("Video generation failed: {}", e)));
-                    }
                 }
-            });
+                Err(e) => {
+                    generation_error.set(Some(format!("Video generation failed: {}", e)));
+                }
+            }
         }
 
         #[cfg(not(feature = "hydrate"))]
