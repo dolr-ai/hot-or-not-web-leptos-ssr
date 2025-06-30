@@ -323,7 +323,10 @@ fn HNWonLost(
     vote_amount: u64,
     bet_direction: RwSignal<Option<VoteKind>>,
     show_tutorial: RwSignal<bool>,
+    video_uid: String,
 ) -> impl IntoView {
+    let auth = auth_state();
+    let event_ctx = auth.event_ctx();
     let won = matches!(game_result, GameResult::Win { .. });
     let creator_reward = (vote_amount * crate::consts::CREATOR_COMMISION_PERCENT) / 100;
     let bet_direction_text = match bet_direction.get() {
@@ -331,7 +334,7 @@ fn HNWonLost(
         Some(VoteKind::Not) => "Not",
         None => "",
     };
-    let result_message = match game_result {
+    let result_message = match game_result.clone() {
         GameResult::Win { win_amt } => format!(
             "You won {} SATS, by betting on {}! {} SATS will go to the creator.",
             TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
@@ -384,6 +387,32 @@ fn HNWonLost(
 
     let show_ping = move || show_help_ping.get() && !won;
 
+    let conclusion = match game_result {
+        GameResult::Win { .. } => GameConclusion::Win,
+        GameResult::Loss { .. } => GameConclusion::Loss,
+    };
+
+    let tutorial_action = Action::new(move |_| {
+        let video_id = video_uid.clone();
+        let conclusion = conclusion.clone();
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
+            MixPanelEvent::track_how_to_play_clicked(MixpanelHowToPlayGameClickedProps {
+                user_id: global.user_id,
+                game_type: MixpanelPostGameType::HotOrNot,
+                video_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                stake_amount: vote_amount,
+                token_type: StakeType::Sats,
+                option_chosen: bet_direction.get().unwrap_or(VoteKind::Hot).into(),
+                conclusion,
+            });
+        }
+        async {}
+    });
+
     view! {
         <div class="flex w-full flex-col gap-3 p-4">
             <div class="flex gap-6 justify-center items-center w-full">
@@ -398,7 +427,8 @@ fn HNWonLost(
                 class="relative shrink-0 cursor-pointer"
                 on:click=move |_| {
                         show_help_ping.set(false);
-                        show_tutorial.set(true)
+                        show_tutorial.set(true);
+                        tutorial_action.dispatch(());
                     }>
                     <img src="/img/hotornot/question-mark.svg" class="h-8 w-8" />
                     <ShowAny when=move || show_ping()>
@@ -421,7 +451,8 @@ pub fn HNUserParticipation(
     bet_direction: RwSignal<Option<VoteKind>>,
     show_tutorial: RwSignal<bool>,
 ) -> impl IntoView {
-    let (_, _) = (post, refetch_bet); // not sure if i will need these later
+    // let (_, _) = (post, refetch_bet); // not sure if i will need these later
+    let (_) = (refetch_bet); // not sure if i will need these later
     let (vote_amount, game_result) = match participation {
         GameInfo::CreatorReward(..) => unreachable!(
             "When a game result is accessed, backend should never return creator reward"
@@ -434,9 +465,10 @@ pub fn HNUserParticipation(
     let vote_amount: u64 = vote_amount
         .try_into()
         .expect("We only allow voting with 200 max, so this is alright");
+    let video_uid = post.uid.clone();
 
     view! {
-        <HNWonLost game_result vote_amount bet_direction show_tutorial />
+        <HNWonLost game_result vote_amount bet_direction show_tutorial video_uid />
         <ShadowBg />
     }
 }
