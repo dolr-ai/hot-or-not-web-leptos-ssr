@@ -3,6 +3,7 @@ use super::{
     validators::{description_validator, hashtags_validator},
     UploadParams,
 };
+use crate::scrolling_post_view::MuteIconOverlay;
 use crate::upload::video_upload::VideoUploader;
 use component::buttons::HighlightedButton;
 use consts::UPLOAD_URL;
@@ -11,6 +12,7 @@ use leptos::{
     html::{Input, Textarea, Video},
     prelude::*,
 };
+use leptos_icons::*;
 use leptos_meta::Title;
 use leptos_use::use_event_listener;
 use state::canisters::auth_state;
@@ -41,6 +43,7 @@ fn PreUploadAiView(
 
     let generation_error = RwSignal::new(None::<String>);
     let polling_status = RwSignal::new(String::new());
+    let show_mute_icon = RwSignal::new(false);
 
     let invalid_form = Memo::new(move |_| {
         !desc_err_memo.with(|desc_err_memo| desc_err_memo.is_empty())
@@ -243,12 +246,23 @@ fn PreUploadAiView(
                     <div class="relative w-full h-full">
                         <video
                             node_ref=video_ref
-                            class="w-full h-full object-contain rounded-lg"
+                            class="w-full h-full object-contain rounded-lg cursor-pointer"
                             playsinline
+                            muted=true
                             autoplay
                             loop
+                            on:click=move |_| {
+                                if let Some(video) = video_ref.get() {
+                                    let new_muted = !video.muted();
+                                    video.set_muted(new_muted);
+                                    if new_muted {
+                                        show_mute_icon.set(true);
+                                    }
+                                }
+                            }
                             src=move || file_blob.with(|file| file.as_ref().map(|f| f.url.to_string()))
                         ></video>
+                        <MuteIconOverlay show_mute_icon=show_mute_icon />
                         <button
                             on:click=move |_| {
                                 file_blob.set(None);
