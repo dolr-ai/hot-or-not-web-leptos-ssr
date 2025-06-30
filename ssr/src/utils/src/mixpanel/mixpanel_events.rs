@@ -872,9 +872,9 @@ impl MixPanelEvent {
     pub fn track_refer_and_earn_page_viewed(p: MixpanelReferAndEarnPageViewedProps) {
         send_event_to_server("refer_and_earn_page_viewed", p);
     }
-    // pub fn track_profile_page_viewed(p: MixpanelProfilePageViewedProps) {
-    //     send_event_to_server("profile_page_viewed", p);
-    // }
+    pub fn track_profile_page_viewed(p: MixpanelProfilePageViewedProps) {
+        send_event_to_server("profile_page_viewed", p);
+    }
     pub fn track_withdraw_tokens_clicked(p: MixpanelWithdrawTokenClickedProps) {
         send_event_to_server("withdraw_tokens_clicked", p);
     }

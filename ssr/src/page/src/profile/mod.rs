@@ -67,6 +67,19 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
         }
     };
 
+    if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
+        MixPanelEvent::track_profile_page_viewed(MixpanelProfilePageViewedProps {
+            user_id: global.user_id.clone(),
+            visitor_id: global.visitor_id.clone(),
+            is_logged_in: global.is_logged_in,
+            canister_id: global.canister_id,
+            is_nsfw_enabled: global.is_nsfw_enabled,
+            is_own_profile: global.user_id.unwrap_or(global.visitor_id.unwrap())
+                == user_principal.to_text(),
+            publisher_user_id: user_principal.to_string(),
+        });
+    }
+
     let current_tab = Memo::new(move |_| match tab.get().as_str() {
         "posts" => 0,
         "stakes" => 1,
