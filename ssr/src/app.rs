@@ -10,7 +10,9 @@ use page::leaderboard::Leaderboard;
 use page::post_view::PostDetailsCacheCtx;
 use page::root::YralRootPage;
 use page::terms_android::TermsAndroid;
+
 use page::terms_ios::TermsIos;
+use page::test::Test;
 use page::{
     err::ServerErrorPage,
     logout::Logout,
@@ -204,6 +206,7 @@ pub fn App() -> impl IntoView {
                         />
                         <Route path=path!("/terms-ios") view=TermsIos />
                         <Route path=path!("/terms-android") view=TermsAndroid />
+                        <Route path=path!("/test") view=Test />
                     </ParentRoute>
                 </Routes>
 

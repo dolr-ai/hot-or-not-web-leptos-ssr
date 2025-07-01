@@ -86,6 +86,7 @@ google-cloud-alloydb-v1 = { workspace = true, optional = true }
 jsonwebtoken = { workspace = true, optional = true }
 yral-spacetime-bindings = { workspace = true, optional = true }
 fasthash = { workspace = true, optional = true }
+yral-spacetime-utils = { git = "https://github.com/dolr-ai/yral-spacetime", branch = "main", version = "0.1.0", optional = true }
 
 # workspace deps
 consts.workspace = true
@@ -153,6 +154,7 @@ oauth-ssr = ["dep:openidconnect", "dep:jsonwebtoken"]
 oauth-hydrate = []
 stdb-backend = [
     "dep:yral-spacetime-bindings",
+    "dep:yral-spacetime-utils",
     "dep:fasthash"
 ]
 redis-kv = []
