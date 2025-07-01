@@ -60,14 +60,14 @@ fn NotificationItem() -> impl IntoView {
 #[component]
 pub fn NotificaitonPage() -> impl IntoView {
     let app_state = use_context::<AppState>();
-    let page_title = app_state.unwrap().name.to_owned() + " - Notifications";
+    let _page_title = app_state.unwrap().name.to_owned() + " - Notifications";
     let notifications = RwSignal::new(None);
 
     let (user_principal_cookie, _) =
         use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
 
     let ctx: state::stdb_dolr_airdrop::WrappedContext = expect_context();
-    Effect::new(|_| {
+    Effect::new(move |_| {
         notifications.set(get_notitfication(user_principal_cookie.get().unwrap(), &*ctx.conn).ok())
     });
 
