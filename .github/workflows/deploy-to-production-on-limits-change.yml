@@ -2,6 +2,8 @@ name: Deploy app to production
 
 permissions:
   contents: write
+  pull-requests: read
+
 
 on:
   repository_dispatch:
