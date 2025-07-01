@@ -1,3 +1,5 @@
+use candid::Principal;
+use codee::string::FromToStringCodec;
 use component::back_btn::BackButton;
 use component::title::TitleText;
 use consts::USER_PRINCIPAL_STORE;
@@ -61,7 +63,8 @@ pub fn NotificaitonPage() -> impl IntoView {
     let page_title = app_state.unwrap().name.to_owned() + " - Notifications";
     let notifications = RwSignal::new(None);
 
-    let (user_principal_cookie, _) = use_cookie(USER_PRINCIPAL_STORE);
+    let (user_principal_cookie, _) =
+        use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
 
     let ctx: state::stdb_dolr_airdrop::WrappedContext = expect_context();
     Effect::new(|_| {
