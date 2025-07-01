@@ -1,7 +1,6 @@
 use component::back_btn::BackButton;
 use component::title::TitleText;
 use consts::USER_PRINCIPAL_STORE;
-use leptos::html::Title;
 use leptos::prelude::*;
 use leptos_use::use_cookie;
 use state::app_state::AppState;
@@ -62,15 +61,15 @@ pub fn NotificaitonPage() -> impl IntoView {
     let page_title = app_state.unwrap().name.to_owned() + " - Notifications";
     let notifications = RwSignal::new(None);
 
-    let user_principal_cookie = use_cookie(USER_PRINCIPAL_STORE);
+    let (user_principal_cookie, _) = use_cookie(USER_PRINCIPAL_STORE);
 
     let ctx: state::stdb_dolr_airdrop::WrappedContext = expect_context();
     Effect::new(|_| {
-        notifications.set(get_notitfication(user_principal_cookie.get(), ctx.conn).ok())
+        notifications.set(get_notitfication(user_principal_cookie.get(), *ctx.conn).ok())
     });
 
     view! {
-        <Title text=page_title />
+        // <Title text=page_title />
         <div class="flex flex-col items-center pt-4 pb-12 w-screen min-h-screen text-white bg-black">
             <div class="sticky top-0 z-10 w-full bg-black">
                 <TitleText justify_center=false>
@@ -88,7 +87,7 @@ pub fn NotificaitonPage() -> impl IntoView {
 
                 {
                     move || {
-                        notifications.get().to_string()
+                        format!("{:?}", notifications.get())
                     }
                 }
                 // <NotificationLoadingItem />
