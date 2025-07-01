@@ -59,9 +59,12 @@ pub fn NotificaitonPage() -> impl IntoView {
     let notifications = RwSignal::new(None);
 
     let user_principal_cookie = use_cookie(USER_PRINCIPAL_STORE);
+
+    let ctx: state::stdb_dolr_airdrop::WrappedContext = expect_context();
     Effect::new(|_| {
-        user_principal_cookie.set(get_notitfication(user_principal_cookie.get(), client).ok())
+        notifications.set(get_notitfication(user_principal_cookie.get(), *ctx.conn).ok())
     });
+
     view! {
         <Title text=page_title />
         <div class="flex flex-col items-center pt-4 pb-12 w-screen min-h-screen text-white bg-black">
@@ -79,6 +82,11 @@ pub fn NotificaitonPage() -> impl IntoView {
 
             <div class="flex overflow-hidden overflow-y-auto flex-col px-8 mx-auto mt-2 w-full max-w-5xl h-full md:px-16">
 
+                {
+                    move || {
+                        notification.get().to_string()
+                    }
+                }
                 <NotificationLoadingItem />
                 <NotificationLoadingItem />
                 <NotifcaitonItem />
