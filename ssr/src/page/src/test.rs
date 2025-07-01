@@ -23,7 +23,7 @@ pub fn Test() -> impl IntoView {
 
             notifications.set(
                 get_notitfication(user_principal_cookie.get().unwrap(), &ctx.conn)
-                    .unwrap_or(vec![]),
+                    .unwrap_or_default(),
             )
         }
     });
