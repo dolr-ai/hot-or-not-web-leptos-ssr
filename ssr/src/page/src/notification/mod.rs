@@ -1,3 +1,8 @@
+use consts::USER_PRINCIPAL_STORE;
+use leptos::prelude::*;
+use leptos_use::use_cookie;
+use utils::notifications::get_notitfication;
+
 #[component]
 fn NotificationLoadingItem() -> impl IntoView {
     view! {
@@ -52,6 +57,12 @@ fn NotificationItem() -> impl IntoView {
 pub fn NotificaitonPage() -> impl IntoView {
     let app_state = use_context::<AppState>();
     let page_title = app_state.unwrap().name.to_owned() + " - Notifications";
+    let notifications = RwSignal::new(None);
+
+    let user_principal_cookie = use_cookie(USER_PRINCIPAL_STORE);
+    Effect::new(|_|{
+        user_principal_cookie.set(get_notitfication(user_principal_cookie.get(), client).ok())
+    });
     view! {
         <Title text=page_title />
         <div class="flex flex-col items-center pt-4 pb-12 w-screen min-h-screen text-white bg-black">

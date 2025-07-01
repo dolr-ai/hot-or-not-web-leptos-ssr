@@ -23,6 +23,8 @@ pub mod token;
 pub mod upload;
 pub mod view_profile_redirect;
 pub mod wallet;
+pub mod notification;
+
 #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
 pub mod yral_auth_redirect;
 

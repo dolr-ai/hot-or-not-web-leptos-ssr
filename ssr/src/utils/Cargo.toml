@@ -84,7 +84,8 @@ tonic-build = { workspace = true }
 anyhow = { workspace = true }
 send_wrapper = { workspace = true }
 indexmap = { workspace = true }
-
+yral-spacetime-bindings = {workspace = true}
+yral-spacetime-utils = {workspace = true}
 # workspace specific deps
 consts = { workspace = true }
 
