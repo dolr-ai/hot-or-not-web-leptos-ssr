@@ -22,8 +22,13 @@ pub fn Test() -> impl IntoView {
             use state::stdb_dolr_airdrop::get_notitfication;
 
             notifications.set(
-                get_notitfication(user_principal_cookie.get().unwrap(), &ctx.conn)
-                    .unwrap_or_default(),
+                get_notitfication(
+                    user_principal_cookie
+                        .get_untracked()
+                        .expect("user principal not found"),
+                    &ctx.conn,
+                )
+                .unwrap_or_default(),
             )
         }
     });
