@@ -52,7 +52,6 @@ fn NotificationItem() -> impl IntoView {
     }
 }
 
-
 #[component]
 pub fn NotificaitonPage() -> impl IntoView {
     let app_state = use_context::<AppState>();
@@ -60,7 +59,7 @@ pub fn NotificaitonPage() -> impl IntoView {
     let notifications = RwSignal::new(None);
 
     let user_principal_cookie = use_cookie(USER_PRINCIPAL_STORE);
-    Effect::new(|_|{
+    Effect::new(|_| {
         user_principal_cookie.set(get_notitfication(user_principal_cookie.get(), client).ok())
     });
     view! {
@@ -83,7 +82,7 @@ pub fn NotificaitonPage() -> impl IntoView {
                 <NotificationLoadingItem />
                 <NotificationLoadingItem />
                 <NotifcaitonItem />
-                <NotifcaitonItem />  
+                <NotifcaitonItem />
             </div>
         </div>
     }
