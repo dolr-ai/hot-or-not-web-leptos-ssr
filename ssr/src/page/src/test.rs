@@ -11,7 +11,7 @@ pub fn Test() -> impl IntoView {
     let ctx: state::stdb_dolr_airdrop::WrappedContext = expect_context();
 
     #[cfg(feature = "stdb-backend")]
-    let notifications = RwSignal::new(None);
+    let notifications = RwSignal::new(vec![]);
 
     let (user_principal_cookie, _) =
         use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
@@ -21,8 +21,10 @@ pub fn Test() -> impl IntoView {
         {
             use state::stdb_dolr_airdrop::get_notitfication;
 
-            notifications
-                .set(get_notitfication(user_principal_cookie.get().unwrap(), &ctx.conn).ok())
+            notifications.set(
+                get_notitfication(user_principal_cookie.get().unwrap(), &ctx.conn)
+                    .unwrap_or(vec![]),
+            )
         }
     });
     view! {
@@ -35,7 +37,7 @@ pub fn Test() -> impl IntoView {
                     {
                         #[cfg(feature = "stdb-backend")]
                         move || {
-                            let res = format!("{:?}", notifications.get().unwrap());
+                            let res = format!("{:?}", notifications.get());
                             view! {
                                 <li>{res}</li>
                             }
