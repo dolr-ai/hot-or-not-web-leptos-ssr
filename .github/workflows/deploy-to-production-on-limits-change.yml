@@ -1,5 +1,8 @@
 name: Deploy app to production
 
+permissions:
+  contents: write
+
 on:
   repository_dispatch:
     types: [limits-common-change]
