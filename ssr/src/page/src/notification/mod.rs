@@ -1,11 +1,11 @@
+use component::back_btn::BackButton;
+use component::title::TitleText;
 use consts::USER_PRINCIPAL_STORE;
+use leptos::html::Title;
 use leptos::prelude::*;
 use leptos_use::use_cookie;
-use utils::notifications::get_notitfication;
 use state::app_state::AppState;
-use leptos::html::Title;
-use component::title::TitleText;
-use component::back_btn::BackButton;
+use utils::notifications::get_notitfication;
 
 #[component]
 fn NotificationLoadingItem() -> impl IntoView {
