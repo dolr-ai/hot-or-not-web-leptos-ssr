@@ -68,7 +68,7 @@ pub fn NotificaitonPage() -> impl IntoView {
 
     let ctx: state::stdb_dolr_airdrop::WrappedContext = expect_context();
     Effect::new(move |_| {
-        notifications.set(get_notitfication(user_principal_cookie.get().unwrap(), &*ctx.conn).ok())
+        notifications.set(get_notitfication(user_principal_cookie.get().unwrap(), &ctx.conn).ok())
     });
 
     view! {
