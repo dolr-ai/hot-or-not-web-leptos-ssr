@@ -1059,7 +1059,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "117725a109d387c937a1533ce01b450cbde6b88abceea8473c4d7a85853cda3c"
 dependencies = [
  "lazy_static",
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -7052,6 +7052,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "scoped-tls"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1cf6437eb19a8f4a6cc0f7dca544973b0b78843adbfeb3683d1a94a0024a294"
+
+[[package]]
 name = "scoped_threadpool"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7728,6 +7734,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "spacetimedb"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf788061790df2c044398dd21342aecc4a19950058e3a2a5c53659a26d62b074"
+dependencies = [
+ "bytemuck",
+ "derive_more",
+ "getrandom 0.2.16",
+ "log",
+ "rand 0.8.5",
+ "scoped-tls",
+ "spacetimedb-bindings-macro",
+ "spacetimedb-bindings-sys",
+ "spacetimedb-lib",
+ "spacetimedb-primitives",
+]
+
+[[package]]
 name = "spacetimedb-bindings-macro"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7739,6 +7763,15 @@ dependencies = [
  "quote",
  "spacetimedb-primitives",
  "syn 2.0.104",
+]
+
+[[package]]
+name = "spacetimedb-bindings-sys"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c9c71a65f572fc9233d7d035f117a5d0671df54d20e6abf627417ef4fbc41450"
+dependencies = [
+ "spacetimedb-primitives",
 ]
 
 [[package]]
@@ -8011,6 +8044,7 @@ dependencies = [
  "yral-metadata-client 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-spacetime-bindings",
+ "yral-spacetime-utils",
  "yral-testcontainers",
  "yral-types",
 ]
@@ -9372,7 +9406,7 @@ version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf221c93e13a30d793f7645a0e7762c55d169dbb0a49671918a2319d289b10bb"
 dependencies = [
- "windows-sys 0.59.0",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]
@@ -9924,6 +9958,16 @@ version = "0.1.0"
 source = "git+https://github.com/dolr-ai/yral-spacetime?branch=main#62fcbbc719eea58ffa2e1ce6404bbe2182873b90"
 dependencies = [
  "spacetimedb-sdk",
+]
+
+[[package]]
+name = "yral-spacetime-utils"
+version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-spacetime?branch=main#62fcbbc719eea58ffa2e1ce6404bbe2182873b90"
+dependencies = [
+ "candid",
+ "spacetimedb",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
