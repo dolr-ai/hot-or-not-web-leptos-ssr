@@ -200,3 +200,4 @@ hon-worker-common = { git = "https://github.com/dolr-ai/yral-common", features =
     "client",
 ], branch = "master", version = "0.1.0" }
 cargo-husky = { version = "1.5.0", features = ["user-hooks"] }
+num-traits = "0.2.19"

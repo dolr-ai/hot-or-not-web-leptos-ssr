@@ -1,5 +1,5 @@
 use candid::Principal;
-use hon_worker_common::{VoteRequest, VoteRes};
+use hon_worker_common::{VoteRequest, VoteResV2};
 use leptos::prelude::*;
 use yral_identity::Signature;
 
@@ -9,7 +9,7 @@ pub async fn vote_with_cents_on_post(
     req: VoteRequest,
     sig: Signature,
     prev_video_info: Option<(Principal, u64)>,
-) -> Result<VoteRes, ServerFnError> {
+) -> Result<VoteResV2, ServerFnError> {
     #[cfg(feature = "alloydb")]
     use alloydb::vote_with_cents_on_post;
     #[cfg(not(feature = "alloydb"))]
@@ -22,14 +22,14 @@ pub async fn vote_with_cents_on_post(
 mod alloydb {
     use super::*;
     use hon_worker_common::WORKER_URL;
-    use hon_worker_common::{HoNGameVoteReq, HotOrNot, VoteRequest, VoteRes};
+    use hon_worker_common::{HoNGameVoteReq, HotOrNot, VoteRequest, VoteResV2};
 
     pub async fn vote_with_cents_on_post(
         sender: Principal,
         req: VoteRequest,
         sig: Signature,
         prev_video_info: Option<(Principal, u64)>,
-    ) -> Result<VoteRes, ServerFnError> {
+    ) -> Result<VoteResV2, ServerFnError> {
         use state::alloydb::AlloyDbInstance;
         use state::server::HonWorkerJwt;
         use yral_canisters_common::Canisters;
@@ -92,7 +92,7 @@ mod alloydb {
             post_creator: Some(post_info.poster_principal),
         };
 
-        let req_url = format!("{WORKER_URL}vote/{sender}");
+        let req_url = format!("{WORKER_URL}vote_v2/{sender}");
         let client = reqwest::Client::new();
         let jwt = expect_context::<HonWorkerJwt>();
         let res = client
@@ -109,7 +109,7 @@ mod alloydb {
             )));
         }
 
-        let vote_res: VoteRes = res.json().await?;
+        let vote_res: VoteResV2 = res.json().await?;
 
         Ok(vote_res)
     }
@@ -117,7 +117,7 @@ mod alloydb {
 
 #[cfg(not(feature = "alloydb"))]
 mod mock {
-    use hon_worker_common::GameResult;
+    use hon_worker_common::GameResultV2;
 
     use super::*;
 
@@ -127,10 +127,11 @@ mod mock {
         _req: VoteRequest,
         _sig: Signature,
         _prev_video_info: Option<(Principal, u64)>,
-    ) -> Result<VoteRes, ServerFnError> {
-        Ok(VoteRes {
-            game_result: GameResult::Win {
+    ) -> Result<VoteResV2, ServerFnError> {
+        Ok(VoteResV2 {
+            game_result: GameResultV2::Win {
                 win_amt: 0u32.into(),
+                updated_balance: 0u32.into(),
             },
         })
     }

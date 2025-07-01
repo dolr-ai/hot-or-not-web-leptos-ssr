@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="62" height="62" viewBox="0 0 62 62" fill="none">
+  <g filter="url(#filter0_d_1786_1564)">
+    <rect x="6" y="2" width="50" height="50" rx="25" fill="#E2017B" shape-rendering="crispEdges"/>
+    <path d="M27.9168 12.3504C27.9168 12.3504 27.4346 17.1048 28.159 17.871C28.8834 18.6372 33.3541 20.4097 34.2007 21.8592C35.0473 23.3087 34.4015 25.8081 39.7995 30.3617C41.8047 32.0535 40.7748 39.9033 39.2758 41.4008C37.5434 43.134 29.13 44.9022 25.3815 42.4879C22.4424 40.5931 21.5151 35.7994 21.6351 34.3499C21.7551 32.9005 26.0251 26.4128 27.2339 24.6403C28.4427 22.8677 25.4207 21.9007 25.1393 20.6521C24.8578 19.4034 25.5822 14.1622 27.9168 12.3504Z" fill="white"/>
+    <path d="M38.6693 24.9917C37.9056 25.5178 36.3739 23.7518 36.3739 22.7062C36.3739 21.6584 38.0867 20.246 37.7441 17.5894C37.7441 17.5872 40.321 23.8544 38.6693 24.9917Z" fill="white"/>
+    <path d="M32.2261 17.5872C31.0413 16.797 30.2536 15.4916 30.4544 14.363C30.6551 13.2344 32.1061 10.9795 32.0646 10.3333C32.0646 10.3333 31.661 14.0399 32.2261 15.0485C32.789 16.057 33.1927 18.2333 32.2261 17.5872Z" fill="white"/>
+    <path d="M23.8083 27.1768C23.8083 27.1768 25.8615 25.0812 24.8949 23.4702C23.9283 21.8592 23.5661 20.449 23.6054 19.3598C23.6076 19.3619 21.7159 25.7667 23.8083 27.1768Z" fill="white"/>
+    <path d="M34.9469 31.6082L32.2566 31.9203L31.109 33.527L29.6253 32.2238L26.935 32.5359L25.7873 34.1425L26.1059 36.8865L31.9883 41.1323L36.747 35.6553L36.4306 32.9114L34.9469 31.6082Z" fill="#E2017B"/>
+  </g>
+  <defs>
+    <filter id="filter0_d_1786_1564" x="0" y="0" width="62" height="62" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+      <feOffset dy="4"/>
+      <feGaussianBlur stdDeviation="3"/>
+      <feComposite in2="hardAlpha" operator="out"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.28 0"/>
+      <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1786_1564"/>
+      <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1786_1564" result="shape"/>
+    </filter>
+  </defs>
+  <style xmlns="" class="darkreader darkreader--fallback">html, body, body :not(iframe) {
+    background-color: var(--darkreader-background-ffffff, #161718) !important;
+    border-color: var(--darkreader-border-404040, #6b6358) !important;
+    color: var(--darkreader-text-000000, #d1cfcc) !important; } div[style*="background-color: rgb(135, 135, 135)"] {
+    background-color: #878787 !important;
+}</style>
+</svg>
