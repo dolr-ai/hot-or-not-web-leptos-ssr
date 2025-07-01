@@ -2,6 +2,10 @@ use consts::USER_PRINCIPAL_STORE;
 use leptos::prelude::*;
 use leptos_use::use_cookie;
 use utils::notifications::get_notitfication;
+use state::app_state::AppState;
+use leptos::html::Title;
+use component::title::TitleText;
+use component::back_btn::BackButton;
 
 #[component]
 fn NotificationLoadingItem() -> impl IntoView {
@@ -62,7 +66,7 @@ pub fn NotificaitonPage() -> impl IntoView {
 
     let ctx: state::stdb_dolr_airdrop::WrappedContext = expect_context();
     Effect::new(|_| {
-        notifications.set(get_notitfication(user_principal_cookie.get(), *ctx.conn).ok())
+        notifications.set(get_notitfication(user_principal_cookie.get(), ctx.conn).ok())
     });
 
     view! {
@@ -84,13 +88,13 @@ pub fn NotificaitonPage() -> impl IntoView {
 
                 {
                     move || {
-                        notification.get().to_string()
+                        notifications.get().to_string()
                     }
                 }
-                <NotificationLoadingItem />
-                <NotificationLoadingItem />
-                <NotifcaitonItem />
-                <NotifcaitonItem />
+                // <NotificationLoadingItem />
+                // <NotificationLoadingItem />
+                // <NotifcaitonItem />
+                // <NotifcaitonItem />
             </div>
         </div>
     }
