@@ -227,10 +227,7 @@ impl<
         allow_nsfw: bool,
         video_queue: Vec<PostDetails>,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
-        let res = self
-            .fetch_post_uids_ml_feed_chunked(chunks, allow_nsfw, video_queue.clone())
-            .await;
-
-        res
+        self.fetch_post_uids_ml_feed_chunked(chunks, allow_nsfw, video_queue.clone())
+            .await
     }
 }
