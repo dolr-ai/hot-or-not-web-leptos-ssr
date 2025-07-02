@@ -17,6 +17,8 @@ use crate::wallet::airdrop::dolr_airdrop::real::entities::dolr_airdrop_data;
 use crate::wallet::airdrop::AirdropStatus;
 use sea_orm::prelude::*;
 
+#[allow(clippy::all)]
+#[allow(warnings)]
 mod entities;
 
 const DOLR_AIRDROP_LIMIT_DURATION: web_time::Duration = web_time::Duration::from_secs(24 * 3600);
