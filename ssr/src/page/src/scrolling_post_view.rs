@@ -111,7 +111,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                         });
                         let to_load = Memo::new(move |_| {
                             let cidx = current_idx.get() as i32;
-                            (queue_idx as i32 - cidx) <= 10 && (queue_idx as i32 - cidx) >= -2
+                            queue_idx <= 5 || ((queue_idx as i32 - cidx) <= 10 && (queue_idx as i32 - cidx) >= -2)
                         });
                         view! {
                             <div node_ref=container_ref class="w-full h-full snap-always snap-end" class:hidden=move || post.get().is_none()>

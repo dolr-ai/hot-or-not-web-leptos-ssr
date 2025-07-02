@@ -79,8 +79,6 @@ pub fn VideoView(
         if !to_load() {
             return None;
         }
-        // let vid = _ref.get()?;
-        // vid.set_hidden(false);
         post_for_uid.with(|p| p.as_ref().map(|p| p.uid.clone()))
     });
     let view_bg_url = move || uid().map(bg_url);
