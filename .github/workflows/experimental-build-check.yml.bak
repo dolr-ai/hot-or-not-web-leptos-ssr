@@ -1,0 +1,56 @@
+name: Build and Check linting for preview release
+
+on:
+  workflow_call:
+    inputs:
+      publish-artifact:
+        default: false
+        required: false
+        type: boolean
+      erase_components:
+        description: "Enable type erasure. Default is false."
+        required: false
+        default: false
+        type: boolean
+  workflow_dispatch:
+    inputs:
+      erase_components:
+        description: "Enable type erasure."
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  build_check:
+    runs-on: large-runner-8c-32m
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - name: Checkout repo and submodules
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pre-build devcontainer image and run commands in dev container
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ghcr.io/${{ github.repository}}
+          cacheFrom: ghcr.io/${{ github.repository}}
+          push: always
+          runCmd: |
+            # cargo fmt --check
+            # cargo clippy --no-deps --all-features --release -- -D warnings
+
+            # RUSTFLAGS_VALUE=""
+            # if [[ "${{ inputs.erase_components }}" == "true" ]]; then
+            #   RUSTFLAGS_VALUE="--cfg=erase_components"
+            # fi
+            # echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
+            # RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release
+            echo
