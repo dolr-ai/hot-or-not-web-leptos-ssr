@@ -6,7 +6,6 @@ use yral_types::post::FeedRequestV2;
 use yral_types::post::FeedResponse;
 use yral_types::post::FeedResponseV2;
 use yral_types::post::PostItem;
-use yral_types::post::PostItemV2;
 
 // New v2 REST APIs
 

@@ -7,10 +7,7 @@ use leptos::prelude::*;
 use state::canisters::AuthState;
 use utils::{
     host::show_nsfw_content,
-    ml_feed::{
-        get_ml_feed_clean, get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw,
-        get_ml_feed_mixed_v2, get_ml_feed_nsfw,
-    },
+    ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw, get_ml_feed_mixed_v2},
     posts::FetchCursor,
 };
 use yral_canisters_common::{utils::posts::PostDetails, Canisters, Error as CanistersError};
@@ -82,6 +79,7 @@ async fn user_canister_auth(
     Ok(canisters.user_canister())
 }
 
+#[allow(clippy::type_complexity)]
 pub fn new_video_fetch_stream(
     canisters: &Canisters<false>,
     auth: AuthState,
@@ -101,6 +99,7 @@ pub fn new_video_fetch_stream(
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub fn new_video_fetch_stream_auth(
     canisters: &Canisters<true>,
     auth: AuthState,
