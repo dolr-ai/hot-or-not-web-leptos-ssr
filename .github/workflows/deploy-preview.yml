@@ -79,7 +79,7 @@ jobs:
           flyctl secrets set ANALYTICS_SERVER_TOKEN="$ANALYTICS_SERVER_TOKEN" --app "$APP_NAME" --stage
           flyctl secrets set YRAL_AUTH_MIGRATION_ES256_PEM="$YRAL_AUTH_MIGRATION_ES256_PEM" --app "$APP_NAME" --stage
           flyctl secrets set YRAL_METADATA_NOTIFICATION_API_KEY="$YRAL_METADATA_NOTIFICATION_API_KEY" --app "$APP_NAME" --stage
-          flyctl secrets set STDB_ADMIN_ACCESS_TOKEN="$STDB_ADMIN_ACCESS_TOKEN" --app "$APP_NAME" --stage
+          flyctl secrets set NEON_CONNECTION_URL="$NEON_CONNECTION_URL" --app "$APP_NAME" --stage
           flyctl deploy --app $APP_NAME
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET }}
@@ -100,7 +100,7 @@ jobs:
           ANALYTICS_SERVER_TOKEN: ${{ secrets.ANALYTICS_SERVER_TOKEN }}
           YRAL_AUTH_MIGRATION_ES256_PEM: ${{ secrets.AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM }}
           YRAL_METADATA_NOTIFICATION_API_KEY: ${{ secrets.YRAL_METADATA_NOTIFICATION_API_KEY }}
-          STDB_ADMIN_ACCESS_TOKEN: ${{ secrets.STDB_ADMIN_ACCESS_TOKEN }}
+          NEON_CONNECTION_URL: ${{ secrets.NEON_CONNECTION_URL }}
   e2e-tests:
     needs: preview
     uses: ./.github/workflows/e2e-tests.yml
