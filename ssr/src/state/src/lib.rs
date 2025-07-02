@@ -8,8 +8,8 @@ pub mod audio_state;
 pub mod canisters;
 pub mod content_seed_client;
 
-#[cfg(feature = "stdb-backend")]
-pub mod stdb_dolr_airdrop;
+#[cfg(feature = "neon-postgres")]
+pub mod neon_postgres;
 
 #[cfg(not(feature = "ssr"))]
 pub mod server {
@@ -55,8 +55,7 @@ pub mod server {
         pub alloydb: super::alloydb::AlloyDbInstance,
         #[cfg(feature = "alloydb")]
         pub hon_worker_jwt: HonWorkerJwt,
-        // might expand this to be general stdb backend module access
-        #[cfg(feature = "stdb-backend")]
-        pub dolr_airdrop_stbd: super::stdb_dolr_airdrop::WrappedContext,
+        #[cfg(feature = "neon-postgres")]
+        pub neon_postgres: sea_orm::DatabaseConnection,
     }
 }
