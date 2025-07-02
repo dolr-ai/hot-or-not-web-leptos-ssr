@@ -3441,7 +3441,7 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#51326123db90cdb7c2a11eb5012c5cfc7e39d797"
+source = "git+https://github.com/dolr-ai/yral-common?rev=1c466b59528f7cc454dba1468fa9a14fac29734f#1c466b59528f7cc454dba1468fa9a14fac29734f"
 dependencies = [
  "candid",
  "ic-agent",
@@ -7720,7 +7720,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#51326123db90cdb7c2a11eb5012c5cfc7e39d797"
+source = "git+https://github.com/dolr-ai/yral-common?rev=1c466b59528f7cc454dba1468fa9a14fac29734f#1c466b59528f7cc454dba1468fa9a14fac29734f"
 dependencies = [
  "candid",
  "humantime",
@@ -9794,7 +9794,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#51326123db90cdb7c2a11eb5012c5cfc7e39d797"
+source = "git+https://github.com/dolr-ai/yral-common?rev=1c466b59528f7cc454dba1468fa9a14fac29734f#1c466b59528f7cc454dba1468fa9a14fac29734f"
 dependencies = [
  "anyhow",
  "candid",
@@ -9814,7 +9814,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#51326123db90cdb7c2a11eb5012c5cfc7e39d797"
+source = "git+https://github.com/dolr-ai/yral-common?rev=1c466b59528f7cc454dba1468fa9a14fac29734f#1c466b59528f7cc454dba1468fa9a14fac29734f"
 dependencies = [
  "candid",
  "ciborium",
@@ -9919,7 +9919,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#51326123db90cdb7c2a11eb5012c5cfc7e39d797"
+source = "git+https://github.com/dolr-ai/yral-common?rev=1c466b59528f7cc454dba1468fa9a14fac29734f#1c466b59528f7cc454dba1468fa9a14fac29734f"
 dependencies = [
  "candid",
  "ic-agent",
@@ -9953,11 +9953,13 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#51326123db90cdb7c2a11eb5012c5cfc7e39d797"
+source = "git+https://github.com/dolr-ai/yral-common?rev=1c466b59528f7cc454dba1468fa9a14fac29734f#1c466b59528f7cc454dba1468fa9a14fac29734f"
 dependencies = [
  "ic-agent",
  "k256",
  "serde",
+ "serde_json",
+ "utoipa",
 ]
 
 [[package]]

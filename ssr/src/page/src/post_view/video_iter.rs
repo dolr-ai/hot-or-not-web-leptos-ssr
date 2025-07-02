@@ -9,7 +9,7 @@ use utils::{
     host::show_nsfw_content,
     ml_feed::{
         get_ml_feed_clean, get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw,
-        get_ml_feed_nsfw,
+        get_ml_feed_mixed_v2, get_ml_feed_nsfw,
     },
     posts::FetchCursor,
 };
@@ -35,11 +35,25 @@ pub struct VideoFetchStream<
     'a,
     const AUTH: bool,
     CanFun: for<'x> AsyncFn(&'x Canisters<AUTH>, &'x AuthState) -> Result<Principal, ServerFnError>,
+    UserPrincipalFunc: for<'x> AsyncFn(&'x Canisters<AUTH>, &'x AuthState) -> Result<Principal, ServerFnError>,
 > {
     canisters: &'a Canisters<AUTH>,
     auth: AuthState,
     cursor: FetchCursor,
+    // TODO: combine both later for better ergonomics
     user_canister: CanFun,
+    user_principal: UserPrincipalFunc,
+}
+
+async fn user_principal_unauth(
+    _canisters: &Canisters<false>,
+    auth: &AuthState,
+) -> Result<Principal, ServerFnError> {
+    if let Some(user_principal_id) = auth.user_principal_if_available() {
+        return Ok(user_principal_id);
+    }
+    let cans = auth.cans_wire().await?;
+    Ok(cans.profile_details.principal)
 }
 
 async fn user_canister_unauth(
@@ -52,6 +66,13 @@ async fn user_canister_unauth(
 
     let cans = auth.cans_wire().await?;
     Ok(cans.user_canister)
+}
+
+async fn user_principal_auth(
+    canisters: &Canisters<true>,
+    _auth: &AuthState,
+) -> Result<Principal, ServerFnError> {
+    Ok(canisters.user_principal())
 }
 
 async fn user_canister_auth(
@@ -69,12 +90,14 @@ pub fn new_video_fetch_stream(
     '_,
     false,
     impl AsyncFn(&Canisters<false>, &AuthState) -> Result<Principal, ServerFnError>,
+    impl AsyncFn(&Canisters<false>, &AuthState) -> Result<Principal, ServerFnError>,
 > {
     VideoFetchStream {
         canisters,
         auth,
         cursor,
         user_canister: user_canister_unauth,
+        user_principal: user_principal_unauth,
     }
 }
 
@@ -86,12 +109,14 @@ pub fn new_video_fetch_stream_auth(
     '_,
     true,
     impl AsyncFn(&Canisters<true>, &AuthState) -> Result<Principal, ServerFnError>,
+    impl AsyncFn(&Canisters<true>, &AuthState) -> Result<Principal, ServerFnError>,
 > {
     VideoFetchStream {
         canisters,
         auth,
         cursor,
         user_canister: user_canister_auth,
+        user_principal: user_principal_auth,
     }
 }
 
@@ -99,38 +124,34 @@ impl<
         'a,
         const AUTH: bool,
         CanFun: AsyncFn(&Canisters<AUTH>, &AuthState) -> Result<Principal, ServerFnError>,
-    > VideoFetchStream<'a, AUTH, CanFun>
+        UserPrincipalFunc: AsyncFn(&Canisters<AUTH>, &AuthState) -> Result<Principal, ServerFnError>,
+    > VideoFetchStream<'a, AUTH, CanFun, UserPrincipalFunc>
 {
     async fn user_canister(&self) -> Result<Principal, ServerFnError> {
         (self.user_canister)(self.canisters, &self.auth).await
     }
 
+    async fn user_principal(&self) -> Result<Principal, ServerFnError> {
+        (self.user_principal)(self.canisters, &self.auth).await
+    }
+
     pub async fn fetch_post_uids_ml_feed_chunked(
         &self,
         chunks: usize,
-        allow_nsfw: bool,
+        _allow_nsfw: bool,
         video_queue: Vec<PostDetails>,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
         let user_canister_id = self.user_canister().await?;
+        let user_principal_id = self.user_principal().await?;
 
-        let show_nsfw = allow_nsfw || show_nsfw_content();
-        let top_posts = if show_nsfw {
-            get_ml_feed_nsfw(
-                user_canister_id,
-                self.cursor.limit as u32,
-                video_queue.clone(),
-            )
-            .await
-            .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
-        } else {
-            get_ml_feed_clean(
-                user_canister_id,
-                self.cursor.limit as u32,
-                video_queue.clone(),
-            )
-            .await
-            .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
-        };
+        let top_posts = get_ml_feed_mixed_v2(
+            user_canister_id,
+            user_principal_id,
+            self.cursor.limit as u32,
+            video_queue.clone(),
+        )
+        .await
+        .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?;
 
         let end = false;
         let chunk_stream = top_posts
@@ -207,23 +228,10 @@ impl<
         allow_nsfw: bool,
         video_queue: Vec<PostDetails>,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
-        if video_queue.len() < 30 {
-            self.cursor.set_limit(30);
-            self.fetch_post_uids_mlfeed_cache_chunked(chunks, allow_nsfw, video_queue)
-                .await
-        } else {
-            let res = self
-                .fetch_post_uids_ml_feed_chunked(chunks, allow_nsfw, video_queue.clone())
-                .await;
+        let res = self
+            .fetch_post_uids_ml_feed_chunked(chunks, allow_nsfw, video_queue.clone())
+            .await;
 
-            match res {
-                Ok(res) => Ok(res),
-                Err(_) => {
-                    self.cursor.set_limit(50);
-                    self.fetch_post_uids_mlfeed_cache_chunked(chunks, allow_nsfw, video_queue)
-                        .await
-                }
-            }
-        }
+        res
     }
 }
