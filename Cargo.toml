@@ -188,15 +188,15 @@ fasthash = "0.4.0"
 # ===
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], branch = "master", version = "0.1.0" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
+], rev = "1c466b59528f7cc454dba1468fa9a14fac29734f", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", rev = "1c466b59528f7cc454dba1468fa9a14fac29734f" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", rev = "1c466b59528f7cc454dba1468fa9a14fac29734f" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev = "1c466b59528f7cc454dba1468fa9a14fac29734f", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "1c466b59528f7cc454dba1468fa9a14fac29734f" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], branch = "master", version = "0.1.0" }
+], rev = "1c466b59528f7cc454dba1468fa9a14fac29734f", version = "0.1.0" }
 cargo-husky = { version = "1.5.0", features = ["user-hooks"] }
 num-traits = "0.2.19"
