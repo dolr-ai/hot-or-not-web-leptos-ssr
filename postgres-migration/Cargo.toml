@@ -1,0 +1,14 @@
+[package]
+name = "postgres-migration"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "postgres_migration"
+path = "src/lib.rs"
+
+[dependencies]
+async-std = { version = "1", features = ["attributes", "tokio1"] }
+sea-orm-migration = { workspace = true }
+

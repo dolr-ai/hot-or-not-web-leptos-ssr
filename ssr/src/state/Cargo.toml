@@ -85,7 +85,7 @@ send_wrapper = { workspace = true }
 google-cloud-alloydb-v1 = { workspace = true, optional = true }
 jsonwebtoken = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
-sea-orm-migration = { workspace = true, optional = true }
+postgres-migration = { workspace = true, optional = true }
 
 # workspace deps
 consts.workspace = true
@@ -153,7 +153,7 @@ oauth-ssr = ["dep:openidconnect", "dep:jsonwebtoken"]
 oauth-hydrate = []
 neon-postgres = [
     "dep:sea-orm",
-    "dep:sea-orm-migration",
+    "dep:postgres-migration",
 ]
 redis-kv = []
 cloudflare = ["dep:gob-cloudflare"]
