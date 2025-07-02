@@ -1,3 +1,4 @@
+use auth::YralAuthResponse;
 use component::auth_providers::yral::YralAuthMessage;
 use component::loading::Loading;
 use leptos::prelude::*;
@@ -7,11 +8,10 @@ use leptos_router::params::Params;
 use openidconnect::CsrfToken;
 use serde::{Deserialize, Serialize};
 use server_fn::codec::Json;
-use utils::route::go_to_root;
-use yral_types::delegated_identity::DelegatedIdentityWire;
+// use utils::route::go_to_root;
 
 #[server(input = Json, output = Json)]
-async fn perform_yral_oauth(oauth: OAuthQuery) -> Result<DelegatedIdentityWire, ServerFnError> {
+async fn perform_yral_oauth(oauth: OAuthQuery) -> Result<YralAuthResponse, ServerFnError> {
     use auth::server_impl::yral::perform_yral_auth_impl;
     use auth::server_impl::yral::YralOAuthClient;
 
@@ -31,17 +31,20 @@ pub fn IdentitySender(identity_res: YralAuthMessage) -> impl IntoView {
         let _id = &identity_res;
         #[cfg(feature = "hydrate")]
         {
-            use web_sys::Window;
+            use leptos::logging;
 
-            let win = window();
-            let origin = win.origin();
-            let opener = win.opener().unwrap();
-            if opener.is_null() {
-                go_to_root();
-            }
-            let opener = Window::from(opener);
-            let msg = serde_json::to_string(&_id).unwrap();
-            _ = opener.post_message(&msg.into(), &origin);
+            logging::log!("IdentitySender: Received identity response: {:?}", _id);
+            // use web_sys::Window;
+
+            // let win = window();
+            // let origin = win.origin();
+            // let opener = win.opener().unwrap();
+            // if opener.is_null() {
+            //     go_to_root();
+            // }
+            // let opener = Window::from(opener);
+            // let msg = serde_json::to_string(&_id).unwrap();
+            // _ = opener.post_message(&msg.into(), &origin);
         }
     });
 
@@ -54,10 +57,10 @@ pub fn IdentitySender(identity_res: YralAuthMessage) -> impl IntoView {
 }
 
 async fn handle_oauth_query(oauth_query: OAuthQuery) -> YralAuthMessage {
-    let delegated = perform_yral_oauth(oauth_query)
+    let res = perform_yral_oauth(oauth_query)
         .await
         .map_err(|e| e.to_string())?;
-    Ok(delegated)
+    Ok(res)
 }
 
 #[server]
