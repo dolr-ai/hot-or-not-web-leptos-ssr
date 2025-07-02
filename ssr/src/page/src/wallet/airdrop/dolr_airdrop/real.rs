@@ -1,16 +1,25 @@
+use anyhow::ensure;
 use candid::Nat;
 use candid::Principal;
 use leptos::prelude::*;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
+use sea_orm::sqlx::types::chrono::Utc;
+use sea_orm::ActiveValue;
+use sea_orm::DatabaseConnection;
+use sea_orm::EntityTrait;
+use sea_orm::IntoActiveModel;
+use sea_orm::QuerySelect;
+use sea_orm::TransactionTrait;
 use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::Canisters;
 
+use crate::wallet::airdrop::dolr_airdrop::real::entities::dolr_airdrop_data;
 use crate::wallet::airdrop::AirdropStatus;
+use sea_orm::prelude::*;
 
 mod entities;
 
 const DOLR_AIRDROP_LIMIT_DURATION: web_time::Duration = web_time::Duration::from_secs(24 * 3600);
-const MAX_AIRDROP_COUNT_WITHIN_DURATION: u64 = 1;
 /// in e0s
 const DOLR_AIRDROP_AMOUNT_RANGE: std::ops::Range<u64> = 5..10;
 
@@ -18,37 +27,32 @@ const DOLR_AIRDROP_AMOUNT_RANGE: std::ops::Range<u64> = 5..10;
 async fn is_dolr_airdrop_available(
     _user_canister: Principal,
     user_principal: Principal,
-    now: web_time::SystemTime,
-) -> Result<(), web_time::Duration> {
-    // let ctx: state::stdb_dolr_airdrop::WrappedContext = expect_context();
+    now: DateTimeUtc,
+) -> anyhow::Result<Result<(), web_time::Duration>> {
+    let db: sea_orm::DatabaseConnection = expect_context();
 
-    // let Some(airdrop_info) = ctx
-    //     .conn
-    //     .db
-    //     .dolr_airdrop_info()
-    //     .user_principal()
-    //     .find(&user_principal.to_text())
-    // else {
-    //     // user has never claimed airdrop before
-    //     return Ok(());
-    // };
+    let Some(airdrop_data) = dolr_airdrop_data::Entity::find_by_id(user_principal.to_text())
+        .lock_shared()
+        .one(&db)
+        .await?
+    else {
+        return Ok(Ok(()));
+    };
 
-    // let now: Timestamp = now.into();
-    // let next_airdrop_available_after =
-    //     airdrop_info.last_airdrop_at + TimeDuration::from_duration(DOLR_AIRDROP_LIMIT_DURATION);
+    leptos::logging::debug_warn!("dolr airdrop data fetched: {airdrop_data:#?}");
 
-    // if now < next_airdrop_available_after {
-    //     let count = airdrop_info.airdrop_count_within_duration + 1;
-    //     if count > MAX_AIRDROP_COUNT_WITHIN_DURATION {
-    //         return Err(next_airdrop_available_after
-    //             .duration_since(now)
-    //             .expect("now is less than after"));
-    //     }
-    // }
+    let next_airdrop_available_after =
+        airdrop_data.last_airdrop_at.and_utc() + DOLR_AIRDROP_LIMIT_DURATION;
 
-    todo!("use sea-orm for checking status");
+    if now < next_airdrop_available_after {
+        let delta = next_airdrop_available_after.signed_duration_since(now);
+        let secs = delta.num_seconds() as u64;
+        let nanos = delta.subsec_nanos() as u32;
+        let duration = web_time::Duration::new(secs, nanos);
+        return Ok(Err(duration));
+    }
 
-    Ok(())
+    Ok(Ok(()))
 }
 
 #[server(input = server_fn::codec::Json)]
@@ -56,8 +60,9 @@ pub async fn is_user_eligible_for_dolr_airdrop(
     user_canister: Principal,
     user_principal: Principal,
 ) -> Result<AirdropStatus, ServerFnError> {
-    let res =
-        is_dolr_airdrop_available(user_canister, user_principal, web_time::SystemTime::now()).await;
+    let res = is_dolr_airdrop_available(user_canister, user_principal, Utc::now())
+        .await
+        .map_err(ServerFnError::new)?;
 
     match res {
         Ok(_) => Ok(AirdropStatus::Available),
@@ -111,6 +116,60 @@ pub async fn send_airdrop_to_user(
     Ok(())
 }
 
+async fn mark_airdrop_claimed(
+    db: &DatabaseConnection,
+    user_principal: Principal,
+    now: ChronoDateTimeUtc,
+) -> anyhow::Result<()> {
+    db.transaction::<_, _, anyhow::Error>(|txn| {
+        Box::pin(async move {
+            let Some(airdrop_data) =
+                dolr_airdrop_data::Entity::find_by_id(user_principal.to_text())
+                    .lock_with_behavior(
+                        sea_orm::sea_query::LockType::Update,
+                        sea_orm::sea_query::LockBehavior::Nowait,
+                    )
+                    .one(txn)
+                    .await?
+            else {
+                let airdrop_data = dolr_airdrop_data::ActiveModel {
+                    user_principal: ActiveValue::Set(user_principal.to_text()),
+                    last_airdrop_at: ActiveValue::Set(now.naive_utc()),
+                };
+
+                dolr_airdrop_data::Entity::insert(airdrop_data)
+                    .exec_without_returning(txn)
+                    .await?;
+
+                return Ok(());
+            };
+
+            let next_airdrop_available_after =
+                airdrop_data.last_airdrop_at.and_utc() + DOLR_AIRDROP_LIMIT_DURATION;
+
+            ensure!(
+                now >= next_airdrop_available_after,
+                "Airdrop is not allowed yet"
+            );
+
+            let mut airdrop_data = airdrop_data.into_active_model();
+
+            airdrop_data
+                .last_airdrop_at
+                .set_if_not_equals(now.naive_utc());
+
+            dolr_airdrop_data::Entity::update(airdrop_data)
+                .exec(txn)
+                .await?;
+
+            Ok(())
+        })
+    })
+    .await?;
+
+    Ok(())
+}
+
 #[server(input = server_fn::codec::Json)]
 pub async fn claim_dolr_airdrop(
     user_canister: Principal,
@@ -132,13 +191,13 @@ pub async fn claim_dolr_airdrop(
 
     let sess = user.get_session_type().await?;
     if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
-        // log::error!("Not allowed to claim: not logged in");
         return Err(ServerFnError::new("Not allowed to claim: not logged in"));
     }
 
-    let now = web_time::SystemTime::now();
+    let now = Utc::now();
     if is_dolr_airdrop_available(user_canister, user_principal, now)
         .await
+        .map_err(ServerFnError::new)?
         .is_err()
     {
         return Err(ServerFnError::new(
@@ -146,15 +205,10 @@ pub async fn claim_dolr_airdrop(
         ));
     }
 
-    // let ctx: state::stdb_dolr_airdrop::WrappedContext = expect_context();
-
-    // ctx.mark_airdrop_claimed(user_principal, DOLR_AIRDROP_LIMIT_DURATION, now)
-    //     .await
-    //     .map_err(ServerFnError::new)?
-    //     // this is not likely to happen with current impl on stdb, but good to
-    //     // be cautious
-    //     .map_err(ServerFnError::new)?;
-    // TODO: use sea-orm for marking airdrop
+    let db: DatabaseConnection = expect_context();
+    mark_airdrop_claimed(&db, user_principal, now)
+        .await
+        .map_err(ServerFnError::new)?;
 
     let mut rng = SmallRng::from_os_rng();
     let amount = rng.random_range(DOLR_AIRDROP_AMOUNT_RANGE);
