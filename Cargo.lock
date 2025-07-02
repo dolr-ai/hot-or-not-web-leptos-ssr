@@ -5655,6 +5655,7 @@ dependencies = [
  "leptos_meta",
  "leptos_router",
  "log",
+ "num-traits",
  "once_cell",
  "openidconnect",
  "priority-queue",
