@@ -3,15 +3,10 @@ use candid::Principal;
 use ic_agent::Identity;
 use leptos::html::Input;
 use leptos::prelude::Signal;
-use leptos::{ev, prelude::*};
-use leptos_use::{use_event_listener, use_timeout_fn, UseTimeoutFnReturn};
-use serde::{Deserialize, Serialize};
+use leptos::prelude::*;
+use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use serde_json::json;
 use sns_validation::pbs::sns_pb::SnsInitPayload;
-use wasm_bindgen::JsCast;
-
-/// Maximum pause duration in seconds before logging an error
-const VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS: f64 = 3.0;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProviderKind {
@@ -104,11 +99,7 @@ impl HistoryCtx {
 }
 
 #[cfg(feature = "ga4")]
-use crate::event_streaming::{send_event_ssr_spawn, send_event_warehouse_ssr_spawn};
-use crate::mixpanel::mixpanel_events::{
-    MixPanelEvent, MixpanelGlobalProps, MixpanelPostGameType, MixpanelVideoClickedCTAType,
-    MixpanelVideoClickedProps, MixpanelVideoStartedProps, MixpanelVideoViewedProps,
-};
+use crate::event_streaming::send_event_ssr_spawn;
 use leptos::html::Video;
 use yral_canisters_common::{
     utils::{posts::PostDetails, profile::ProfileDetails},
@@ -164,71 +155,8 @@ impl EventCtx {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-pub struct VideoEventData {
-    pub publisher_user_id: Option<Principal>,
-    pub user_id: Principal,
-    #[serde(rename = "is_loggedIn")]
-    pub is_logged_in: bool,
-    pub display_name: Option<String>,
-    pub canister_id: Principal,
-    pub video_id: Option<String>,
-    pub video_category: String,
-    pub creator_category: String,
-    pub hashtag_count: Option<usize>,
-    #[serde(rename = "is_NSFW", skip_serializing_if = "Option::is_none")]
-    pub is_nsfw: Option<bool>,
-    #[serde(rename = "is_hotorNot", skip_serializing_if = "Option::is_none")]
-    pub is_hotor_not: Option<bool>,
-    pub feed_type: String,
-    pub view_count: Option<u64>,
-    pub like_count: Option<u64>,
-    pub share_count: u64,
-    pub post_id: Option<u64>,
-    pub publisher_canister_id: Option<Principal>,
-    pub nsfw_probability: Option<f32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub percentage_watched: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub absolute_watched: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub video_duration: Option<f64>,
-}
-
-impl VideoEventData {
-    pub fn from_details(
-        user: &EventUserDetails,
-        post: Option<&PostDetails>,
-        ctx: &EventCtx,
-    ) -> Self {
-        let nsfw_probability = post.map(|p| p.nsfw_probability);
-        let is_nsfw = nsfw_probability.map(|prob| prob > 0.5);
-
-        Self {
-            publisher_user_id: post.map(|p| p.poster_principal),
-            user_id: user.details.principal,
-            is_logged_in: ctx.is_connected(),
-            display_name: user.details.display_name.clone(),
-            canister_id: user.canister_id,
-            video_id: post.map(|p| p.uid.clone()),
-            video_category: "NA".to_string(),
-            creator_category: "NA".to_string(),
-            hashtag_count: post.map(|p| p.hastags.len()),
-            is_nsfw,
-            is_hotor_not: post.map(|p| p.is_hot_or_not()),
-            feed_type: "NA".to_string(),
-            view_count: post.map(|p| p.views),
-            like_count: post.map(|p| p.likes),
-            share_count: 0,
-            post_id: post.map(|p| p.post_id),
-            publisher_canister_id: post.map(|p| p.canister_id),
-            nsfw_probability,
-            percentage_watched: None,
-            absolute_watched: None,
-            video_duration: None,
-        }
-    }
-}
+// VideoEventData is now exported from video_analytics module
+pub use crate::event_streaming::video_analytics::VideoEventData;
 
 #[derive(Default)]
 pub struct VideoWatched;
@@ -241,313 +169,30 @@ impl VideoWatched {
         container_ref: NodeRef<Video>,
         muted: RwSignal<bool>,
     ) {
-        #[cfg(all(feature = "hydrate", feature = "ga4"))]
-        {
-            // Make video details reactive for logging
-            let log_video_id = Memo::new(move |_| {
-                vid_details.with(|post| {
-                    post.as_ref()
-                        .map(|p| p.uid.clone())
-                        .unwrap_or_else(|| "unknown".to_string())
-                })
-            });
+        // Delegate to the refactored implementation
+        use crate::event_streaming::video_analytics::VideoWatchedHandler;
+        let handler = VideoWatchedHandler::new();
+        handler.setup_event_tracking(ctx, vid_details, container_ref, muted);
+    }
 
-            let log_publisher_canister_id = Memo::new(move |_| {
-                vid_details.with(|post| {
-                    post.as_ref()
-                        .map(|p| p.canister_id.to_text())
-                        .unwrap_or_else(|| "unknown".to_string())
-                })
-            });
-
-            let log_post_id = Memo::new(move |_| {
-                vid_details.with(|post| {
-                    post.as_ref()
-                        .map(|p| p.post_id.to_string())
-                        .unwrap_or_else(|| "unknown".to_string())
-                })
-            });
-
-            // video_viewed - analytics
-            let (video_watched, set_video_watched) = signal(false);
-            let (full_video_watched, set_full_video_watched) = signal(false);
-            let playing_started = RwSignal::new(false);
-
-            // Progress tracking state
-            let last_video_time = RwSignal::new(0.0);
-            let progress_stalled = RwSignal::new(false);
-            let video_check_interval = RwSignal::new(None::<leptos::prelude::IntervalHandle>);
-
-            // Track video started - mixpanel
-            let _ = use_event_listener(container_ref, ev::playing, move |_evt| {
-                let Some(_) = container_ref.get() else {
-                    return;
-                };
-                playing_started.set(true);
-
-                // Clear stall state when video resumes playing
-                if progress_stalled.get_untracked() {
-                    leptos::logging::log!(
-                        "Video resumed playing after stall, video_id={}, publisher_canister_id={}, post_id={}",
-                        log_video_id.get_untracked(),
-                        log_publisher_canister_id.get_untracked(),
-                        log_post_id.get_untracked()
-                    );
-                    progress_stalled.set(false);
-                }
-
-                // Start progress checking timer if not already running
-                if video_check_interval.get_untracked().is_none() {
-                    let interval_handle = set_interval_with_handle(
-                        move || {
-                            let Some(video_el) = container_ref.get() else {
-                                return;
-                            };
-
-                            let current_time = video_el.current_time();
-                            let duration = video_el.duration();
-                            let prev_time = last_video_time.get_untracked();
-
-                            // Handle video loop - if current time is less than previous, video has looped
-                            let has_looped = current_time < prev_time;
-
-                            // Calculate actual progress considering loop
-                            let time_diff = if has_looped {
-                                (duration - prev_time) + current_time
-                            } else {
-                                current_time - prev_time
-                            };
-
-                            // Check if video progress is less than 1.8 seconds since last check
-                            if time_diff < (VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS * 0.6)
-                                && !has_looped
-                            {
-                                if !progress_stalled.get_untracked() {
-                                    progress_stalled.set(true);
-                                    // Log error immediately since we're already past the threshold
-                                    leptos::logging::error!(
-                                        "video_log: Video stalled for more than {} seconds at position={:.2}s, video_id={}, publisher_canister_id={}, post_id={} ; expected progress: {:.2}s, actual progress: {:.2}s at position={:.2}s",
-                                        VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS * 0.6,
-                                        current_time,
-                                        log_video_id.get_untracked(),
-                                        log_publisher_canister_id.get_untracked(),
-                                        log_post_id.get_untracked(),
-                                        VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS,
-                                        time_diff,
-                                        current_time,
-                                    );
-                                }
-                            } else if progress_stalled.get_untracked()
-                                && (time_diff >= VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS || has_looped)
-                            {
-                                // Video has resumed normal playback
-                                leptos::logging::log!(
-                                    "Video progress resumed, video_id={}, publisher_canister_id={}, post_id={}",
-                                    log_video_id.get_untracked(),
-                                    log_publisher_canister_id.get_untracked(),
-                                    log_post_id.get_untracked()
-                                );
-                                progress_stalled.set(false);
-                            }
-
-                            // Update last video time
-                            last_video_time.set(current_time);
-                        },
-                        std::time::Duration::from_millis(
-                            (VIDEO_PAUSE_ERROR_THRESHOLD_SECONDS * 1000.0) as u64,
-                        ),
-                    );
-
-                    if let Ok(handle) = interval_handle {
-                        video_check_interval.set(Some(handle));
-                    }
-                }
-
-                let Some(global) = MixpanelGlobalProps::from_ev_ctx(ctx) else {
-                    return;
-                };
-                let post_o = vid_details();
-                let post = post_o.as_ref();
-                if let Some(post) = post {
-                    let is_logged_in = ctx.is_connected();
-                    let is_game_enabled = true;
-
-                    MixPanelEvent::track_video_started(MixpanelVideoStartedProps {
-                        publisher_user_id: post.poster_principal.to_text(),
-                        user_id: global.user_id,
-                        visitor_id: global.visitor_id,
-                        is_logged_in,
-                        canister_id: global.canister_id,
-                        is_nsfw_enabled: global.is_nsfw_enabled,
-                        video_id: post.uid.clone(),
-                        view_count: post.views,
-                        like_count: post.likes,
-                        game_type: MixpanelPostGameType::HotOrNot,
-                        is_nsfw: post.is_nsfw,
-                        is_game_enabled,
-                    });
-                }
-            });
-
-            let _ = use_event_listener(container_ref, ev::timeupdate, move |evt| {
-                let Some(user) = ctx.user_details() else {
-                    return;
-                };
-                let post_o = vid_details();
-                let post = post_o.as_ref();
-
-                let Some(target) = evt.target() else {
-                    leptos::logging::error!(
-                        "video_log: No target found for video timeupdate event"
-                    );
-                    return;
-                };
-                let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
-                let duration = video.duration();
-                let current_time = video.current_time();
-                if current_time < 0.95 * duration {
-                    set_full_video_watched.set(false);
-                }
-
-                // send bigquery event when video is watched > 95%
-                if current_time >= 0.95 * duration && !full_video_watched.get() {
-                    // Initialize base event data and add duration-specific fields
-                    let mut event_data = VideoEventData::from_details(&user, post, &ctx);
-                    event_data.percentage_watched = Some(100.0);
-                    event_data.absolute_watched = Some(duration);
-                    event_data.video_duration = Some(duration);
-
-                    send_event_warehouse_ssr_spawn(
-                        "video_duration_watched".to_string(),
-                        serde_json::to_string(&event_data).unwrap_or_default(),
-                    );
-
-                    set_full_video_watched.set(true);
-                }
-
-                if video_watched.get() {
-                    return;
-                }
-
-                if current_time >= 3.0 && playing_started() {
-                    // Initialize event data for video_viewed event
-                    let event_data = VideoEventData::from_details(&user, post, &ctx);
-
-                    let _ = send_event_ssr_spawn(
-                        "video_viewed".to_string(),
-                        serde_json::to_string(&event_data).unwrap_or_default(),
-                    );
-
-                    // Mixpanel tracking
-                    let Some(global) = MixpanelGlobalProps::from_ev_ctx(ctx) else {
-                        return;
-                    };
-                    if let Some(post) = post {
-                        let is_logged_in = ctx.is_connected();
-                        let is_game_enabled = true;
-
-                        MixPanelEvent::track_video_viewed(MixpanelVideoViewedProps {
-                            publisher_user_id: post.poster_principal.to_text(),
-                            user_id: global.user_id,
-                            visitor_id: global.visitor_id,
-                            is_logged_in,
-                            canister_id: global.canister_id,
-                            is_nsfw_enabled: global.is_nsfw_enabled,
-                            video_id: post.uid.clone(),
-                            view_count: post.views,
-                            like_count: post.likes,
-                            game_type: MixpanelPostGameType::HotOrNot,
-                            is_nsfw: post.is_nsfw,
-                            is_game_enabled,
-                        });
-                    }
-                    playing_started.set(false);
-
-                    set_video_watched.set(true);
-                }
-            });
-
-            // video duration watched - warehousing
-            let _ = use_event_listener(container_ref, ev::pause, move |evt| {
-                // Stop the progress checking interval
-                if let Some(handle) = video_check_interval.get_untracked() {
-                    handle.clear();
-                    video_check_interval.set(None);
-                }
-
-                let Some(user) = ctx.user_details() else {
-                    return;
-                };
-                let post_o = vid_details();
-                let post = post_o.as_ref();
-
-                let Some(target) = evt.target() else {
-                    leptos::logging::error!("No target found for video pause event");
-                    return;
-                };
-                let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
-                let duration = video.duration();
-                let current_time = video.current_time();
-                if current_time < 0.1 {
-                    return;
-                }
-
-                let percentage_watched = (current_time / duration) * 100.0;
-
-                // Initialize event data and add pause-specific fields
-                let mut event_data = VideoEventData::from_details(&user, post, &ctx);
-                event_data.percentage_watched = Some(percentage_watched);
-                event_data.absolute_watched = Some(current_time);
-                event_data.video_duration = Some(duration);
-
-                send_event_warehouse_ssr_spawn(
-                    "video_duration_watched".to_string(),
-                    serde_json::to_string(&event_data).unwrap_or_default(),
-                );
-            });
-
-            // Track mute/unmute events
-            let mixpanel_video_muted = RwSignal::new(muted.get_untracked());
-
-            Effect::new(move |_| {
-                let current_muted = muted.get();
-                if current_muted == mixpanel_video_muted.get_untracked() {
-                    return;
-                }
-                mixpanel_video_muted.set(current_muted);
-
-                let Some(global) = MixpanelGlobalProps::from_ev_ctx(ctx) else {
-                    return;
-                };
-
-                let post_o = vid_details();
-                let post = post_o.as_ref();
-
-                if let Some(post) = post {
-                    let is_game_enabled = true;
-
-                    MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-                        user_id: global.user_id,
-                        visitor_id: global.visitor_id,
-                        is_logged_in: global.is_logged_in,
-                        canister_id: global.canister_id,
-                        is_nsfw_enabled: global.is_nsfw_enabled,
-                        publisher_user_id: post.poster_principal.to_text(),
-                        like_count: post.likes,
-                        view_count: post.views,
-                        is_game_enabled,
-                        video_id: post.uid.clone(),
-                        is_nsfw: post.is_nsfw,
-                        game_type: MixpanelPostGameType::HotOrNot,
-                        cta_type: if current_muted {
-                            MixpanelVideoClickedCTAType::Mute
-                        } else {
-                            MixpanelVideoClickedCTAType::Unmute
-                        },
-                    });
-                }
-            });
-        }
+    pub fn send_event_with_current(
+        &self,
+        ctx: EventCtx,
+        vid_details: Signal<Option<PostDetails>>,
+        container_ref: NodeRef<Video>,
+        muted: RwSignal<bool>,
+        is_current: Signal<bool>,
+    ) {
+        // Delegate to the refactored implementation
+        use crate::event_streaming::video_analytics::VideoWatchedHandler;
+        let handler = VideoWatchedHandler::new();
+        handler.setup_event_tracking_with_current(
+            ctx,
+            vid_details,
+            container_ref,
+            muted,
+            Some(is_current),
+        );
     }
 }
 

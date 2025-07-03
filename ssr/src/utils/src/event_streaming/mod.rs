@@ -7,6 +7,7 @@ use serde_json::json;
 use tracing::instrument;
 
 pub mod events;
+pub mod video_analytics;
 
 #[cfg(feature = "ssr")]
 pub mod warehouse_events {

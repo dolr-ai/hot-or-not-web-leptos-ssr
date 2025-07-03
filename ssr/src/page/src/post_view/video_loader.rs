@@ -73,6 +73,7 @@ pub fn VideoView(
     #[prop(optional)] autoplay_at_render: bool,
     to_load: Memo<bool>,
     muted: RwSignal<bool>,
+    #[prop(optional, into)] is_current: Option<Signal<bool>>,
 ) -> impl IntoView {
     let post_for_uid = post;
     let uid = Memo::new(move |_| {
@@ -106,7 +107,11 @@ pub fn VideoView(
         Some(())
     });
 
-    VideoWatched.send_event(ev_ctx, post, _ref, muted);
+    if let Some(is_current) = is_current {
+        VideoWatched.send_event_with_current(ev_ctx, post, _ref, muted, is_current);
+    } else {
+        VideoWatched.send_event(ev_ctx, post, _ref, muted);
+    }
 
     view! {
         <VideoPlayer
@@ -179,12 +184,16 @@ pub fn VideoViewForQueue(
         }
     });
 
+    // Create a signal that tracks whether this video is current
+    let is_current_signal = Signal::derive(move || idx == current_idx());
+
     view! {
         <VideoView
             post
             _ref=container_ref
             to_load
             muted
+            is_current=is_current_signal
         />
     }
     .into_any()
