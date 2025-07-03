@@ -38,6 +38,12 @@ pub struct VideoEventDataBuilder {
     data: VideoEventData,
 }
 
+impl Default for VideoEventDataBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VideoEventDataBuilder {
     pub fn new() -> Self {
         Self {

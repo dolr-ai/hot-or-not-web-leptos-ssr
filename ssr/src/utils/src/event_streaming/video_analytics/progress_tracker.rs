@@ -9,6 +9,12 @@ pub struct VideoProgressTracker {
     check_interval: RwSignal<Option<leptos::prelude::IntervalHandle>>,
 }
 
+impl Default for VideoProgressTracker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VideoProgressTracker {
     pub fn new() -> Self {
         Self {

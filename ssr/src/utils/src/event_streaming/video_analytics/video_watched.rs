@@ -22,6 +22,15 @@ pub struct VideoWatchedHandler {
     progress_tracker: VideoProgressTracker,
 }
 
+#[cfg(all(feature = "hydrate", feature = "ga4"))]
+struct TimeUpdateListenerParams {
+    video_watched: Signal<bool>,
+    set_video_watched: WriteSignal<bool>,
+    full_video_watched: Signal<bool>,
+    set_full_video_watched: WriteSignal<bool>,
+    playing_started: RwSignal<bool>,
+}
+
 impl Default for VideoWatchedHandler {
     fn default() -> Self {
         Self::new()
@@ -67,16 +76,14 @@ impl VideoWatchedHandler {
                 self.progress_tracker,
             );
 
-            self.setup_timeupdate_listener(
-                ctx,
-                vid_details,
-                container_ref,
-                video_watched.into(),
+            let params = TimeUpdateListenerParams {
+                video_watched: video_watched.into(),
                 set_video_watched,
-                full_video_watched.into(),
+                full_video_watched: full_video_watched.into(),
                 set_full_video_watched,
                 playing_started,
-            );
+            };
+            self.setup_timeupdate_listener(ctx, vid_details, container_ref, params);
 
             self.setup_pause_listener(ctx, vid_details, container_ref, self.progress_tracker);
 
@@ -132,11 +139,7 @@ impl VideoWatchedHandler {
         ctx: EventCtx,
         vid_details: Signal<Option<PostDetails>>,
         container_ref: NodeRef<Video>,
-        video_watched: Signal<bool>,
-        set_video_watched: WriteSignal<bool>,
-        full_video_watched: Signal<bool>,
-        set_full_video_watched: WriteSignal<bool>,
-        playing_started: RwSignal<bool>,
+        params: TimeUpdateListenerParams,
     ) {
         let _ = use_event_listener(container_ref, ev::timeupdate, move |evt| {
             let Some(user) = ctx.user_details() else {
@@ -154,11 +157,11 @@ impl VideoWatchedHandler {
             let current_time = video.current_time();
 
             if current_time < VIDEO_COMPLETION_PERCENTAGE * duration {
-                set_full_video_watched.set(false);
+                params.set_full_video_watched.set(false);
             }
 
             // Track 95% completion
-            if current_time >= VIDEO_COMPLETION_PERCENTAGE * duration && !full_video_watched.get() {
+            if current_time >= VIDEO_COMPLETION_PERCENTAGE * duration && !params.full_video_watched.get() {
                 let event_data = VideoEventDataBuilder::from_context(&user, post, &ctx)
                     .with_completion(duration)
                     .build();
@@ -168,15 +171,15 @@ impl VideoWatchedHandler {
                     serde_json::to_string(&event_data).unwrap_or_default(),
                 );
 
-                set_full_video_watched.set(true);
+                params.set_full_video_watched.set(true);
             }
 
-            if video_watched.get() {
+            if params.video_watched.get() {
                 return;
             }
 
             // Track 3 second view
-            if current_time >= VIDEO_VIEWED_THRESHOLD_SECONDS && playing_started() {
+            if current_time >= VIDEO_VIEWED_THRESHOLD_SECONDS && params.playing_started.get() {
                 let event_data = VideoEventDataBuilder::from_context(&user, post, &ctx).build();
 
                 let _ = send_event_ssr_spawn(
@@ -195,8 +198,8 @@ impl VideoWatchedHandler {
                     );
                 }
 
-                playing_started.set(false);
-                set_video_watched.set(true);
+                params.playing_started.set(false);
+                params.set_video_watched.set(true);
             }
         });
     }
