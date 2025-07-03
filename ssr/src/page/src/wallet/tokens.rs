@@ -318,7 +318,6 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
     let tokens = [
         TokenType::Sats,
         TokenType::Btc,
-        TokenType::Cents,
         TokenType::Dolr,
         TokenType::Usdc,
     ];
