@@ -35,6 +35,7 @@ fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
     } = expect_context();
     let bg_url = bg_url(&post.uid);
     let win_audio_ref = NodeRef::<Audio>::new();
+    let to_load = Memo::new(|_| true);
 
     view! {
         <div class="w-dvw h-dvh">
@@ -51,11 +52,12 @@ fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
                     src="/img/hotornot/chaching.m4a"
                 />
                 <VideoDetailsOverlay post=post.clone() prev_post=None win_audio_ref />
-                <VideoView post=Some(post) muted autoplay_at_render=true />
+                <VideoView post=Some(post) muted autoplay_at_render=true to_load />
             </div>
             <MuteIconOverlay show_mute_icon />
         </div>
     }
+    .into_any()
 }
 
 #[component]

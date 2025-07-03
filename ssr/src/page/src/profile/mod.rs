@@ -7,6 +7,7 @@ mod speculation;
 
 use candid::Principal;
 use component::{connect::ConnectLogin, spinner::FullScreenSpinner};
+use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
 use indexmap::IndexSet;
 use leptos::prelude::*;
 use leptos_icons::*;
@@ -18,15 +19,37 @@ use state::{
     app_state::AppState,
     canisters::{auth_state, unauth_canisters},
 };
-use utils::{mixpanel::mixpanel_events::*, send_wrap};
+
+use utils::{mixpanel::mixpanel_events::*, posts::FeedPostCtx, send_wrap};
 use yral_canisters_common::utils::{posts::PostDetails, profile::ProfileDetails};
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct ProfilePostsContext {
     video_queue: RwSignal<IndexSet<PostDetails>>,
+    video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
     start_index: RwSignal<usize>,
     current_index: RwSignal<usize>,
     queue_end: RwSignal<bool>,
+}
+
+impl Default for ProfilePostsContext {
+    fn default() -> Self {
+        let mut video_queue_for_feed = Vec::new();
+        for i in 0..MAX_VIDEO_ELEMENTS_FOR_FEED {
+            video_queue_for_feed.push(FeedPostCtx {
+                key: i,
+                value: RwSignal::new(None),
+            });
+        }
+
+        Self {
+            video_queue: RwSignal::new(IndexSet::new()),
+            video_queue_for_feed: RwSignal::new(video_queue_for_feed),
+            start_index: RwSignal::new(0),
+            current_index: RwSignal::new(0),
+            queue_end: RwSignal::new(false),
+        }
+    }
 }
 
 #[derive(Params, PartialEq, Clone)]
