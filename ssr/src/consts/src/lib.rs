@@ -13,6 +13,7 @@ pub use remote::*;
 
 use once_cell::sync::Lazy;
 use reqwest::Url;
+use serde::{Deserialize, Serialize};
 
 // TODO: make it consistent with the actual bet amount
 pub const MAX_BET_AMOUNT: usize = 20;
@@ -26,6 +27,7 @@ pub const GOBGOB_TOTAL_COUNT: u32 = 18557;
 pub const CF_WATERMARK_UID: &str = "b5588fa1516ca33a08ebfef06c8edb33";
 pub const ACCOUNT_CONNECTED_STORE: &str = "account-connected-1";
 pub const DEVICE_ID: &str = "device_id";
+pub const CUSTOM_DEVICE_ID: &str = "custom_device_id";
 pub const AUTH_JOURNET: &str = "auth_journey";
 pub static CF_BASE_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://api.cloudflare.com/client/v4/").unwrap());
@@ -35,8 +37,8 @@ pub const NSFW_TOGGLE_STORE: &str = "nsfw-enabled";
 pub const REFERRER_COOKIE: &str = "referrer";
 pub const USER_CANISTER_ID_STORE: &str = "user-canister-id";
 pub const USER_PRINCIPAL_STORE: &str = "user-principal";
-pub const USER_ONBOARDING_STORE: &str = "user-onboarding";
 pub const USER_INTERNAL_STORE: &str = "user-internal";
+pub const WALLET_BALANCE_STORE_KEY: &str = "wallet-balance-sats";
 
 pub static OFF_CHAIN_AGENT_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev").unwrap());
@@ -60,7 +62,7 @@ pub const CF_KV_ML_CACHE_NAMESPACE_ID: &str = "ea145fc839bd42f9bf2d34b950ddbda5"
 pub const CLOUDFLARE_ACCOUNT_ID: &str = "a209c523d2d9646cc56227dbe6ce3ede";
 
 pub const NEW_USER_SIGNUP_REWARD: u64 = 1000;
-pub const REFERRAL_REWARD: u64 = 10;
+pub const REFERRAL_REWARD: u64 = 5;
 pub const MIN_WITHDRAWAL_PER_TXN: u64 = 200;
 pub const MAX_WITHDRAWAL_PER_TXN: u64 = 500;
 
@@ -103,3 +105,10 @@ pub const DOLR_AI_ROOT_CANISTER: &str = "67bll-riaaa-aaaaq-aaauq-cai";
 pub const DOLR_AI_LEDGER_CANISTER: &str = "6rdgd-kyaaa-aaaaq-aaavq-cai";
 pub const CKBTC_LEDGER_CANISTER: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
 pub const USDC_LEDGER_CANISTER: &str = "xevnm-gaaaa-aaaar-qafnq-cai";
+
+pub const USER_ONBOARDING_STORE_KEY: &str = "user-onboarding";
+#[derive(Serialize, Deserialize, Clone, PartialEq, Default)]
+pub struct UserOnboardingStore {
+    pub has_seen_onboarding: bool,
+    pub has_seen_hon_bet_help: bool,
+}
