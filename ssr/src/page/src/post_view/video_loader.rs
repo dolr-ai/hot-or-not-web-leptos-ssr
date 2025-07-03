@@ -98,7 +98,7 @@ pub fn VideoView(
     Effect::new(move |_| {
         let vid = _ref.get()?;
         // the attributes in DOM don't seem to be working
-        // vid.set_muted(muted.get_untracked());
+        vid.set_muted(muted.get_untracked());
         // vid.set_loop(true);
         if autoplay_at_render {
             vid.set_autoplay(true);
