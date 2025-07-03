@@ -19,7 +19,7 @@ pub fn VideoPlayer(
             />
             <video
                 node_ref=node_ref
-                class="object-contain cursor-pointer h-dvh max-h-dvh transition-opacity duration-1000"
+                class="object-contain cursor-pointer h-dvh max-h-dvh"
                 poster=view_bg_url
                 src=view_video_url
                 loop
