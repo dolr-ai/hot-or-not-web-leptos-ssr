@@ -161,7 +161,9 @@ impl VideoWatchedHandler {
             }
 
             // Track 95% completion
-            if current_time >= VIDEO_COMPLETION_PERCENTAGE * duration && !params.full_video_watched.get() {
+            if current_time >= VIDEO_COMPLETION_PERCENTAGE * duration
+                && !params.full_video_watched.get()
+            {
                 let event_data = VideoEventDataBuilder::from_context(&user, post, &ctx)
                     .with_completion(duration)
                     .build();
