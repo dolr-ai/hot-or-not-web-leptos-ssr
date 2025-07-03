@@ -7,6 +7,9 @@ on:
         default: false
         required: false
         type: boolean
+      limits_commit_hash:
+        type: string
+        description: "The commit hash of the yral-common limits received from payload"
   workflow_dispatch:
 
 jobs:
@@ -100,6 +103,21 @@ jobs:
           RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
           LEPTOS_HASH_FILES: true
           LEPTOS_TAILWIND_VERSION: v4.1.7
+
+      - uses: EndBug/add-and-commit@v9
+        with:
+          add: "Cargo.lock"
+          author_name: Github
+          author_email: github@github.com
+          commit: --signoff
+
+          committer_name: Github
+          committer_email: github@github.com
+
+          message: "yral-common: limits crate updated"
+          tag: "limits-auto-${{ inputs.limits_commit_hash }}"
+
+          push: true
 
       - name: Setup Sentry CLI
         uses: matbour/setup-sentry-cli@v2

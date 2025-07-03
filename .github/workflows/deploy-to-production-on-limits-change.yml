@@ -14,6 +14,7 @@ jobs:
     uses: ./.github/workflows/build-check-limits-change.yml
     with:
       publish-artifact: true
+      limits_commit_hash: ${{ github.event.client_payload.commit_hash }}
     secrets: inherit
 
   deploy:
