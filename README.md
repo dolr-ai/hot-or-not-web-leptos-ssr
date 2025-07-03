@@ -18,8 +18,6 @@ This is a template for use with the [Leptos](https://github.com/leptos-rs/leptos
 
 ## Creating your template repo
 
-test
-
 If you don't have `cargo-leptos` installed you can install it with
 
 ```bash
