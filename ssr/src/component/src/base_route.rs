@@ -7,6 +7,7 @@ use leptos_use::{use_cookie_with_options, use_event_listener, use_window, UseCoo
 use codee::string::FromToStringCodec;
 use consts::{ACCOUNT_CONNECTED_STORE, NOTIFICATIONS_ENABLED_STORE, NOTIFICATION_MIGRATED_STORE};
 use leptos_use::storage::use_local_storage;
+use state::audio_state::AudioState;
 use state::canisters::AuthState;
 use utils::event_streaming::events::PageVisit;
 use utils::mixpanel::mixpanel_events::{
@@ -98,6 +99,19 @@ fn CtxProvider(children: Children) -> impl IntoView {
                 is_nsfw_enabled: global.is_nsfw_enabled,
                 page: pathname,
             });
+        }
+    });
+
+    // Reset AudioState to muted when navigating away from video pages
+    Effect::new(move |_| {
+        let pathname = location.pathname.get();
+        // Check if we're navigating away from video pages
+        let is_video_page = pathname.contains("/hot-or-not/")
+            || pathname.contains("/post/")
+            || pathname.contains("/profile/") && pathname.contains("/post/");
+
+        if !is_video_page {
+            AudioState::reset_to_muted();
         }
     });
 
