@@ -307,7 +307,6 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
 #[component]
 pub fn PostView() -> impl IntoView {
     let params = use_params::<PostParams>();
-    // let params = use_query::<PostParams>();
     let initial_canister_and_post = RwSignal::new(params.get_untracked().ok());
     let home_page_viewed_sent = RwSignal::new(false);
     let auth = auth_state();

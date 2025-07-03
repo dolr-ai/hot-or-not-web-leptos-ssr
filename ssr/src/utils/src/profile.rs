@@ -16,7 +16,6 @@ pub const PROFILE_CHUNK_SZ: usize = 10;
 pub struct PostsProvider {
     canisters: Canisters<false>,
     video_queue: RwSignal<IndexSet<PostDetails>>,
-    // video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
     start_index: RwSignal<usize>,
     user: Principal,
 }
@@ -25,14 +24,12 @@ impl PostsProvider {
     pub fn new(
         canisters: Canisters<false>,
         video_queue: RwSignal<IndexSet<PostDetails>>,
-        // video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
         start_index: RwSignal<usize>,
         user: Principal,
     ) -> Self {
         Self {
             canisters,
             video_queue,
-            // video_queue_for_feed,
             start_index,
             user,
         }
