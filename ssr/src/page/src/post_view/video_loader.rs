@@ -154,31 +154,28 @@ pub fn VideoViewForQueue(
         // Only attempt to play if not already playing
         if is_current && !is_playing.get_untracked() {
             is_playing.set(true);
+            vid.set_autoplay(true);
 
-            if let Some(vid) = container_ref.get() {
-                let promise = vid.play();
-                if let Ok(promise) = promise {
-                    wasm_bindgen_futures::spawn_local(async move {
-                        // Create futures
-                        let mut play_future = wasm_bindgen_futures::JsFuture::from(promise).fuse();
-                        let mut timeout_future =
-                            TimeoutFuture::new(VIDEO_PLAY_TIMEOUT_MS as u32).fuse();
+            let promise = vid.play();
+            if let Ok(promise) = promise {
+                wasm_bindgen_futures::spawn_local(async move {
+                    // Create futures
+                    let mut play_future = wasm_bindgen_futures::JsFuture::from(promise).fuse();
+                    let mut timeout_future =
+                        TimeoutFuture::new(VIDEO_PLAY_TIMEOUT_MS as u32).fuse();
 
-                        // Race between play and timeout
-                        futures::select! {
-                            play_result = play_future => {
-                                if let Err(e) = play_result {
-                                    logging::error!("video_log: Video play() promise failed: {e:?}");
-                                }
-                            }
-                            _ = timeout_future => {
-                                logging::error!("video_log: Video play() did not resolve within 5 seconds");
+                    // Race between play and timeout
+                    futures::select! {
+                        play_result = play_future => {
+                            if let Err(e) = play_result {
+                                logging::error!("video_log: Video play() promise failed: {e:?}");
                             }
                         }
-                    });
-                } else {
-                    logging::error!("video_log: Failed to play video");
-                }
+                        _ = timeout_future => {
+                            logging::error!("video_log: Video play() did not resolve within 5 seconds");
+                        }
+                    }
+                });
             }
         }
     });
