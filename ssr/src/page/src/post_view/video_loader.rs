@@ -46,8 +46,7 @@ pub fn BgView(
     view! {
         <div class="overflow-hidden relative w-full h-full bg-transparent">
             <div
-                class="absolute top-0 left-0 w-full h-full bg-center bg-cover z-1 blur-lg"
-                style:background-color="rgb(0, 0, 0)"
+                class="absolute top-0 left-0 w-full h-full bg-center bg-cover z-1 blur-lg bg-black"
                 style:background-image=move || format!("url({})", bg_url(uid()))
             ></div>
             <audio
@@ -84,6 +83,21 @@ pub fn VideoView(
     });
     let view_bg_url = move || uid().map(bg_url);
     let view_video_url = move || uid().map(mp4_url);
+
+    #[cfg(feature = "hydrate")]
+    {
+        use web_sys::HtmlImageElement;
+
+        // Preload the background image
+        // This is a workaround to ensure the image is loaded before the video starts
+        Effect::new(move |_| {
+            if let Some(bg_url) = view_bg_url() {
+                if let Ok(img) = HtmlImageElement::new() {
+                    img.set_src(&bg_url);
+                }
+            }
+        });
+    }
 
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
