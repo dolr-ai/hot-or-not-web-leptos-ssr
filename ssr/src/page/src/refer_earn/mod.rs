@@ -1,5 +1,4 @@
 use candid::Principal;
-use limits::NEW_USER_SIGNUP_REWARD;
 use gloo::timers::callback::Timeout;
 use leptos::either::Either;
 use leptos::prelude::*;
@@ -7,6 +6,7 @@ use leptos_icons::*;
 use leptos_meta::*;
 use leptos_router::components::Redirect;
 use leptos_use::use_window;
+use limits::NEW_USER_SIGNUP_REWARD;
 use limits::REFERRAL_REWARD;
 
 use component::connect::ConnectLogin;

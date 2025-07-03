@@ -98,7 +98,7 @@ pub fn App() -> impl IntoView {
     // Existing context providers
     provide_context(Canisters::default());
     provide_context(ContentSeedClient::default());
-    provide_context(PostViewCtx::default());
+    provide_context(PostViewCtx::new());
     provide_context(ProfilePostsContext::default());
     provide_context(AuthorizedUserToSeedContent::default());
     provide_context(AudioState::default());

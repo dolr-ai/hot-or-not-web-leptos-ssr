@@ -1,12 +1,16 @@
 mod server_impl;
 
-use component::{bullet_loader::BulletLoader, hn_icons::*, spinner::SpinnerFit};
-use hon_worker_common::{sign_vote_request, GameInfo, GameResult, WORKER_URL};
+use codee::string::{FromToStringCodec, JsonSerdeCodec};
+use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
+use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
+use hon_worker_common::{sign_vote_request, GameInfo, GameResult, GameResultV2, WORKER_URL};
 use ic_agent::Identity;
 use leptos::html::Audio;
-use leptos::{either::Either, prelude::*};
+use leptos::prelude::*;
 use leptos_icons::*;
+use leptos_use::storage::use_local_storage;
 use limits::{CoinState, BET_COIN_ENABLED_STATES, DEFAULT_BET_COIN_STATE};
+use num_traits::cast::ToPrimitive;
 use server_impl::vote_with_cents_on_post;
 use state::canisters::auth_state;
 use utils::try_or_redirect_opt;
@@ -102,7 +106,7 @@ fn HNButton(
 
     view! {
         <button
-            class="w-14 h-14 md:w-16 md:h-16 md:w-18 lg:h-18"
+            class="size-14 md:size-16 lg:size-16 shrink-0"
             class=("grayscale", grayscale)
             disabled=disabled
             on:click=move |_| {bet_direction.set(Some(kind)); place_bet_action.dispatch(kind);}
@@ -182,17 +186,34 @@ fn HNButtonOverlay(
                         let is_logged_in = is_connected.get_untracked();
                         let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
                         let game_conclusion = match res.game_result {
-                            GameResult::Win { .. } => GameConclusion::Win,
-                            GameResult::Loss { .. } => GameConclusion::Loss,
+                            GameResultV2::Win { .. } => GameConclusion::Win,
+                            GameResultV2::Loss { .. } => GameConclusion::Loss,
                         };
                         let win_loss_amount = match res.game_result.clone() {
-                            GameResult::Win { win_amt } => {
-                                TokenBalance::new((win_amt + bet_amount).into(), 0).humanize()
-                            }
-                            GameResult::Loss { lose_amt } => {
-                                TokenBalance::new((lose_amt + 0u64).into(), 0).humanize()
-                            }
+                            GameResultV2::Win {
+                                win_amt,
+                                updated_balance: _,
+                            } => TokenBalance::new((win_amt + bet_amount).into(), 0).humanize(),
+                            GameResultV2::Loss {
+                                lose_amt,
+                                updated_balance: _,
+                            } => TokenBalance::new((lose_amt + 0u64).into(), 0).humanize(),
                         };
+
+                        let (_, set_wallet_balalnce_store, _) =
+                            use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+
+                        set_wallet_balalnce_store.set(match res.game_result.clone() {
+                            GameResultV2::Win {
+                                win_amt: _,
+                                updated_balance,
+                            } => updated_balance.to_u64().unwrap_or(0),
+                            GameResultV2::Loss {
+                                lose_amt: _,
+                                updated_balance,
+                            } => updated_balance.to_u64().unwrap_or(0),
+                        });
+
                         MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
                             is_nsfw: post_mix.is_nsfw,
                             user_id: global.user_id,
@@ -215,7 +236,7 @@ fn HNButtonOverlay(
                         });
                         play_win_sound_and_vibrate(
                             audio_ref,
-                            matches!(res.game_result, GameResult::Win { .. }),
+                            matches!(res.game_result, GameResultV2::Win { .. }),
                         );
                         Some(())
                     }
@@ -295,18 +316,31 @@ fn LostBadge() -> impl IntoView {
 }
 
 #[component]
-fn HNWonLost(game_result: GameResult, vote_amount: u64) -> impl IntoView {
+fn HNWonLost(
+    game_result: GameResult,
+    vote_amount: u64,
+    bet_direction: RwSignal<Option<VoteKind>>,
+    show_tutorial: RwSignal<bool>,
+) -> impl IntoView {
     let won = matches!(game_result, GameResult::Win { .. });
     let creator_reward = (vote_amount * crate::consts::CREATOR_COMMISION_PERCENT) / 100;
-    let message = match game_result {
+    let bet_direction_text = match bet_direction.get() {
+        Some(VoteKind::Hot) => "Hot",
+        Some(VoteKind::Not) => "Not",
+        None => "",
+    };
+    let result_message = match game_result {
         GameResult::Win { win_amt } => format!(
-            "You received {} SATS, {} SATS went to the creator.",
+            "You won {} SATS, by betting on {}! {} SATS will go to the creator.",
             TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
+            bet_direction_text,
             creator_reward
         ),
         GameResult::Loss { lose_amt } => format!(
-            "You lost {} SATS.",
-            TokenBalance::new(lose_amt.into(), 0).humanize()
+            "You voted {} - better luck next time. You lost {} SATS, the creator gets {} SATS",
+            bet_direction_text,
+            TokenBalance::new(lose_amt.into(), 0).humanize(),
+            creator_reward
         ),
     };
     let bet_amount = vote_amount;
@@ -322,27 +356,57 @@ fn HNWonLost(game_result: GameResult, vote_amount: u64) -> impl IntoView {
         }
     };
 
+    let vote_kind_image = match bet_direction.get() {
+        Some(VoteKind::Hot) => "/img/hotornot/hot-circular.svg",
+        Some(VoteKind::Not) => "/img/hotornot/not-circular.svg",
+        None => "/img/hotornot/not-circular.svg",
+    };
+
+    let (onboarding_store, _, _) =
+        use_local_storage::<UserOnboardingStore, JsonSerdeCodec>(USER_ONBOARDING_STORE_KEY);
+    let show_help_ping = RwSignal::new(true);
+
+    Effect::new(move |_| {
+        if onboarding_store.get_untracked().has_seen_hon_bet_help {
+            show_help_ping.set(false);
+        }
+    });
+
+    let (wallet_balance_store, _, _) =
+        use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+
+    let total_balance_text = move || {
+        let balance = wallet_balance_store.get();
+        format!("Total balance: {balance} SATS")
+    };
+
+    let show_ping = move || show_help_ping.get() && !won;
+
     view! {
-        <div class="flex gap-6 justify-center items-center p-4 w-full bg-transparent rounded-xl shadow-sm">
-            <div class="relative shrink-0 drop-shadow-lg">
-                <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin />
-            </div>
-
-            // <!-- Text and Badge Column -->
-            <div class="flex flex-col gap-2 w-full md:w-1/2 lg:w-1/3">
-                // <!-- Result Text -->
-                <div class="p-1 text-sm leading-snug text-white rounded-full">
-                    <p>{message}</p>
-
+        <div class="flex w-full flex-col gap-3 p-4">
+            <div class="flex gap-6 justify-center items-center w-full">
+                <div class="relative shrink-0 drop-shadow-lg">
+                    <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin />
+                    <img src=vote_kind_image class="absolute bottom-0 -right-1 h-7 w-7" />
                 </div>
-                {if won {
-                    Either::Left(view! { <WinBadge /> })
-                } else {
-                    Either::Right(view! { <LostBadge /> })
-                }}
-
+                <div class="flex-1 p-1 text-xs md:text-sm font-semibold leading-snug text-white rounded-full">
+                    {result_message}
+                </div>
+                <button
+                class="relative shrink-0 cursor-pointer"
+                on:click=move |_| {
+                        show_help_ping.set(false);
+                        show_tutorial.set(true)
+                    }>
+                    <img src="/img/hotornot/question-mark.svg" class="h-8 w-8" />
+                    <ShowAny when=move || show_ping()>
+                        <span class="absolute top-1 right-1 ping rounded-full w-2 h-2 bg-[#F14331] text-[#F14331]"></span>
+                    </ShowAny>
+                </button>
             </div>
-
+            <div class=format!("flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-[#158F5C]" } else { "bg-[#F14331]" })>
+                {total_balance_text}
+            </div>
         </div>
     }
 }
@@ -352,6 +416,8 @@ pub fn HNUserParticipation(
     post: PostDetails,
     participation: GameInfo,
     refetch_bet: Trigger,
+    bet_direction: RwSignal<Option<VoteKind>>,
+    show_tutorial: RwSignal<bool>,
 ) -> impl IntoView {
     let (_, _) = (post, refetch_bet); // not sure if i will need these later
     let (vote_amount, game_result) = match participation {
@@ -368,7 +434,7 @@ pub fn HNUserParticipation(
         .expect("We only allow voting with 200 max, so this is alright");
 
     view! {
-        <HNWonLost game_result vote_amount />
+        <HNWonLost game_result vote_amount bet_direction show_tutorial />
         <ShadowBg />
     }
 }
@@ -396,6 +462,7 @@ pub fn HNGameOverlay(
     post: PostDetails,
     prev_post: Option<PostDetails>,
     win_audio_ref: NodeRef<Audio>,
+    show_tutorial: RwSignal<bool>,
 ) -> impl IntoView {
     let bet_direction = RwSignal::new(None::<VoteKind>);
     let coin = RwSignal::new(DEFAULT_BET_COIN_STATE);
@@ -436,6 +503,8 @@ pub fn HNGameOverlay(
                                         post
                                         refetch_bet
                                         participation=participation.clone()
+                                        bet_direction
+                                        show_tutorial
                                     />
                                 }
                                     .into_any()

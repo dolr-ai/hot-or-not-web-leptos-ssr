@@ -90,6 +90,7 @@ indexmap.workspace = true
 yral-identity.workspace = true
 yral-spacetime-bindings = { workspace = true, optional = true }
 fasthash = { workspace = true, optional = true }
+num-traits.workspace = true
 
 # local deps`
 auth = { workspace = true }
@@ -131,7 +132,6 @@ ssr = [
     "dep:redis",
     "yral-canisters-common/rustls-tls",
     "dep:redb",
-
     "axum-extra",
     "dep:rand_chacha",
     "dep:dotenv",
@@ -183,10 +183,7 @@ oauth-hydrate = [
     "component/oauth-hydrate",
     "state/oauth-hydrate",
 ]
-stdb-backend = [
-    "dep:yral-spacetime-bindings",
-    "dep:fasthash"
-]
+stdb-backend = ["dep:yral-spacetime-bindings", "dep:fasthash"]
 redis-kv = [
     "consts/redis-kv",
     "utils/redis-kv",
