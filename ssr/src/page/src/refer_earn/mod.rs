@@ -1,13 +1,13 @@
 use candid::Principal;
-use consts::NEW_USER_SIGNUP_REWARD;
 use gloo::timers::callback::Timeout;
-use hon_worker_common::limits::REFERRAL_REWARD;
 use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_meta::*;
 use leptos_router::components::Redirect;
 use leptos_use::use_window;
+use limits::NEW_USER_SIGNUP_REWARD;
+use limits::REFERRAL_REWARD;
 
 use component::connect::ConnectLogin;
 use component::{back_btn::BackButton, buttons::HighlightedButton, title::TitleText};

@@ -166,6 +166,9 @@ google-cloud-alloydb-v1 = "0.2.0"
 yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adbf4be5cb62a26f2a90032261321bf1df33f08b", default-features = false }
 yral-spacetime-bindings = { git = "https://github.com/dolr-ai/yral-spacetime", branch = "main", version = "0.1.0" }
 fasthash = "0.4.0"
+cargo-husky = { version = "1.5.0", features = ["user-hooks"] }
+num-traits = "0.2.19"
+
 # ===
 # Uncomment the below lines for testing out yral-common changes locally
 # ===
@@ -198,5 +201,5 @@ yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", br
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
 ], branch = "master", version = "0.1.0" }
-cargo-husky = { version = "1.5.0", features = ["user-hooks"] }
-num-traits = "0.2.19"
+limits = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+
