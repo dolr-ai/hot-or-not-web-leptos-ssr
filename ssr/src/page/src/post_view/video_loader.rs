@@ -154,7 +154,6 @@ pub fn VideoViewForQueue(
         // Only attempt to play if not already playing
         if is_current && !is_playing.get_untracked() {
             is_playing.set(true);
-            vid.set_autoplay(true);
 
             if let Some(vid) = container_ref.get() {
                 let promise = vid.play();
