@@ -335,7 +335,7 @@ pub struct MixpanelReferAndEarnPageViewedProps {
 }
 #[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
-pub enum  MixpanelOnboardingPopupType {
+pub enum MixpanelOnboardingPopupType {
     SatsCreditPopup,
 }
 
@@ -347,7 +347,7 @@ pub struct MixpanelOnboardingPopupViewProps {
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
     pub credited_amount: u64,
-    pub popup_type: MixpanelOnboardingPopupType, 
+    pub popup_type: MixpanelOnboardingPopupType,
 }
 #[derive(Serialize)]
 pub struct MixpanelVideoUploadFailureProps {
