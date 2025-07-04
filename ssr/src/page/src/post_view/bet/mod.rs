@@ -3,7 +3,10 @@ mod server_impl;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
 use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
-use hon_worker_common::{sign_vote_request_v3, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV3, WORKER_URL};
+use hon_worker_common::{
+    sign_vote_request_v3, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV3,
+    WORKER_URL,
+};
 use ic_agent::Identity;
 use leptos::html::Audio;
 use leptos::prelude::*;
