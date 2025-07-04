@@ -113,9 +113,17 @@ where
     T: Serialize,
 {
     let track_props = serde_wasm_bindgen::to_value(&props);
-    if let Ok(track_props) = track_props {
-        let _ = track(event_name, track_props);
+    match track_props {
+        Ok(props) => {
+            if let Err(e) = track(event_name, props.into()) {
+                logging::error!("Error tracking Mixpanel client event: {:?}", e);
+            }
+        }
+        Err(e) => {
+            logging::error!("Error serializing Mixpanel event properties: {:?}", e);
+        }
     }
+
     send_event_to_server(event_name, props);
 }
 
