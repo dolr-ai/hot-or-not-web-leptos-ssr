@@ -3,7 +3,7 @@ mod server_impl;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
 use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
-use hon_worker_common::{sign_vote_request_v3, GameInfo, GameResult, GameResultV2, VoteRequestV3, WORKER_URL};
+use hon_worker_common::{sign_vote_request_v3, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV3, WORKER_URL};
 use ic_agent::Identity;
 use leptos::html::Audio;
 use leptos::prelude::*;
@@ -484,10 +484,14 @@ pub fn HNGameOverlay(
         move |cans, _| {
             send_wrap(async move {
                 let post = post.get_value();
+                let game_info_req = GameInfoReqV3 {
+                    publisher_principal: post.poster_principal,
+                    post_id: post.post_id,
+                };
                 let game_info = cans
-                    .fetch_game_with_sats_info(
+                    .fetch_game_with_sats_info_v2(
                         reqwest::Url::parse(WORKER_URL).unwrap(),
-                        (post.canister_id, post.post_id).into(),
+                        game_info_req,
                     )
                     .await?;
                 Ok::<_, ServerFnError>(game_info)
