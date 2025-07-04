@@ -858,7 +858,7 @@ impl MixPanelEvent {
         send_event_to_server("menu_clicked", p);
     }
     pub fn track_profile_clicked(p: MixpanelProfileClickedProps) {
-        send_event_to_server("profile_clicked", p);
+        send_event_to_server("profile_tab_clicked", p);
     }
     pub fn track_delete_account_clicked(p: MixpanelDeleteAccountClickedProps) {
         send_event_to_server("delete_account_clicked", p);
@@ -1008,7 +1008,7 @@ impl MixPanelEvent {
     }
 
     pub fn track_auth_clicked(p: MixpanelAuthClickedProps) {
-        send_event_to_server("auth_clicked", p);
+        send_event_to_server("signup_clicked", p);
     }
 
     pub fn track_auth_screen_viewed(p: MixpanelGlobalProps) {
@@ -1016,7 +1016,7 @@ impl MixPanelEvent {
     }
 
     pub fn track_auth_initiated(p: MixpanelSignupSuccessProps) {
-        send_event_to_server("auth_initiated", p);
+        send_event_to_server("signup_journey_selected", p);
     }
 
     pub fn track_signup_success(p: MixpanelSignupSuccessProps) {

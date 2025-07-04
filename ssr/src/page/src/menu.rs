@@ -311,7 +311,7 @@ pub fn Menu() -> impl IntoView {
                 // add later when NSFW toggle is needed
                 // <NsfwToggle />
                 <MenuItem click_cta_type=MixpanelMenuClickedCTAType::ReferAndEarn href="/refer-earn" text="Refer & Earn" icon=icondata::AiGiftFilled />
-                <MenuItem click_cta_type=MixpanelMenuClickedCTAType::ReferAndEarn href="/leaderboard" text="Leaderboard" icon=icondata::ChTrophy />
+                <MenuItem click_cta_type=MixpanelMenuClickedCTAType::Leaderboard href="/leaderboard" text="Leaderboard" icon=icondata::ChTrophy />
                 <MenuItem
                     click_cta_type=MixpanelMenuClickedCTAType::TalkToTheTeam
                     href=domain_specific_href("TELEGRAM")
