@@ -10,7 +10,10 @@ use futures::FutureExt;
 use gloo::timers::future::TimeoutFuture;
 use utils::{bg_url, mp4_url};
 
-/// Maximum time in milliseconds to wait for video play promise to resolve
+#[cfg(feature = "hydrate")]
+use web_sys::HtmlImageElement;
+
+/// Maximum PostDetails, time in milliseconds to waitay promise to resolve
 const VIDEO_PLAY_TIMEOUT_MS: u64 = 5000;
 
 use super::{overlay::VideoDetailsOverlay, PostDetails};
@@ -84,20 +87,15 @@ pub fn VideoView(
     let view_bg_url = move || uid().map(bg_url);
     let view_video_url = move || uid().map(mp4_url);
 
-    #[cfg(feature = "hydrate")]
-    {
-        use web_sys::HtmlImageElement;
-
-        // Preload the background image
-        // This is a workaround to ensure the image is loaded before the video starts
-        Effect::new(move |_| {
-            if let Some(bg_url) = view_bg_url() {
-                if let Ok(img) = HtmlImageElement::new() {
-                    img.set_src(&bg_url);
-                }
+    // Preload the background image
+    // This is a workaround to ensure the image is loaded before the video starts
+    Effect::new(move |_| {
+        if let Some(bg_url) = view_bg_url() {
+            if let Ok(img) = HtmlImageElement::new() {
+                img.set_src(&bg_url);
             }
-        });
-    }
+        }
+    });
 
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
