@@ -115,7 +115,7 @@ where
     let track_props = serde_wasm_bindgen::to_value(&props);
     match track_props {
         Ok(props) => {
-            if let Err(e) = track(event_name, props.into()) {
+            if let Err(e) = track(event_name, props) {
                 logging::error!("Error tracking Mixpanel client event: {:?}", e);
             }
         }
