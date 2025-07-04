@@ -39,7 +39,8 @@ jobs:
           author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
           branch: cargo-update-yral-common-${{ github.event.client_payload.commit_hash }}
           add-paths: |
-            Cargo.toml
+            **/Cargo.toml
+            **/Cargo.lock
           draft: false
           team-reviewers: |
             rust-full-stack
