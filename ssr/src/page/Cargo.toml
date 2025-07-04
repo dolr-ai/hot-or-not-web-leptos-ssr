@@ -74,6 +74,7 @@ yral-types = { workspace = true }
 yral-canisters-client = { workspace = true }
 yral-canisters-common = { workspace = true }
 hon-worker-common = { workspace = true }
+limits = { workspace = true }
 yral-pump-n-dump-common = { workspace = true }
 ic-certification = { workspace = true }
 ciborium = { workspace = true }
@@ -131,7 +132,6 @@ ssr = [
     "dep:redis",
     "yral-canisters-common/rustls-tls",
     "dep:redb",
-
     "axum-extra",
     "dep:rand_chacha",
     "dep:dotenv",
@@ -183,10 +183,7 @@ oauth-hydrate = [
     "component/oauth-hydrate",
     "state/oauth-hydrate",
 ]
-stdb-backend = [
-    "dep:yral-spacetime-bindings",
-    "dep:fasthash"
-]
+stdb-backend = ["dep:yral-spacetime-bindings", "dep:fasthash"]
 redis-kv = [
     "consts/redis-kv",
     "utils/redis-kv",

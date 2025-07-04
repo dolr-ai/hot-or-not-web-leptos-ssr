@@ -8,7 +8,9 @@ use crate::scrolling_post_view::ScrollingPostView;
 use component::buttons::HighlightedButton;
 use component::overlay::ShadowOverlay;
 use component::spinner::FullScreenSpinner;
-use consts::{UserOnboardingStore, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY};
+use consts::{
+    UserOnboardingStore, MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY,
+};
 use indexmap::IndexSet;
 use leptos_icons::*;
 use priority_queue::DoublePriorityQueue;
@@ -26,8 +28,11 @@ use leptos_router::{
 };
 use leptos_use::{storage::use_local_storage, use_debounce_fn};
 use utils::{
-    mixpanel::mixpanel_events::*, posts::FetchCursor, route::failure_redirect, send_wrap,
-    try_or_redirect, types::PostId,
+    mixpanel::mixpanel_events::*,
+    posts::{FeedPostCtx, FetchCursor},
+    route::failure_redirect,
+    send_wrap, try_or_redirect,
+    types::PostId,
 };
 
 use video_iter::{new_video_fetch_stream, new_video_fetch_stream_auth, FeedResultType};
@@ -47,10 +52,28 @@ pub struct PostViewCtx {
     // as uids only occupy 32 bytes each
     // but ideally this should be cleaned up
     video_queue: RwSignal<IndexSet<PostDetails>>,
+    video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
     current_idx: RwSignal<usize>,
     queue_end: RwSignal<bool>,
     priority_q: RwSignal<DoublePriorityQueue<PostDetails, (usize, Reverse<usize>)>>, // we are using DoublePriorityQueue for GC in the future through pop_min
     batch_cnt: RwSignal<usize>,
+}
+
+impl PostViewCtx {
+    pub fn new() -> Self {
+        let mut video_queue_for_feed = Vec::new();
+        for i in 0..MAX_VIDEO_ELEMENTS_FOR_FEED {
+            video_queue_for_feed.push(FeedPostCtx {
+                key: i,
+                value: RwSignal::new(None),
+            });
+        }
+
+        Self {
+            video_queue_for_feed: RwSignal::new(video_queue_for_feed),
+            ..Default::default()
+        }
+    }
 }
 
 #[derive(Clone, Default)]
@@ -69,6 +92,7 @@ pub fn CommonPostViewWithUpdates(
         video_queue,
         current_idx,
         queue_end,
+        video_queue_for_feed,
         ..
     } = expect_context();
 
@@ -87,11 +111,17 @@ pub fn CommonPostViewWithUpdates(
                 // Safe to do a GC here
                 let rem = 0..(current_idx.get_untracked().saturating_sub(6));
                 current_idx.update(|c| *c -= rem.len());
-                v.drain(rem);
+                v.drain(rem.clone());
+                video_queue_for_feed.update_untracked(|vqf| {
+                    vqf.drain(rem);
+                });
                 return;
             }
             *v = IndexSet::new();
-            v.insert(initial_post);
+            v.insert(initial_post.clone());
+            video_queue_for_feed.update(|vq| {
+                vq[0].value.set(Some(initial_post.clone()));
+            });
         })
     }
 
@@ -133,14 +163,18 @@ pub fn CommonPostViewWithUpdates(
         );
     });
 
+    let hard_refresh_target = RwSignal::new("/".to_string());
+
     view! {
         <ScrollingPostView
             video_queue
+            video_queue_for_feed
             current_idx
             recovering_state
             fetch_next_videos=next_videos
             queue_end
             threshold_trigger_fetch
+            hard_refresh_target
         />
     }
     .into_any()
@@ -155,6 +189,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
         priority_q,
         batch_cnt,
         current_idx,
+        video_queue_for_feed,
         ..
     } = expect_context();
 
@@ -174,11 +209,19 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                 let mut cnt = 0;
                 while let Some((next, _)) = prio_q.pop_max() {
                     video_queue.update(|vq| {
-                        if vq.insert(next) {
+                        if vq.insert(next.clone()) {
+                            let len_vq = vq.len();
+                            if len_vq > MAX_VIDEO_ELEMENTS_FOR_FEED {
+                                return;
+                            }
+
+                            video_queue_for_feed.update(|vqf| {
+                                vqf[len_vq - 1].value.set(Some(next.clone()));
+                            });
                             cnt += 1;
                         }
                     });
-                    if cnt >= 25 {
+                    if cnt >= 10 {
                         break;
                     }
                 }
@@ -222,10 +265,18 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                         if video_queue
                             .with_untracked(|vq| vq.len())
                             .saturating_sub(current_idx.get_untracked())
-                            <= 25
+                            <= 10
                         {
                             video_queue.update(|vq| {
-                                let _ = vq.insert(post_detail);
+                                if vq.insert(post_detail.clone()) {
+                                    let len_vq = vq.len();
+                                    if len_vq > MAX_VIDEO_ELEMENTS_FOR_FEED {
+                                        return;
+                                    }
+                                    video_queue_for_feed.update(|vqf| {
+                                        vqf[len_vq - 1].value.set(Some(post_detail.clone()));
+                                    });
+                                }
                             });
                         } else {
                             priority_q.update(|pq| {
@@ -253,7 +304,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
         })
     });
 
-    view! { <CommonPostViewWithUpdates initial_post fetch_video_action threshold_trigger_fetch=50 /> }.into_any()
+    view! { <CommonPostViewWithUpdates initial_post fetch_video_action threshold_trigger_fetch=20 /> }.into_any()
 }
 
 #[component]

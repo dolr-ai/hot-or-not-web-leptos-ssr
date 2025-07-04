@@ -3,11 +3,10 @@ use candid::Principal;
 use ic_agent::Identity;
 use leptos::html::Input;
 use leptos::prelude::Signal;
-use leptos::{ev, prelude::*};
-use leptos_use::{use_event_listener, use_timeout_fn, UseTimeoutFnReturn};
+use leptos::prelude::*;
+use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use serde_json::json;
 use sns_validation::pbs::sns_pb::SnsInitPayload;
-use wasm_bindgen::JsCast;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProviderKind {
@@ -100,7 +99,7 @@ impl HistoryCtx {
 }
 
 #[cfg(feature = "ga4")]
-use crate::event_streaming::{send_event_ssr_spawn, send_event_warehouse_ssr_spawn};
+use crate::event_streaming::send_event_ssr_spawn;
 use leptos::html::Video;
 use yral_canisters_common::{
     utils::{posts::PostDetails, profile::ProfileDetails},
@@ -156,6 +155,9 @@ impl EventCtx {
     }
 }
 
+// VideoEventData is now exported from video_analytics module
+pub use crate::event_streaming::video_analytics::VideoEventData;
+
 #[derive(Default)]
 pub struct VideoWatched;
 
@@ -165,152 +167,32 @@ impl VideoWatched {
         ctx: EventCtx,
         vid_details: Signal<Option<PostDetails>>,
         container_ref: NodeRef<Video>,
+        muted: RwSignal<bool>,
     ) {
-        #[cfg(all(feature = "hydrate", feature = "ga4"))]
-        {
-            // video_viewed - analytics
-            let (video_watched, set_video_watched) = signal(false);
-            let (full_video_watched, set_full_video_watched) = signal(false);
+        // Delegate to the refactored implementation
+        use crate::event_streaming::video_analytics::VideoWatchedHandler;
+        let handler = VideoWatchedHandler::new();
+        handler.setup_event_tracking(ctx, vid_details, container_ref, muted);
+    }
 
-            let post_for_time = vid_details;
-            let _ = use_event_listener(container_ref, ev::timeupdate, move |evt| {
-                let Some(user) = ctx.user_details() else {
-                    return;
-                };
-                let post_o = post_for_time();
-                let post = post_o.as_ref();
-
-                let Some(target) = evt.target() else {
-                    leptos::logging::error!("No target found for video timeupdate event");
-                    return;
-                };
-                let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
-                let duration = video.duration();
-                let current_time = video.current_time();
-                let nsfw_probability = post.map(|p| p.nsfw_probability);
-                let is_nsfw = nsfw_probability.map(|prob| prob > 0.5);
-                if current_time < 0.95 * duration {
-                    set_full_video_watched.set(false);
-                }
-
-                // send bigquery event when video is watched > 95%
-                if current_time >= 0.95 * duration && !full_video_watched.get() {
-                    send_event_warehouse_ssr_spawn(
-                        "video_duration_watched".to_string(),
-                        json!({
-                            "publisher_user_id": post.map(|p| p.poster_principal),
-                            "user_id": user.details.principal,
-                            "is_loggedIn": ctx.is_connected(),
-                            "display_name": user.details.display_name.clone(),
-                            "canister_id": user.canister_id,
-                            "video_id": post.map(|p| p.uid.clone()),
-                            "video_category": "NA",
-                            "creator_category": "NApublisher_canister_id(",
-                            "hashtag_count": post.map(|p| p.hastags.len()),
-                            "is_NSFW": is_nsfw,
-                            "is_hotorNot": post.map(|p| p.is_hot_or_not()),
-                            "feed_type": "NA",
-                            "view_count": post.map(|p| p.views),
-                            "like_count": post.map(|p| p.likes),
-                            "share_count": 0,
-                            "percentage_watched": 100.0,
-                            "absolute_watched": duration,
-                            "video_duration": duration,
-                            "post_id": post.map(|p| p.post_id),
-                            "publisher_canister_id": post.map(|p| p.canister_id),
-                            "nsfw_probability": nsfw_probability,
-                        })
-                        .to_string(),
-                    );
-
-                    set_full_video_watched.set(true);
-                }
-
-                if video_watched.get() {
-                    return;
-                }
-
-                if current_time >= 3.0 {
-                    let _ = send_event_ssr_spawn(
-                        "video_viewed".to_string(),
-                        json!({
-                            "publisher_user_id": post.map(|p| p.poster_principal),
-                            "user_id": user.details.principal,
-                            "is_loggedIn": ctx.is_connected(),
-                            "display_name": user.details.display_name,
-                            "canister_id": user.canister_id,
-                            "video_id": post.map(|p| p.uid.clone()),
-                            "video_category": "NA",
-                            "creator_category": "NA",
-                            "hashtag_count": post.map(|p| p.hastags.len()),
-                            "is_NSFW": is_nsfw,
-                            "is_hotorNot": post.map(|p| p.is_hot_or_not()),
-                            "feed_type": "NA",
-                            "view_count": post.map(|p| p.views),
-                            "like_count": post.map(|p| p.likes),
-                            "share_count": 0,
-                            "post_id": post.map(|p| p.post_id),
-                            "publisher_canister_id": post.map(|p| p.canister_id),
-                            "nsfw_probability": nsfw_probability,
-                        })
-                        .to_string(),
-                    );
-                    set_video_watched.set(true);
-                }
-            });
-
-            // video duration watched - warehousing
-            let post_for_warehouse = vid_details;
-            let _ = use_event_listener(container_ref, ev::pause, move |evt| {
-                let Some(user) = ctx.user_details() else {
-                    return;
-                };
-                let post_o = post_for_warehouse();
-                let post = post_o.as_ref();
-                let nsfw_probability = post.map(|p| p.nsfw_probability);
-                let is_nsfw = nsfw_probability.map(|prob| prob > 0.5);
-                let Some(target) = evt.target() else {
-                    leptos::logging::error!("No target found for video pause event");
-                    return;
-                };
-                let video = target.unchecked_into::<web_sys::HtmlVideoElement>();
-                let duration = video.duration();
-                let current_time = video.current_time();
-                if current_time < 0.1 {
-                    return;
-                }
-
-                let percentage_watched = (current_time / duration) * 100.0;
-
-                send_event_warehouse_ssr_spawn(
-                    "video_duration_watched".to_string(),
-                    json!({
-                        "publisher_user_id": post.map(|p| p.poster_principal),
-                        "user_id": user.details.principal,
-                        "is_loggedIn": ctx.is_connected(),
-                        "display_name": user.details.display_name.clone(),
-                        "canister_id": user.canister_id,
-                        "video_id": post.map(|p| p.uid.clone()),
-                        "video_category": "NA",
-                        "creator_category": "NA",
-                        "hashtag_count": post.map(|p| p.hastags.len()),
-                        "is_NSFW": is_nsfw,
-                        "is_hotorNot": post.map(|p| p.is_hot_or_not()),
-                        "feed_type": "NA",
-                        "view_count": post.map(|p| p.views),
-                        "like_count": post.map(|p| p.likes),
-                        "share_count": 0,
-                        "percentage_watched": percentage_watched,
-                        "absolute_watched": current_time,
-                        "video_duration": duration,
-                        "post_id": post.map(|p| p.post_id),
-                        "publisher_canister_id": post.map(|p| p.canister_id),
-                        "nsfw_probability": nsfw_probability,
-                    })
-                    .to_string(),
-                );
-            });
-        }
+    pub fn send_event_with_current(
+        &self,
+        ctx: EventCtx,
+        vid_details: Signal<Option<PostDetails>>,
+        container_ref: NodeRef<Video>,
+        muted: RwSignal<bool>,
+        is_current: Signal<bool>,
+    ) {
+        // Delegate to the refactored implementation
+        use crate::event_streaming::video_analytics::VideoWatchedHandler;
+        let handler = VideoWatchedHandler::new();
+        handler.setup_event_tracking_with_current(
+            ctx,
+            vid_details,
+            container_ref,
+            muted,
+            Some(is_current),
+        );
     }
 }
 
@@ -708,6 +590,8 @@ impl LoginMethodSelected {
                     "login_method": match prov {
                         #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
                         ProviderKind::YralAuth => "yral",
+                        #[cfg(not(any(feature = "oauth-ssr", feature = "oauth-hydrate")))]
+                        _ => "local",
                     },
                     "attempt_count": 1,
                 })

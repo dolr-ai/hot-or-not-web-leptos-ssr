@@ -44,14 +44,6 @@ impl WrappedContext {
         let conn = Arc::new(conn);
         let conn_for_ticking = conn.clone();
 
-        tokio::spawn(async move {
-            let Err(err) = conn_for_ticking.run_async().await else {
-                return;
-            };
-
-            log::error!("connection to dedup index broke with an error: {err:#?}");
-        });
-
         // this limit is for lagging mechanism of broadcast channel
         //
         // in our case, the receivers don't any slow work after receiving
@@ -60,7 +52,7 @@ impl WrappedContext {
         // however, in case we end up with more than this limit number of
         // requests at the same time, the receiver would fail with error and
         // will most likely be retried by qstash
-        let (tx, _) = broadcast::channel(65536);
+        let (tx, _) = broadcast::channel(1024);
         let tx_clone = tx.clone();
 
         conn.reducers
@@ -93,8 +85,16 @@ impl WrappedContext {
             })
             .subscribe_to_all_tables();
         println!("subscribing to all stdb tables. this may take a while");
-        let end = trigger_rx.await.unwrap();
 
+        tokio::spawn(async move {
+            let Err(err) = conn_for_ticking.run_async().await else {
+                return;
+            };
+
+            log::error!("connection to dedup index broke with an error: {err:#?}");
+        });
+
+        let end = trigger_rx.await.unwrap();
         println!("subcription took {:?}", end - start);
         Ok(Self { conn, tx })
     }
