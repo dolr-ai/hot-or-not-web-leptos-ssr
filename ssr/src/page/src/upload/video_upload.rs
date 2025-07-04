@@ -53,9 +53,38 @@ pub fn PreVideoUpload(
     let file = RwSignal::new_local(None::<FileWithUrl>);
     let video_ref = NodeRef::<Video>::new();
     let modal_show = RwSignal::new(false);
-
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
+    let file_upload_clicked = Action::new(move |_: &()| {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_video_upload_select_file_clicked(
+                MixpanelVideoUploadFileSelectionInitProps {
+                    user_id: global.user_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
+                },
+            );
+        }
+        async {}
+    });
+
+    let file_selection_success = Action::new(move |_: &()| {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_video_upload_file_selection_success(
+                MixpanelVideoFileSelectionSuccessProps {
+                    user_id: global.user_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
+                    file_type: "video".into(),
+                },
+            );
+        }
+        async {}
+    });
 
     #[cfg(feature = "hydrate")]
     {
@@ -69,6 +98,7 @@ pub fn PreVideoUpload(
                 file.set(Some(FileWithUrl::new(inp_file.into())));
 
                 VideoUploadVideoSelected.send_event(ev_ctx);
+                file_selection_success.dispatch(());
                 Some(())
             });
         });
@@ -164,7 +194,7 @@ pub fn PreVideoUpload(
                 ></video>
             </Show>
             <input
-                on:click=move |_| modal_show.set(true)
+                on:click=move |_| {modal_show.set(true); file_upload_clicked.dispatch(());}
                 id="dropzone-file"
                 node_ref=file_ref
                 type="file"

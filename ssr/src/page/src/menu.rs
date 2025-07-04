@@ -19,6 +19,7 @@ use state::app_state::AppState;
 use state::canisters::auth_state;
 use state::canisters::unauth_canisters;
 use state::content_seed_client::ContentSeedClient;
+use utils::mixpanel::mixpanel_events::*;
 use utils::send_wrap;
 use yral_canisters_common::utils::profile::ProfileDetails;
 
@@ -28,9 +29,24 @@ fn MenuItem(
     #[prop(into)] href: String,
     #[prop(into)] icon: icondata::Icon,
     #[prop(into, optional)] target: String,
+    click_cta_type: MixpanelMenuClickedCTAType,
 ) -> impl IntoView {
+    let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
+    let track_menu_clicked = move || {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_menu_clicked(MixpanelMenuClickedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                cta_type: click_cta_type,
+            });
+        }
+    };
     view! {
-        <a href=href class="grid grid-cols-3 items-center w-full" target=target>
+        <a on:click=move |_| track_menu_clicked.clone()()  href=href class="grid grid-cols-3 items-center w-full" target=target>
             <div class="flex flex-row col-span-2 gap-4 items-center">
                 <Icon attr:class="text-2xl" icon=icon />
                 <span class="text-wrap">{text}</span>
@@ -90,6 +106,19 @@ fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
 
+    let view_profile_clicked = move || {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
+            MixPanelEvent::track_menu_clicked(MixpanelMenuClickedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                cta_type: MixpanelMenuClickedCTAType::ViewProfile,
+            });
+        }
+    };
+
     view! {
         <div class="rounded-full basis-4/12 aspect-square overflow-clip">
             <img class="object-cover w-full h-full" src=user_details.profile_pic_or_random() />
@@ -102,7 +131,7 @@ fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
             <span class="text-xl text-white text-ellipsis line-clamp-1">
                 {user_details.display_name_or_fallback()}
             </span>
-            <a class="text-primary-600 text-md" href="/profile/posts">
+            <a on:click=move |_| view_profile_clicked() class="text-primary-600 text-md" href="/profile/posts">
                 View Profile
             </a>
         </div>
@@ -281,20 +310,21 @@ pub fn Menu() -> impl IntoView {
             <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
                 // add later when NSFW toggle is needed
                 // <NsfwToggle />
-                <MenuItem href="/refer-earn" text="Refer & Earn" icon=icondata::AiGiftFilled />
-                <MenuItem href="/leaderboard" text="Leaderboard" icon=icondata::ChTrophy />
+                <MenuItem click_cta_type=MixpanelMenuClickedCTAType::ReferAndEarn href="/refer-earn" text="Refer & Earn" icon=icondata::AiGiftFilled />
+                <MenuItem click_cta_type=MixpanelMenuClickedCTAType::Leaderboard href="/leaderboard" text="Leaderboard" icon=icondata::ChTrophy />
                 <MenuItem
+                    click_cta_type=MixpanelMenuClickedCTAType::TalkToTheTeam
                     href=domain_specific_href("TELEGRAM")
                     text="Talk to the team"
                     icon=icondata::BiWhatsapp
                     target="_blank"
                 />
-                <MenuItem href="/about-us" text="About Us" icon=icondata::TbInfoCircle />
-                <MenuItem href="/terms-of-service" text="Terms of Service" icon=icondata::TbBook2 />
-                <MenuItem href="/privacy-policy" text="Privacy Policy" icon=icondata::TbLock />
-                <MenuItem href="/settings" text="Settings" icon=icondata::BiCogRegular />
+                <MenuItem click_cta_type=MixpanelMenuClickedCTAType::AboutUs href="/about-us" text="About Us" icon=icondata::TbInfoCircle />
+                <MenuItem click_cta_type=MixpanelMenuClickedCTAType::TermsOfService href="/terms-of-service" text="Terms of Service" icon=icondata::TbBook2 />
+                <MenuItem click_cta_type=MixpanelMenuClickedCTAType::PrivacyPolicy href="/privacy-policy" text="Privacy Policy" icon=icondata::TbLock />
+                <MenuItem click_cta_type=MixpanelMenuClickedCTAType::Settings href="/settings" text="Settings" icon=icondata::BiCogRegular />
                 <Show when=is_connected>
-                    <MenuItem href="/logout" text="Logout" icon=icondata::FiLogOut />
+                    <MenuItem click_cta_type=MixpanelMenuClickedCTAType::LogOut href="/logout" text="Logout" icon=icondata::FiLogOut />
                 </Show>
             // <MenuItem href="/install-app" text="Install App" icon=icondata::TbDownload/>
             </div>

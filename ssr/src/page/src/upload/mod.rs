@@ -5,6 +5,7 @@ use leptos_meta::*;
 use state::canisters::auth_state;
 use utils::{
     event_streaming::events::{VideoUploadInitiated, VideoUploadUploadButtonClicked},
+    mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, MixpanelVideoUploadInitProps},
     web::FileWithUrl,
 };
 
@@ -65,6 +66,17 @@ fn PreUploadView(
         let Some(file_blob) = file_blob.get_untracked() else {
             return;
         };
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_video_upload_init(MixpanelVideoUploadInitProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                caption_added: !description.is_empty(),
+                hashtags_added: !hashtags.is_empty(),
+            });
+        }
         trigger_upload.set(Some(UploadParams {
             file_blob,
             hashtags,

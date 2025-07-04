@@ -19,7 +19,8 @@ use state::{
     app_state::AppState,
     canisters::{auth_state, unauth_canisters},
 };
-use utils::{posts::FeedPostCtx, send_wrap};
+
+use utils::{mixpanel::mixpanel_events::*, posts::FeedPostCtx, send_wrap};
 use yral_canisters_common::utils::{posts::PostDetails, profile::ProfileDetails};
 
 #[derive(Clone)]
@@ -71,6 +72,35 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
             .unwrap_or_else(move |_| "posts".to_string())
     });
 
+    let auth = auth_state();
+    let event_ctx = auth.event_ctx();
+    let view_profile_clicked = move |cta_type: MixpanelProfileClickedCTAType| {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
+            MixPanelEvent::track_profile_clicked(MixpanelProfileClickedProps {
+                user_id: global.user_id.clone(),
+                visitor_id: global.visitor_id.clone(),
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id.clone(),
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                cta_type,
+                is_own_profile: global.canister_id == user_canister.to_text(),
+                publisher_user_id: user_principal.to_string(),
+            });
+        }
+    };
+
+    if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
+        MixPanelEvent::track_profile_page_viewed(MixpanelProfilePageViewedProps {
+            user_id: global.user_id,
+            visitor_id: global.visitor_id,
+            is_logged_in: global.is_logged_in,
+            canister_id: global.canister_id.clone(),
+            is_nsfw_enabled: global.is_nsfw_enabled,
+            is_own_profile: global.canister_id == user_canister.to_text(),
+            publisher_user_id: user_principal.to_string(),
+        });
+    }
+
     let current_tab = Memo::new(move |_| match tab.get().as_str() {
         "posts" => 0,
         "stakes" => 1,
@@ -86,10 +116,10 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
     };
     view! {
         <div class="flex relative flex-row w-11/12 text-xl text-center md:w-9/12 md:text-2xl">
-            <a class=move || tab_class(0) href=move || format!("/profile/{user_principal}/posts")>
+            <a on:click=move |_| view_profile_clicked(MixpanelProfileClickedCTAType::Videos)  class=move || tab_class(0) href=move || format!("/profile/{user_principal}/posts")>
                 <Icon icon=icondata::FiGrid />
             </a>
-            <a class=move || tab_class(1) href=move || format!("/profile/{user_principal}/stakes")>
+            <a on:click=move |_| view_profile_clicked(MixpanelProfileClickedCTAType::GamesPlayed) class=move || tab_class(1) href=move || format!("/profile/{user_principal}/stakes")>
                 <Icon icon=icondata::BsTrophy />
             </a>
         </div>
