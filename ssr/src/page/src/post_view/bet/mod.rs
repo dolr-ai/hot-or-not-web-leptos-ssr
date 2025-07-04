@@ -403,7 +403,7 @@ fn HNWonLost(
                 canister_id: global.canister_id,
                 is_nsfw_enabled: global.is_nsfw_enabled,
                 stake_amount: vote_amount,
-                token_type: StakeType::Sats,
+                stake_type: StakeType::Sats,
                 option_chosen: bet_direction.get().unwrap_or(VoteKind::Hot).into(),
                 conclusion,
             });
