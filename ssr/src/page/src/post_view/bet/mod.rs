@@ -3,7 +3,7 @@ mod server_impl;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
 use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
-use hon_worker_common::{sign_vote_request, GameInfo, GameResult, GameResultV2, WORKER_URL};
+use hon_worker_common::{sign_vote_request_v3, GameInfo, GameResult, GameResultV2, VoteRequestV3, WORKER_URL};
 use ic_agent::Identity;
 use leptos::html::Audio;
 use leptos::prelude::*;
@@ -164,8 +164,16 @@ fn HNButtonOverlay(
             let post_id = post.post_id;
             let bet_amount: u64 = coin.get_untracked().to_cents();
             let bet_direction = *bet_direction;
+            // Create the original VoteRequest for the server function
             let req = hon_worker_common::VoteRequest {
                 post_canister,
+                post_id,
+                vote_amount: bet_amount as u128,
+                direction: bet_direction.into(),
+            };
+            // Create VoteRequestV3 for signing
+            let req_v3 = VoteRequestV3 {
+                publisher_principal: post.poster_principal,
                 post_id,
                 vote_amount: bet_amount as u128,
                 direction: bet_direction.into(),
@@ -177,7 +185,7 @@ fn HNButtonOverlay(
                 let cans = auth.auth_cans(expect_context()).await.ok()?;
                 let identity = cans.identity();
                 let sender = identity.sender().unwrap();
-                let sig = sign_vote_request(identity, req.clone()).ok()?;
+                let sig = sign_vote_request_v3(identity, req_v3).ok()?;
 
                 let res = vote_with_cents_on_post(sender, req, sig, prev_post).await;
                 refetch_bet.notify();
