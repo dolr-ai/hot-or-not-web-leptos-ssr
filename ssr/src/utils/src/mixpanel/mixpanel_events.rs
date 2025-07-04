@@ -1023,7 +1023,7 @@ impl MixPanelEvent {
         send_event_to_server("auth_screen_viewed", p);
     }
 
-    pub fn track_auth_initiated(p: MixpanelSignupSuccessProps) {
+    pub fn track_auth_initiated(p: MixpanelLoginSuccessProps) {
         send_event_to_server("signup_journey_selected", p);
     }
 

@@ -4,7 +4,7 @@ use ic_agent::identity::DelegatedIdentity;
 use leptos::{ev, prelude::*};
 use leptos_use::{storage::use_local_storage, use_event_listener, use_interval_fn, use_window};
 use state::canisters::auth_state;
-use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
+use utils::mixpanel::mixpanel_events::*;
 use yral_canisters_common::yral_auth_login_hint;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
@@ -70,10 +70,20 @@ pub fn YralAuthProvider() -> impl IntoView {
         },
     );
 
-    let on_click = move |provider: LoginProvider| {
+    let on_click = move |provider: LoginProvider, auth_journey: &str| {
         let window = window();
         let origin = window.origin();
 
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
+            MixPanelEvent::track_auth_initiated(MixpanelLoginSuccessProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                auth_journey: auth_journey.to_string(),
+            });
+        }
         // open a target window
         let target = window.open().transpose().and_then(|w| w.ok()).unwrap();
 
@@ -129,7 +139,7 @@ pub fn YralAuthProvider() -> impl IntoView {
                 ev.stop_propagation();
                 signing_in_provider.set(LoginProvider::Google);
                 MixpanelGlobalProps::set_auth_journey("google".to_string());
-                on_click(signing_in_provider.get())
+                on_click(signing_in_provider.get(), "google");
             }
         >
             <img class="size-5" src="/img/common/google.svg" />
@@ -151,7 +161,7 @@ pub fn YralAuthProvider() -> impl IntoView {
                 ev.stop_propagation();
                 signing_in_provider.set(LoginProvider::Apple);
                 MixpanelGlobalProps::set_auth_journey("apple".to_string());
-                on_click(signing_in_provider.get())
+                on_click(signing_in_provider.get(), "apple");
             }
         >
             <img class="size-5" src="/img/common/apple.svg" />

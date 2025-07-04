@@ -171,19 +171,6 @@ pub fn LoginProviders(
 
             let canisters = Canisters::authenticate_with_network(id, referrer).await?;
 
-            let global = MixpanelGlobalProps::try_get(&canisters, false);
-            let auth_journey = MixpanelGlobalProps::get_auth_journey();
-            MixPanelEvent::track_auth_initiated(MixpanelSignupSuccessProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                is_referral: referrer.is_some(),
-                referrer_user_id: referrer.map(|f| f.to_text()),
-                auth_journey,
-            });
-
             if let Err(e) = handle_user_login(canisters.clone(), auth.event_ctx(), referrer).await {
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
