@@ -390,25 +390,30 @@ fn HNWonLost(
         GameResult::Loss { .. } => GameConclusion::Loss,
     };
 
+    let conclusion_cloned = conclusion.clone();
+    let vote_amount_cloned = vote_amount;
+
     let tutorial_action = Action::new(move |_| {
         let video_id = video_uid.clone();
-        let conclusion = conclusion.clone();
-        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
-            MixPanelEvent::track_how_to_play_clicked(MixpanelHowToPlayGameClickedProps {
-                user_id: global.user_id,
-                game_type: MixpanelPostGameType::HotOrNot,
-                video_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                stake_amount: vote_amount,
-                stake_type: StakeType::Sats,
-                option_chosen: bet_direction.get().unwrap_or(VoteKind::Hot).into(),
-                conclusion,
-            });
+        let conclusion = conclusion_cloned.clone();
+        let vote_amount = vote_amount_cloned;
+        async move {
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
+                MixPanelEvent::track_how_to_play_clicked(MixpanelHowToPlayGameClickedProps {
+                    user_id: global.user_id,
+                    game_type: MixpanelPostGameType::HotOrNot,
+                    video_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
+                    stake_amount: vote_amount,
+                    stake_type: StakeType::Sats,
+                    option_chosen: bet_direction.get().unwrap_or(VoteKind::Hot).into(),
+                    conclusion,
+                });
+            }
         }
-        async {}
     });
 
     view! {
