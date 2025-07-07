@@ -933,6 +933,7 @@ impl MixPanelEvent {
     }
     pub fn track_onboarding_popup(p: MixpanelOnboardingPopupViewProps) {
         send_event_to_server("onboarding_popup_shown", p);
+    }
     pub fn track_video_upload_select_file_clicked(p: MixpanelVideoUploadFileSelectionInitProps) {
         send_event_to_server("select_file_clicked", p);
     }
