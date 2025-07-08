@@ -86,4 +86,10 @@ impl AudioState {
         }
         this.muted.update(|m| *m = !*m);
     }
+
+    pub fn reset_to_muted() {
+        let this: Self = expect_context();
+        this.muted.set(true);
+        this.display_flash.with_value(|d| d.stop());
+    }
 }

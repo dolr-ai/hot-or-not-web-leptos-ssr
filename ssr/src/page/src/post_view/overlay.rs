@@ -8,6 +8,7 @@ use gloo::timers::callback::Timeout;
 use leptos::html::Audio;
 use leptos::{prelude::*, task::spawn_local};
 use leptos_icons::*;
+use leptos_router::hooks::use_location;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
 use state::canisters::{auth_state, unauth_canisters};
@@ -174,6 +175,30 @@ pub fn VideoDetailsOverlay(
 
     let post_details_share = post.clone();
     let track_video_id = post.uid.clone();
+    let track_video_id_for_impressions = post.uid.clone();
+    Effect::new(move |_| {
+        // To trigger the effect on initial render
+        let _ = use_location().pathname.get();
+        let track_video_id_for_impressions = track_video_id_for_impressions.clone();
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            if Some(video_url()) == window().location().href().ok() {
+                MixPanelEvent::track_video_impression(MixpanelVideoViewedProps {
+                    user_id: global.user_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
+                    publisher_user_id: post.poster_principal.to_text(),
+                    video_id: track_video_id_for_impressions,
+                    is_nsfw: post.is_nsfw,
+                    game_type: MixpanelPostGameType::HotOrNot,
+                    like_count: post.likes,
+                    view_count: post.views,
+                    is_game_enabled: true,
+                });
+            }
+        }
+    });
 
     let track_video_clicked = move |cta_type: MixpanelVideoClickedCTAType| {
         let video_id = track_video_id.clone();
@@ -226,7 +251,23 @@ pub fn VideoDetailsOverlay(
 
     let post_details_report = post.clone();
     let profile_click_video_id = post.uid.clone();
+    let report_video_click_id = post.uid.clone();
     let click_report = Action::new(move |()| {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_video_reported(MixpanelVideoReportedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                publisher_user_id: post.poster_principal.to_text(),
+                video_id: report_video_click_id.clone(),
+                is_nsfw: post.is_nsfw,
+                is_game_enabled: true,
+                game_type: MixpanelPostGameType::HotOrNot,
+                report_reason: report_option.get_untracked(),
+            });
+        }
         #[cfg(feature = "ga4")]
         {
             use utils::report::send_report_offchain;

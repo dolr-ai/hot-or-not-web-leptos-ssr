@@ -9,6 +9,7 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
+use limits::{CoinState, BET_COIN_ENABLED_STATES, DEFAULT_BET_COIN_STATE};
 use num_traits::cast::ToPrimitive;
 use server_impl::vote_with_cents_on_post;
 use state::canisters::auth_state;
@@ -18,19 +19,12 @@ use yral_canisters_common::utils::{
     posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum CoinState {
-    C10,
-    C20,
-    C50,
-    C100,
-    C200,
+trait CoinStateWrapping {
+    fn wrapping_next(self) -> Self;
+    fn wrapping_prev(self) -> Self;
 }
 
-const BET_COIN_ENABLED_STATES: [CoinState; 2] = [CoinState::C10, CoinState::C20];
-const DEFAULT_BET_COIN_STATE: CoinState = CoinState::C10;
-
-impl CoinState {
+impl CoinStateWrapping for CoinState {
     fn wrapping_next(self) -> Self {
         let current_index = BET_COIN_ENABLED_STATES.iter().position(|&x| x == self);
         match current_index {
@@ -58,9 +52,13 @@ impl CoinState {
     }
 }
 
-impl From<CoinState> for u64 {
-    fn from(coin: CoinState) -> u64 {
-        match coin {
+trait CoinStateToCents {
+    fn to_cents(&self) -> u64;
+}
+
+impl CoinStateToCents for CoinState {
+    fn to_cents(&self) -> u64 {
+        match self {
             CoinState::C10 => 10,
             CoinState::C20 => 20,
             CoinState::C50 => 50,
@@ -164,7 +162,7 @@ fn HNButtonOverlay(
         Action::new(move |bet_direction: &VoteKind| {
             let post_canister = post.canister_id;
             let post_id = post.post_id;
-            let bet_amount: u64 = coin.get_untracked().into();
+            let bet_amount: u64 = coin.get_untracked().to_cents();
             let bet_direction = *bet_direction;
             let req = hon_worker_common::VoteRequest {
                 post_canister,
@@ -177,6 +175,25 @@ fn HNButtonOverlay(
             let post_mix = post.clone();
             send_wrap(async move {
                 let cans = auth.auth_cans(expect_context()).await.ok()?;
+                let is_logged_in = is_connected.get_untracked();
+                let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
+                MixPanelEvent::track_game_clicked(MixpanelGameClickedProps {
+                    is_nsfw: post_mix.is_nsfw,
+                    user_id: global.user_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
+                    game_type: MixpanelPostGameType::HotOrNot,
+                    option_chosen: bet_direction.into(),
+                    publisher_user_id: post_mix.poster_principal.to_text(),
+                    video_id: post_mix.uid.clone(),
+                    view_count: post_mix.views,
+                    like_count: post_mix.likes,
+                    stake_amount: bet_amount,
+                    is_game_enabled: true,
+                    stake_type: StakeType::Sats,
+                });
                 let identity = cans.identity();
                 let sender = identity.sender().unwrap();
                 let sig = sign_vote_request(identity, req.clone()).ok()?;
@@ -323,7 +340,10 @@ fn HNWonLost(
     vote_amount: u64,
     bet_direction: RwSignal<Option<VoteKind>>,
     show_tutorial: RwSignal<bool>,
+    video_uid: String,
 ) -> impl IntoView {
+    let auth = auth_state();
+    let event_ctx = auth.event_ctx();
     let won = matches!(game_result, GameResult::Win { .. });
     let creator_reward = (vote_amount * crate::consts::CREATOR_COMMISION_PERCENT) / 100;
     let bet_direction_text = match bet_direction.get() {
@@ -331,7 +351,7 @@ fn HNWonLost(
         Some(VoteKind::Not) => "Not",
         None => "",
     };
-    let result_message = match game_result {
+    let result_message = match game_result.clone() {
         GameResult::Win { win_amt } => format!(
             "You won {} SATS, by betting on {}! {} SATS will go to the creator.",
             TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
@@ -384,6 +404,37 @@ fn HNWonLost(
 
     let show_ping = move || show_help_ping.get() && !won;
 
+    let conclusion = match game_result {
+        GameResult::Win { .. } => GameConclusion::Win,
+        GameResult::Loss { .. } => GameConclusion::Loss,
+    };
+
+    let conclusion_cloned = conclusion.clone();
+    let vote_amount_cloned = vote_amount;
+
+    let tutorial_action = Action::new(move |_| {
+        let video_id = video_uid.clone();
+        let conclusion = conclusion_cloned.clone();
+        let vote_amount = vote_amount_cloned;
+        async move {
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
+                MixPanelEvent::track_how_to_play_clicked(MixpanelHowToPlayGameClickedProps {
+                    user_id: global.user_id,
+                    game_type: MixpanelPostGameType::HotOrNot,
+                    video_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
+                    stake_amount: vote_amount,
+                    stake_type: StakeType::Sats,
+                    option_chosen: bet_direction.get().unwrap_or(VoteKind::Hot).into(),
+                    conclusion,
+                });
+            }
+        }
+    });
+
     view! {
         <div class="flex w-full flex-col gap-3 p-4">
             <div class="flex gap-6 justify-center items-center w-full">
@@ -398,7 +449,8 @@ fn HNWonLost(
                 class="relative shrink-0 cursor-pointer"
                 on:click=move |_| {
                         show_help_ping.set(false);
-                        show_tutorial.set(true)
+                        show_tutorial.set(true);
+                        tutorial_action.dispatch(());
                     }>
                     <img src="/img/hotornot/question-mark.svg" class="h-8 w-8" />
                     <ShowAny when=move || show_ping()>
@@ -421,7 +473,8 @@ pub fn HNUserParticipation(
     bet_direction: RwSignal<Option<VoteKind>>,
     show_tutorial: RwSignal<bool>,
 ) -> impl IntoView {
-    let (_, _) = (post, refetch_bet); // not sure if i will need these later
+    // let (_, _) = (post, refetch_bet); // not sure if i will need these later
+    let _ = refetch_bet; // not sure if i will need these later
     let (vote_amount, game_result) = match participation {
         GameInfo::CreatorReward(..) => unreachable!(
             "When a game result is accessed, backend should never return creator reward"
@@ -434,9 +487,10 @@ pub fn HNUserParticipation(
     let vote_amount: u64 = vote_amount
         .try_into()
         .expect("We only allow voting with 200 max, so this is alright");
+    let video_uid = post.uid.clone();
 
     view! {
-        <HNWonLost game_result vote_amount bet_direction show_tutorial />
+        <HNWonLost game_result vote_amount bet_direction show_tutorial video_uid />
         <ShadowBg />
     }
 }
