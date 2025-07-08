@@ -151,7 +151,7 @@ mock-referral-history = ["dep:rand_chacha", "k256/arithmetic"]
 mock-history = ["mock-referral-history", "mock-wallet-history"]
 oauth-ssr = ["dep:openidconnect", "dep:jsonwebtoken"]
 oauth-hydrate = []
-neon-postgres = [
+dolr-airdrop = [
     "dep:sea-orm",
     "dep:dolr-airdrop",
 ]
@@ -168,7 +168,7 @@ release-bin = [
     "gob-cloudflare/rustls-tls",
     "redis-kv",
     "backend-admin",
-    "neon-postgres",
+    "dolr-airdrop",
     "oauth-ssr",
     "ga4",
     "qstash",
@@ -187,7 +187,7 @@ local-bin = [
     "ssr",
     "redis-kv",
     "backend-admin",
-    "neon-postgres",
+    "dolr-airdrop",
     "dep:testcontainers",
     "dep:yral-testcontainers",
     "yral-canisters-common/local",

@@ -238,7 +238,7 @@ impl AppStateBuilder {
 
                 HonWorkerJwt(std::sync::Arc::new(jwt))
             },
-            #[cfg(feature = "neon-postgres")]
+            #[cfg(feature = "dolr-airdrop")]
             neon_postgres: {
                 let url = env::var("DOLR_AIRDROP_NEON_DB_URL")
                     .expect("`DOLR_AIRDROP_NEON_DB_URL` is required!");

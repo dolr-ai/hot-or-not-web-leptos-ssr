@@ -8,7 +8,7 @@ pub mod audio_state;
 pub mod canisters;
 pub mod content_seed_client;
 
-#[cfg(feature = "neon-postgres")]
+#[cfg(feature = "dolr-airdrop")]
 pub mod dolr_airdrop;
 
 #[cfg(not(feature = "ssr"))]
@@ -55,7 +55,7 @@ pub mod server {
         pub alloydb: super::alloydb::AlloyDbInstance,
         #[cfg(feature = "alloydb")]
         pub hon_worker_jwt: HonWorkerJwt,
-        #[cfg(feature = "neon-postgres")]
+        #[cfg(feature = "dolr-airdrop")]
         pub neon_postgres: sea_orm::DatabaseConnection,
     }
 }

@@ -183,7 +183,7 @@ oauth-hydrate = [
     "component/oauth-hydrate",
     "state/oauth-hydrate",
 ]
-neon-postgres = [
+dolr-airdrop = [
     "dep:sea-orm",
     "dep:dolr-airdrop",
 ]

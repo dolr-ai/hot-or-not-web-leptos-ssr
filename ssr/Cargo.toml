@@ -129,6 +129,7 @@ hydrate = [
     "yral-canisters-common/js",
 ]
 ssr = [
+    "dolr-airdrop",
     "dep:axum",
     "dep:tokio",
     "dep:tower",
@@ -251,11 +252,11 @@ alloydb = [
     "state/alloydb",
     "page/alloydb",
 ]
-neon-postgres = [
+dolr-airdrop = [
     "dep:sea-orm",
     "dep:dolr-airdrop",
-    "state/neon-postgres",
-    "page/neon-postgres",
+    "state/dolr-airdrop",
+    "page/dolr-airdrop",
 ]
 release-bin = [
     "ssr",
@@ -272,7 +273,7 @@ release-bin = [
     "component/release-bin",
     "page/release-bin",
     "alloydb",
-    "neon-postgres"
+    "dolr-airdrop"
 ]
 release-lib = [
     "hydrate",
@@ -303,7 +304,7 @@ local-bin = [
     "state/local-bin",
     "component/local-bin",
     "page/local-bin",
-    "neon-postgres"
+    "dolr-airdrop"
 ]
 local-lib = [
     "hydrate",
