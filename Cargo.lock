@@ -1154,7 +1154,7 @@ dependencies = [
  "leptos_icons",
  "leptos_meta",
  "leptos_router",
- "limits",
+ "limits 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=update_bet_sizes)",
  "log",
  "once_cell",
  "openidconnect",
@@ -3446,7 +3446,7 @@ source = "git+https://github.com/dolr-ai/yral-common?branch=master#3802f4b3147fe
 dependencies = [
  "candid",
  "ic-agent",
- "limits",
+ "limits 0.1.0 (git+https://github.com/dolr-ai/yral-common?branch=master)",
  "num-bigint",
  "serde",
  "serde_with",
@@ -5090,6 +5090,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "limits"
+version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=update_bet_sizes#a40f2781402bbaad5bf7e6301892e90215050e9b"
+dependencies = [
+ "candid",
+ "num-bigint",
+ "serde",
+ "serde_with",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "linear-map"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5668,7 +5680,7 @@ dependencies = [
  "leptos_icons",
  "leptos_meta",
  "leptos_router",
- "limits",
+ "limits 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=update_bet_sizes)",
  "log",
  "num-traits",
  "once_cell",
@@ -9091,7 +9103,7 @@ dependencies = [
  "leptos_icons",
  "leptos_meta",
  "leptos_router",
- "limits",
+ "limits 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=update_bet_sizes)",
  "log",
  "once_cell",
  "openidconnect",

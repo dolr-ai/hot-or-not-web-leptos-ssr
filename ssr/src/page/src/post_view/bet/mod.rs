@@ -59,6 +59,8 @@ trait CoinStateToCents {
 impl CoinStateToCents for CoinState {
     fn to_cents(&self) -> u64 {
         match self {
+            CoinState::C1 => 1,
+            CoinState::C5 => 5,
             CoinState::C10 => 10,
             CoinState::C20 => 20,
             CoinState::C50 => 50,
@@ -75,6 +77,8 @@ fn CoinStateView(
     #[prop(optional, into)] disabled: Signal<bool>,
 ) -> impl IntoView {
     let icon = Signal::derive(move || match coin() {
+        CoinState::C1 => C1Icon,
+        CoinState::C5 => C5Icon,
         CoinState::C10 => C10Icon,
         CoinState::C20 => C20Icon,
         CoinState::C50 => C50Icon,
