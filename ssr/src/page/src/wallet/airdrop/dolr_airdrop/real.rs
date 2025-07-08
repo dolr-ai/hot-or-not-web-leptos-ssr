@@ -1,6 +1,7 @@
 use anyhow::ensure;
 use candid::Nat;
 use candid::Principal;
+use dolr_airdrop::db::DolrAirdrop;
 use leptos::prelude::*;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use sea_orm::sqlx::types::chrono::Utc;
@@ -26,7 +27,7 @@ async fn is_dolr_airdrop_available(
     user_principal: Principal,
     now: DateTimeUtc,
 ) -> anyhow::Result<Result<(), web_time::Duration>> {
-    let db: sea_orm::DatabaseConnection = expect_context();
+    let DolrAirdrop(db) = expect_context();
 
     let Some(airdrop_data) = dolr_airdrop_data::Entity::find_by_id(user_principal.to_text())
         .lock_shared()
@@ -202,7 +203,7 @@ pub async fn claim_dolr_airdrop(
         ));
     }
 
-    let db: DatabaseConnection = expect_context();
+    let DolrAirdrop(db) = expect_context();
     mark_airdrop_claimed(&db, user_principal, now)
         .await
         .map_err(ServerFnError::new)?;

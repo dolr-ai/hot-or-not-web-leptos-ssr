@@ -1961,7 +1961,7 @@ dependencies = [
 [[package]]
 name = "dolr-airdrop"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#6ff8f85dfbd0348d46620ae4a6621f78f84b2415"
+source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#77166578ea194ed84b02e245f86d38a57184e330"
 dependencies = [
  "async-std",
  "sea-orm",
@@ -9609,7 +9609,7 @@ dependencies = [
 [[package]]
 name = "utils"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#6ff8f85dfbd0348d46620ae4a6621f78f84b2415"
+source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#77166578ea194ed84b02e245f86d38a57184e330"
 dependencies = [
  "sea-orm",
  "sea-orm-migration",

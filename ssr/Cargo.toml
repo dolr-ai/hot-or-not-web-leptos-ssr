@@ -129,7 +129,6 @@ hydrate = [
     "yral-canisters-common/js",
 ]
 ssr = [
-    "dolr-airdrop",
     "dep:axum",
     "dep:tokio",
     "dep:tower",
@@ -304,7 +303,6 @@ local-bin = [
     "state/local-bin",
     "component/local-bin",
     "page/local-bin",
-    "dolr-airdrop"
 ]
 local-lib = [
     "hydrate",

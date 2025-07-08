@@ -59,7 +59,7 @@ pub async fn server_fn_handler(
                 provide_context(app_state.hon_worker_jwt.clone());
             }
             #[cfg(feature = "dolr-airdrop")]
-            provide_context(app_state.neon_postgres.clone());
+            provide_context(app_state.dolr_airdrop_db.clone());
         },
         request,
     )
@@ -94,7 +94,7 @@ pub async fn leptos_routes_handler(state: State<AppState>, req: Request<AxumBody
                 provide_context(app_state.hon_worker_jwt.clone());
             }
             #[cfg(feature = "dolr-airdrop")]
-            provide_context(app_state.neon_postgres.clone());
+            provide_context(app_state.dolr_airdrop_db.clone());
         },
         move || shell(app_state.leptos_options.clone()),
     );
