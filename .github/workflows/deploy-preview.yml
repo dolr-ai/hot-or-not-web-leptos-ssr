@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        project_id: ["proud-boat-76627429"]
+        project_id: ["lively-bush-60037718"]
     steps:
       - name: Get branch name
         id: branch-names
@@ -79,7 +79,7 @@ jobs:
         id: neon-dolr-airdrop
         uses: neondatabase/create-branch-action@v6
         with:
-          project_id: proud-boat-76627429
+          project_id: lively-bush-60037718
           branch_name: ${{ steps.branch-names.outputs.current_branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
