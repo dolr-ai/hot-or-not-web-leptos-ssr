@@ -1,5 +1,4 @@
 use candid::Principal;
-use consts::METADATA_API_BASE;
 use hon_worker_common::GameInfo;
 use hon_worker_common::GameRes;
 use hon_worker_common::GameResult;
@@ -186,7 +185,7 @@ pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView 
 #[component]
 pub fn ProfileSpeculations(user_canister: Principal, user_principal: Principal) -> impl IntoView {
     let _ = user_canister;
-    let metadata_client = MetadataClient::with_base_url(METADATA_API_BASE.clone());
+    let metadata_client = MetadataClient::default();
     let provider = VotesWithSatsProviderV3::new(user_principal, metadata_client);
     let location = use_location();
     let empty_text = if location
