@@ -5092,7 +5092,7 @@ dependencies = [
 [[package]]
 name = "limits"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=update_bet_sizes#f0b726b9dff1c675f19c2ff9a785c80b2afc2ef1"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=update_bet_sizes#87a8b9a675d9897de1d39a4540decf1cbcf7164d"
 dependencies = [
  "candid",
  "num-bigint",
