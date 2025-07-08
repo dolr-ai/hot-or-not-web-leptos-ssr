@@ -94,7 +94,7 @@ google-cloud-alloydb-v1 = { workspace = true, optional = true }
 google-cloud-auth = { version = "0.19.0", optional = true }
 jsonwebtoken = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
-sea-orm-migration = { workspace = true, optional = true }
+dolr-airdrop = { workspace = true, optional = true }
 
 # local deps
 auth = { workspace = true }
@@ -253,7 +253,7 @@ alloydb = [
 ]
 neon-postgres = [
     "dep:sea-orm",
-    "dep:sea-orm-migration",
+    "dep:dolr-airdrop",
     "state/neon-postgres",
     "page/neon-postgres",
 ]

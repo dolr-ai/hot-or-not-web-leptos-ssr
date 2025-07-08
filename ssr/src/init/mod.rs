@@ -240,10 +240,10 @@ impl AppStateBuilder {
             },
             #[cfg(feature = "neon-postgres")]
             neon_postgres: {
-                let url =
-                    env::var("NEON_CONNECTION_URL").expect("`NEON_CONNECTION_URL` is required!");
+                let url = env::var("DOLR_AIRDROP_NEON_DB_URL")
+                    .expect("`DOLR_AIRDROP_NEON_DB_URL` is required!");
 
-                state::neon_postgres::init(&url)
+                state::dolr_airdrop::init(&url)
                     .await
                     .expect("connect to neon postgres")
             },

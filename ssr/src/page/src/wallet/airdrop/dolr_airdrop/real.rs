@@ -6,20 +6,15 @@ use rand::{rngs::SmallRng, Rng, SeedableRng};
 use sea_orm::sqlx::types::chrono::Utc;
 use sea_orm::ActiveValue;
 use sea_orm::DatabaseConnection;
-use sea_orm::EntityTrait;
 use sea_orm::IntoActiveModel;
 use sea_orm::QuerySelect;
 use sea_orm::TransactionTrait;
 use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::Canisters;
 
-use crate::wallet::airdrop::dolr_airdrop::real::entities::dolr_airdrop_data;
 use crate::wallet::airdrop::AirdropStatus;
+use dolr_airdrop::entities::dolr_airdrop_data;
 use sea_orm::prelude::*;
-
-#[allow(clippy::all)]
-#[allow(warnings)]
-mod entities;
 
 const DOLR_AIRDROP_LIMIT_DURATION: web_time::Duration = web_time::Duration::from_secs(24 * 3600);
 /// in e0s

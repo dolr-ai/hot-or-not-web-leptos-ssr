@@ -89,7 +89,7 @@ rand.workspace = true
 indexmap.workspace = true
 yral-identity.workspace = true
 sea-orm = { workspace = true, optional = true }
-sea-orm-migration = { workspace = true, optional = true }
+dolr-airdrop = { workspace = true, optional = true }
 num-traits.workspace = true
 
 # local deps`
@@ -185,7 +185,7 @@ oauth-hydrate = [
 ]
 neon-postgres = [
     "dep:sea-orm",
-    "dep:sea-orm-migration"
+    "dep:dolr-airdrop",
 ]
 redis-kv = [
     "consts/redis-kv",

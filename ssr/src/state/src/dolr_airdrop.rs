@@ -1,5 +1,5 @@
 use anyhow::Context;
-use postgres_migration::{Migrator, MigratorTrait};
+use dolr_airdrop::{Migrator, MigratorTrait};
 use sea_orm::{Database, DatabaseConnection};
 
 pub async fn init(url: &str) -> anyhow::Result<DatabaseConnection> {

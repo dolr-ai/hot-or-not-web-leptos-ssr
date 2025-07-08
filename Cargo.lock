@@ -1348,7 +1348,7 @@ dependencies = [
  "tower-http 0.5.2",
  "tracing",
  "urlencoding",
- "utils",
+ "utils 0.1.0",
  "uts2ts",
  "uuid",
  "wasm-bindgen",
@@ -1956,6 +1956,17 @@ dependencies = [
  "base64 0.21.7",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "dolr-airdrop"
+version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#6ff8f85dfbd0348d46620ae4a6621f78f84b2415"
+dependencies = [
+ "async-std",
+ "sea-orm",
+ "sea-orm-migration",
+ "utils 0.1.0 (git+https://github.com/dolr-ai/yral-neon-postgres?branch=main)",
 ]
 
 [[package]]
@@ -3686,6 +3697,7 @@ dependencies = [
  "console_log",
  "consts",
  "crc32fast",
+ "dolr-airdrop",
  "dotenv",
  "enum_dispatch",
  "futures",
@@ -3727,7 +3739,6 @@ dependencies = [
  "reqwest 0.12.21",
  "rust_decimal",
  "sea-orm",
- "sea-orm-migration",
  "send_wrapper",
  "sentry",
  "sentry-tower",
@@ -3752,7 +3763,7 @@ dependencies = [
  "tracing-log",
  "tracing-subscriber",
  "urlencoding",
- "utils",
+ "utils 0.1.0",
  "uts2ts",
  "uuid",
  "wasm-bindgen",
@@ -5915,6 +5926,7 @@ dependencies = [
  "console_log",
  "consts",
  "crc32fast",
+ "dolr-airdrop",
  "dotenv",
  "futures",
  "getrandom 0.3.3",
@@ -5955,7 +5967,6 @@ dependencies = [
  "reqwest 0.12.21",
  "rust_decimal",
  "sea-orm",
- "sea-orm-migration",
  "send_wrapper",
  "serde",
  "serde-wasm-bindgen",
@@ -5974,7 +5985,7 @@ dependencies = [
  "tower-http 0.5.2",
  "tracing",
  "urlencoding",
- "utils",
+ "utils 0.1.0",
  "uts2ts",
  "uuid",
  "wasm-bindgen",
@@ -6268,15 +6279,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "postgres-migration"
-version = "0.1.0"
-dependencies = [
- "async-std",
- "sea-orm",
- "sea-orm-migration",
-]
-
-[[package]]
 name = "potential_utf"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6453,7 +6455,7 @@ version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
- "heck 0.4.1",
+ "heck 0.5.0",
  "itertools 0.14.0",
  "log",
  "multimap",
@@ -8432,6 +8434,7 @@ dependencies = [
  "console_log",
  "consts",
  "crc32fast",
+ "dolr-airdrop",
  "dotenv",
  "enum_dispatch",
  "futures",
@@ -8460,7 +8463,6 @@ dependencies = [
  "log",
  "once_cell",
  "openidconnect",
- "postgres-migration",
  "priority-queue",
  "prost",
  "rand_chacha 0.3.1",
@@ -8487,7 +8489,7 @@ dependencies = [
  "tower-http 0.5.2",
  "tracing",
  "urlencoding",
- "utils",
+ "utils 0.1.0",
  "uts2ts",
  "uuid",
  "wasm-bindgen",
@@ -9602,6 +9604,16 @@ dependencies = [
  "yral-metadata-types 0.1.0 (git+https://github.com/yral-dapp/yral-metadata?branch=master)",
  "yral-testcontainers",
  "yral-types",
+]
+
+[[package]]
+name = "utils"
+version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#6ff8f85dfbd0348d46620ae4a6621f78f84b2415"
+dependencies = [
+ "sea-orm",
+ "sea-orm-migration",
+ "thiserror 2.0.12",
 ]
 
 [[package]]

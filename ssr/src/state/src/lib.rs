@@ -9,7 +9,7 @@ pub mod canisters;
 pub mod content_seed_client;
 
 #[cfg(feature = "neon-postgres")]
-pub mod neon_postgres;
+pub mod dolr_airdrop;
 
 #[cfg(not(feature = "ssr"))]
 pub mod server {
