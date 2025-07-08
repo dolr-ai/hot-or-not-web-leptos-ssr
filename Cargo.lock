@@ -3442,7 +3442,7 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?rev=62a60dc889d0ebbf6eeaa1659f8aa490d97ef12a#62a60dc889d0ebbf6eeaa1659f8aa490d97ef12a"
+source = "git+https://github.com/dolr-ai/yral-common?rev=666476390b96329ba9af73a4335750700df3c43a#666476390b96329ba9af73a4335750700df3c43a"
 dependencies = [
  "candid",
  "ic-agent",
@@ -5080,7 +5080,7 @@ dependencies = [
 [[package]]
 name = "limits"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?rev=62a60dc889d0ebbf6eeaa1659f8aa490d97ef12a#62a60dc889d0ebbf6eeaa1659f8aa490d97ef12a"
+source = "git+https://github.com/dolr-ai/yral-common?rev=666476390b96329ba9af73a4335750700df3c43a#666476390b96329ba9af73a4335750700df3c43a"
 dependencies = [
  "candid",
  "num-bigint",
@@ -7735,7 +7735,7 @@ checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?rev=62a60dc889d0ebbf6eeaa1659f8aa490d97ef12a#62a60dc889d0ebbf6eeaa1659f8aa490d97ef12a"
+source = "git+https://github.com/dolr-ai/yral-common?rev=666476390b96329ba9af73a4335750700df3c43a#666476390b96329ba9af73a4335750700df3c43a"
 dependencies = [
  "candid",
  "humantime",
@@ -9810,7 +9810,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?rev=62a60dc889d0ebbf6eeaa1659f8aa490d97ef12a#62a60dc889d0ebbf6eeaa1659f8aa490d97ef12a"
+source = "git+https://github.com/dolr-ai/yral-common?rev=666476390b96329ba9af73a4335750700df3c43a#666476390b96329ba9af73a4335750700df3c43a"
 dependencies = [
  "anyhow",
  "candid",
@@ -9830,7 +9830,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?rev=62a60dc889d0ebbf6eeaa1659f8aa490d97ef12a#62a60dc889d0ebbf6eeaa1659f8aa490d97ef12a"
+source = "git+https://github.com/dolr-ai/yral-common?rev=666476390b96329ba9af73a4335750700df3c43a#666476390b96329ba9af73a4335750700df3c43a"
 dependencies = [
  "candid",
  "ciborium",
@@ -9912,7 +9912,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?rev=62a60dc889d0ebbf6eeaa1659f8aa490d97ef12a#62a60dc889d0ebbf6eeaa1659f8aa490d97ef12a"
+source = "git+https://github.com/dolr-ai/yral-common?rev=666476390b96329ba9af73a4335750700df3c43a#666476390b96329ba9af73a4335750700df3c43a"
 dependencies = [
  "candid",
  "ic-agent",
@@ -9946,7 +9946,7 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?rev=62a60dc889d0ebbf6eeaa1659f8aa490d97ef12a#62a60dc889d0ebbf6eeaa1659f8aa490d97ef12a"
+source = "git+https://github.com/dolr-ai/yral-common?rev=666476390b96329ba9af73a4335750700df3c43a#666476390b96329ba9af73a4335750700df3c43a"
 dependencies = [
  "ic-agent",
  "k256",
