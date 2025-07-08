@@ -152,6 +152,12 @@ pub fn LoginProviders(
 
     let processing = RwSignal::new(None);
 
+    let event_ctx = auth.event_ctx();
+
+    if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
+        MixPanelEvent::track_auth_screen_viewed(global);
+    }
+
     let login_action = Action::new(move |id: &DelegatedIdentityWire| {
         // Clone the necessary parts
         let id = id.clone();

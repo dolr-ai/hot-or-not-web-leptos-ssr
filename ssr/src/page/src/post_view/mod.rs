@@ -423,6 +423,22 @@ pub fn PostView() -> impl IntoView {
 
 #[component]
 pub fn OnboardingWelcomePopup(show: RwSignal<bool>, close_action: Action<(), ()>) -> impl IntoView {
+    let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
+    const CREDITED_AMOUNT: u64 = 100;
+    Effect::new(move || {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_onboarding_popup(MixpanelOnboardingPopupViewProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                credited_amount: CREDITED_AMOUNT,
+                popup_type: MixpanelOnboardingPopupType::SatsCreditPopup,
+            });
+        }
+    });
     view! {
         <ShadowOverlay show=show >
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
