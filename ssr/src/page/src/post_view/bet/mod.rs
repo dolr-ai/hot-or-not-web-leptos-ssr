@@ -492,7 +492,7 @@ pub fn HNGameOverlay(
                     post_id: post.post_id,
                 };
                 let game_info = cans
-                    .fetch_game_with_sats_info_v2(
+                    .fetch_game_with_sats_info_v3(
                         reqwest::Url::parse(WORKER_URL).unwrap(),
                         game_info_req,
                     )
