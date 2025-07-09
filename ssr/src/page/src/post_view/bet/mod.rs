@@ -12,7 +12,7 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
-use limits::{CoinState, BET_COIN_ENABLED_STATES, DEFAULT_BET_COIN_STATE};
+use limits::{CoinState, DEFAULT_BET_COIN_STATE};
 use num_traits::cast::ToPrimitive;
 use server_impl::vote_with_cents_on_post;
 use state::canisters::auth_state;
@@ -21,57 +21,6 @@ use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
     posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
 };
-
-trait CoinStateWrapping {
-    fn wrapping_next(self) -> Self;
-    fn wrapping_prev(self) -> Self;
-}
-
-impl CoinStateWrapping for CoinState {
-    fn wrapping_next(self) -> Self {
-        let current_index = BET_COIN_ENABLED_STATES.iter().position(|&x| x == self);
-        match current_index {
-            Some(idx) => {
-                let next_idx = (idx + 1) % BET_COIN_ENABLED_STATES.len();
-                BET_COIN_ENABLED_STATES[next_idx]
-            }
-            None => DEFAULT_BET_COIN_STATE,
-        }
-    }
-
-    fn wrapping_prev(self) -> Self {
-        let current_index = BET_COIN_ENABLED_STATES.iter().position(|&x| x == self);
-        match current_index {
-            Some(idx) => {
-                let prev_idx = if idx == 0 {
-                    BET_COIN_ENABLED_STATES.len() - 1
-                } else {
-                    idx - 1
-                };
-                BET_COIN_ENABLED_STATES[prev_idx]
-            }
-            None => DEFAULT_BET_COIN_STATE,
-        }
-    }
-}
-
-trait CoinStateToCents {
-    fn to_cents(&self) -> u64;
-}
-
-impl CoinStateToCents for CoinState {
-    fn to_cents(&self) -> u64 {
-        match self {
-            CoinState::C1 => 1,
-            CoinState::C5 => 5,
-            CoinState::C10 => 10,
-            CoinState::C20 => 20,
-            CoinState::C50 => 50,
-            CoinState::C100 => 100,
-            CoinState::C200 => 200,
-        }
-    }
-}
 
 #[component]
 fn CoinStateView(
@@ -381,17 +330,7 @@ fn HNWonLost(
         ),
     };
     let bet_amount = vote_amount;
-    let coin = match bet_amount {
-        10 => CoinState::C10,
-        20 => CoinState::C20,
-        50 => CoinState::C50,
-        100 => CoinState::C100,
-        200 => CoinState::C200,
-        amt => {
-            log::warn!("Invalid bet amount: {amt}, using fallback");
-            CoinState::C50
-        }
-    };
+    let coin = CoinState::from_cents(bet_amount);
 
     let vote_kind_image = match bet_direction.get() {
         Some(VoteKind::Hot) => "/img/hotornot/hot-circular.svg",

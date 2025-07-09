@@ -425,7 +425,7 @@ pub fn PostView() -> impl IntoView {
 pub fn OnboardingWelcomePopup(show: RwSignal<bool>, close_action: Action<(), ()>) -> impl IntoView {
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
-    const CREDITED_AMOUNT: u64 = limits::NEW_USER_SIGNUP_REWARD;
+    const CREDITED_AMOUNT: u64 = limits::NEW_USER_SIGNUP_REWARD_SATS;
     Effect::new(move || {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
             MixPanelEvent::track_onboarding_popup(MixpanelOnboardingPopupViewProps {

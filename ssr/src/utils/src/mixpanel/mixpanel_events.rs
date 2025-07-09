@@ -7,7 +7,7 @@ use leptos::task::spawn_local;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_timeout_fn;
 use leptos_use::UseTimeoutFnReturn;
-use limits::REFERRAL_REWARD;
+use limits::REFERRAL_REWARD_SATS;
 use serde::Serialize;
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
@@ -976,7 +976,7 @@ impl MixPanelEvent {
                         is_logged_in: home_props.is_logged_in,
                         canister_id: home_props.canister_id,
                         is_nsfw_enabled: home_props.is_nsfw_enabled,
-                        referral_bonus: REFERRAL_REWARD,
+                        referral_bonus: REFERRAL_REWARD_SATS,
                     });
                 }
                 if props.page == "/menu" {
