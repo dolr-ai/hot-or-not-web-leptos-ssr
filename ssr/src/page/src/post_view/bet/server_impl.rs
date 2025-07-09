@@ -32,7 +32,7 @@ pub async fn vote_with_cents_on_post(
 mod alloydb {
     use super::*;
     use hon_worker_common::WORKER_URL;
-    use hon_worker_common::{HoNGameVoteReq, HotOrNot, VoteRequest, VoteResV2};
+    use hon_worker_common::{HoNGameVoteReqV3, HotOrNot, VoteRequestV3, VoteResV2};
 
     pub async fn vote_with_cents_on_post(
         sender: Principal,
@@ -95,14 +95,22 @@ mod alloydb {
             }
         };
 
-        let worker_req = HoNGameVoteReq {
-            request: req,
+        // Convert VoteRequest to VoteRequestV3
+        let req_v3 = VoteRequestV3 {
+            publisher_principal: post_info.poster_principal,
+            post_id: req.post_id,
+            vote_amount: req.vote_amount,
+            direction: req.direction,
+        };
+
+        let worker_req = HoNGameVoteReqV3 {
+            request: req_v3,
             fetched_sentiment: sentiment,
             signature: sig,
             post_creator: Some(post_info.poster_principal),
         };
 
-        let req_url = format!("{WORKER_URL}vote_v2/{sender}");
+        let req_url = format!("{WORKER_URL}v3/vote/{sender}");
         let client = reqwest::Client::new();
         let jwt = expect_context::<HonWorkerJwt>();
         let res = client
