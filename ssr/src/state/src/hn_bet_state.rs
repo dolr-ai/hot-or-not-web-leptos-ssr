@@ -19,11 +19,14 @@ pub struct HnBetState {
 
 impl HnBetState {
     pub fn init() -> Self {
-        let this = Self {
+        // let this = Self {
+        //     state: RwSignal::new(BTreeMap::new()),
+        // };
+        // provide_context(this.clone());
+        // this
+        Self {
             state: RwSignal::new(BTreeMap::new()),
-        };
-        provide_context(this.clone());
-        this
+        }
     }
 
     pub fn get(principal: Principal, post_id: u64) -> Option<VideoComparisonResult> {
