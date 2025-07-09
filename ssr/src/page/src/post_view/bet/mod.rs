@@ -514,7 +514,7 @@ fn VideoScoreComparison(current_score: f32, previous_score: f32) -> impl IntoVie
     let comparison_color = if is_current_higher {
         "text-green-500"
     } else {
-        "text-red-500"
+        "text-[#F14331]"
     };
 
     let current_score_int = current_score.round() as u32;

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use candid::Principal;
-use leptos::prelude::*;
+use leptos::{logging, prelude::*};
 
 use serde::{Deserialize, Serialize};
 
@@ -30,17 +30,28 @@ impl HnBetState {
     }
 
     pub fn get(principal: Principal, post_id: u64) -> Option<VideoComparisonResult> {
+        logging::log!(
+            "HnBetState::get called for principal: {}, post_id: {}",
+            principal,
+            post_id
+        );
         // let this = use_context::<Self>().unwrap_or_else(HnBetState::init);
         let this = expect_context::<Self>();
         this.state.get().get(&(principal, post_id)).cloned()
     }
 
     pub fn set(principal: Principal, post_id: u64, result: VideoComparisonResult) {
+        logging::log!(
+            "HnBetState::set called for principal: {}, post_id: {}, result: {:?}",
+            principal,
+            post_id,
+            result
+        );
         // let this = use_context::<Self>().unwrap_or_else(HnBetState::init);
         let this = expect_context::<Self>();
-        let mut state = this.state.get();
-        state.insert((principal, post_id), result);
-        this.state.set(state);
+        this.state.update(|state| {
+            state.insert((principal, post_id), result);
+        });
     }
 }
 
