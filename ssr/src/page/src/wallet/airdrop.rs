@@ -5,24 +5,12 @@ use component::{
     overlay::ShadowOverlay,
     spinner::{SpinnerCircle, SpinnerCircleStyled},
 };
-use hon_worker_common::{ClaimRequest, VerifiableClaimRequest, WORKER_URL};
 use leptos::prelude::*;
 use leptos_icons::Icon;
-use limits::{MAX_BET_AMOUNT, SATS_AIRDROP_LIMIT_RANGE};
-use rand::{rngs::SmallRng, Rng, SeedableRng};
-use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use state::{
-    canisters::{auth_state, unauth_canisters},
-    server::HonWorkerJwt,
-};
+use state::canisters::{auth_state, unauth_canisters};
 use utils::event_streaming::events::CentsAdded;
-use yral_canisters_client::individual_user_template::{Result7, SessionType};
-use yral_canisters_common::{
-    utils::token::{load_sats_balance, TokenMetadata, TokenOwner},
-    Canisters,
-};
-use yral_identity::Signature;
+use yral_canisters_common::utils::token::{TokenMetadata, TokenOwner};
 
 pub mod dolr_airdrop;
 pub mod sats_airdrop;

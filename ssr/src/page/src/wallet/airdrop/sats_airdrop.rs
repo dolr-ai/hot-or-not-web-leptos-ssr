@@ -1,5 +1,7 @@
 use candid::Principal;
+use hon_worker_common::ClaimRequest;
 use leptos::prelude::*;
+use yral_identity::Signature;
 
 #[cfg(not(feature = "sats-airdrop"))]
 mod mock;
