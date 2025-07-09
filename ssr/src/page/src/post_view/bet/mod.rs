@@ -461,7 +461,7 @@ fn HNWonLost(
         }
     });
 
-    let bet_res = HnBetState::get(post.canister_id, post.post_id);
+    let bet_res = move || HnBetState::get(post.canister_id, post.post_id);
 
     view! {
         <div class="flex w-full flex-col gap-3 p-4">
@@ -486,7 +486,7 @@ fn HNWonLost(
                     </ShowAny>
                 </button>
             </div>
-            {bet_res.map(|bet_res| {
+            {move || bet_res().map(|bet_res| {
                     view! {
                         <VideoScoreComparison
                             current_score=bet_res.current_video_score
@@ -515,7 +515,7 @@ fn VideoScoreComparison(current_score: f32, previous_score: f32) -> impl IntoVie
     let previous_score_int = previous_score.round() as u32;
 
     view! {
-        <div class="flex justify-center items-center gap-4 text-white text-sm font-semibold">
+        <div class="flex justify-center items-center gap-6 bg-black/40 rounded-lg px-6 py-2 text-white text-sm font-semibold">
             <div class="flex flex-col items-center text-center">
                 <span class="text-lg">{current_score_int}</span>
                 <span class="text-xs">"Current Video Engagement Score"</span>
