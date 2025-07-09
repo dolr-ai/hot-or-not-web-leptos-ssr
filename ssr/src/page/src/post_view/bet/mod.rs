@@ -242,7 +242,7 @@ fn HNButtonOverlay(
                             use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
                         HnBetState::set(
-                            post_mix.poster_principal,
+                            post_mix.canister_id,
                             post_mix.post_id,
                             res.video_comparison_result,
                         );

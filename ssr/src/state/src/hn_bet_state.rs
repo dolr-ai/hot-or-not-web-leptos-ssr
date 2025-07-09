@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use candid::Principal;
-use leptos::{logging, prelude::*};
+use leptos::prelude::*;
 
 use serde::{Deserialize, Serialize};
 
@@ -19,36 +19,22 @@ pub struct HnBetState {
 
 impl HnBetState {
     pub fn init() -> Self {
-        // let this = Self {
-        //     state: RwSignal::new(BTreeMap::new()),
-        // };
-        // provide_context(this.clone());
-        // this
-        Self {
+        let this = Self {
             state: RwSignal::new(BTreeMap::new()),
-        }
+        };
+        provide_context(this.clone());
+        this
     }
 
     pub fn get(principal: Principal, post_id: u64) -> Option<VideoComparisonResult> {
-        logging::log!(
-            "HnBetState::get called for principal: {}, post_id: {}",
-            principal,
-            post_id
-        );
-        // let this = use_context::<Self>().unwrap_or_else(HnBetState::init);
-        let this = expect_context::<Self>();
+        let this = use_context::<Self>().unwrap_or_else(HnBetState::init);
+        // let this = expect_context::<Self>();
         this.state.get().get(&(principal, post_id)).cloned()
     }
 
     pub fn set(principal: Principal, post_id: u64, result: VideoComparisonResult) {
-        logging::log!(
-            "HnBetState::set called for principal: {}, post_id: {}, result: {:?}",
-            principal,
-            post_id,
-            result
-        );
-        // let this = use_context::<Self>().unwrap_or_else(HnBetState::init);
-        let this = expect_context::<Self>();
+        let this = use_context::<Self>().unwrap_or_else(HnBetState::init);
+        // let this = expect_context::<Self>();
         this.state.update(|state| {
             state.insert((principal, post_id), result);
         });
