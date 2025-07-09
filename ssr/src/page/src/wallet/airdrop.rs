@@ -5,148 +5,21 @@ use component::{
     overlay::ShadowOverlay,
     spinner::{SpinnerCircle, SpinnerCircleStyled},
 };
-use hon_worker_common::{ClaimRequest, VerifiableClaimRequest, WORKER_URL};
 use leptos::prelude::*;
 use leptos_icons::Icon;
-use limits::{MAX_BET_AMOUNT, SATS_AIRDROP_LIMIT_RANGE};
-use rand::{rngs::SmallRng, Rng, SeedableRng};
-use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use state::{
-    canisters::{auth_state, unauth_canisters},
-    server::HonWorkerJwt,
-};
+use state::canisters::{auth_state, unauth_canisters};
 use utils::event_streaming::events::CentsAdded;
-use yral_canisters_client::individual_user_template::{Result7, SessionType};
-use yral_canisters_common::{
-    utils::token::{load_sats_balance, TokenMetadata, TokenOwner},
-    Canisters,
-};
-use yral_identity::Signature;
+use yral_canisters_common::utils::token::{TokenMetadata, TokenOwner};
 
 pub mod dolr_airdrop;
+pub mod sats_airdrop;
 
 #[derive(Debug, Serialize, Deserialize, Clone, Copy)]
 pub enum AirdropStatus {
     Available,
     Claimed,
     WaitFor(web_time::Duration),
-}
-
-pub async fn is_airdrop_claimed(user_principal: Principal) -> Result<bool, ServerFnError> {
-    let req_url: Url = WORKER_URL.parse().expect("url to be valid");
-    let req_url = req_url
-        .join(&format!("/last_airdrop_claimed_at/{user_principal}"))
-        .expect("url to be valid");
-
-    let response: Option<u64> = reqwest::get(req_url).await?.json().await?;
-
-    // user has never claimed airdrop before
-    let Some(last_airdrop_timestamp) = response else {
-        return Ok(false);
-    };
-    let last_airdrop_timestamp: u128 = last_airdrop_timestamp.into();
-
-    let now = web_time::SystemTime::now()
-        .duration_since(web_time::UNIX_EPOCH)
-        .unwrap()
-        .as_millis();
-
-    // user is blocked for 24h since last airdrop claim
-    let duration_24h = web_time::Duration::from_secs(24 * 60 * 60).as_millis();
-    let blocked_window = last_airdrop_timestamp..(last_airdrop_timestamp + duration_24h);
-
-    Ok(blocked_window.contains(&now))
-}
-
-pub async fn validate_sats_airdrop_eligibility(
-    user_canister: Principal,
-    user_principal: Principal,
-) -> Result<(), ServerFnError> {
-    let cans = Canisters::default();
-    let user = cans.individual_user(user_canister).await;
-
-    let balance = load_sats_balance(user_principal).await?;
-    if balance.balance.ge(&MAX_BET_AMOUNT.into()) {
-        return Err(ServerFnError::new(
-            "Not allowed to claim: balance >= max bet amount",
-        ));
-    }
-    let sess = user.get_session_type().await?;
-    if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
-        return Err(ServerFnError::new("Not allowed to claim: not logged in"));
-    }
-    let is_airdrop_claimed = is_airdrop_claimed(user_principal).await?;
-    if is_airdrop_claimed {
-        return Err(ServerFnError::new("Not allowed to claim: already claimed"));
-    }
-
-    Ok(())
-}
-
-#[server(input = server_fn::codec::Json)]
-pub async fn is_user_eligible_for_sats_airdrop(
-    user_canister: Principal,
-    user_principal: Principal,
-) -> Result<bool, ServerFnError> {
-    let res = validate_sats_airdrop_eligibility(user_canister, user_principal).await;
-
-    match res {
-        Ok(_) => Ok(true),
-        Err(ServerFnError::ServerError(..)) => Ok(false),
-        Err(err) => Err(err),
-    }
-}
-
-#[server(input = server_fn::codec::Json)]
-pub async fn claim_sats_airdrop(
-    user_canister: Principal,
-    request: ClaimRequest,
-    signature: Signature,
-) -> Result<u64, ServerFnError> {
-    let cans: Canisters<false> = expect_context();
-    let user_principal = request.user_principal;
-    let user = cans.individual_user(user_canister).await;
-    let profile_owner = user.get_profile_details_v_2().await?;
-    if profile_owner.principal_id != user_principal {
-        // ideally should never happen unless its a hacking attempt
-        println!(
-            "Not allowed to claim due to principal mismatch: owner={} != receiver={user_principal}",
-            profile_owner.principal_id,
-        );
-        return Err(ServerFnError::new(
-            "Not allowed to claim: principal mismatch",
-        ));
-    }
-    validate_sats_airdrop_eligibility(user_canister, user_principal).await?;
-    let mut rng = SmallRng::from_os_rng();
-    let amount = rng.random_range(SATS_AIRDROP_LIMIT_RANGE);
-    let worker_req = VerifiableClaimRequest {
-        sender: user_principal,
-        amount,
-        request,
-        signature,
-    };
-    let req_url: Url = WORKER_URL.parse().expect("url to be valid");
-    let req_url = req_url
-        .join(&format!("/claim_airdrop/{user_principal}"))
-        .expect("url to be valid");
-    let client = reqwest::Client::new();
-    let jwt = expect_context::<HonWorkerJwt>();
-    let res = client
-        .post(req_url)
-        .json(&worker_req)
-        .header("Authorization", format!("Bearer {}", jwt.0))
-        .send()
-        .await?;
-    if !res.status().is_success() {
-        return Err(ServerFnError::new(format!(
-            "worker error[{}]: {}",
-            res.status().as_u16(),
-            res.text().await?
-        )));
-    }
-    Ok(amount)
 }
 
 #[component]
