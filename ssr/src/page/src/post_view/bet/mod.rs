@@ -5,7 +5,7 @@ use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spi
 use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
 use hon_worker_common::{
     sign_vote_request_v3, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV3,
-    WORKER_URL,
+    VoteResV2, WORKER_URL,
 };
 use ic_agent::Identity;
 use leptos::html::Audio;
@@ -14,56 +14,20 @@ use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
 use limits::{CoinState, BET_COIN_ENABLED_STATES, DEFAULT_BET_COIN_STATE};
 use num_traits::cast::ToPrimitive;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
 use state::canisters::auth_state;
+use state::hn_bet_state::{HnBetState, VideoComparisonResult};
 use utils::try_or_redirect_opt;
 use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
     posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
 };
 
-#[derive(Deserialize)]
-pub struct VideoComparisonResult {
-    pub hot_or_not: bool,
-    pub current_video_score: f32,
-    pub previous_video_score: f32,
-}
-
-impl VideoComparisonResult {
-    pub fn parse_video_comparison_result(value_str: &str) -> Result<VideoComparisonResult, String> {
-        let trimmed = value_str.trim_matches(|c| c == '(' || c == ')');
-        let parts: Vec<&str> = trimmed.split(',').collect();
-
-        if parts.len() != 3 {
-            return Err(format!(
-                "Expected 3 fields in result, got {}: {:?}",
-                parts.len(),
-                parts
-            ));
-        }
-
-        // Parse each part
-        let hot_or_not = match parts[0] {
-            "t" => true,
-            "f" => false,
-            other => return Err(format!("Unexpected boolean value: {other}")),
-        };
-
-        let current_video_score: f32 = parts[1]
-            .parse()
-            .map_err(|e| format!("Failed to parse current_video_score: {e}"))?;
-
-        let previous_video_score: f32 = parts[2]
-            .parse()
-            .map_err(|e| format!("Failed to parse previous_video_score: {e}"))?;
-
-        Ok(VideoComparisonResult {
-            hot_or_not,
-            current_video_score,
-            previous_video_score,
-        })
-    }
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct VoteAPIRes {
+    pub game_result: VoteResV2,
+    pub video_comparison_result: VideoComparisonResult,
 }
 
 trait CoinStateWrapping {
@@ -259,11 +223,11 @@ fn HNButtonOverlay(
                     Ok(res) => {
                         let is_logged_in = is_connected.get_untracked();
                         let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-                        let game_conclusion = match res.game_result {
+                        let game_conclusion = match res.game_result.game_result {
                             GameResultV2::Win { .. } => GameConclusion::Win,
                             GameResultV2::Loss { .. } => GameConclusion::Loss,
                         };
-                        let win_loss_amount = match res.game_result.clone() {
+                        let win_loss_amount = match res.game_result.game_result.clone() {
                             GameResultV2::Win {
                                 win_amt,
                                 updated_balance: _,
@@ -277,7 +241,13 @@ fn HNButtonOverlay(
                         let (_, set_wallet_balalnce_store, _) =
                             use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
-                        set_wallet_balalnce_store.set(match res.game_result.clone() {
+                        HnBetState::set(
+                            post_mix.poster_principal,
+                            post_mix.post_id,
+                            res.video_comparison_result,
+                        );
+
+                        set_wallet_balalnce_store.set(match res.game_result.game_result.clone() {
                             GameResultV2::Win {
                                 win_amt: _,
                                 updated_balance,
@@ -310,7 +280,7 @@ fn HNButtonOverlay(
                         });
                         play_win_sound_and_vibrate(
                             audio_ref,
-                            matches!(res.game_result, GameResultV2::Win { .. }),
+                            matches!(res.game_result.game_result, GameResultV2::Win { .. }),
                         );
                         Some(())
                     }
@@ -396,6 +366,7 @@ fn HNWonLost(
     bet_direction: RwSignal<Option<VoteKind>>,
     show_tutorial: RwSignal<bool>,
     video_uid: String,
+    post: PostDetails,
 ) -> impl IntoView {
     let auth = auth_state();
     let event_ctx = auth.event_ctx();
@@ -490,6 +461,8 @@ fn HNWonLost(
         }
     });
 
+    let bet_res = HnBetState::get(post.canister_id, post.post_id);
+
     view! {
         <div class="flex w-full flex-col gap-3 p-4">
             <div class="flex gap-6 justify-center items-center w-full">
@@ -513,8 +486,48 @@ fn HNWonLost(
                     </ShowAny>
                 </button>
             </div>
+            {bet_res.map(|bet_res| {
+                    view! {
+                        <VideoScoreComparison
+                            current_score=bet_res.current_video_score
+                            previous_score=bet_res.previous_video_score
+                        />
+                    }})
+            }
             <div class=format!("flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-[#158F5C]" } else { "bg-[#F14331]" })>
                 {total_balance_text}
+            </div>
+        </div>
+    }
+}
+
+#[component]
+fn VideoScoreComparison(current_score: f32, previous_score: f32) -> impl IntoView {
+    let is_current_higher = current_score > previous_score;
+    let comparison_symbol = if is_current_higher { ">" } else { "<" };
+    let comparison_color = if is_current_higher {
+        "text-green-500"
+    } else {
+        "text-red-500"
+    };
+
+    let current_score_int = current_score.round() as u32;
+    let previous_score_int = previous_score.round() as u32;
+
+    view! {
+        <div class="flex justify-center items-center gap-4 text-white text-sm font-semibold">
+            <div class="flex flex-col items-center text-center">
+                <span class="text-lg">{current_score_int}</span>
+                <span class="text-xs">"Current Video Engagement Score"</span>
+            </div>
+
+            <span class=format!("text-lg font-bold {}", comparison_color)>
+                {comparison_symbol}
+            </span>
+
+            <div class="flex flex-col items-center text-center">
+                <span class="text-lg">{previous_score_int}</span>
+                <span class="text-xs">"Previous Video Engagement Score"</span>
             </div>
         </div>
     }
@@ -544,8 +557,10 @@ pub fn HNUserParticipation(
         .expect("We only allow voting with 200 max, so this is alright");
     let video_uid = post.uid.clone();
 
+    let post = post.clone();
+
     view! {
-        <HNWonLost game_result vote_amount bet_direction show_tutorial video_uid />
+        <HNWonLost game_result vote_amount bet_direction show_tutorial video_uid post />
         <ShadowBg />
     }
 }

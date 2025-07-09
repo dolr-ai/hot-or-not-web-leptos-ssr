@@ -1,7 +1,9 @@
 use candid::Principal;
-use hon_worker_common::{VoteRequest, VoteResV2};
+use hon_worker_common::VoteRequest;
 use leptos::prelude::*;
 use yral_identity::Signature;
+
+use crate::post_view::bet::VoteAPIRes;
 
 #[server(endpoint = "vote", input = server_fn::codec::Json)]
 pub async fn vote_with_cents_on_post(
@@ -9,7 +11,7 @@ pub async fn vote_with_cents_on_post(
     req: VoteRequest,
     sig: Signature,
     prev_video_info: Option<(Principal, u64)>,
-) -> Result<VoteResV2, ServerFnError> {
+) -> Result<VoteAPIRes, ServerFnError> {
     #[cfg(feature = "alloydb")]
     use alloydb::vote_with_cents_on_post;
     #[cfg(not(feature = "alloydb"))]
@@ -30,7 +32,7 @@ pub async fn vote_with_cents_on_post(
 
 #[cfg(feature = "alloydb")]
 mod alloydb {
-    use crate::post_view::bet::VideoComparisonResult;
+    use crate::post_view::bet::{VideoComparisonResult, VoteAPIRes};
 
     use super::*;
     use hon_worker_common::WORKER_URL;
@@ -42,7 +44,7 @@ mod alloydb {
         req: VoteRequest,
         sig: Signature,
         prev_video_info: Option<(Principal, u64)>,
-    ) -> Result<VoteResV2, ServerFnError> {
+    ) -> Result<VoteAPIRes, ServerFnError> {
         use state::alloydb::AlloyDbInstance;
         use state::server::HonWorkerJwt;
         use yral_canisters_common::Canisters;
@@ -90,7 +92,7 @@ mod alloydb {
             .pop()
             .expect("hot_or_not_evaluator.compare_videos_hot_or_not_v2 MUST return a value");
 
-        let res = match res.value {
+        let video_comparison_result = match res.value {
             Some(val) => VideoComparisonResult::parse_video_comparison_result(&val)
                 .map_err(ServerFnError::new)?,
             None => {
@@ -101,9 +103,9 @@ mod alloydb {
         };
         logging::log!(
             "hot_or_not_evaluator.compare_videos_hot_or_not_v2 parsed current_video_score: {}, previous_video_score: {}, hot_or_not: {}",
-            res.current_video_score, res.previous_video_score, res.hot_or_not
+            video_comparison_result.current_video_score, video_comparison_result.previous_video_score, video_comparison_result.hot_or_not
         );
-        let sentiment = match res.hot_or_not {
+        let sentiment = match video_comparison_result.hot_or_not {
             true => HotOrNot::Hot,
             false => HotOrNot::Not,
         };
@@ -142,13 +144,17 @@ mod alloydb {
 
         let vote_res: VoteResV2 = res.json().await?;
 
-        Ok(vote_res)
+        Ok(VoteAPIRes {
+            game_result: vote_res,
+            video_comparison_result,
+        })
     }
 }
 
 #[cfg(not(feature = "alloydb"))]
 mod mock {
-    use hon_worker_common::GameResultV2;
+    use hon_worker_common::{GameResultV2, VoteResV2};
+    use state::hn_bet_state::VideoComparisonResult;
 
     use super::*;
 
@@ -158,11 +164,19 @@ mod mock {
         _req: VoteRequest,
         _sig: Signature,
         _prev_video_info: Option<(Principal, u64)>,
-    ) -> Result<VoteResV2, ServerFnError> {
-        Ok(VoteResV2 {
+    ) -> Result<VoteAPIRes, ServerFnError> {
+        let game_result = VoteResV2 {
             game_result: GameResultV2::Win {
                 win_amt: 0u32.into(),
                 updated_balance: 0u32.into(),
+            },
+        };
+        Ok(VoteAPIRes {
+            game_result,
+            video_comparison_result: VideoComparisonResult {
+                hot_or_not: true,
+                current_video_score: 50.0,
+                previous_video_score: 10.0,
             },
         })
     }

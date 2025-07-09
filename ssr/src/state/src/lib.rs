@@ -7,6 +7,7 @@ pub mod app_type;
 pub mod audio_state;
 pub mod canisters;
 pub mod content_seed_client;
+pub mod hn_bet_state;
 
 #[cfg(feature = "stdb-backend")]
 pub mod stdb_dolr_airdrop;
