@@ -33,6 +33,7 @@ mod alloydb {
     use super::*;
     use hon_worker_common::WORKER_URL;
     use hon_worker_common::{HoNGameVoteReqV3, HotOrNot, VoteRequestV3, VoteResV2};
+    use leptos::logging;
 
     pub async fn vote_with_cents_on_post(
         sender: Principal,
@@ -64,7 +65,7 @@ mod alloydb {
         // sanitization is not required here, as get_post_details verifies that the post is valid
         // and exists on cloudflare
         let query = format!(
-            "select hot_or_not_evaluator.compare_videos_hot_or_not('{}', {})",
+            "select hot_or_not_evaluator.compare_videos_hot_or_not('{}', {}) RETURNS hot_or_not_evaluator.video_comparison_result",
             post_info.uid, prev_uid_formatted,
         );
 
@@ -78,6 +79,10 @@ mod alloydb {
             .rows
             .pop()
             .expect("hot_or_not_evaluator.compare_videos_hot_or_not MUST return a row");
+        logging::log!(
+            "hot_or_not_evaluator.compare_videos_hot_or_not result: {:?}",
+            res
+        );
         let res = res
             .values
             .pop()
