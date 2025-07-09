@@ -5955,6 +5955,7 @@ dependencies = [
  "leptos_router",
  "limits",
  "log",
+ "num-bigint",
  "num-traits",
  "once_cell",
  "openidconnect",

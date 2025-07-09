@@ -170,6 +170,7 @@ dolr-airdrop = { git = "https://github.com/dolr-ai/yral-neon-postgres", branch =
 sats-airdrop = { git = "https://github.com/dolr-ai/yral-neon-postgres", branch = "feat/sats-airdrop" }
 cargo-husky = { version = "1.5.0", features = ["user-hooks"] }
 num-traits = "0.2.19"
+num-bigint = "0.4.6"
 
 # ===
 # Uncomment the below lines for testing out yral-common changes locally
