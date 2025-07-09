@@ -14,6 +14,7 @@ use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
 use limits::{CoinState, BET_COIN_ENABLED_STATES, DEFAULT_BET_COIN_STATE};
 use num_traits::cast::ToPrimitive;
+use serde::Deserialize;
 use server_impl::vote_with_cents_on_post;
 use state::canisters::auth_state;
 use utils::try_or_redirect_opt;
@@ -21,6 +22,49 @@ use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
     posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
 };
+
+#[derive(Deserialize)]
+pub struct VideoComparisonResult {
+    pub hot_or_not: bool,
+    pub current_video_score: f32,
+    pub previous_video_score: f32,
+}
+
+impl VideoComparisonResult {
+    pub fn parse_video_comparison_result(value_str: &str) -> Result<VideoComparisonResult, String> {
+        let trimmed = value_str.trim_matches(|c| c == '(' || c == ')');
+        let parts: Vec<&str> = trimmed.split(',').collect();
+
+        if parts.len() != 3 {
+            return Err(format!(
+                "Expected 3 fields in result, got {}: {:?}",
+                parts.len(),
+                parts
+            ));
+        }
+
+        // Parse each part
+        let hot_or_not = match parts[0] {
+            "t" => true,
+            "f" => false,
+            other => return Err(format!("Unexpected boolean value: {other}")),
+        };
+
+        let current_video_score: f32 = parts[1]
+            .parse()
+            .map_err(|e| format!("Failed to parse current_video_score: {e}"))?;
+
+        let previous_video_score: f32 = parts[2]
+            .parse()
+            .map_err(|e| format!("Failed to parse previous_video_score: {e}"))?;
+
+        Ok(VideoComparisonResult {
+            hot_or_not,
+            current_video_score,
+            previous_video_score,
+        })
+    }
+}
 
 trait CoinStateWrapping {
     fn wrapping_next(self) -> Self;

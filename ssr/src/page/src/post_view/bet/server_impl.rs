@@ -30,6 +30,8 @@ pub async fn vote_with_cents_on_post(
 
 #[cfg(feature = "alloydb")]
 mod alloydb {
+    use crate::post_view::bet::VideoComparisonResult;
+
     use super::*;
     use hon_worker_common::WORKER_URL;
     use hon_worker_common::{HoNGameVoteReqV3, HotOrNot, VoteRequestV3, VoteResV2};
@@ -88,16 +90,22 @@ mod alloydb {
             .pop()
             .expect("hot_or_not_evaluator.compare_videos_hot_or_not_v2 MUST return a value");
 
-        let res = res.value.clone().map(|v| v.to_uppercase());
-        let sentiment = match res.as_deref() {
-            Some("TRUE") => HotOrNot::Hot,
-            Some("FALSE") => HotOrNot::Not,
-            None => HotOrNot::Not,
-            _ => {
+        let res = match res.value {
+            Some(val) => VideoComparisonResult::parse_video_comparison_result(&val)
+                .map_err(ServerFnError::new)?,
+            None => {
                 return Err(ServerFnError::new(
-                    "hot_or_not_evaluator.compare_videos_hot_or_not MUST return a boolean",
-                ));
+                    "hot_or_not_evaluator.compare_videos_hot_or_not_v2 returned no value",
+                ))
             }
+        };
+        logging::log!(
+            "hot_or_not_evaluator.compare_videos_hot_or_not_v2 parsed current_video_score: {}, previous_video_score: {}, hot_or_not: {}",
+            res.current_video_score, res.previous_video_score, res.hot_or_not
+        );
+        let sentiment = match res.hot_or_not {
+            true => HotOrNot::Hot,
+            false => HotOrNot::Not,
         };
 
         // Convert VoteRequest to VoteRequestV3
