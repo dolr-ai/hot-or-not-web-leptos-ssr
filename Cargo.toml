@@ -165,7 +165,9 @@ jsonwebtoken = "9.3.1"
 google-cloud-alloydb-v1 = "0.2.0"
 yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adbf4be5cb62a26f2a90032261321bf1df33f08b", default-features = false }
 sea-orm = { version = "1.1.13", features = ["sqlx-postgres", "runtime-tokio-rustls"] }
-dolr-airdrop = { git = "https://github.com/dolr-ai/yral-neon-postgres", branch = "main", version = "0.1.0" }
+# change back to main before merging
+dolr-airdrop = { git = "https://github.com/dolr-ai/yral-neon-postgres", branch = "feat/sats-airdrop" }
+sats-airdrop = { git = "https://github.com/dolr-ai/yral-neon-postgres", branch = "feat/sats-airdrop" }
 cargo-husky = { version = "1.5.0", features = ["user-hooks"] }
 num-traits = "0.2.19"
 

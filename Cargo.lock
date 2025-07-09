@@ -1961,12 +1961,12 @@ dependencies = [
 [[package]]
 name = "dolr-airdrop"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#77166578ea194ed84b02e245f86d38a57184e330"
+source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=feat%2Fsats-airdrop#77048dcc041467e2e3a520468730e4ca583c4356"
 dependencies = [
  "async-std",
  "sea-orm",
  "sea-orm-migration",
- "utils 0.1.0 (git+https://github.com/dolr-ai/yral-neon-postgres?branch=main)",
+ "utils 0.1.0 (git+https://github.com/dolr-ai/yral-neon-postgres?branch=feat%2Fsats-airdrop)",
 ]
 
 [[package]]
@@ -3738,6 +3738,7 @@ dependencies = [
  "regex",
  "reqwest 0.12.21",
  "rust_decimal",
+ "sats-airdrop",
  "sea-orm",
  "send_wrapper",
  "sentry",
@@ -5966,6 +5967,7 @@ dependencies = [
  "regex",
  "reqwest 0.12.21",
  "rust_decimal",
+ "sats-airdrop",
  "sea-orm",
  "send_wrapper",
  "serde",
@@ -7307,6 +7309,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sats-airdrop"
+version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=feat%2Fsats-airdrop#77048dcc041467e2e3a520468730e4ca583c4356"
+dependencies = [
+ "async-std",
+ "sea-orm",
+ "sea-orm-migration",
+ "utils 0.1.0 (git+https://github.com/dolr-ai/yral-neon-postgres?branch=feat%2Fsats-airdrop)",
+]
+
+[[package]]
 name = "schannel"
 version = "0.1.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8471,6 +8484,7 @@ dependencies = [
  "regex",
  "reqwest 0.12.21",
  "rust_decimal",
+ "sats-airdrop",
  "sea-orm",
  "send_wrapper",
  "serde",
@@ -9609,7 +9623,7 @@ dependencies = [
 [[package]]
 name = "utils"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#77166578ea194ed84b02e245f86d38a57184e330"
+source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=feat%2Fsats-airdrop#77048dcc041467e2e3a520468730e4ca583c4356"
 dependencies = [
  "sea-orm",
  "sea-orm-migration",
