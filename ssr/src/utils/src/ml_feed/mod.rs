@@ -165,7 +165,46 @@ pub async fn get_ml_feed_mixed(
     Ok(response.posts)
 }
 
-pub async fn get_ml_feed_mixed_v2(
+pub async fn get_ml_feed_clean_v2(
+    canister_id: Principal,
+    user_id: Principal,
+    num_results: u32,
+    filter_results: Vec<PostDetails>,
+) -> Result<Vec<PostItem>, anyhow::Error> {
+    let client = reqwest::Client::new();
+    let ml_feed_url = ML_FEED_URL.join("api/v2/feed/mixed").unwrap();
+
+    let req = FeedRequestV2 {
+        user_id: user_id.to_string(),
+        canister_id: canister_id.to_string(),
+        filter_results: post_details_to_video_ids(filter_results),
+        num_results,
+    };
+
+    let response = client.post(ml_feed_url).json(&req).send().await?;
+    if !response.status().is_success() {
+        return Err(anyhow::anyhow!(format!(
+            "Error fetching ML feed: {:?}",
+            response.text().await?
+        )));
+    }
+    let response = response.json::<FeedResponseV2>().await?;
+
+    let posts = response
+        .posts
+        .into_iter()
+        .map(|post| PostItem {
+            post_id: post.post_id,
+            canister_id: Principal::from_text(post.canister_id).unwrap(),
+            video_id: post.video_id,
+            nsfw_probability: post.nsfw_probability,
+        })
+        .collect();
+
+    Ok(posts)
+}
+
+pub async fn get_ml_feed_nsfw_v2(
     canister_id: Principal,
     user_id: Principal,
     num_results: u32,

@@ -7,7 +7,10 @@ use leptos::prelude::*;
 use state::canisters::AuthState;
 use utils::{
     host::show_nsfw_content,
-    ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw, get_ml_feed_mixed_v2},
+    ml_feed::{
+        get_ml_feed_clean_v2, get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw,
+        get_ml_feed_nsfw_v2,
+    },
     posts::FetchCursor,
 };
 use yral_canisters_common::{utils::posts::PostDetails, Canisters, Error as CanistersError};
@@ -137,20 +140,32 @@ impl<
     pub async fn fetch_post_uids_ml_feed_chunked(
         &self,
         chunks: usize,
-        _allow_nsfw: bool,
+        allow_nsfw: bool,
         video_queue: Vec<PostDetails>,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
         let user_canister_id = self.user_canister().await?;
         let user_principal_id = self.user_principal().await?;
 
-        let top_posts = get_ml_feed_mixed_v2(
-            user_canister_id,
-            user_principal_id,
-            self.cursor.limit as u32,
-            video_queue.clone(),
-        )
-        .await
-        .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?;
+        let show_nsfw = allow_nsfw || show_nsfw_content();
+        let top_posts = if show_nsfw {
+            get_ml_feed_nsfw_v2(
+                user_canister_id,
+                user_principal_id,
+                self.cursor.limit as u32,
+                video_queue.clone(),
+            )
+            .await
+            .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
+        } else {
+            get_ml_feed_clean_v2(
+                user_canister_id,
+                user_principal_id,
+                self.cursor.limit as u32,
+                video_queue.clone(),
+            )
+            .await
+            .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
+        };
 
         let end = false;
         let chunk_stream = top_posts
