@@ -231,7 +231,7 @@ impl AppStateBuilder {
             qstash: init_qstash_client(),
             #[cfg(feature = "alloydb")]
             alloydb: init_alloydb_client().await,
-            #[cfg(feature = "alloydb")]
+            #[cfg(any(feature = "alloydb", feature = "sats-airdrop"))]
             hon_worker_jwt: {
                 use state::server::HonWorkerJwt;
                 let jwt = env::var("HON_WORKER_JWT").expect("`HON_WORKER_JWT` is required!");

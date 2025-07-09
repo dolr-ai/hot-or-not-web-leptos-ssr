@@ -50,7 +50,7 @@ pub mod server {
         pub qstash: utils::qstash::QStashClient,
         #[cfg(feature = "alloydb")]
         pub alloydb: super::alloydb::AlloyDbInstance,
-        #[cfg(feature = "alloydb")]
+        #[cfg(any(feature = "alloydb", feature = "sats-airdrop"))]
         pub hon_worker_jwt: HonWorkerJwt,
         #[cfg(feature = "dolr-airdrop")]
         pub dolr_airdrop_db: dolr_airdrop::db::DolrAirdrop,

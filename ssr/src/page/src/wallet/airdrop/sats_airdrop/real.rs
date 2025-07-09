@@ -4,7 +4,7 @@ use anyhow::ensure;
 use candid::Principal;
 use hon_worker_common::{ClaimRequest, SatsBalanceUpdateRequestV2, WORKER_URL};
 use leptos::prelude::*;
-use limits::SATS_AIRDROP_LIMIT_RANGE;
+use limits::{MAX_BET_AMOUNT, SATS_AIRDROP_LIMIT_RANGE};
 use num_bigint::BigUint;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use reqwest::Url;
@@ -26,7 +26,7 @@ async fn is_airdrop_claimed(user_principal: Principal, now: DateTimeUtc) -> anyh
         .one(&db)
         .await?
     else {
-        return Ok(true);
+        return Ok(false);
     };
 
     let next_airdrop_available_after =
@@ -103,11 +103,7 @@ pub async fn is_user_eligible_for_sats_airdrop(
 ) -> Result<bool, ServerFnError> {
     let now = Utc::now();
     let balance = load_sats_balance(user_principal).await?.balance;
-    let res = validate_sats_airdrop_eligibility(user_canister, user_principal, now, &balance)
-        .await
-        .inspect_err(|err| {
-            leptos::logging::log!("{err:#?}");
-        });
+    let res = validate_sats_airdrop_eligibility(user_canister, user_principal, now, &balance).await;
 
     match res {
         Ok(_) => Ok(true),
@@ -179,17 +175,16 @@ async fn validate_sats_airdrop_eligibility(
     user_canister: Principal,
     user_principal: Principal,
     now: DateTimeUtc,
-    _balance: &BigUint,
+    balance: &BigUint,
 ) -> Result<(), ServerFnError> {
     let cans = Canisters::default();
     let user = cans.individual_user(user_canister).await;
 
-    // TODO: bring this back before sending out for uat
-    // if balance.ge(&MAX_BET_AMOUNT.into()) {
-    //     return Err(ServerFnError::new(
-    //         "Not allowed to claim: balance >= max bet amount",
-    //     ));
-    // }
+    if balance.ge(&MAX_BET_AMOUNT.into()) {
+        return Err(ServerFnError::new(
+            "Not allowed to claim: balance >= max bet amount",
+        ));
+    }
     let sess = user.get_session_type().await?;
     if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
         return Err(ServerFnError::new("Not allowed to claim: not logged in"));
