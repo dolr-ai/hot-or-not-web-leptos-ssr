@@ -251,8 +251,13 @@ alloydb = [
     "state/alloydb",
     "page/alloydb",
 ]
-dolr-airdrop = [
+neon-postgres = [
     "dep:sea-orm",
+    "state/neon-postgres",
+    "page/neon-postgres",
+]
+dolr-airdrop = [
+    "neon-postgres",
     "dep:dolr-airdrop",
     "state/dolr-airdrop",
     "page/dolr-airdrop",

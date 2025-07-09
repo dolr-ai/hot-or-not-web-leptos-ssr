@@ -183,8 +183,11 @@ oauth-hydrate = [
     "component/oauth-hydrate",
     "state/oauth-hydrate",
 ]
-dolr-airdrop = [
+neon-postgres = [
     "dep:sea-orm",
+]
+dolr-airdrop = [
+    "neon-postgres",
     "dep:dolr-airdrop",
 ]
 redis-kv = [

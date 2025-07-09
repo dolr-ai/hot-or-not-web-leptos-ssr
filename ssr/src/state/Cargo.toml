@@ -151,8 +151,11 @@ mock-referral-history = ["dep:rand_chacha", "k256/arithmetic"]
 mock-history = ["mock-referral-history", "mock-wallet-history"]
 oauth-ssr = ["dep:openidconnect", "dep:jsonwebtoken"]
 oauth-hydrate = []
-dolr-airdrop = [
+neon-postgres = [
     "dep:sea-orm",
+]
+dolr-airdrop = [
+    "neon-postgres",
     "dep:dolr-airdrop",
 ]
 redis-kv = []
