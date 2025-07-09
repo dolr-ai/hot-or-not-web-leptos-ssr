@@ -103,7 +103,11 @@ pub async fn is_user_eligible_for_sats_airdrop(
 ) -> Result<bool, ServerFnError> {
     let now = Utc::now();
     let balance = load_sats_balance(user_principal).await?.balance;
-    let res = validate_sats_airdrop_eligibility(user_canister, user_principal, now, &balance).await;
+    let res = validate_sats_airdrop_eligibility(user_canister, user_principal, now, &balance)
+        .await
+        .inspect_err(|err| {
+            leptos::logging::log!("{err:#?}");
+        });
 
     match res {
         Ok(_) => Ok(true),
@@ -175,16 +179,17 @@ async fn validate_sats_airdrop_eligibility(
     user_canister: Principal,
     user_principal: Principal,
     now: DateTimeUtc,
-    balance: &BigUint,
+    _balance: &BigUint,
 ) -> Result<(), ServerFnError> {
     let cans = Canisters::default();
     let user = cans.individual_user(user_canister).await;
 
-    if balance.ge(&MAX_BET_AMOUNT.into()) {
-        return Err(ServerFnError::new(
-            "Not allowed to claim: balance >= max bet amount",
-        ));
-    }
+    // TODO: bring this back before sending out for uat
+    // if balance.ge(&MAX_BET_AMOUNT.into()) {
+    //     return Err(ServerFnError::new(
+    //         "Not allowed to claim: balance >= max bet amount",
+    //     ));
+    // }
     let sess = user.get_session_type().await?;
     if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
         return Err(ServerFnError::new("Not allowed to claim: not logged in"));
