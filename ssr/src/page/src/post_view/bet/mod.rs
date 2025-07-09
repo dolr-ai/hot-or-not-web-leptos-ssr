@@ -461,8 +461,6 @@ fn HNWonLost(
         }
     });
 
-    let bet_res = move || HnBetState::get(post.canister_id, post.post_id);
-
     view! {
         <div class="flex w-full flex-col gap-3 p-4">
             <div class="flex gap-6 justify-center items-center w-full">
@@ -486,7 +484,7 @@ fn HNWonLost(
                     </ShowAny>
                 </button>
             </div>
-            {move || bet_res().map(|bet_res| {
+            {move || HnBetState::get(post.canister_id, post.post_id).map(|bet_res| {
                     view! {
                         <VideoScoreComparison
                             current_score=bet_res.current_video_score
@@ -494,6 +492,14 @@ fn HNWonLost(
                         />
                     }})
             }
+            <VideoScoreComparison
+                            current_score=1.0
+                            previous_score=5.0
+                        />
+            <VideoScoreComparison
+                            current_score=5.0
+                            previous_score=1.0
+                        />
             <div class=format!("flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-[#158F5C]" } else { "bg-[#F14331]" })>
                 {total_balance_text}
             </div>
