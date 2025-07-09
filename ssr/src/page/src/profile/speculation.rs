@@ -6,8 +6,9 @@ use leptos::html;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::hooks::use_location;
-use yral_canisters_common::cursored_data::vote::VotesWithSatsProvider;
+use yral_canisters_common::cursored_data::vote::VotesWithSatsProviderV3;
 use yral_canisters_common::utils::token::balance::TokenBalance;
+use yral_metadata_client::MetadataClient;
 
 use super::ic::ProfileStream;
 use component::profile_placeholders::NoMoreBetsGraphic;
@@ -184,7 +185,8 @@ pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView 
 #[component]
 pub fn ProfileSpeculations(user_canister: Principal, user_principal: Principal) -> impl IntoView {
     let _ = user_canister;
-    let provider = VotesWithSatsProvider::new(user_principal);
+    let metadata_client = MetadataClient::default();
+    let provider = VotesWithSatsProviderV3::new(user_principal, metadata_client);
     let location = use_location();
     let empty_text = if location
         .pathname
