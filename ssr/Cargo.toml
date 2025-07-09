@@ -286,7 +286,8 @@ release-bin = [
     "component/release-bin",
     "page/release-bin",
     "alloydb",
-    "dolr-airdrop"
+    "dolr-airdrop",
+    "sats-airdrop"
 ]
 release-lib = [
     "hydrate",

@@ -1,5 +1,7 @@
 use candid::Principal;
+use hon_worker_common::ClaimRequest;
 use leptos::prelude::*;
+use yral_identity::Signature;
 
 #[server(input = server_fn::codec::Json)]
 pub async fn claim_sats_airdrop(
