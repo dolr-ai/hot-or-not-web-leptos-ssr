@@ -172,7 +172,7 @@ pub async fn get_ml_feed_clean_v2(
     filter_results: Vec<PostDetails>,
 ) -> Result<Vec<PostItem>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let ml_feed_url = ML_FEED_URL.join("api/v2/feed/mixed").unwrap();
+    let ml_feed_url = ML_FEED_URL.join("api/v2/feed/clean").unwrap();
 
     let req = FeedRequestV2 {
         user_id: user_id.to_string(),
@@ -211,7 +211,7 @@ pub async fn get_ml_feed_nsfw_v2(
     filter_results: Vec<PostDetails>,
 ) -> Result<Vec<PostItem>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let ml_feed_url = ML_FEED_URL.join("api/v2/feed/mixed").unwrap();
+    let ml_feed_url = ML_FEED_URL.join("api/v2/feed/nsfw").unwrap();
 
     let req = FeedRequestV2 {
         user_id: user_id.to_string(),

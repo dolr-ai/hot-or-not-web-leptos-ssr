@@ -272,7 +272,7 @@ release-bin = [
     "component/release-bin",
     "page/release-bin",
     "alloydb",
-    "stdb-backend"
+    "stdb-backend",
 ]
 release-lib = [
     "hydrate",
@@ -303,7 +303,7 @@ local-bin = [
     "state/local-bin",
     "component/local-bin",
     "page/local-bin",
-    "stdb-backend"
+    "stdb-backend",
 ]
 local-lib = [
     "hydrate",
@@ -403,3 +403,5 @@ lib-default-features = false
 #
 # Optional. Defaults to "release".
 lib-profile-release = "wasm-release"
+
+# disable-erase-componenets = true
