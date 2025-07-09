@@ -181,6 +181,22 @@ mock-referral-history = [
 ]
 
 
+local-bin = [
+    "ssr",
+    "redis-kv",
+    "backend-admin",
+    "dep:testcontainers",
+    "dep:yral-testcontainers",
+    "yral-canisters-common/local",
+    "dep:yral-metadata-client",
+    "dep:yral-metadata-types",
+    "dep:rand_chacha",
+    "consts/local-bin",
+    "utils/local-bin",
+    "state/local-bin",
+    "component/local-bin",
+    "page/local-bin",
+]
 mock-history = [
     "mock-referral-history",
     "mock-wallet-history",
@@ -288,23 +304,6 @@ release-lib = [
     "component/release-lib",
     "page/release-lib",
 ]
-local-bin = [
-    "ssr",
-    "redis-kv",
-    "backend-admin",
-    "dep:testcontainers",
-    "dep:yral-testcontainers",
-    "yral-canisters-common/local",
-    "dep:yral-metadata-client",
-    "dep:yral-metadata-types",
-    "dep:rand_chacha",
-    "consts/local-bin",
-    "utils/local-bin",
-    "state/local-bin",
-    "component/local-bin",
-    "page/local-bin",
-    "stdb-backend",
-]
 local-lib = [
     "hydrate",
     "redis-kv",
@@ -404,4 +403,5 @@ lib-default-features = false
 # Optional. Defaults to "release".
 lib-profile-release = "wasm-release"
 
-# disable-erase-componenets = true
+# Uncomment in local to disable erasing components
+# disable-erase-components = true
