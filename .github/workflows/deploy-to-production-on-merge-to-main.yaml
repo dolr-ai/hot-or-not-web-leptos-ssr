@@ -73,7 +73,7 @@ jobs:
           YRAL_AUTH_MIGRATION_ES256_PEM: ${{ secrets.AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM }}
           YRAL_METADATA_NOTIFICATION_API_KEY: ${{ secrets.YRAL_METADATA_NOTIFICATION_API_KEY }}
           STDB_ADMIN_ACCESS_TOKEN: ${{ secrets.STDB_ADMIN_ACCESS_TOKEN }}
-          DOLR_AIRDROP_NEON_DB_URL: ${{ steps.neon-dolr-airdrop.ouputs.db_url_pooled }}
+          DOLR_AIRDROP_NEON_DB_URL: ${{ steps.neon-dolr-airdrop.outputs.db_url_pooled }}
 
       - name: Deploy a docker container to Fly.io
         run: flyctl deploy --remote-only -c fly-prod.toml
