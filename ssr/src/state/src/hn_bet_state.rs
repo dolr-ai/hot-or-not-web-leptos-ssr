@@ -27,12 +27,14 @@ impl HnBetState {
     }
 
     pub fn get(principal: Principal, post_id: u64) -> Option<VideoComparisonResult> {
-        let this = use_context::<Self>().unwrap_or_else(HnBetState::init);
+        // let this = use_context::<Self>().unwrap_or_else(HnBetState::init);
+        let this = expect_context::<Self>();
         this.state.get().get(&(principal, post_id)).cloned()
     }
 
     pub fn set(principal: Principal, post_id: u64, result: VideoComparisonResult) {
-        let this = use_context::<Self>().unwrap_or_else(HnBetState::init);
+        // let this = use_context::<Self>().unwrap_or_else(HnBetState::init);
+        let this = expect_context::<Self>();
         let mut state = this.state.get();
         state.insert((principal, post_id), result);
         this.state.set(state);
