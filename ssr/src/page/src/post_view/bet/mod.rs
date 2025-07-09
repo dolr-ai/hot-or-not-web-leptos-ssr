@@ -521,19 +521,19 @@ fn VideoScoreComparison(current_score: f32, previous_score: f32) -> impl IntoVie
     let previous_score_int = previous_score.round() as u32;
 
     view! {
-        <div class="flex justify-center items-center gap-6 bg-black/40 rounded-lg px-6 py-2 text-white text-sm font-semibold">
-            <div class="flex flex-col items-center text-center">
+        <div class="flex justify-center items-center gap-6 bg-black/40 rounded-full px-6 py-2 text-white text-sm font-semibold">
+            <div class="flex gap-2 items-center text-start">
                 <span class="text-lg">{current_score_int}</span>
-                <span class="text-xs">"Current Video Engagement Score"</span>
+                <span class="text-xs">Current Video<br/>Engagement Score</span>
             </div>
 
             <span class=format!("text-lg font-bold {}", comparison_color)>
                 {comparison_symbol}
             </span>
 
-            <div class="flex flex-col items-center text-center">
+            <div class="flex gap-2 items-center text-start">
                 <span class="text-lg">{previous_score_int}</span>
-                <span class="text-xs">"Previous Video Engagement Score"</span>
+                <span class="text-xs">Previous Video<br/>Engagement Score</span>
             </div>
         </div>
     }
