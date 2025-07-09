@@ -65,7 +65,7 @@ mod alloydb {
         // sanitization is not required here, as get_post_details verifies that the post is valid
         // and exists on cloudflare
         let query = format!(
-            "select hot_or_not_evaluator.compare_videos_hot_or_not('{}', {}) RETURNS hot_or_not_evaluator.video_comparison_result",
+            "select hot_or_not_evaluator.compare_videos_hot_or_not_v2('{}', {})",
             post_info.uid, prev_uid_formatted,
         );
 
@@ -74,19 +74,19 @@ mod alloydb {
         let mut res = res
             .sql_results
             .pop()
-            .expect("hot_or_not_evaluator.compare_videos_hot_or_not MUST return a result");
+            .expect("hot_or_not_evaluator.compare_videos_hot_or_not_v2 MUST return a result");
         let mut res = res
             .rows
             .pop()
-            .expect("hot_or_not_evaluator.compare_videos_hot_or_not MUST return a row");
+            .expect("hot_or_not_evaluator.compare_videos_hot_or_not_v2 MUST return a row");
         logging::log!(
-            "hot_or_not_evaluator.compare_videos_hot_or_not result: {:?}",
+            "hot_or_not_evaluator.compare_videos_hot_or_not_v2 result: {:?}",
             res
         );
         let res = res
             .values
             .pop()
-            .expect("hot_or_not_evaluator.compare_videos_hot_or_not MUST return a value");
+            .expect("hot_or_not_evaluator.compare_videos_hot_or_not_v2 MUST return a value");
 
         let res = res.value.clone().map(|v| v.to_uppercase());
         let sentiment = match res.as_deref() {
