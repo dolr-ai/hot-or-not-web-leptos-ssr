@@ -4,7 +4,7 @@ use anyhow::ensure;
 use candid::Principal;
 use hon_worker_common::{ClaimRequest, SatsBalanceUpdateRequestV2, WORKER_URL};
 use leptos::prelude::*;
-use limits::{MAX_BET_AMOUNT, SATS_AIRDROP_LIMIT_RANGE};
+use limits::SATS_AIRDROP_LIMIT_RANGE;
 use num_bigint::BigUint;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use reqwest::Url;
