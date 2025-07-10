@@ -100,7 +100,7 @@ pub async fn send_airdrop_to_user(
                 subaccount: None,
             },
             fee: None,
-            memo: None,
+            memo: Some(Vec::from("dolr airdrop").into()),
             from_subaccount: None,
             created_at_time: None,
             amount,
