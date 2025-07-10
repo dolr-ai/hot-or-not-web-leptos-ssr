@@ -19,11 +19,11 @@ pub async fn vote_with_cents_on_post(
 
     // validate request against limits
 
-    use limits::MAX_BET_AMOUNT;
-    if req.vote_amount > MAX_BET_AMOUNT as u128 {
+    use limits::MAX_BET_AMOUNT_SATS;
+    if req.vote_amount > MAX_BET_AMOUNT_SATS as u128 {
         return Err(ServerFnError::new(format!(
             "bet amount exceeds maximum allowed: {} > {}",
-            req.vote_amount, MAX_BET_AMOUNT
+            req.vote_amount, MAX_BET_AMOUNT_SATS
         )));
     }
 

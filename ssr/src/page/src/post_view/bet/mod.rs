@@ -12,7 +12,7 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
-use limits::{CoinState, BET_COIN_ENABLED_STATES, DEFAULT_BET_COIN_STATE};
+use limits::{CoinState, DEFAULT_BET_COIN_STATE};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -30,54 +30,6 @@ pub struct VoteAPIRes {
     pub video_comparison_result: VideoComparisonResult,
 }
 
-trait CoinStateWrapping {
-    fn wrapping_next(self) -> Self;
-    fn wrapping_prev(self) -> Self;
-}
-
-impl CoinStateWrapping for CoinState {
-    fn wrapping_next(self) -> Self {
-        let current_index = BET_COIN_ENABLED_STATES.iter().position(|&x| x == self);
-        match current_index {
-            Some(idx) => {
-                let next_idx = (idx + 1) % BET_COIN_ENABLED_STATES.len();
-                BET_COIN_ENABLED_STATES[next_idx]
-            }
-            None => DEFAULT_BET_COIN_STATE,
-        }
-    }
-
-    fn wrapping_prev(self) -> Self {
-        let current_index = BET_COIN_ENABLED_STATES.iter().position(|&x| x == self);
-        match current_index {
-            Some(idx) => {
-                let prev_idx = if idx == 0 {
-                    BET_COIN_ENABLED_STATES.len() - 1
-                } else {
-                    idx - 1
-                };
-                BET_COIN_ENABLED_STATES[prev_idx]
-            }
-            None => DEFAULT_BET_COIN_STATE,
-        }
-    }
-}
-
-trait CoinStateToCents {
-    fn to_cents(&self) -> u64;
-}
-
-impl CoinStateToCents for CoinState {
-    fn to_cents(&self) -> u64 {
-        match self {
-            CoinState::C10 => 10,
-            CoinState::C20 => 20,
-            CoinState::C50 => 50,
-            CoinState::C100 => 100,
-            CoinState::C200 => 200,
-        }
-    }
-}
 
 #[component]
 fn CoinStateView(
@@ -87,6 +39,8 @@ fn CoinStateView(
 ) -> impl IntoView {
     let icon = Signal::derive(move || match coin() {
         CoinState::C10 => C10Icon,
+        CoinState::C1 => C1Icon,
+        CoinState::C5 => C5Icon,
         CoinState::C20 => C20Icon,
         CoinState::C50 => C50Icon,
         CoinState::C100 => C100Icon,
@@ -379,13 +333,13 @@ fn HNWonLost(
     };
     let result_message = match game_result.clone() {
         GameResult::Win { win_amt } => format!(
-            "You won {} SATS, by betting on {}! {} SATS will go to the creator.",
-            TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
+            "You voted \"{}\" - Spot on! You won {} SATS, creator gets {} SATS",
             bet_direction_text,
+            TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
             creator_reward
         ),
         GameResult::Loss { lose_amt } => format!(
-            "You voted {} - better luck next time. You lost {} SATS, the creator gets {} SATS",
+            "You voted \"{}\" - wrong vote. You lost {} SATS, creator gets {} SATS",
             bet_direction_text,
             TokenBalance::new(lose_amt.into(), 0).humanize(),
             creator_reward
@@ -462,8 +416,8 @@ fn HNWonLost(
     });
 
     view! {
-        <div class="flex w-full flex-col gap-3 p-4">
-            <div class="flex gap-6 justify-center items-center w-full">
+        <div class="flex w-full flex-col gap-3 py-2">
+            <div class="flex gap-2 justify-center items-center w-full">
                 <div class="relative shrink-0 drop-shadow-lg">
                     <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin />
                     <img src=vote_kind_image class="absolute bottom-0 -right-1 h-7 w-7" />
