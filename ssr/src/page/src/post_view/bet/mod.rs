@@ -335,20 +335,25 @@ fn HNWonLost(
     } else {
         "".to_string()
     };
-    let result_message = match game_result.clone() {
-        GameResult::Win { win_amt } => format!(
-            "You voted \"{}\" - Spot on!\nYou won {} SATS{}",
-            bet_direction_text,
-            TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
-            creator_reward_text
+    let (line1, line2) = match game_result.clone() {
+        GameResult::Win { win_amt } => (
+            format!("You voted \"{}\" - Spot on!", bet_direction_text),
+            format!(
+                "You won {} SATS{}",
+                TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
+                creator_reward_text
+            ),
         ),
-        GameResult::Loss { lose_amt } => format!(
-            "You voted \"{}\" - wrong vote.\nYou lost {} SATS{}",
-            bet_direction_text,
-            TokenBalance::new(lose_amt.into(), 0).humanize(),
-            creator_reward_text
+        GameResult::Loss { lose_amt } => (
+            format!("You voted \"{}\" - wrong vote.", bet_direction_text),
+            format!(
+                "You lost {} SATS{}",
+                TokenBalance::new(lose_amt.into(), 0).humanize(),
+                creator_reward_text
+            ),
         ),
     };
+
     let bet_amount = vote_amount;
     let coin = match bet_amount {
         1 => CoinState::C1,
@@ -429,7 +434,8 @@ fn HNWonLost(
                     <img src=vote_kind_image class="absolute bottom-0 -right-1 h-7 w-7" />
                 </div>
                 <div class="flex-1 p-1 text-xs md:text-sm font-semibold leading-snug text-white rounded-full">
-                    {result_message}
+                    {line1}<br/>
+                    {line2}
                 </div>
                 <button
                 class="relative shrink-0 cursor-pointer"
