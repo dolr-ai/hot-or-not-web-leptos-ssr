@@ -1318,7 +1318,7 @@ dependencies = [
  "leptos_icons",
  "leptos_meta",
  "leptos_router",
- "limits",
+ "limits 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
  "log",
  "once_cell",
  "openidconnect",
@@ -3653,11 +3653,11 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#d1323ca7ef06fed2eef9d9dc4b33800a7e6b2e98"
+source = "git+https://github.com/dolr-ai/yral-common?rev=04f0e21ddf732fd9088081c84510186daff2da8b#04f0e21ddf732fd9088081c84510186daff2da8b"
 dependencies = [
  "candid",
  "ic-agent",
- "limits",
+ "limits 0.1.0 (git+https://github.com/dolr-ai/yral-common?rev=04f0e21ddf732fd9088081c84510186daff2da8b)",
  "num-bigint",
  "serde",
  "serde_with",
@@ -5318,7 +5318,19 @@ dependencies = [
 [[package]]
 name = "limits"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#d1323ca7ef06fed2eef9d9dc4b33800a7e6b2e98"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#d1323ca7ef06fed2eef9d9dc4b33800a7e6b2e98"
+dependencies = [
+ "candid",
+ "num-bigint",
+ "serde",
+ "serde_with",
+ "thiserror 2.0.12",
+]
+
+[[package]]
+name = "limits"
+version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common?rev=04f0e21ddf732fd9088081c84510186daff2da8b#04f0e21ddf732fd9088081c84510186daff2da8b"
 dependencies = [
  "candid",
  "num-bigint",
@@ -5952,7 +5964,7 @@ dependencies = [
  "leptos_icons",
  "leptos_meta",
  "leptos_router",
- "limits",
+ "limits 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
  "log",
  "num-traits",
  "once_cell",
@@ -8139,7 +8151,7 @@ dependencies = [
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#d1323ca7ef06fed2eef9d9dc4b33800a7e6b2e98"
+source = "git+https://github.com/dolr-ai/yral-common?rev=04f0e21ddf732fd9088081c84510186daff2da8b#04f0e21ddf732fd9088081c84510186daff2da8b"
 dependencies = [
  "candid",
  "humantime",
@@ -9562,7 +9574,7 @@ dependencies = [
  "leptos_icons",
  "leptos_meta",
  "leptos_router",
- "limits",
+ "limits 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
  "log",
  "once_cell",
  "openidconnect",
@@ -10304,7 +10316,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#d1323ca7ef06fed2eef9d9dc4b33800a7e6b2e98"
+source = "git+https://github.com/dolr-ai/yral-common?rev=04f0e21ddf732fd9088081c84510186daff2da8b#04f0e21ddf732fd9088081c84510186daff2da8b"
 dependencies = [
  "anyhow",
  "candid",
@@ -10324,7 +10336,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#d1323ca7ef06fed2eef9d9dc4b33800a7e6b2e98"
+source = "git+https://github.com/dolr-ai/yral-common?rev=04f0e21ddf732fd9088081c84510186daff2da8b#04f0e21ddf732fd9088081c84510186daff2da8b"
 dependencies = [
  "candid",
  "ciborium",
@@ -10406,7 +10418,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#d1323ca7ef06fed2eef9d9dc4b33800a7e6b2e98"
+source = "git+https://github.com/dolr-ai/yral-common?rev=04f0e21ddf732fd9088081c84510186daff2da8b#04f0e21ddf732fd9088081c84510186daff2da8b"
 dependencies = [
  "candid",
  "ic-agent",
@@ -10432,11 +10444,13 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#d1323ca7ef06fed2eef9d9dc4b33800a7e6b2e98"
+source = "git+https://github.com/dolr-ai/yral-common?rev=04f0e21ddf732fd9088081c84510186daff2da8b#04f0e21ddf732fd9088081c84510186daff2da8b"
 dependencies = [
  "ic-agent",
  "k256",
  "serde",
+ "serde_json",
+ "utoipa",
 ]
 
 [[package]]
