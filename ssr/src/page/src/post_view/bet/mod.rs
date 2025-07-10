@@ -489,17 +489,10 @@ fn HNWonLost(
                         <VideoScoreComparison
                             current_score=bet_res.current_video_score
                             previous_score=bet_res.previous_video_score
+                            won
                         />
                     }})
             }
-            <VideoScoreComparison
-                            current_score=1.0
-                            previous_score=5.0
-                        />
-            <VideoScoreComparison
-                            current_score=5.0
-                            previous_score=1.0
-                        />
             <div class=format!("flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-[#158F5C]" } else { "bg-[#F14331]" })>
                 {total_balance_text}
             </div>
@@ -508,10 +501,10 @@ fn HNWonLost(
 }
 
 #[component]
-fn VideoScoreComparison(current_score: f32, previous_score: f32) -> impl IntoView {
+fn VideoScoreComparison(current_score: f32, previous_score: f32, won: bool) -> impl IntoView {
     let is_current_higher = current_score > previous_score;
     let comparison_symbol = if is_current_higher { ">" } else { "<" };
-    let comparison_color = if is_current_higher {
+    let comparison_color = if won {
         "text-green-500"
     } else {
         "text-[#F14331]"
