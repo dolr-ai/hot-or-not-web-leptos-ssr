@@ -1,6 +1,5 @@
 use utils::icon_gen;
 
-
 icon_gen!(
     C1Icon,
     view_box = "0 0 67 67",

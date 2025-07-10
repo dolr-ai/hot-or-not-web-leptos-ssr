@@ -30,7 +30,6 @@ pub struct VoteAPIRes {
     pub video_comparison_result: VideoComparisonResult,
 }
 
-
 #[component]
 fn CoinStateView(
     #[prop(into)] coin: Signal<CoinState>,
