@@ -8,7 +8,7 @@ use component::{
 use hon_worker_common::{ClaimRequest, VerifiableClaimRequest, WORKER_URL};
 use leptos::prelude::*;
 use leptos_icons::Icon;
-use limits::{MAX_BET_AMOUNT, SATS_AIRDROP_LIMIT_RANGE};
+use limits::{MAX_BET_AMOUNT_SATS, SATS_AIRDROP_LIMIT_RANGE_SATS};
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
@@ -67,7 +67,7 @@ pub async fn validate_sats_airdrop_eligibility(
     let user = cans.individual_user(user_canister).await;
 
     let balance = load_sats_balance(user_principal).await?;
-    if balance.balance.ge(&MAX_BET_AMOUNT.into()) {
+    if balance.balance.ge(&MAX_BET_AMOUNT_SATS.into()) {
         return Err(ServerFnError::new(
             "Not allowed to claim: balance >= max bet amount",
         ));
@@ -120,7 +120,7 @@ pub async fn claim_sats_airdrop(
     }
     validate_sats_airdrop_eligibility(user_canister, user_principal).await?;
     let mut rng = SmallRng::from_os_rng();
-    let amount = rng.random_range(SATS_AIRDROP_LIMIT_RANGE);
+    let amount = rng.random_range(SATS_AIRDROP_LIMIT_RANGE_SATS);
     let worker_req = VerifiableClaimRequest {
         sender: user_principal,
         amount,

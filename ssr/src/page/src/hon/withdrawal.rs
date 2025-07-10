@@ -7,7 +7,7 @@ use futures::TryFutureExt;
 use hon_worker_common::{HoNGameWithdrawReq, SatsBalanceInfo};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
-use limits::{MAX_WITHDRAWAL_PER_TXN, MIN_WITHDRAWAL_PER_TXN};
+use limits::{MAX_WITHDRAWAL_PER_TXN_SATS, MIN_WITHDRAWAL_PER_TXN_SATS};
 use log;
 use state::{canisters::auth_state, server::HonWorkerJwt};
 use utils::send_wrap;
@@ -55,16 +55,18 @@ async fn withdraw_sats_for_ckbtc(
     // TODO: yral-auth-v2, we can do this verification with a JWT
     let cans: Canisters<false> = expect_context();
 
-    if req.amount < MIN_WITHDRAWAL_PER_TXN as u128 || req.amount > MAX_WITHDRAWAL_PER_TXN as u128 {
+    if req.amount < MIN_WITHDRAWAL_PER_TXN_SATS as u128
+        || req.amount > MAX_WITHDRAWAL_PER_TXN_SATS as u128
+    {
         log::error!(
             "Invalid withdraw amount, min amount: {}, max amount: {}, amount: {}",
-            MIN_WITHDRAWAL_PER_TXN,
-            MAX_WITHDRAWAL_PER_TXN,
+            MIN_WITHDRAWAL_PER_TXN_SATS,
+            MAX_WITHDRAWAL_PER_TXN_SATS,
             req.amount
         );
         return Err(ServerFnError::new(format!(
             "Invalid withdraw amount, min amount: {}, max amount: {}, amount: {}",
-            MIN_WITHDRAWAL_PER_TXN, MAX_WITHDRAWAL_PER_TXN, req.amount
+            MIN_WITHDRAWAL_PER_TXN_SATS, MAX_WITHDRAWAL_PER_TXN_SATS, req.amount
         )));
     }
 
@@ -257,9 +259,9 @@ pub fn HonWithdrawal() -> impl IntoView {
                                         <span>You withdraw</span>
                                     </div>
                                     <input
-                                        min=MIN_WITHDRAWAL_PER_TXN
-                                        max=MAX_WITHDRAWAL_PER_TXN
-                                        placeholder=format!("Min: {}", MIN_WITHDRAWAL_PER_TXN)
+                                        min=MIN_WITHDRAWAL_PER_TXN_SATS
+                                        max=MAX_WITHDRAWAL_PER_TXN_SATS
+                                        placeholder=format!("Min: {}", MIN_WITHDRAWAL_PER_TXN_SATS)
                                         disabled=is_claiming
                                         on:input=on_input
                                         type="text"
@@ -297,15 +299,15 @@ pub fn HonWithdrawal() -> impl IntoView {
                                         Nat::from(0_usize)
                                     };
                                     let can_withdraw = true;
-                                    let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN as usize
-                                        || sats() > MAX_WITHDRAWAL_PER_TXN as usize;
+                                    let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN_SATS as usize
+                                        || sats() > MAX_WITHDRAWAL_PER_TXN_SATS as usize;
                                     let invalid_balance = sats() > balance || balance == zero;
                                     let is_claiming = is_claiming();
                                     let message = if invalid_balance {
                                         "Not enough balance".to_string()
                                     } else if invalid_input {
                                         format!(
-                                            "Enter valid amount, min: {MIN_WITHDRAWAL_PER_TXN} max: {MAX_WITHDRAWAL_PER_TXN}",
+                                            "Enter valid amount, min: {MIN_WITHDRAWAL_PER_TXN_SATS} max: {MAX_WITHDRAWAL_PER_TXN_SATS}",
                                         )
                                     } else {
                                         match (can_withdraw, is_claiming) {
