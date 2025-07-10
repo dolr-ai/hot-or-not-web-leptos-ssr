@@ -238,14 +238,14 @@ impl AppStateBuilder {
 
                 HonWorkerJwt(std::sync::Arc::new(jwt))
             },
-            #[cfg(feature = "stdb-backend")]
-            dolr_airdrop_stbd: {
-                let token = env::var("STDB_ADMIN_ACCESS_TOKEN")
-                    .expect("`STDB_ADMIN_ACCESS_TOKEN` is required!");
+            #[cfg(feature = "dolr-airdrop")]
+            dolr_airdrop_db: {
+                let url = env::var("DOLR_AIRDROP_NEON_DB_URL")
+                    .expect("`DOLR_AIRDROP_NEON_DB_URL` is required!");
 
-                state::stdb_dolr_airdrop::WrappedContext::new(Some(token))
+                dolr_airdrop::db::DolrAirdrop::connect_and_migrate(url)
                     .await
-                    .expect("connect to stdb backend module")
+                    .expect("connect to neon postgres")
             },
         };
 

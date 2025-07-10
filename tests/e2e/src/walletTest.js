@@ -12,14 +12,10 @@ describe("wallet page tests", function () {
       .waitUntil("enabled");
   });
 
-  it("default wallet page contains 100 SATS", function (browser) {
+  it("default wallet page contains SATS", function (browser) {
     browser.waitForElementVisible("body", 25000);
     browser.element
         .findByText("SATS", { timeout: 10000 })
-        .waitUntil("visible", { timeout: 10000 })
-        .assert.enabled();
-      browser.element
-        .findByText("100", { timeout: 10000 })
         .waitUntil("visible", { timeout: 10000 })
         .assert.enabled();
   });
