@@ -346,6 +346,8 @@ fn HNWonLost(
     };
     let bet_amount = vote_amount;
     let coin = match bet_amount {
+        1 => CoinState::C1,
+        5 => CoinState::C5,
         10 => CoinState::C10,
         20 => CoinState::C20,
         50 => CoinState::C50,
