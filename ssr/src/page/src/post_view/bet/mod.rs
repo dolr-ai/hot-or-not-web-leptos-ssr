@@ -330,18 +330,23 @@ fn HNWonLost(
         Some(VoteKind::Not) => "Not",
         None => "",
     };
+    let creator_reward_text = if creator_reward > 0 {
+        format!(", creator gets {creator_reward} SATS")
+    } else {
+        "".to_string()
+    };
     let result_message = match game_result.clone() {
         GameResult::Win { win_amt } => format!(
-            "You voted \"{}\" - Spot on!\nYou won {} SATS, creator gets {} SATS",
+            "You voted \"{}\" - Spot on!\nYou won {} SATS{}",
             bet_direction_text,
             TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
-            creator_reward
+            creator_reward_text
         ),
         GameResult::Loss { lose_amt } => format!(
-            "You voted \"{}\" - wrong vote.\nYou lost {} SATS, creator gets {} SATS",
+            "You voted \"{}\" - wrong vote.\nYou lost {} SATS{}",
             bet_direction_text,
             TokenBalance::new(lose_amt.into(), 0).humanize(),
-            creator_reward
+            creator_reward_text
         ),
     };
     let bet_amount = vote_amount;
