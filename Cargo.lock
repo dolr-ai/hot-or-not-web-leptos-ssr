@@ -3247,14 +3247,14 @@ checksum = "2802dc1fc940601b7a06be7b69758c26689cc5e14120843d946a886fd87391f6"
 dependencies = [
  "async-trait",
  "bytes",
- "google-cloud-gax",
+ "google-cloud-gax 0.21.0",
  "google-cloud-gax-internal",
  "google-cloud-location",
  "google-cloud-longrunning",
  "google-cloud-lro",
- "google-cloud-rpc",
+ "google-cloud-rpc 0.2.0",
  "google-cloud-type",
- "google-cloud-wkt",
+ "google-cloud-wkt 0.3.0",
  "lazy_static",
  "reqwest 0.12.21",
  "serde",
@@ -3272,7 +3272,28 @@ dependencies = [
  "async-trait",
  "base64 0.22.1",
  "bon",
- "google-cloud-gax",
+ "google-cloud-gax 0.21.0",
+ "http 1.3.1",
+ "reqwest 0.12.21",
+ "rustls 0.23.28",
+ "rustls-pemfile 2.2.0",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
+ "time",
+ "tokio",
+]
+
+[[package]]
+name = "google-cloud-auth"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a65fb515e1e726bc58b925fc876e8f02b626ab574b15c8f3fa53cb08177a7815"
+dependencies = [
+ "async-trait",
+ "base64 0.22.1",
+ "bon",
+ "google-cloud-gax 0.23.0",
  "http 1.3.1",
  "reqwest 0.12.21",
  "rustls 0.23.28",
@@ -3293,13 +3314,33 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "futures",
- "google-cloud-rpc",
- "google-cloud-wkt",
+ "google-cloud-rpc 0.2.0",
+ "google-cloud-wkt 0.3.0",
  "http 1.3.1",
  "pin-project",
  "rand 0.9.1",
  "serde",
  "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "google-cloud-gax"
+version = "0.23.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d88f66b6fccca3449ad9f0366ec3d1b74a004fa1100d98353a201dabc3203bd2"
+dependencies = [
+ "base64 0.22.1",
+ "bytes",
+ "futures",
+ "google-cloud-rpc 0.4.0",
+ "google-cloud-wkt 0.5.0",
+ "http 1.3.1",
+ "pin-project",
+ "rand 0.9.1",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.12",
  "tokio",
 ]
 
@@ -3311,9 +3352,9 @@ checksum = "9db9c6fc51068baa033a34e8b6422419f79db9855afc54f968ec308696f3bac2"
 dependencies = [
  "built",
  "bytes",
- "google-cloud-auth",
- "google-cloud-gax",
- "google-cloud-rpc",
+ "google-cloud-auth 0.19.0",
+ "google-cloud-gax 0.21.0",
+ "google-cloud-rpc 0.2.0",
  "http 1.3.1",
  "http-body-util",
  "reqwest 0.12.21",
@@ -3331,9 +3372,9 @@ checksum = "4707431a23e69118aba15b2e2e420a847ee1748e92e6ef0710d990bc1180fe46"
 dependencies = [
  "async-trait",
  "bytes",
- "google-cloud-gax",
+ "google-cloud-gax 0.21.0",
  "google-cloud-gax-internal",
- "google-cloud-wkt",
+ "google-cloud-wkt 0.3.0",
  "lazy_static",
  "reqwest 0.12.21",
  "serde",
@@ -3350,10 +3391,10 @@ checksum = "ee572c445c4380d18ee64f013c1b5a9aaf122b39bd167383265ed60f1ac90a97"
 dependencies = [
  "async-trait",
  "bytes",
- "google-cloud-gax",
+ "google-cloud-gax 0.21.0",
  "google-cloud-gax-internal",
- "google-cloud-rpc",
- "google-cloud-wkt",
+ "google-cloud-rpc 0.2.0",
+ "google-cloud-wkt 0.3.0",
  "lazy_static",
  "reqwest 0.12.21",
  "serde",
@@ -3368,10 +3409,10 @@ version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0075be9847a9fb6cac70918ca9a6a745e37f1b2ba9de7f55ca2c418290416769"
 dependencies = [
- "google-cloud-gax",
+ "google-cloud-gax 0.21.0",
  "google-cloud-longrunning",
- "google-cloud-rpc",
- "google-cloud-wkt",
+ "google-cloud-rpc 0.2.0",
+ "google-cloud-wkt 0.3.0",
  "serde",
  "tokio",
 ]
@@ -3383,7 +3424,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4678537d3a80bdc47190d17c411968dc5e89e0cc670d3bdb72beb0aa21322a1"
 dependencies = [
  "bytes",
- "google-cloud-wkt",
+ "google-cloud-wkt 0.3.0",
+ "serde",
+ "serde_json",
+ "serde_with",
+]
+
+[[package]]
+name = "google-cloud-rpc"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f1b4b7867ab6e94e56944116f2b1bdcdbac522eea794743a9884d84db7728470"
+dependencies = [
+ "bytes",
+ "google-cloud-wkt 0.5.0",
  "serde",
  "serde_json",
  "serde_with",
@@ -3396,7 +3450,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "140841f70dad31f07eb46864d0daad43306e838689d1ae8d8cda06de3b54e85c"
 dependencies = [
  "bytes",
- "google-cloud-wkt",
+ "google-cloud-wkt 0.3.0",
  "serde",
  "serde_json",
  "serde_with",
@@ -3415,6 +3469,22 @@ dependencies = [
  "serde_with",
  "thiserror 2.0.12",
  "time",
+]
+
+[[package]]
+name = "google-cloud-wkt"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d4b1dbeb30ab8bde2423081b76f9c302d82fea1b99f8ca750f223d32065d3c6c"
+dependencies = [
+ "base64 0.22.1",
+ "bytes",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "thiserror 2.0.12",
+ "time",
+ "url",
 ]
 
 [[package]]
@@ -3705,7 +3775,7 @@ dependencies = [
  "gloo-utils",
  "gob-cloudflare",
  "google-cloud-alloydb-v1",
- "google-cloud-auth",
+ "google-cloud-auth 0.21.0",
  "hex",
  "hmac",
  "hon-worker-common",
