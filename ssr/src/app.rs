@@ -111,7 +111,6 @@ pub fn App() -> impl IntoView {
     provide_context(history_ctx.clone());
 
     let _ = HnBetState::init();
-    // provide_context(hn_bet);
 
     let current_post_params = RwSignal::new(None::<PostParams>);
     provide_context(current_post_params);

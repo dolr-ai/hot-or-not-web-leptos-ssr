@@ -14,7 +14,7 @@ pub struct VideoComparisonResult {
 
 #[derive(Default, Clone)]
 pub struct HnBetState {
-    state: RwSignal<BTreeMap<(Principal, u64), VideoComparisonResult>>,
+    state: RwSignal<BTreeMap<(Principal, String), VideoComparisonResult>>,
 }
 
 impl HnBetState {
@@ -26,17 +26,17 @@ impl HnBetState {
         this
     }
 
-    pub fn get(principal: Principal, post_id: u64) -> Option<VideoComparisonResult> {
+    pub fn get(principal: Principal, video_uid: String) -> Option<VideoComparisonResult> {
         let this = use_context::<Self>().unwrap_or_else(HnBetState::init);
         // let this = expect_context::<Self>();
-        this.state.get().get(&(principal, post_id)).cloned()
+        this.state.get().get(&(principal, video_uid)).cloned()
     }
 
-    pub fn set(principal: Principal, post_id: u64, result: VideoComparisonResult) {
+    pub fn set(principal: Principal, video_uid: String, result: VideoComparisonResult) {
         let this = use_context::<Self>().unwrap_or_else(HnBetState::init);
         // let this = expect_context::<Self>();
         this.state.update(|state| {
-            state.insert((principal, post_id), result);
+            state.insert((principal, video_uid), result);
         });
     }
 }

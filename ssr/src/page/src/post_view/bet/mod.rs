@@ -196,7 +196,7 @@ fn HNButtonOverlay(
 
                         HnBetState::set(
                             post_mix.canister_id,
-                            post_mix.post_id,
+                            post_mix.uid.clone(),
                             res.video_comparison_result,
                         );
 
@@ -450,7 +450,7 @@ fn HNWonLost(
                     </ShowAny>
                 </button>
             </div>
-            {move || HnBetState::get(post.canister_id, post.post_id).map(|bet_res| {
+            {move || HnBetState::get(post.canister_id, post.uid.clone()).map(|bet_res| {
                     view! {
                         <VideoScoreComparison
                             current_score=bet_res.current_video_score

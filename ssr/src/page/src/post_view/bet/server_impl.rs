@@ -37,8 +37,6 @@ mod alloydb {
     use super::*;
     use hon_worker_common::WORKER_URL;
     use hon_worker_common::{HoNGameVoteReqV3, HotOrNot, VoteRequestV3, VoteResV2};
-    use leptos::logging;
-
     pub async fn vote_with_cents_on_post(
         sender: Principal,
         req: VoteRequest,
@@ -83,10 +81,6 @@ mod alloydb {
             .rows
             .pop()
             .expect("hot_or_not_evaluator.compare_videos_hot_or_not_v2 MUST return a row");
-        logging::log!(
-            "hot_or_not_evaluator.compare_videos_hot_or_not_v2 result: {:?}",
-            res
-        );
         let res = res
             .values
             .pop()
@@ -101,10 +95,6 @@ mod alloydb {
                 ))
             }
         };
-        logging::log!(
-            "hot_or_not_evaluator.compare_videos_hot_or_not_v2 parsed current_video_score: {}, previous_video_score: {}, hot_or_not: {}",
-            video_comparison_result.current_video_score, video_comparison_result.previous_video_score, video_comparison_result.hot_or_not
-        );
         let sentiment = match video_comparison_result.hot_or_not {
             true => HotOrNot::Hot,
             false => HotOrNot::Not,
