@@ -6,7 +6,9 @@ use leptos_icons::*;
 use leptos_meta::*;
 use leptos_router::components::Redirect;
 use leptos_use::use_window;
-use limits::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
+use limits::NEW_USER_SIGNUP_REWARD_SATS;
+use limits::REFERRAL_REWARD_SATS;
+
 
 use component::connect::ConnectLogin;
 use component::{back_btn::BackButton, buttons::HighlightedButton, title::TitleText};

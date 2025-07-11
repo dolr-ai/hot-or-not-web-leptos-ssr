@@ -5,7 +5,7 @@ use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spi
 use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
 use hon_worker_common::{
     sign_vote_request_v3, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV3,
-    WORKER_URL,
+    VoteResV2, WORKER_URL,
 };
 use ic_agent::Identity;
 use leptos::html::Audio;
@@ -14,13 +14,21 @@ use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
 use limits::{CoinState, DEFAULT_BET_COIN_STATE};
 use num_traits::cast::ToPrimitive;
+use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
 use state::canisters::auth_state;
+use state::hn_bet_state::{HnBetState, VideoComparisonResult};
 use utils::try_or_redirect_opt;
 use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
     posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
 };
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct VoteAPIRes {
+    pub game_result: VoteResV2,
+    pub video_comparison_result: VideoComparisonResult,
+}
 
 #[component]
 fn CoinStateView(
@@ -168,11 +176,11 @@ fn HNButtonOverlay(
                     Ok(res) => {
                         let is_logged_in = is_connected.get_untracked();
                         let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-                        let game_conclusion = match res.game_result {
+                        let game_conclusion = match res.game_result.game_result {
                             GameResultV2::Win { .. } => GameConclusion::Win,
                             GameResultV2::Loss { .. } => GameConclusion::Loss,
                         };
-                        let win_loss_amount = match res.game_result.clone() {
+                        let win_loss_amount = match res.game_result.game_result.clone() {
                             GameResultV2::Win {
                                 win_amt,
                                 updated_balance: _,
@@ -186,7 +194,9 @@ fn HNButtonOverlay(
                         let (_, set_wallet_balalnce_store, _) =
                             use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
-                        set_wallet_balalnce_store.set(match res.game_result.clone() {
+                        HnBetState::set(post_mix.uid.clone(), res.video_comparison_result);
+
+                        set_wallet_balalnce_store.set(match res.game_result.game_result.clone() {
                             GameResultV2::Win {
                                 win_amt: _,
                                 updated_balance,
@@ -219,7 +229,7 @@ fn HNButtonOverlay(
                         });
                         play_win_sound_and_vibrate(
                             audio_ref,
-                            matches!(res.game_result, GameResultV2::Win { .. }),
+                            matches!(res.game_result.game_result, GameResultV2::Win { .. }),
                         );
                         Some(())
                     }
@@ -305,6 +315,7 @@ fn HNWonLost(
     bet_direction: RwSignal<Option<VoteKind>>,
     show_tutorial: RwSignal<bool>,
     video_uid: String,
+    post: PostDetails,
 ) -> impl IntoView {
     let auth = auth_state();
     let event_ctx = auth.event_ctx();
@@ -315,21 +326,32 @@ fn HNWonLost(
         Some(VoteKind::Not) => "Not",
         None => "",
     };
-    let result_message = match game_result.clone() {
-        GameResult::Win { win_amt } => format!(
-            "You won {} SATS, by betting on {}! {} SATS will go to the creator.",
-            TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
-            bet_direction_text,
-            creator_reward
+    let creator_reward_text = if creator_reward > 0 {
+        format!(", creator gets {creator_reward} SATS")
+    } else {
+        "".to_string()
+    };
+    let (line1, line2) = match game_result.clone() {
+        GameResult::Win { win_amt } => (
+            format!("You voted \"{bet_direction_text}\" - Spot on!"),
+            format!(
+                "You won {} SATS{}",
+                TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
+                creator_reward_text
+            ),
         ),
-        GameResult::Loss { lose_amt } => format!(
-            "You voted {} - better luck next time. You lost {} SATS, the creator gets {} SATS",
-            bet_direction_text,
-            TokenBalance::new(lose_amt.into(), 0).humanize(),
-            creator_reward
+        GameResult::Loss { lose_amt } => (
+            format!("You voted \"{bet_direction_text}\" - wrong vote."),
+            format!(
+                "You lost {} SATS{}",
+                TokenBalance::new(lose_amt.into(), 0).humanize(),
+                creator_reward_text
+            ),
         ),
     };
+
     let bet_amount = vote_amount;
+
     let coin = CoinState::from_cents(bet_amount);
 
     let vote_kind_image = match bet_direction.get() {
@@ -390,14 +412,15 @@ fn HNWonLost(
     });
 
     view! {
-        <div class="flex w-full flex-col gap-3 p-4">
-            <div class="flex gap-6 justify-center items-center w-full">
+        <div class="flex w-full flex-col gap-3 py-2">
+            <div class="flex gap-2 justify-center items-center w-full">
                 <div class="relative shrink-0 drop-shadow-lg">
                     <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin />
                     <img src=vote_kind_image class="absolute bottom-0 -right-1 h-7 w-7" />
                 </div>
                 <div class="flex-1 p-1 text-xs md:text-sm font-semibold leading-snug text-white rounded-full">
-                    {result_message}
+                    {line1}<br/>
+                    {line2}
                 </div>
                 <button
                 class="relative shrink-0 cursor-pointer"
@@ -412,8 +435,49 @@ fn HNWonLost(
                     </ShowAny>
                 </button>
             </div>
+            {move || HnBetState::get(post.uid.clone()).map(|bet_res| {
+                    view! {
+                        <VideoScoreComparison
+                            current_score=bet_res.current_video_score
+                            previous_score=bet_res.previous_video_score
+                            won
+                        />
+                    }})
+            }
             <div class=format!("flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-[#158F5C]" } else { "bg-[#F14331]" })>
                 {total_balance_text}
+            </div>
+        </div>
+    }
+}
+
+#[component]
+fn VideoScoreComparison(current_score: f32, previous_score: f32, won: bool) -> impl IntoView {
+    let is_current_higher = current_score > previous_score;
+    let comparison_symbol = if is_current_higher { ">" } else { "<" };
+    let comparison_color = if won {
+        "text-green-500"
+    } else {
+        "text-[#F14331]"
+    };
+
+    let current_score_int = current_score.round() as u32;
+    let previous_score_int = previous_score.round() as u32;
+
+    view! {
+        <div class="flex justify-center items-center gap-6 bg-black/40 rounded-full px-6 py-2 text-white text-sm font-semibold">
+            <div class="flex gap-2 items-center text-start">
+                <span class="text-lg">{current_score_int}</span>
+                <span class="text-xs">Current Video<br/>Engagement Score</span>
+            </div>
+
+            <span class=format!("text-lg font-bold {}", comparison_color)>
+                {comparison_symbol}
+            </span>
+
+            <div class="flex gap-2 items-center text-start">
+                <span class="text-lg">{previous_score_int}</span>
+                <span class="text-xs">Previous Video<br/>Engagement Score</span>
             </div>
         </div>
     }
@@ -443,8 +507,10 @@ pub fn HNUserParticipation(
         .expect("We only allow voting with 200 max, so this is alright");
     let video_uid = post.uid.clone();
 
+    let post = post.clone();
+
     view! {
-        <HNWonLost game_result vote_amount bet_direction show_tutorial video_uid />
+        <HNWonLost game_result vote_amount bet_direction show_tutorial video_uid post />
         <ShadowBg />
     }
 }
