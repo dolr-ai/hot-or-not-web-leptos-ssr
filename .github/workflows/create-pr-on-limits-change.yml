@@ -23,7 +23,7 @@ jobs:
           components: "clippy,rustfmt"
 
       - name: Update cargo dependencies
-        run: cargo update -p yral-common
+        run: cargo update -p limits
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
