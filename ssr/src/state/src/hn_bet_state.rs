@@ -1,6 +1,4 @@
 use std::collections::BTreeMap;
-
-use candid::Principal;
 use leptos::prelude::*;
 
 use serde::{Deserialize, Serialize};
