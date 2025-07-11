@@ -40,7 +40,4 @@ jobs:
           add-paths: |
             **/Cargo.toml
             **/Cargo.lock
-          draft: false
-          team-reviewers: |
-            rust-full-stack
             
