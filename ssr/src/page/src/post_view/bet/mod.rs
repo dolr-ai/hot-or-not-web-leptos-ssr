@@ -37,9 +37,9 @@ fn CoinStateView(
     #[prop(optional, into)] disabled: Signal<bool>,
 ) -> impl IntoView {
     let icon = Signal::derive(move || match coin() {
-        CoinState::C10 => C10Icon,
         CoinState::C1 => C1Icon,
         CoinState::C5 => C5Icon,
+        CoinState::C10 => C10Icon,
         CoinState::C20 => C20Icon,
         CoinState::C50 => C50Icon,
         CoinState::C100 => C100Icon,
@@ -351,19 +351,8 @@ fn HNWonLost(
     };
 
     let bet_amount = vote_amount;
-    let coin = match bet_amount {
-        1 => CoinState::C1,
-        5 => CoinState::C5,
-        10 => CoinState::C10,
-        20 => CoinState::C20,
-        50 => CoinState::C50,
-        100 => CoinState::C100,
-        200 => CoinState::C200,
-        amt => {
-            log::warn!("Invalid bet amount: {amt}, using fallback");
-            CoinState::C50
-        }
-    };
+
+    let coin = CoinState::from_cents(bet_amount);
 
     let vote_kind_image = match bet_direction.get() {
         Some(VoteKind::Hot) => "/img/hotornot/hot-circular.svg",
