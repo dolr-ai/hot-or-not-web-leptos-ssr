@@ -20,9 +20,8 @@ use utils::{
     web::{copy_to_clipboard, share_url},
 };
 
-use yral_canisters_common::utils::posts::PostDetails;
-
 use utils::mixpanel::mixpanel_events::*;
+use yral_canisters_common::utils::posts::PostDetails;
 
 use super::bet::HNGameOverlay;
 
@@ -418,6 +417,8 @@ pub fn VideoDetailsOverlay(
         async move {}
     });
 
+    let show_low_balance_popup: RwSignal<bool> = RwSignal::new(false);
+
     view! {
         <div class="flex absolute bottom-0 left-0 flex-col flex-nowrap justify-between pt-5 pb-20 w-full h-full text-white bg-transparent pointer-events-none px-[16px] z-4 md:px-[16px]">
             <div class="flex flex-row justify-between items-center w-full pointer-events-auto">
@@ -486,7 +487,7 @@ pub fn VideoDetailsOverlay(
                     </button>
                 </div>
                 <div class="w-full bg-transparent pointer-events-auto max-w-lg mx-auto">
-                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref show_tutorial />
+                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref show_tutorial show_low_balance_popup />
                 </div>
             </div>
         </div>
@@ -581,6 +582,7 @@ pub fn VideoDetailsOverlay(
             </div>
         </Modal>
         <HotOrNotTutorialOverlay show=show_tutorial close_action=close_help_popup_action />
+        <LowSatsBalancePopup show=show_low_balance_popup />
 
     }.into_any()
 }
@@ -655,6 +657,74 @@ pub fn HotOrNotTutorialOverlay(
                             on_click=move || { show.set(false) }
                         >
                             "Keep Playing"
+                        </HighlightedButton>
+                    </div>
+                </div>
+            </div>
+        </ShadowOverlay>
+    }
+}
+
+#[component]
+pub fn LowSatsBalancePopup(
+    show: RwSignal<bool>,
+    claim_airdrop: Action<(), ()>,
+    navigate_refer_page: Action<(), ()>,
+    airdrop_claimed: bool,
+) -> impl IntoView {
+    view! {
+        <ShadowOverlay show=show >
+            <div class="px-4 py-6 w-full h-full flex items-center justify-center">
+                <div class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
+                    <button
+                        on:click=move |_| {
+                            show.set(false);
+                        }
+                        class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[3] top-4 right-4"
+                    >
+                        <Icon icon=icondata::ChCross />
+                    </button>
+                    <div class="flex z-[2] relative flex-col items-center gap-5 text-white justify-center p-12">
+                        <img src="/img/hotornot/sad.webp" class="size-14" />
+                        <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on Bitcoin (SATS)"</div>
+                        {
+                            if airdrop_claimed {
+                                view! {
+                                    <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
+                                    <div class="text-neutral-300 text-center">"Meanwhile, earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you refer!"</div>
+                                }.into_any()
+                            } else {
+                                view! {
+                                    <div class="text-neutral-300 text-center">"Earn more in two easy ways:"</div>
+                                    <ul class="flex list-disc flex-col gap-5 text-neutral-300">
+                                        <li>"Unlock your daily"<span class="font-semibold">" Bitcoin (SATS) "</span>"loot every 24 hours!"</li>
+                                        <li>"Refer & earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you invite."</li>
+                                        <li class="font-semibold">"Upload Videos to earn comissions."</li>
+                                    </ul>
+                                }.into_any()
+                            }
+                        }
+
+
+                        <HighlightedButton
+                            alt_style=false
+                            disabled=false
+                            on_click=move || {
+                                show.set(false);
+                                claim_airdrop.dispatch(());
+                            }
+                        >
+                            "Claim airdrop"
+                        </HighlightedButton>
+                        <HighlightedButton
+                            alt_style=true
+                            disabled=false
+                            on_click=move || {
+                                show.set(false);
+                                navigate_refer_page.dispatch(());
+                            }
+                        >
+                            "Refer a friend"
                         </HighlightedButton>
                     </div>
                 </div>
