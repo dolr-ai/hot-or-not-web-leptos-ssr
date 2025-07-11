@@ -194,11 +194,7 @@ fn HNButtonOverlay(
                         let (_, set_wallet_balalnce_store, _) =
                             use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
-                        HnBetState::set(
-                            post_mix.canister_id,
-                            post_mix.uid.clone(),
-                            res.video_comparison_result,
-                        );
+                        HnBetState::set(post_mix.uid.clone(), res.video_comparison_result);
 
                         set_wallet_balalnce_store.set(match res.game_result.game_result.clone() {
                             GameResultV2::Win {
@@ -450,7 +446,7 @@ fn HNWonLost(
                     </ShowAny>
                 </button>
             </div>
-            {move || HnBetState::get(post.canister_id, post.uid.clone()).map(|bet_res| {
+            {move || HnBetState::get(post.uid.clone()).map(|bet_res| {
                     view! {
                         <VideoScoreComparison
                             current_score=bet_res.current_video_score
