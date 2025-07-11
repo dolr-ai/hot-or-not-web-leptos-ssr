@@ -30,6 +30,7 @@ use page::{
 use page::{hon, pumpdump};
 use state::app_state::AppState;
 use state::app_type::AppType;
+use state::hn_bet_state::HnBetState;
 use state::{audio_state::AudioState, content_seed_client::ContentSeedClient};
 use utils::event_streaming::events::HistoryCtx;
 use utils::event_streaming::EventHistory;
@@ -108,6 +109,8 @@ pub fn App() -> impl IntoView {
     // History Tracking
     let history_ctx = HistoryCtx::default();
     provide_context(history_ctx.clone());
+
+    let _ = HnBetState::init();
 
     let current_post_params = RwSignal::new(None::<PostParams>);
     provide_context(current_post_params);
