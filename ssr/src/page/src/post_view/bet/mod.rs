@@ -333,7 +333,7 @@ fn HNWonLost(
     };
     let (line1, line2) = match game_result.clone() {
         GameResult::Win { win_amt } => (
-            format!("You voted \"{}\" - Spot on!", bet_direction_text),
+            format!("You voted \"{bet_direction_text}\" - Spot on!"),
             format!(
                 "You won {} SATS{}",
                 TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
@@ -341,7 +341,7 @@ fn HNWonLost(
             ),
         ),
         GameResult::Loss { lose_amt } => (
-            format!("You voted \"{}\" - wrong vote.", bet_direction_text),
+            format!("You voted \"{bet_direction_text}\" - wrong vote."),
             format!(
                 "You lost {} SATS{}",
                 TokenBalance::new(lose_amt.into(), 0).humanize(),
