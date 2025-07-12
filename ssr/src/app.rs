@@ -18,7 +18,9 @@ use page::{
     post_view::{single_post::SinglePost, PostView, PostViewCtx},
     privacy::PrivacyPolicy,
     profile::{
-        profile_post::ProfilePost, LoggedInUserProfileView, ProfilePostsContext, ProfileView,
+        edit::{username::ProfileUsernameEdit, ProfileEdit},
+        profile_post::ProfilePost,
+        LoggedInUserProfileView, ProfilePostsContext, ProfileView,
     },
     refer_earn::ReferEarn,
     settings::Settings,
@@ -179,6 +181,8 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/settings") view=Settings />
                         <Route path=path!("/settings/:action") view=Settings />
                         <Route path=path!("/refer-earn") view=ReferEarn />
+                        <Route path=path!("/profile/edit") view=ProfileEdit />
+                        <Route path=path!("/profile/edit/username") view=ProfileUsernameEdit />
                         <Route path=path!("/profile/:id/:tab") view=ProfileView />
                         <Route path=path!("/profile/:tab") view=LoggedInUserProfileView />
                         <Route path=path!("/terms-of-service") view=TermsOfService />

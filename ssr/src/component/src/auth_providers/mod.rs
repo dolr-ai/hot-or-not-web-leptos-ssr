@@ -35,7 +35,7 @@ async fn mark_user_registered(user_principal: Principal) -> Result<bool, ServerF
     // TODO: verify that user principal is registered
     let canisters = unauth_canisters();
     let user_canister = canisters
-        .get_individual_canister_by_user_principal(user_principal)
+        .get_individual_canister_v2(user_principal.to_text())
         .await?
         .ok_or_else(|| ServerFnError::new("User not found"))?;
     mark_user_registered_impl(user_canister).await
