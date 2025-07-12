@@ -1,3 +1,4 @@
+pub mod edit;
 mod ic;
 pub mod overlay;
 mod posts;
@@ -6,10 +7,10 @@ pub mod profile_post;
 mod speculation;
 
 use candid::Principal;
-use component::{connect::ConnectLogin, spinner::FullScreenSpinner};
+use component::{connect::ConnectLogin, icons::edit_icons::EditIcon, spinner::FullScreenSpinner};
 use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
 use indexmap::IndexSet;
-use leptos::prelude::*;
+use leptos::{html, portal::Portal, prelude::*};
 use leptos_icons::*;
 use leptos_meta::*;
 use leptos_router::{components::Redirect, hooks::use_params, params::Params};
@@ -140,52 +141,70 @@ fn ProfileViewInner(user: ProfileDetails, user_canister: Principal) -> impl Into
     let user_principal = user.principal;
     let username_or_principal = user.username_or_principal();
     let profile_pic = user.profile_pic_or_random();
-    let display_name = user.display_name_or_fallback();
     let _earnings = user.lifetime_earnings;
 
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
+
+    let edit_icon_mount_point = NodeRef::<html::Div>::new();
 
     view! {
         <div class="overflow-y-auto pt-10 pb-12 min-h-screen text-white bg-black">
             <div class="grid grid-cols-1 gap-5 justify-items-center w-full justify-normal">
                 <div class="flex flex-row justify-center w-11/12 sm:w-7/12">
                     <div class="flex flex-col justify-center items-center">
-                        <img
-                            class="w-24 h-24 rounded-full"
-                            alt=username_or_principal.clone()
-                            src=profile_pic
-                        />
-                        <div class="flex flex-col items-center text-center">
-                            <span
-                                class="font-bold text-white text-md"
-                                class=("w-full", is_connected)
-                                class=("w-5/12", move || !is_connected())
-                                class=("truncate", move || !is_connected())
-                            >
-                                {display_name}
-                            </span>
-                            <Suspense>
-                                {move || {
-                                    auth.user_principal
-                                        .get()
-                                        .map(|v| {
-                                            view! {
-                                                <Show when=move || {
-                                                    !is_connected() && v == Ok(user_principal)
-                                                }>
-                                                    <div class="pt-5 w-6/12 md:w-4/12">
-                                                        <ConnectLogin
-                                                            cta_location="profile"
-                                                            redirect_to=format!("/profile/posts")
-                                                        />
-                                                    </div>
-                                                </Show>
-                                            }
-                                        })
-                                }}
-                            </Suspense>
+                        <div class="flex flex-row items-center justify-between w-full p-4 bg-neutral-900 rounded-lg">
+                            <div class="flex flex-row items-center gap-4">
+                                <img
+                                    class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-full"
+                                    alt=username_or_principal.clone()
+                                    src=profile_pic
+                                />
+                                <div class="flex flex-col gap-2">
+                                    <div node_ref=edit_icon_mount_point class="flex flex-row justify-between">
+                                        <span class="font-bold text-neutral-50 text-lg line-clamp-1">
+                                            @{username_or_principal.clone()}
+                                        </span>
+                                    </div>
+                                    <span class="text-neutral-400 text-sm line-clamp-1">
+                                        {user_principal.to_text()}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
+                        <Suspense>
+                            {move || {
+                                auth.user_principal
+                                    .get()
+                                    .map(|v| {
+                                        let authenticated_princ = v.unwrap_or(Principal::anonymous());
+                                        view! {
+                                            <Show when=move || {
+                                                !is_connected() && user_principal == authenticated_princ
+                                            }>
+                                                <div class="pt-5 w-6/12 md:w-4/12">
+                                                    <ConnectLogin
+                                                        cta_location="profile"
+                                                        redirect_to=format!("/profile/posts")
+                                                    />
+                                                </div>
+                                            </Show>
+                                            <Show when=move || user_principal == authenticated_princ>
+                                            {move || edit_icon_mount_point.get().map(|mount| view! {
+                                                <Portal mount>
+                                                    <a href="/profile/edit">
+                                                        <Icon
+                                                            icon=EditIcon
+                                                            attr:class="text-2xl text-neutral-300"
+                                                        />
+                                                    </a>
+                                                </Portal>
+                                            })}
+                                            </Show>
+                                        }
+                                    })
+                            }}
+                        </Suspense>
                     </div>
                 </div>
                 <ListSwitcher1 user_canister user_principal />
