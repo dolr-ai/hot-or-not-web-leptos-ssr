@@ -137,8 +137,9 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
 }
 
 #[component]
-fn ProfileViewInner(user: ProfileDetails, user_canister: Principal) -> impl IntoView {
+fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     let user_principal = user.principal;
+    let user_canister = user.user_canister;
     let username_or_principal = user.username_or_principal();
     let profile_pic = user.profile_pic_or_random();
     let _earnings = user.lifetime_earnings;
@@ -275,20 +276,15 @@ pub fn ProfileView() -> impl IntoView {
                 .auth_cans_if_available(cans.clone())
                 .filter(|can| can.user_principal() == profile_principal)
             {
-                return Ok::<_, ServerFnError>((
-                    user_can.profile_details(),
-                    user_can.user_canister(),
-                ));
+                return Ok::<_, ServerFnError>(user_can.profile_details());
             }
 
-            let user_canister = cans
-                .get_individual_canister_by_user_principal(profile_principal)
+            let user_details = cans
+                .get_profile_details(profile_principal.to_string())
                 .await?
                 .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
-            let user = cans.individual_user(user_canister).await;
-            let user_details = user.get_profile_details().await?;
 
-            Ok::<_, ServerFnError>((ProfileDetails::from(user_details), user_canister))
+            Ok::<_, ServerFnError>(user_details)
         })
     });
 
@@ -298,8 +294,8 @@ pub fn ProfileView() -> impl IntoView {
             {move || Suspend::new(async move {
                 let res = user_details.await;
                 match res {
-                    Ok((user, user_canister)) => {
-                        view! { <ProfileComponent user user_canister /> }.into_any()
+                    Ok(user) => {
+                        view! { <ProfileComponent user /> }.into_any()
                     }
                     _ => view! { <Redirect path="/" /> }.into_any(),
                 }
@@ -310,7 +306,7 @@ pub fn ProfileView() -> impl IntoView {
 }
 
 #[component]
-pub fn ProfileComponent(user: ProfileDetails, user_canister: Principal) -> impl IntoView {
+pub fn ProfileComponent(user: ProfileDetails) -> impl IntoView {
     let ProfilePostsContext {
         video_queue,
         start_index,
@@ -324,5 +320,5 @@ pub fn ProfileComponent(user: ProfileDetails, user_canister: Principal) -> impl 
         *idx = 0;
     });
 
-    view! { <ProfileViewInner user user_canister /> }
+    view! { <ProfileViewInner user /> }
 }
