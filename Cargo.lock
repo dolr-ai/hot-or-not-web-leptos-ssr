@@ -3689,6 +3689,7 @@ dependencies = [
  "bb8-redis",
  "candid",
  "cargo-husky",
+ "chrono",
  "ciborium",
  "circular-buffer",
  "codee",

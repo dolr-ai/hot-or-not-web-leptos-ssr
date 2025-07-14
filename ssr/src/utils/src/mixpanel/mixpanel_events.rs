@@ -131,6 +131,7 @@ where
 {
     let mut props = serde_json::to_value(&props).unwrap();
     props["event"] = event_name.into();
+    props["time"] = chrono::Utc::now().timestamp().into();
     props["$device_id"] = MixpanelGlobalProps::get_device_id().into();
     props["custom_device_id"] = MixpanelGlobalProps::get_custom_device_id().into();
     let user_id = props.get("user_id").and_then(Value::as_str);
