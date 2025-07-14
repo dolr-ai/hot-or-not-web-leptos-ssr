@@ -267,7 +267,7 @@ impl MixpanelGlobalProps {
         if let Some(device_id) = device_id {
             device_id
         } else {
-            let device_id =  crate::local_storage::LocalStorage::uuid_get_or_init(DEVICE_ID);
+            let device_id = crate::local_storage::LocalStorage::uuid_get_or_init(DEVICE_ID);
             MixpanelState::set_device_id(device_id.clone());
             device_id
         }
