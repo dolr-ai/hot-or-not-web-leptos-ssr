@@ -274,7 +274,15 @@ impl MixpanelGlobalProps {
     }
 
     pub fn get_custom_device_id() -> String {
-        crate::local_storage::LocalStorage::uuid_get_or_init(CUSTOM_DEVICE_ID)
+        let custom_device_id = MixpanelState::get_custom_device_id_untracked();
+        if let Some(custom_device_id) = custom_device_id {
+            custom_device_id
+        } else {
+            let custom_device_id =
+                crate::local_storage::LocalStorage::uuid_get_or_init(CUSTOM_DEVICE_ID);
+            MixpanelState::set_custom_device_id(custom_device_id.clone());
+            custom_device_id
+        }
     }
 
     pub fn get_auth_journey() -> String {
