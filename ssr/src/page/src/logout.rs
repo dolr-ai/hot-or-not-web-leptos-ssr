@@ -7,6 +7,7 @@ use leptos_router::components::Redirect;
 use leptos_use::storage::use_local_storage;
 use state::canisters::auth_state;
 use utils::event_streaming::events::{LogoutClicked, LogoutConfirmation};
+use utils::mixpanel::mixpanel_events::reset_mixpanel;
 
 #[component]
 pub fn Logout() -> impl IntoView {
@@ -31,6 +32,7 @@ pub fn Logout() -> impl IntoView {
                             auth.set_new_identity(id, false);
                             set_notifs_enabled(false);
                             set_device_id(uuid::Uuid::new_v4().to_string());
+                            reset_mixpanel();
                             LogoutConfirmation.send_event(ev_ctx);
                             view! { <Redirect path="/menu" /> }
                         }

@@ -23,6 +23,9 @@ extern "C" {
     #[wasm_bindgen(js_namespace = mixpanel, catch)]
     fn track(event_name: &str, properties: JsValue) -> Result<(), JsValue>;
 
+    #[wasm_bindgen(js_namespace = mixpanel)]
+    fn reset();
+
     /// mixpanel.identify(user_id)
     #[wasm_bindgen(js_namespace = mixpanel, catch)]
     fn identify(user_id: &str) -> Result<(), JsValue>;
@@ -31,6 +34,10 @@ extern "C" {
 /// Call once you know the logged-in user's ID
 pub fn identify_user(user_id: &str) {
     let _ = identify(user_id);
+}
+
+pub fn reset_mixpanel() {
+    reset();
 }
 
 #[server]
