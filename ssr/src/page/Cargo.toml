@@ -91,7 +91,7 @@ yral-identity.workspace = true
 sea-orm = { workspace = true, optional = true }
 dolr-airdrop = { workspace = true, optional = true }
 sats-airdrop = { workspace = true, optional = true }
-num-bigint = { workspace = true, optional = true }
+num-bigint = { workspace = true }
 num-traits.workspace = true
 
 # local deps`
@@ -195,7 +195,6 @@ dolr-airdrop = [
 sats-airdrop = [
     "neon-postgres",
     "dep:sats-airdrop",
-    "dep:num-bigint"
 ]
 redis-kv = [
     "consts/redis-kv",

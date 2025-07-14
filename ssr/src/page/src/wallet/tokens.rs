@@ -110,7 +110,7 @@ impl AirdropStatusFetcherType {
 }
 
 /// Different strategies for loading balances of tokens as [`yral_canisters_common::utils::token::balance::TokenBalance`]
-enum BalanceFetcherType {
+pub enum BalanceFetcherType {
     Icrc1 { ledger: Principal, decimals: u8 },
     Sats,
     Cents,
@@ -119,7 +119,7 @@ enum BalanceFetcherType {
 impl BalanceFetcherType {
     // Both `user_principal` and `user_canister` must be provided by the
     // caller, which allows for perfomance optimizations
-    async fn fetch(
+    pub async fn fetch(
         &self,
         cans: Canisters<false>,
         user_canister: Principal,
