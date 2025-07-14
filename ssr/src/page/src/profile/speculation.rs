@@ -96,8 +96,18 @@ pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView 
             send_wrap(async move {
                 let canister = unauth_canisters();
                 let user = canister.individual_user(canister_id).await;
-                let profile_details = user.get_profile_details().await.ok()?;
-                Some(ProfileDetails::from(profile_details))
+                let profile_details = user.get_profile_details_v_2().await.ok()?;
+
+                let metadata = canister
+                    .get_user_metadata(profile_details.principal_id.to_text())
+                    .await
+                    .ok()??;
+
+                Some(ProfileDetails::from_canister(
+                    canister_id,
+                    Some(metadata.user_name),
+                    profile_details,
+                ))
             })
         },
     );
