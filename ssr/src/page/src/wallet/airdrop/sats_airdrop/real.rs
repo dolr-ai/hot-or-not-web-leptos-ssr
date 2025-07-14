@@ -4,7 +4,7 @@ use anyhow::ensure;
 use candid::Principal;
 use hon_worker_common::{ClaimRequest, SatsBalanceUpdateRequestV2, WORKER_URL};
 use leptos::prelude::*;
-use limits::{MAX_BET_AMOUNT, SATS_AIRDROP_LIMIT_RANGE};
+use limits::{MAX_BET_AMOUNT_SATS, SATS_AIRDROP_LIMIT_RANGE_SATS};
 use num_bigint::BigUint;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use reqwest::Url;
@@ -136,7 +136,7 @@ pub async fn claim_sats_airdrop(
     let balance = load_sats_balance(user_principal).await?.balance;
     validate_sats_airdrop_eligibility(user_canister, user_principal, now, &balance).await?;
     let mut rng = SmallRng::from_os_rng();
-    let amount = rng.random_range(SATS_AIRDROP_LIMIT_RANGE);
+    let amount = rng.random_range(SATS_AIRDROP_LIMIT_RANGE_SATS);
     let worker_req = SatsBalanceUpdateRequestV2 {
         previous_balance: balance,
         delta: amount.into(),
@@ -180,7 +180,7 @@ async fn validate_sats_airdrop_eligibility(
     let cans = Canisters::default();
     let user = cans.individual_user(user_canister).await;
 
-    if balance.ge(&MAX_BET_AMOUNT.into()) {
+    if balance.ge(&MAX_BET_AMOUNT_SATS.into()) {
         return Err(ServerFnError::new(
             "Not allowed to claim: balance >= max bet amount",
         ));

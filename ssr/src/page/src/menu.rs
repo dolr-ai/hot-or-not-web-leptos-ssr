@@ -93,55 +93,26 @@ fn MenuFooter() -> impl IntoView {
 #[component]
 fn ProfileLoading() -> impl IntoView {
     view! {
-        <div class="rounded-full animate-pulse basis-4/12 aspect-square overflow-clip bg-white/20"></div>
-        <div class="flex flex-col gap-2 animate-pulse basis-8/12">
-            <div class="w-full h-4 rounded-full bg-white/20"></div>
-            <div class="w-full h-4 rounded-full bg-white/20"></div>
+        <div class="rounded-full animate-pulse aspect-square size-12 md:size-14 lg:size-16 overflow-clip bg-white/20"></div>
+        <div class="flex flex-col gap-2 animate-pulse w-full">
+            <div class="w-full h-7  rounded-full bg-white/20"></div>
+            <div class="w-full h-4 md:h-5 rounded-full bg-white/20"></div>
         </div>
     }.into_any()
 }
 
 #[component]
 fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
-    let auth = auth_state();
-    let is_connected = auth.is_logged_in_with_oauth();
-
-    let view_profile_clicked = move || {
-        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
-            MixPanelEvent::track_menu_clicked(MixpanelMenuClickedProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                cta_type: MixpanelMenuClickedCTAType::ViewProfile,
-            });
-        }
-    };
-
     view! {
-        <div class="rounded-full basis-4/12 aspect-square overflow-clip">
-            <img class="object-cover w-full h-full" src=user_details.profile_pic_or_random() />
-        </div>
-        <div
-            class="flex flex-col basis-8/12"
-            class=("w-12/12", move || !is_connected())
-            class=("sm:w-5/12", move || !is_connected())
-        >
-            <span class="text-xl text-white text-ellipsis line-clamp-1">
-                {user_details.display_name_or_fallback()}
+        <img class="size-12 md:size-14 lg:size-16 rounded-full aspect-square object-cover" src=user_details.profile_pic_or_random() />
+        <div class="flex flex-col gap-2 w-full">
+            <span class="text-lg md:text-xl text-neutral-50 text-ellipsis line-clamp-1 font-semibold">
+                @{user_details.display_name_or_fallback()}
             </span>
-            <a on:click=move |_| view_profile_clicked() class="text-primary-600 text-md" href="/profile/posts">
-                View Profile
-            </a>
+            <span class="text-xs md:text-sm text-neutral-400 line-clamp-1">{user_details.principal()}</span>
         </div>
     }
     .into_any()
-}
-
-#[component]
-fn ProfileInfo(profile_details: ProfileDetails) -> impl IntoView {
-    view! { <ProfileLoaded user_details=profile_details /> }.into_any()
 }
 
 #[component]
@@ -224,6 +195,20 @@ pub fn Menu() -> impl IntoView {
     let page_title = app_state.unwrap().name.to_owned() + " - Menu";
 
     let upload_content_mount_point = NodeRef::<Div>::new();
+
+    let view_profile_clicked = move || {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
+            MixPanelEvent::track_menu_clicked(MixpanelMenuClickedProps {
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                cta_type: MixpanelMenuClickedCTAType::ViewProfile,
+            });
+        }
+    };
+
     view! {
         <Title text=page_title />
         <Suspense>
@@ -285,17 +270,17 @@ pub fn Menu() -> impl IntoView {
                         <span class="text-2xl font-bold">Menu</span>
                     </div>
                 </TitleText>
-                <div class="flex flex-col gap-4 items-center w-full">
-                    <div class="flex flex-row gap-4 justify-center items-center px-4 w-full max-w-lg">
+                <div class="flex flex-col gap-4 items-center w-11/12 lg:w-8/12">
+                    <a on:click=move |_| view_profile_clicked() href="/profile/posts" class="flex flex-row gap-4 justify-center items-center p-4 w-full bg-neutral-900 rounded-lg">
                         <Suspense fallback=ProfileLoading>
                             {move || Suspend::new(async move {
                                 let cans = auth.auth_cans(unauth_canisters()).await;
                                 cans.map(|c| {
-                                    view! { <ProfileInfo profile_details=c.profile_details() /> }
+                                    view! { <ProfileLoaded user_details=c.profile_details() /> }
                                 })
                             })}
                         </Suspense>
-                    </div>
+                    </a>
                     <Show when=move || !is_connected()>
                         <div class="px-8 w-full md:w-4/12 xl:w-2/12">
                             <ConnectLogin />
