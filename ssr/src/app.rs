@@ -34,6 +34,7 @@ use state::hn_bet_state::HnBetState;
 use state::{audio_state::AudioState, content_seed_client::ContentSeedClient};
 use utils::event_streaming::events::HistoryCtx;
 use utils::event_streaming::EventHistory;
+use utils::mixpanel::state::MixpanelState;
 use utils::types::PostParams;
 use yral_canisters_common::Canisters;
 
@@ -111,6 +112,8 @@ pub fn App() -> impl IntoView {
     provide_context(history_ctx.clone());
 
     let _ = HnBetState::init();
+
+    let _ = MixpanelState::init();
 
     let current_post_params = RwSignal::new(None::<PostParams>);
     provide_context(current_post_params);

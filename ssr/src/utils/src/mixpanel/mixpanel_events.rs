@@ -17,6 +17,7 @@ use yral_canisters_common::Canisters;
 
 use crate::event_streaming::events::EventCtx;
 use crate::event_streaming::events::HistoryCtx;
+use crate::mixpanel::state::MixpanelState;
 
 #[wasm_bindgen]
 extern "C" {
@@ -262,7 +263,14 @@ impl MixpanelGlobalProps {
     }
 
     pub fn get_device_id() -> String {
-        crate::local_storage::LocalStorage::uuid_get_or_init(DEVICE_ID)
+        let device_id = MixpanelState::get_device_id_untracked();
+        if let Some(device_id) = device_id {
+            device_id
+        } else {
+            let device_id =  crate::local_storage::LocalStorage::uuid_get_or_init(DEVICE_ID);
+            MixpanelState::set_device_id(device_id.clone());
+            device_id
+        }
     }
 
     pub fn get_custom_device_id() -> String {
