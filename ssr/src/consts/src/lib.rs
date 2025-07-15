@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 
 // TODO: make it consistent with the actual bet amount
 pub const CENTS_IN_E6S: u64 = 1_000_000;
+pub const SATS_TO_BTC_CONVERSION_RATIO: f64 = 0.00000001;
 pub const CF_STREAM_BASE: &str = "https://customer-2p3jflss4r4hmpnz.cloudflarestream.com";
 pub const FALLBACK_PROPIC_BASE: &str = "https://api.dicebear.com/7.x/big-smile/svg";
 // an example URL is "https://imagedelivery.net/abXI9nS4DYYtyR1yFFtziA/gob.5/public";
@@ -27,7 +28,7 @@ pub const DEVICE_ID: &str = "device_id";
 pub const CUSTOM_DEVICE_ID: &str = "custom_device_id";
 pub const AUTH_JOURNET: &str = "auth_journey";
 pub static CF_BASE_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://api.cloudflare.com/client/v4/").unwrap());
+Lazy::new(|| Url::parse("https://api.cloudflare.com/client/v4/").unwrap());
 pub const NOTIFICATIONS_ENABLED_STORE: &str = "yral-notifications-enabled";
 pub const NOTIFICATION_MIGRATED_STORE: &str = "notifications-migrated";
 pub const NSFW_TOGGLE_STORE: &str = "nsfw-enabled";
@@ -38,13 +39,13 @@ pub const USER_INTERNAL_STORE: &str = "user-internal";
 pub const WALLET_BALANCE_STORE_KEY: &str = "wallet-balance-sats";
 
 pub static OFF_CHAIN_AGENT_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev").unwrap());
+Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev").unwrap());
 
 pub static ANALYTICS_SERVER_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://marketing-analytics-server.fly.dev").unwrap());
+Lazy::new(|| Url::parse("https://marketing-analytics-server.fly.dev").unwrap());
 pub static OFF_CHAIN_AGENT_GRPC_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev:443").unwrap()); // pr-91-yral-dapp-off-chain-agent https://icp-off-chain-agent.fly.dev:443
-                                                                                  // G-6W5Q2MRX0E to test locally | G-PLNNETMSLM
+Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev:443").unwrap()); // pr-91-yral-dapp-off-chain-agent https://icp-off-chain-agent.fly.dev:443
+// G-6W5Q2MRX0E to test locally | G-PLNNETMSLM
 pub static DOWNLOAD_UPLOAD_SERVICE: Lazy<Url> =
     Lazy::new(|| Url::parse("https://download-upload-service.fly.dev").unwrap());
 pub static ML_FEED_URL: Lazy<Url> =
