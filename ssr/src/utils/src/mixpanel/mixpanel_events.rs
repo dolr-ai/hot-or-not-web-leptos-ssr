@@ -263,25 +263,25 @@ impl MixpanelGlobalProps {
     }
 
     pub fn get_device_id() -> String {
-        let device_id = MixpanelState::get_device_id_untracked();
-        if let Some(device_id) = device_id {
+        let device_id = MixpanelState::get_device_id();
+        if let Some(device_id) = device_id.get_untracked() {
             device_id
         } else {
-            let device_id = crate::local_storage::LocalStorage::uuid_get_or_init(DEVICE_ID);
-            MixpanelState::set_device_id(device_id.clone());
-            device_id
+            let device_id_val = crate::local_storage::LocalStorage::uuid_get_or_init(DEVICE_ID);
+            device_id.set(Some(device_id_val.clone()));
+            device_id_val
         }
     }
 
     pub fn get_custom_device_id() -> String {
-        let custom_device_id = MixpanelState::get_custom_device_id_untracked();
-        if let Some(custom_device_id) = custom_device_id {
+        let custom_device_id = MixpanelState::get_custom_device_id();
+        if let Some(custom_device_id) = custom_device_id.get_untracked() {
             custom_device_id
         } else {
-            let custom_device_id =
+            let custom_device_id_val =
                 crate::local_storage::LocalStorage::uuid_get_or_init(CUSTOM_DEVICE_ID);
-            MixpanelState::set_custom_device_id(custom_device_id.clone());
-            custom_device_id
+            custom_device_id.set(Some(custom_device_id_val.clone()));
+            custom_device_id_val
         }
     }
 
