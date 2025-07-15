@@ -12,7 +12,7 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
-use limits::{CoinState, DEFAULT_BET_COIN_STATE};
+use limits::{CoinState, CREATOR_COMMISSION_PERCENT, DEFAULT_BET_COIN_STATE};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -225,7 +225,7 @@ fn HNButtonOverlay(
                             stake_type: StakeType::Sats,
                             conclusion: game_conclusion,
                             won_loss_amount: win_loss_amount,
-                            creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
+                            creator_commision_percentage: CREATOR_COMMISSION_PERCENT,
                         });
                         play_win_sound_and_vibrate(
                             audio_ref,
@@ -320,7 +320,8 @@ fn HNWonLost(
     let auth = auth_state();
     let event_ctx = auth.event_ctx();
     let won = matches!(game_result, GameResult::Win { .. });
-    let creator_reward_rounded = ((vote_amount * crate::consts::CREATOR_COMMISION_PERCENT) as f64 / 100.0).ceil() as u64;
+    let creator_reward_rounded =
+        ((vote_amount * CREATOR_COMMISSION_PERCENT) as f64 / 100.0).ceil() as u64;
     let bet_direction_text = match bet_direction.get() {
         Some(VoteKind::Hot) => "Hot",
         Some(VoteKind::Not) => "Not",
