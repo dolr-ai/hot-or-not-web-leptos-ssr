@@ -32,7 +32,7 @@ async fn is_airdrop_claimed(user_principal: Principal, now: DateTimeUtc) -> anyh
     let next_airdrop_available_after =
         airdrop_data.last_airdrop_at.and_utc() + Duration::from_secs(24 * 3600);
 
-    Ok(now >= next_airdrop_available_after)
+    Ok(now < next_airdrop_available_after)
 }
 
 async fn mark_airdrop_claimed(
