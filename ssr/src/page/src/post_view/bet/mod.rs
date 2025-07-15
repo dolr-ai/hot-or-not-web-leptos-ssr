@@ -320,32 +320,26 @@ fn HNWonLost(
     let auth = auth_state();
     let event_ctx = auth.event_ctx();
     let won = matches!(game_result, GameResult::Win { .. });
-    let creator_reward = (vote_amount * crate::consts::CREATOR_COMMISION_PERCENT) / 100;
+    let creator_reward_rounded = ((vote_amount * crate::consts::CREATOR_COMMISION_PERCENT) as f64 / 100.0).ceil() as u64;
     let bet_direction_text = match bet_direction.get() {
         Some(VoteKind::Hot) => "Hot",
         Some(VoteKind::Not) => "Not",
         None => "",
     };
-    let creator_reward_text = if creator_reward > 0 {
-        format!(", creator gets {creator_reward} SATS")
-    } else {
-        "".to_string()
-    };
     let (line1, line2) = match game_result.clone() {
         GameResult::Win { win_amt } => (
-            format!("You voted \"{bet_direction_text}\" - Spot on!"),
+            format!("You voted \"{bet_direction_text}\" - and you were right!"),
             format!(
-                "You won {} SATS{}",
+                "You win {} SATS, the creator gets {}",
                 TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
-                creator_reward_text
+                creator_reward_rounded
             ),
         ),
         GameResult::Loss { lose_amt } => (
-            format!("You voted \"{bet_direction_text}\" - wrong vote."),
+            format!("You voted \"{bet_direction_text}\" - better luck next time!"),
             format!(
-                "You lost {} SATS{}",
-                TokenBalance::new(lose_amt.into(), 0).humanize(),
-                creator_reward_text
+                "You lost {} SATS",
+                TokenBalance::new(lose_amt.into(), 0).humanize()
             ),
         ),
     };
