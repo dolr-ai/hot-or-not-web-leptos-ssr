@@ -1,6 +1,7 @@
 pub mod airdrop_icon;
 pub mod arrow_left_right_icon;
 pub mod chevron_right_icon;
+pub mod edit_icons;
 pub mod eye_hide_icon;
 pub mod information_icon;
 pub mod notification_icon;

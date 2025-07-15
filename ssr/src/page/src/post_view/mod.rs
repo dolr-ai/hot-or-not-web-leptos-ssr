@@ -425,7 +425,7 @@ pub fn PostView() -> impl IntoView {
 pub fn OnboardingWelcomePopup(show: RwSignal<bool>, close_action: Action<(), ()>) -> impl IntoView {
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
-    const CREDITED_AMOUNT: u64 = 100;
+    const CREDITED_AMOUNT: u64 = limits::NEW_USER_SIGNUP_REWARD_SATS;
     Effect::new(move || {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
             MixPanelEvent::track_onboarding_popup(MixpanelOnboardingPopupViewProps {
@@ -460,7 +460,7 @@ pub fn OnboardingWelcomePopup(show: RwSignal<bool>, close_action: Action<(), ()>
                         <img src="/img/hotornot/onboarding-welcome.webp" class="h-60" />
                         <div class="text-center text-2xl font-semibold">Bitcoin credited to<br/> your wallet!</div>
                         <div class="text-center">
-                            "You've got free "<span class="font-semibold">Bitcoin (100 SATS)</span>.
+                            "You've got free "<span class="font-semibold">{format!("Bitcoin ({CREDITED_AMOUNT} SATS)")}</span>.
                             <br/>
                             "Here's how to make it grow"
                         </div>
