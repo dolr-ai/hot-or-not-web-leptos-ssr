@@ -8,6 +8,7 @@ pub mod hon;
 pub mod leaderboard;
 pub mod logout;
 pub mod menu;
+pub mod notification;
 pub mod notifs;
 pub mod post_view;
 pub mod privacy;
