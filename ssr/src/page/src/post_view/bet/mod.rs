@@ -466,8 +466,16 @@ fn VideoScoreComparison(current_score: f32, previous_score: f32, won: bool) -> i
         "text-[#F14331]"
     };
 
-    let current_score_int = current_score.round() as u32;
-    let previous_score_int = previous_score.round() as u32;
+    let mut current_score_int = current_score.round() as u32;
+    let mut previous_score_int = previous_score.round() as u32;
+
+    if current_score_int == previous_score_int {
+        if won && is_current_higher {
+            current_score_int += 1;
+        } else {
+            previous_score_int += 1;
+        }
+    }
 
     view! {
         <div class="flex justify-center items-center gap-6 bg-black/40 rounded-full px-6 py-2 text-white text-sm font-semibold">
