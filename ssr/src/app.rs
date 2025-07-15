@@ -7,6 +7,7 @@ use leptos_router::hooks::use_location;
 use leptos_router::{components::*, path, MatchNestedRoutes};
 use page::about_us::AboutUs;
 use page::leaderboard::Leaderboard;
+use page::notification::NotificaitonPage;
 use page::post_view::PostDetailsCacheCtx;
 use page::root::YralRootPage;
 use page::terms_android::TermsAndroid;
@@ -204,6 +205,7 @@ pub fn App() -> impl IntoView {
                         />
                         <Route path=path!("/terms-ios") view=TermsIos />
                         <Route path=path!("/terms-android") view=TermsAndroid />
+                        <Route path=path!("/test") view=NotificaitonPage />
                     </ParentRoute>
                 </Routes>
 

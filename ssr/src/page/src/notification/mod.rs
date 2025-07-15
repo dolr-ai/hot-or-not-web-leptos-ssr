@@ -1,3 +1,8 @@
+use component::{back_btn::BackButton, title::TitleText};
+use leptos::prelude::*;
+use leptos_meta::*;
+use state::app_state::AppState;
+
 #[component]
 fn NotificationLoadingItem() -> impl IntoView {
     view! {
@@ -71,8 +76,8 @@ pub fn NotificaitonPage() -> impl IntoView {
 
                 <NotificationLoadingItem />
                 <NotificationLoadingItem />
-                <NotifcaitonItem />
-                <NotifcaitonItem />  
+                <NotificationItem />
+                <NotificationItem />  
             </div>
         </div>
     }
