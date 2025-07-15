@@ -14,6 +14,7 @@ use leptos::{
 };
 use leptos_icons::*;
 use leptos_use::use_event_listener;
+use limits::CREATOR_COMMISSION_PERCENT;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use state::canisters::{auth_state, unauth_canisters};
@@ -452,7 +453,7 @@ pub fn VideoUploader(
                         is_nsfw_enabled: global.is_nsfw_enabled,
                         video_id: uid_value.clone(),
                         is_game_enabled: true,
-                        creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
+                        creator_commision_percentage: CREATOR_COMMISSION_PERCENT,
                         game_type: MixpanelPostGameType::HotOrNot,
                     });
                     published.set(true)
