@@ -475,7 +475,7 @@ fn VideoScoreComparison(current_score: f32, previous_score: f32, won: bool) -> i
     let mut current_score_int = current_score.round() as u32;
     let mut previous_score_int = previous_score.round() as u32;
 
-    if current_score_int == previous_score_int  {
+    if current_score_int == previous_score_int {
         if won && is_current_higher {
             current_score_int += 1;
         } else {
