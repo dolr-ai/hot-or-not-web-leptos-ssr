@@ -1,6 +1,8 @@
 mod server_impl;
 
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
+use component::login_modal::LoginModal;
+use component::login_nudge_popup::LoginNudgePopup;
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
 use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
 use hon_worker_common::{
@@ -35,6 +37,7 @@ fn CoinStateView(
     #[prop(into)] coin: Signal<CoinState>,
     #[prop(into)] class: String,
     #[prop(optional, into)] disabled: Signal<bool>,
+    #[prop(optional, into)] is_connected: Signal<bool>,
 ) -> impl IntoView {
     let icon = Signal::derive(move || match coin() {
         CoinState::C10 => C10Icon,
@@ -44,6 +47,10 @@ fn CoinStateView(
         CoinState::C50 => C50Icon,
         CoinState::C100 => C100Icon,
         CoinState::C200 => C200Icon,
+    });
+
+    let disabled = Signal::derive(move || {
+        disabled.get() || (!is_connected.get() && coin.get() != CoinState::C1)
     });
 
     view! {
@@ -122,6 +129,18 @@ fn HNButtonOverlay(
         }
     }
 
+    let show_login_nudget = RwSignal::new(false);
+    let show_login_popup = RwSignal::new(false);
+
+    let check_show_login_nudge = move || {
+        if !is_connected.get_untracked() && coin.get_untracked() != DEFAULT_BET_COIN_STATE {
+            show_login_nudget.set(true);
+            Err(())
+        } else {
+            Ok(())
+        }
+    };
+
     let place_bet_action: Action<VoteKind, Option<()>> =
         Action::new(move |bet_direction: &VoteKind| {
             let post_canister = post.canister_id;
@@ -146,6 +165,10 @@ fn HNButtonOverlay(
 
             let post_mix = post.clone();
             send_wrap(async move {
+                let res = check_show_login_nudge();
+                if res.is_err() {
+                    return None;
+                }
                 let cans = auth.auth_cans(expect_context()).await.ok()?;
                 let is_logged_in = is_connected.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
@@ -252,6 +275,8 @@ fn HNButtonOverlay(
                 />
             </button>
         </div>
+        <LoginNudgePopup show=show_login_nudget show_login_popup />
+        <LoginModal show=show_login_popup redirect_to=None />
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
@@ -259,6 +284,7 @@ fn HNButtonOverlay(
                     disabled=running
                     class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-lg"
                     coin
+                    is_connected
                 />
             </button>
             <HNButton disabled=running bet_direction kind=VoteKind::Not place_bet_action />
