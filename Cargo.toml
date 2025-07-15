@@ -1,12 +1,15 @@
 [workspace]
-members = ["ssr"]
+members = [
+    "ssr",
+    "ssr/src/auth",
+    "ssr/src/component",
+    "ssr/src/consts",
+    "ssr/src/state",
+    "ssr/src/utils",
+    "ssr/src/page",
+]
 resolver = "2"
 
-[workspace.dependencies]
-serde = { version = "1.0", features = ["derive"] }
-candid = "0.10.3"
-serde_bytes = "0.11.14"
-web-time = "1.0.0"
 
 # Defines a size-optimized profile for the WASM bundle in release mode
 [profile.wasm-release]
@@ -14,4 +17,189 @@ inherits = "release"
 opt-level = 'z'
 lto = true
 codegen-units = 1
-panic = "abort"
+# panic = "abort"
+
+[profile.prod-release]
+inherits = "release"
+debug = 1
+lto = true
+
+# TODO: leaving this here as a reminder to be used once cargo-leptos solves the profile issue
+# [profile.preview-release]
+# inherits = "release"
+
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+candid = "0.10.3"
+serde_bytes = "0.11.14"
+web-time = "1.0.0"
+axum = { version = "0.8.4", features = ["macros"] }
+console_error_panic_hook = "0.1"
+console_log = "1"
+leptos = { version = "0.8.2", features = ["nightly"] }
+leptos_axum = { version = "0.8.2" }
+leptos_meta = "0.8.2"
+leptos_router = { version = "0.8.2", features = ["nightly"] }
+reactive_graph = "0.2.2"
+log = "0.4"
+simple_logger = "4.0"
+tokio = { version = "1", features = ["rt-multi-thread", "signal", "time"] }
+tower = { version = "0.4" }
+tower-http = { version = "0.5", features = ["fs", "cors"] }
+wasm-bindgen = "=0.2.100"
+thiserror = "2.0"
+tracing = { version = "0.1.37" }
+http = "1.1.0"
+ic-agent = { version = "0.38.1", default-features = false, features = ["pem"] }
+ic-base-types = { git = "https://github.com/dfinity/ic", rev = "tags/release-2024-10-17_03-07-base" }
+icp-ledger = { git = "https://github.com/dfinity/ic", rev = "tags/release-2024-10-17_03-07-base" }
+serde-wasm-bindgen = "0.6.5"
+futures = "0.3.30"
+leptos-use = { version = "0.16.0-beta2" }
+codee = { version = "0.3.0", features = ["json_serde"] }
+reqwest = { version = "0.12", default-features = false, features = [
+    "json",
+    "http2",
+] }
+hex = "0.4.3"
+leptos_icons = "0.6.1"
+icondata = "0.3.0"
+gloo = { version = "0.11.0", features = ["futures", "net", "net"] }
+once_cell = "1.19.0"
+k256 = { version = "0.13.4", default-features = false, features = [
+    "std",
+    "jwk",
+] }
+icondata_core = "0.1.0"
+serde_json = "1.0"
+crc32fast = "1.4.0"
+uts2ts = "0.4.1"
+rand_chacha = { version = "0.3.1" }
+web-sys = { version = "0.3", features = [
+    "Clipboard",
+    "Navigator",
+    "ShareData",
+    "Window",
+    "Document",
+    "Worker",
+    "XmlHttpRequest",
+    "XmlHttpRequestUpload",
+    "ValidityState"
+] }
+circular-buffer = "0.1.7"
+redb = { version = "2.0.0" }
+enum_dispatch = { version = "0.3.12" }
+axum-extra = { version = "0.10.1", features = [
+    "cookie",
+    "cookie-signed",
+    "cookie-private",
+    "typed-header",
+] }
+openidconnect = { version = "3.5.0" }
+dotenv = { version = "0.15.0" }
+redis = { version = "0.25.2", features = [
+    "tokio-rustls-comp",
+    "aio",
+    "ahash",
+    "connection-manager",
+    "keep-alive",
+], default-features = false }
+bb8 = { version = "0.8.3" }
+bb8-redis = { version = "0.15.0" }
+gob-cloudflare = { git = "https://github.com/yral-dapp/gob-cloudflare", rev = "c847ba87ecc73a33520b24bd62503420d7e23e3e", default-features = false }
+gloo-utils = { version = "0.2.0", features = ["serde"] }
+hmac = { version = "0.12.1" }
+wasm-bindgen-futures = { version = "0.4.42" }
+testcontainers = { version = "0.20.0" }
+yral-testcontainers = { git = "https://github.com/yral-dapp/yral-testcontainers", rev = "7438ba7cb281e7f195cf81f2a8532f63ce005771" }
+js-sys = "0.3.69"
+tonic = { version = "0.12.0", default-features = false, features = [
+    "prost",
+    "codegen",
+] }
+prost = "0.13.0"
+priority-queue = "2.1.0"
+rust_decimal = "1.36"
+speedate = { version = "0.14.4" }
+urlencoding = "2.1.3"
+ic-certification = "2.6.0"
+ciborium = "0.2.2"
+yral-metadata-client = { git = "https://github.com/yral-dapp/yral-metadata", branch = "master" }
+yral-metadata-types = { git = "https://github.com/yral-dapp/yral-metadata", branch = "master" }
+uuid = { version = "1.11.0", features = ["v4", "js"] }
+regex = { version = "1.11.1" }
+tonic-build = { version = "0.12.0", default-features = false, features = [
+    "prost",
+] }
+anyhow = { version = "1.0.86" }
+send_wrapper = { version = "0.6.0", features = ["futures"] }
+auth = { path = "./ssr/src/auth" }
+component = { path = "./ssr/src/component" }
+consts = { path = "./ssr/src/consts" }
+state = { path = "./ssr/src/state" }
+utils = { path = "./ssr/src/utils" }
+page = { path = "./ssr/src/page" }
+rand = { version = "0.9.0", default-features = false, features = ["small_rng"] }
+# need getrandom with wasm_js feature for generating random values in wasm32-unknown-unknown
+getrandom = { version = "0.3.3", default-features = false, features = [
+    "wasm_js",
+] }
+indexmap = "2.8.0"
+sentry-tracing = "0.37.0"
+tracing-log = "0.2.0"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing-futures = "0.2.5"
+sentry = { version = "0.37.0", default-features = false, features = [
+    "rustls",
+    "sentry-anyhow",
+    "serde_json",
+    "backtrace",
+    "contexts",
+    "debug-images",
+    "panic",
+    "release-health",
+    "reqwest",
+] }
+sentry-tower = { version = "0.37.0", features = ["axum", "axum-matched-path"] }
+jsonwebtoken = "9.3.1"
+google-cloud-alloydb-v1 = "0.2.0"
+yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adbf4be5cb62a26f2a90032261321bf1df33f08b", default-features = false }
+sea-orm = { version = "1.1.13", features = ["sqlx-postgres", "runtime-tokio-rustls"] }
+dolr-airdrop = { git = "https://github.com/dolr-ai/yral-neon-postgres", branch = "main", version = "0.1.0" }
+cargo-husky = { version = "1.5.0", features = ["user-hooks"] }
+num-traits = "0.2.19"
+
+# ===
+# Uncomment the below lines for testing out yral-common changes locally
+# ===
+# sns-validation = { path = "../yral-common/sns-validation" }
+# yral-types = { path = "../yral-common/types" }
+# yral-canisters-client = { path = "../yral-common/canisters-client", features = [
+#     "full",
+# ] }
+# yral-canisters-common = { path = "../yral-common/canisters-common" }
+# hon-worker-common = { path = "../yral-common/hon-worker-common", features = [
+#     "client",
+# ], version = "0.1.0" }
+# yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features = [
+#     "client",
+# ], version = "0.1.0" }
+# hon-worker-common = { path = "../yral-common/hon-worker-common", features = [ "client", ], version = "0.1.0" }
+# yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features = [
+#     "client",
+# ], version = "0.1.0" }
+# ===
+yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common", features = [
+    "client",
+], branch = "master", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
+    "full",
+] }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+hon-worker-common = { git = "https://github.com/dolr-ai/yral-common", features = [
+    "client",
+], branch = "master", version = "0.1.0" }
+limits = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }

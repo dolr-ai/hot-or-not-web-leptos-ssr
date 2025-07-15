@@ -1,23 +1,20 @@
 use std::time::Duration;
 
+use crate::canister_ids::USER_INDEX_ID;
+use consts::{YRAL_BACKEND_CONTAINER_TAG, YRAL_METADATA_CONTAINER_TAG};
 use ic_agent::{identity::Secp256k1Identity, AgentError, Identity};
 use k256::SecretKey;
+use state::admin_canisters::AdminCanisters;
 use testcontainers::{
     core::{ContainerPort, IntoContainerPort, WaitFor},
     runners::AsyncRunner,
     ContainerAsync, GenericImage, Image, ImageExt,
 };
 use yral_metadata_client::MetadataClient;
-use yral_metadata_types::UserMetadata;
+use yral_metadata_types::SetUserMetadataReqMetadata;
 use yral_testcontainers::{
     backend::{self, YralBackend, ADMIN_SECP_BYTES},
     metadata::{self, YralMetadata},
-};
-
-use crate::{
-    canister_ids::USER_INDEX_ID,
-    consts::{METADATA_API_BASE, YRAL_BACKEND_CONTAINER_TAG, YRAL_METADATA_CONTAINER_TAG},
-    state::admin_canisters::AdminCanisters,
 };
 
 type MaybeContainer<I> = Option<ContainerAsync<I>>;
@@ -39,7 +36,7 @@ impl TestContainers {
             .with_mapped_port(port.as_u16(), port)
             .start()
             .await
-            .map_err(|e| format!("Failed to start container: {}", e))
+            .map_err(|e| format!("Failed to start container: {e}"))
             .unwrap()
     }
     pub async fn start_redis(&mut self) {
@@ -55,8 +52,7 @@ impl TestContainers {
 
         // Setup User Principal -> User Canister ID
         // for the admin canister
-        let metadata_client: MetadataClient<false> =
-            MetadataClient::with_base_url(METADATA_API_BASE.clone());
+        let metadata_client: MetadataClient<false> = MetadataClient::default();
         let sk = SecretKey::from_bytes(&ADMIN_SECP_BYTES.into()).unwrap();
         let id = Secp256k1Identity::from_private_key(sk);
         let cans = AdminCanisters::new(id.clone());
@@ -76,13 +72,15 @@ impl TestContainers {
                 Err(e) => panic!("Failed to get user canister {e}"),
             }
         };
-        let metadata = UserMetadata {
-            user_canister_id: admin_canister,
-            user_name: "".into(),
-        };
 
         metadata_client
-            .set_user_metadata(&id, metadata)
+            .set_user_metadata(
+                &id,
+                SetUserMetadataReqMetadata {
+                    user_canister_id: admin_canister,
+                    user_name: "".into(),
+                },
+            )
             .await
             .unwrap()
     }

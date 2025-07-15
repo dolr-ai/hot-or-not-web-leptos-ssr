@@ -1,4 +1,4 @@
-name: Build and Check linting
+name: Build and Check linting for preview release
 
 on:
   workflow_call:
@@ -7,31 +7,47 @@ on:
         default: false
         required: false
         type: boolean
+      erase_components:
+        description: "Enable type erasure. Default is false."
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
+    inputs:
+      erase_components:
+        description: "Enable type erasure."
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build_check:
-    runs-on: ubuntu-latest
+    runs-on: warp-ubuntu-latest-x64-32x
     steps:
+      - name: Set Swap Space # Needed to fix OOM error in runner
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 8
+
       - name: Checkout repo and submodules
         uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - name: Install prereqs
-        run: |
-          sudo apt-get install protobuf-compiler
+      - name: Install mold linker
+        uses: rui314/setup-mold@v1
 
       - name: Rust Setup
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "nightly-2024-09-23"
-          targets: "x86_64-unknown-linux-musl,wasm32-unknown-unknown"
+          toolchain: "nightly-2025-01-09"
+          targets: "wasm32-unknown-unknown"
           components: "clippy,rustfmt"
+          override: true
 
       - uses: cargo-bins/cargo-binstall@main
       - name: cargo-leptos setup
-        run: cargo binstall --no-confirm cargo-leptos --version 0.2.19
+        run: cargo binstall --no-confirm cargo-leptos --version 0.2.35 --locked
 
       - name: Cache rust dependencies and build output
         uses: Swatinem/rust-cache@v2
@@ -65,27 +81,57 @@ jobs:
 
       - uses: awalsh128/cache-apt-pkgs-action@v1
         with:
-          packages: musl-tools # provides musl-gcc
+          packages: protobuf-compiler pkg-config libssl-dev
           version: 1.0
+
+      - name: Install clippy
+        run: |
+          rustup component add clippy
+          rustup component add rustfmt
 
       - name: lint check
         run: |
           cargo fmt --check
-          cargo clippy --no-deps --all-features --release -- -Dwarnings
-
-      - name: Build the Leptos project to `musl` output
-        run: cargo leptos build --release --lib-features release-lib --bin-features release-bin
+          cargo clippy --no-deps --all-features --release -- -D warnings
         env:
-          LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
+          RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
+
+      - name: Print Rust and Cargo version
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Build the Leptos project to output
+        run: |
+          RUSTFLAGS_VALUE=""
+          if [[ "${{ inputs.erase_components }}" == "true" ]]; then
+            RUSTFLAGS_VALUE="--cfg=erase_components"
+          fi
+          echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
+          RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release --lib-features release-lib --bin-features release-bin
+        env:
+          RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
           LEPTOS_HASH_FILES: true
+          LEPTOS_TAILWIND_VERSION: v4.1.7
+      - name: Strip debug symbols
+        run: |
+          objcopy --only-keep-debug target/prod-release/hot-or-not-web-leptos-ssr{,.d}
+          objcopy --strip-debug --strip-unneeded target/prod-release/hot-or-not-web-leptos-ssr
       - run: touch .empty
       - name: Archive production artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: ${{ inputs.publish-artifact }}
         with:
-          name: build-musl
+          name: build
           path: |
-            target/x86_64-unknown-linux-musl/release/hot-or-not-web-leptos-ssr
-            hash.txt
+            target/prod-release/hot-or-not-web-leptos-ssr
+            target/prod-release/hash.txt
             target/site
             .empty
+
+      - name: Find and display hash file
+        run: |
+          find . -name "hash.txt" -type f
+      # - name: Tree files
+      #   run: |
+      #     tree

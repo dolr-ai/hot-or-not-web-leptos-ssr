@@ -1,179 +1,223 @@
-use crate::page::icpump::ai::ICPumpAi;
-use crate::page::icpump::ICPumpLanding;
-
-// use crate::page::wallet::TestIndex;
-use crate::{
-    component::{base_route::BaseRoute, nav::NavBar},
-    error_template::{AppError, ErrorTemplate},
-    page::{
-        account_transfer::AccountTransfer,
-        err::ServerErrorPage,
-        leaderboard::Leaderboard,
-        logout::Logout,
-        menu::{AuthorizedUserToSeedContent, Menu},
-        post_view::{single_post::SinglePost, PostView, PostViewCtx},
-        privacy::PrivacyPolicy,
-        profile::{profile_post::ProfilePost, ProfilePostsContext, ProfileView},
-        refer_earn::ReferEarn,
-        root::RootPage,
-        settings::Settings,
-        terms::TermsOfService,
-        token::{
-            create::{CreateToken, CreateTokenCtx, CreateTokenSettings},
-            create_token_faq::CreateTokenFAQ,
-            info::TokenInfo,
-            transfer::TokenTransfer,
-        },
-        upload::UploadPostPage,
-        wallet::Wallet,
-    },
-    state::{audio_state::AudioState, content_seed_client::ContentSeedClient, history::HistoryCtx},
-    utils::event_streaming::EventHistory,
-};
-use yral_canisters_common::Canisters;
-
-use leptos::*;
+use crate::error_template::{AppError, ErrorTemplate};
+use component::content_upload::AuthorizedUserToSeedContent;
+use component::{base_route::BaseRoute, nav::NavBar};
+use leptos::prelude::*;
 use leptos_meta::*;
-use leptos_router::*;
+use leptos_router::hooks::use_location;
+use leptos_router::{components::*, path, MatchNestedRoutes};
+use page::about_us::AboutUs;
+use page::leaderboard::Leaderboard;
+use page::post_view::PostDetailsCacheCtx;
+use page::root::YralRootPage;
+use page::terms_android::TermsAndroid;
+use page::terms_ios::TermsIos;
+use page::{
+    err::ServerErrorPage,
+    logout::Logout,
+    menu::Menu,
+    post_view::{single_post::SinglePost, PostView, PostViewCtx},
+    privacy::PrivacyPolicy,
+    profile::{
+        edit::{username::ProfileUsernameEdit, ProfileEdit},
+        profile_post::ProfilePost,
+        LoggedInUserProfileView, ProfilePostsContext, ProfileView,
+    },
+    refer_earn::ReferEarn,
+    settings::Settings,
+    terms::TermsOfService,
+    token::{info::TokenInfo, transfer::TokenTransfer},
+    upload::UploadPostPage,
+    wallet::Wallet,
+};
+use page::{hon, pumpdump};
+use state::app_state::AppState;
+use state::app_type::AppType;
+use state::hn_bet_state::HnBetState;
+use state::{audio_state::AudioState, content_seed_client::ContentSeedClient};
+use utils::event_streaming::events::HistoryCtx;
+use utils::event_streaming::EventHistory;
+use utils::types::PostParams;
+use yral_canisters_common::Canisters;
 
 #[component]
 fn NotFound() -> impl IntoView {
     let mut outside_errors = Errors::default();
     outside_errors.insert_with_default_key(AppError::NotFound);
-    view! { <ErrorTemplate outside_errors/> }
+    view! { <ErrorTemplate outside_errors /> }
 }
 
 #[component(transparent)]
-fn GoogleAuthRedirectHandlerRoute() -> impl IntoView {
-    let path = "/auth/google_redirect";
+fn GoogleAuthRedirectHandlerRoute() -> impl MatchNestedRoutes + Clone {
+    let path = path!("/auth/google_redirect");
     #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
     {
-        use crate::page::google_redirect::GoogleRedirectHandler;
-        view! { <Route path view=GoogleRedirectHandler/> }
+        use page::yral_auth_redirect::YralAuthRedirectHandler;
+        view! { <Route path view=YralAuthRedirectHandler /> }.into_inner()
     }
     #[cfg(not(any(feature = "oauth-ssr", feature = "oauth-hydrate")))]
     {
-        view! { <Route path view=NotFound/> }
+        view! { <Route path view=NotFound /> }.into_inner()
     }
 }
 
-#[component(transparent)]
-fn GoogleAuthRedirectorRoute() -> impl IntoView {
-    let path = "/auth/perform_google_redirect";
-    #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
-    {
-        use crate::page::google_redirect::GoogleRedirector;
-        view! { <Route path view=GoogleRedirector/> }
-    }
-    #[cfg(not(any(feature = "oauth-ssr", feature = "oauth-hydrate")))]
-    {
-        view! { <Route path view=NotFound/> }
+pub fn shell(options: LeptosOptions) -> impl IntoView {
+    view! {
+        <!DOCTYPE html>
+        <html lang="en">
+            <head>
+                <meta charset="utf-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <meta name="facebook-domain-verification" content="sqtv2sr90ar0ck7t7zcklos44fw8t3" />
+                <script fetchpriority="low" type="module" src="/js/sentry-init.js" async></script>
+                <script fetchpriority="low" type="module" src="/js/mixpanel-init.js" async></script>
+                <script
+                    fetchpriority="low"
+                    type="module"
+                    src="/js/store-initial-url.js"
+                    async
+                ></script>
+
+                <AutoReload options=options.clone() />
+                <HashedStylesheet id="leptos" options=options.clone() />
+                <Meta property="og:title" content="YRAL - World's first social on Bitcoin" />
+                <Meta property="og:image" content="/img/common/preview.webp" />
+                <HydrationScripts options />
+                <MetaTags />
+            </head>
+            <body>
+                <App />
+            </body>
+        </html>
     }
 }
 
 #[component]
 pub fn App() -> impl IntoView {
-    // Provides context that manages stylesheets, titles, meta tags, etc.
     provide_meta_context();
+
+    let app_type = AppType::select();
+    let app_state = AppState::from_type(&app_type);
+    provide_context(app_state.clone());
+
+    // Existing context providers
     provide_context(Canisters::default());
     provide_context(ContentSeedClient::default());
-    provide_context(PostViewCtx::default());
+    provide_context(PostViewCtx::new());
     provide_context(ProfilePostsContext::default());
     provide_context(AuthorizedUserToSeedContent::default());
     provide_context(AudioState::default());
-    provide_context(CreateTokenCtx::default());
-
-    #[cfg(feature = "hydrate")]
-    {
-        use crate::utils::ml_feed::ml_feed_grpcweb::MLFeed;
-        provide_context(MLFeed::default());
-    }
+    provide_context(PostDetailsCacheCtx::default());
 
     // History Tracking
     let history_ctx = HistoryCtx::default();
     provide_context(history_ctx.clone());
-    create_effect(move |_| {
-        let loc = use_location();
-        history_ctx.push(&loc.pathname.get());
-    });
+
+    let _ = HnBetState::init();
+
+    let current_post_params = RwSignal::new(None::<PostParams>);
+    provide_context(current_post_params);
+
+    #[cfg(feature = "hydrate")]
+    {
+        Effect::new(move |_| {
+            let loc = use_location();
+            history_ctx.push(&loc.pathname.get());
+        });
+    }
 
     // Analytics
-    let enable_ga4_script = create_rw_signal(false);
     #[cfg(feature = "ga4")]
     {
-        enable_ga4_script.set(true);
         provide_context(EventHistory::default());
     }
 
     view! {
-        <Stylesheet id="leptos" href="/pkg/hot-or-not-leptos-ssr.css"/>
+        <Title text=app_state.name />
 
-        // sets the document title
-        <Title text="Yral"/>
+        // Favicon
+        <Link
+            rel="icon"
+            type_="image/svg+xml"
+            href=format!("/{}/favicon.svg", app_state.asset_path())
+        />
+        <Link rel="shortcut icon" href=format!("/{}/favicon.ico", app_state.asset_path()) />
+        <Link
+            rel="apple-touch-icon"
+            sizes="180x180"
+            href=format!("/{}/favicon-apple.png", app_state.asset_path())
+        />
 
-        <Link rel="manifest" href="/app.webmanifest"/>
+        // Meta
+        <Meta name="apple-mobile-web-app-title" content=app_state.name />
 
-        // GA4 Global Site Tag (gtag.js) - Google Analytics
-        // G-6W5Q2MRX0E to test locally | G-PLNNETMSLM
-        <Show when=enable_ga4_script>
-            <Script
-                async_="true"
-                src=concat!("https://www.googletagmanager.com/gtag/js?id=", "G-PLNNETMSLM")
-            />
-            <Script>
-                {r#"
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', 'G-PLNNETMSLM');
-                "#}
-            </Script>
-        </Show>
+        // App manifest
+        <Link rel="manifest" href=format!("/{}/manifest.json", app_state.asset_path()) />
 
-        // <Script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js"></Script>
-        // <Script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js"></Script>
-
-        // content for this welcome page
-        <Router fallback=|| view! { <NotFound/> }.into_view()>
-            <main>
-                <Routes>
+        <Router>
+            <main class="bg-black" id="body">
+                <Routes fallback=|| view! { <NotFound /> }.into_view()>
                     // auth redirect routes exist outside main context
-                    <GoogleAuthRedirectHandlerRoute/>
-                    <GoogleAuthRedirectorRoute/>
-                    <Route path="" view=BaseRoute>
-                        <Route path="/" view=RootPage/>
-                        <Route path="/hot-or-not/:canister_id/:post_id" view=PostView/>
-                        <Route path="/post/:canister_id/:post_id" view=SinglePost/>
-                        <Route path="/profile/:canister_id/post/:post_id" view=ProfilePost/>
-                        <Route path="/upload" view=UploadPostPage/>
-                        <Route path="/error" view=ServerErrorPage/>
-                        <Route path="/menu" view=Menu/>
-                        <Route path="/settings" view=Settings/>
-                        <Route path="/refer-earn" view=ReferEarn/>
-                        <Route path="/profile/:id/:tab" view=ProfileView/>
-                        <Route path="/profile/:tab" view=ProfileView/>
-                        <Route path="/terms-of-service" view=TermsOfService/>
-                        <Route path="/privacy-policy" view=PrivacyPolicy/>
-                        <Route path="/wallet/:id" view=Wallet/>
-                        <Route path="/wallet" view=Wallet/>
-                        <Route path="/leaderboard" view=Leaderboard/>
-                        <Route path="/account-transfer" view=AccountTransfer/>
-                        <Route path="/logout" view=Logout/>
-                        <Route path="/token/create" view=CreateToken/>
-                        <Route path="/token/create/settings" view=CreateTokenSettings/>
-                        <Route path="/token/create/faq" view=CreateTokenFAQ/>
-                        <Route path="/token/info/:token_root/:key_principal" view=TokenInfo/>
-                        <Route path="/token/info/:token_root" view=TokenInfo/>
-                        <Route path="/token/transfer/:token_root" view=TokenTransfer/>
-                        <Route path="/board" view=ICPumpLanding/>
-                        <Route path="/icpump-ai" view=ICPumpAi/>
-                    // <Route path="/test" view=TestIndex/>
-                    </Route>
+                    <GoogleAuthRedirectHandlerRoute />
+                    <Route path=path!("/") view=YralRootPage />
+                    <ParentRoute path=path!("") view=BaseRoute>
+                        <Route
+                            path=path!("/hot-or-not/withdraw")
+                            view=hon::withdrawal::HonWithdrawal
+                        />
+                        <Route
+                            path=path!("/hot-or-not/withdraw/success")
+                            view=hon::withdrawal::result::Success
+                        />
+                        <Route
+                            path=path!("/hot-or-not/withdraw/failure")
+                            view=hon::withdrawal::result::Failure
+                        />
+                        <Route path=path!("/hot-or-not/:canister_id/:post_id") view=PostView />
+                        <Route path=path!("/post/:canister_id/:post_id") view=SinglePost />
+                        <Route path=path!("/profile/:canister_id/post/:post_id") view=ProfilePost />
+                        <Route path=path!("/upload") view=UploadPostPage />
+                        <Route path=path!("/error") view=ServerErrorPage />
+                        <Route path=path!("/menu") view=Menu />
+                        <Route path=path!("/settings") view=Settings />
+                        <Route path=path!("/settings/:action") view=Settings />
+                        <Route path=path!("/refer-earn") view=ReferEarn />
+                        <Route path=path!("/profile/edit") view=ProfileEdit />
+                        <Route path=path!("/profile/edit/username") view=ProfileUsernameEdit />
+                        <Route path=path!("/profile/:id/:tab") view=ProfileView />
+                        <Route path=path!("/profile/:tab") view=LoggedInUserProfileView />
+                        <Route path=path!("/terms-of-service") view=TermsOfService />
+                        <Route path=path!("/privacy-policy") view=PrivacyPolicy />
+                        <Route path=path!("/about-us") view=AboutUs />
+                        <Route path=path!("/wallet/:id") view=Wallet />
+                        <Route path=path!("/wallet") view=Wallet />
+                        <Route path=path!("/leaderboard") view=Leaderboard />
+                        <Route path=path!("/logout") view=Logout />
+                        <Route
+                            path=path!("/token/info/:token_root/:key_principal")
+                            view=TokenInfo
+                        />
+                        <Route path=path!("/token/info/:token_root") view=TokenInfo />
+                        <Route path=path!("/token/transfer/:token_root") view=TokenTransfer />
+                        <Route
+                            path=path!("/pnd/withdraw")
+                            view=pumpdump::withdrawal::PndWithdrawal
+                        />
+                        <Route
+                            path=path!("/pnd/withdraw/success")
+                            view=pumpdump::withdrawal::result::Success
+                        />
+                        <Route
+                            path=path!("/pnd/withdraw/failure")
+                            view=pumpdump::withdrawal::result::Failure
+                        />
+                        <Route path=path!("/terms-ios") view=TermsIos />
+                        <Route path=path!("/terms-android") view=TermsAndroid />
+                    </ParentRoute>
                 </Routes>
 
             </main>
             <nav>
-                <NavBar/>
+                <NavBar />
             </nav>
         </Router>
     }

@@ -1,0 +1,53 @@
+{
+  "short_name": "HotOrNot",
+  "name": "Hot Or Not",
+  "description": "Earn while scrolling through millions of videos with app challenges. Download now!",
+  "icons": [
+    {
+      "src": "/img/hotornot/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/img/hotornot/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#E53335",
+  "background_color": "#000",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "screenshots": [
+    {
+      "src": "/img/hotornot/1.png",
+      "sizes": "1290x2796",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Powered by Internet Computer"
+    },
+    {
+      "src": "/img/hotornot/2.png",
+      "sizes": "1290x2796",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Decentralized social media"
+    },
+    {
+      "src": "/img/hotornot/3.png",
+      "sizes": "1290x2796",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Discover new videos every day"
+    },
+    {
+      "src": "/img/hotornot/4.png",
+      "sizes": "1290x2796",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Earn by watching videos"
+    }
+  ]
+}

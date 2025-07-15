@@ -1,0 +1,42 @@
+name: nightwatch tests
+on:
+  workflow_call: 
+    inputs:
+      build_name:
+        required: true
+        type: string
+      preview_url:
+        default: https://yral.com
+        type: string
+        required: false
+
+jobs:
+  tests: 
+    name: 'nightwatch tests'
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    steps:
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "22.x"
+    
+      - name: Install dependencies
+        run: |
+            cd tests/e2e
+            npm ci
+
+      - name: Run Nightwatch tests
+        run: |
+            cd tests/e2e
+            npm test
+        env: 
+            PREVIEW_URL: ${{ inputs.preview_url }}
+            BUILD_NAME: ${{ inputs.build_name }}
+            BROWSERSTACK_USER_NAME: ${{vars.BROWSERSTACK_USER_NAME}}
+            BROWSERSTACK_ACCESS_KEY: ${{secrets.BROWSERSTACK_API_KEY}}
+            PERCY_TOKEN: ${{secrets.PERCY_TOKEN}}

@@ -1,6 +1,6 @@
 use gloo::history::{BrowserHistory, History};
 use http::status::StatusCode;
-use leptos::*;
+use leptos::prelude::*;
 use thiserror::Error;
 
 #[cfg(feature = "ssr")]
@@ -28,7 +28,7 @@ pub fn ErrorTemplate(
     #[prop(optional)] errors: Option<RwSignal<Errors>>,
 ) -> impl IntoView {
     let errors = match outside_errors {
-        Some(e) => create_rw_signal(e),
+        Some(e) => RwSignal::new(e),
         None => match errors {
             Some(e) => e,
             None => panic!("No Errors found and we expected errors!"),
@@ -68,15 +68,15 @@ pub fn ErrorTemplate(
     }
 
     view! {
-        <div class="flex flex-col w-dvw h-dvh bg-black justify-center items-center">
-            <img src="/img/error-logo.svg" />
-            <h1 class="p-2 text-2xl md:text-3xl font-bold text-white">"oh no!"</h1>
-            <div class="text-center text-xs md:text-sm text-white/60 w-full md:w-2/3 lg:w-1/3 resize-none px-8 mb-4">
+        <div class="flex flex-col justify-center items-center bg-black w-dvw h-dvh">
+            <img src="/img/common/error-logo.svg" />
+            <h1 class="p-2 text-2xl font-bold text-white md:text-3xl">"oh no!"</h1>
+            <div class="px-8 mb-4 w-full text-xs text-center resize-none md:w-2/3 md:text-sm lg:w-1/3 text-white/60">
                 {error_string.clone()}
             </div>
             <button
                 on:click=move |_| go_back()
-                class="bg-primary-600 rounded-full mt-6 py-4 px-12 max-w-full text-white text-lg md:text-xl"
+                class="py-4 px-12 mt-6 max-w-full text-lg text-white rounded-full md:text-xl bg-primary-600"
             >
                 Go back
             </button>

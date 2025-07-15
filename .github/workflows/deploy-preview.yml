@@ -1,7 +1,10 @@
 name: deploy preview
 on:
   pull_request:
-    types: [opened, reopened, synchronize, closed]
+    types: [opened, reopened, synchronize, closed, labeled, unlabeled]
+permissions:
+  deployments: write
+  pull-requests: read
 
 env:
   FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
@@ -12,8 +15,40 @@ jobs:
     uses: ./.github/workflows/build-check.yml
     with:
       publish-artifact: true
+      erase_components: ${{ contains(github.event.pull_request.labels.*.name, 'type erasured') }}
+    secrets: inherit
+
+  delete_neon_branches:
+    if: ${{github.event.pull_request.state == 'closed'}}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project_id: ["lively-bush-60037718"]
+    steps:
+      - name: Get branch name
+        id: branch-names
+        uses: tj-actions/branch-names@v8
+      - name: Delete Neon Branches
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ matrix.project_id }}
+          branch: ${{ steps.branch-names.outputs.current_branch }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+  destroy_preview:
+    if: ${{github.event.pull_request.state == 'closed'}}
+    runs-on: ubuntu-latest
+    environment:
+      name: pr-${{ github.event.number }}
+      url: ${{ steps.deploy.outputs.url }}
+
+    steps:
+      - name: Deploy
+        id: destroy
+        uses: superfly/fly-pr-review-apps@1.2.1
 
   preview:
+    if: ${{ github.event.pull_request.state == 'open'}}
     needs: build_check
     runs-on: ubuntu-latest
 
@@ -30,44 +65,77 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Download build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: build-musl
-      - run: chmod +x target/x86_64-unknown-linux-musl/release/hot-or-not-web-leptos-ssr
+          name: build
+      - run: chmod +x target/prod-release/hot-or-not-web-leptos-ssr
+
+      - name: Get branch name
+        id: branch-names
+        uses: tj-actions/branch-names@v8
+
+      # i wanna do this in a loop, but no idea how to
+      - name: Create Neon Branch (dolr airdrop)
+        id: neon-dolr-airdrop
+        uses: neondatabase/create-branch-action@v6
+        with:
+          project_id: lively-bush-60037718
+          branch_name: ${{ steps.branch-names.outputs.current_branch }}
+          api_key: ${{ secrets.NEON_API_KEY }}
 
       - name: Deploy
         id: deploy
-        uses: superfly/fly-pr-review-apps@1.2.1
+        uses: superfly/fly-pr-review-apps@1.5.0
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Set secret tokens
-        if: ${{ github.event.pull_request.merged == false}}
         run: |
-          APP_NAME="pr-${{github.event.number}}-yral-dapp-hot-or-not-web-leptos-ssr"
+          APP_NAME="pr-${{github.event.number}}-${{github.repository_owner}}-hot-or-not-web-leptos-ssr"
           flyctl secrets set CF_TOKEN="$CF_TOKEN" --app "$APP_NAME" --stage
           flyctl secrets set BACKEND_ADMIN_IDENTITY="$BACKEND_ADMIN_IDENTITY" --app "$APP_NAME" --stage
           flyctl secrets set COOKIE_KEY="$COOKIE_KEY" --app "$APP_NAME" --stage
           flyctl secrets set REDIS_URL="$REDIS_URL" --app "$APP_NAME" --stage
-          flyctl secrets set GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET --app "$APP_NAME" --stage
           flyctl secrets set GRPC_AUTH_TOKEN="$GRPC_AUTH_TOKEN" --app "$APP_NAME" --stage
-          flyctl secrets set HOTORNOT_GOOGLE_CLIENT_SECRET="$HOTORNOT_GOOGLE_CLIENT_SECRET" --app "$APP_NAME" --stage
-          flyctl secrets set ICPUMPFUN_GOOGLE_CLIENT_SECRET="$ICPUMPFUN_GOOGLE_CLIENT_SECRET" --app "$APP_NAME" --stage
           flyctl secrets set "HON_GOOGLE_SERVICE_ACCOUNT=$HON_GOOGLE_SERVICE_ACCOUNT" --app "$APP_NAME" --stage
           flyctl secrets set QSTASH_TOKEN="$QSTASH_TOKEN" --app "$APP_NAME" --stage
           flyctl secrets set GA4_API_SECRET="$GA4_API_SECRET" --app "$APP_NAME" --stage
           flyctl secrets set NSFW_GRPC_TOKEN="$NSFW_GRPC_TOKEN" --app "$APP_NAME" --stage
+          flyctl secrets set ALLOYDB_INSTANCE="$ALLOYDB_INSTANCE" --app "$APP_NAME" --stage
+          flyctl secrets set ALLOYDB_DB_PASSWORD="$ALLOYDB_DB_PASSWORD" --app "$APP_NAME" --stage
+          flyctl secrets set ALLOYDB_SERVICE_ACCOUNT_JSON="$ALLOYDB_SERVICE_ACCOUNT_JSON" --app "$APP_NAME" --stage
+          flyctl secrets set HON_WORKER_JWT="$HON_WORKER_JWT" --app "$APP_NAME" --stage
+          flyctl secrets set YRAL_AUTH_CLIENT_SECRET="$YRAL_AUTH_CLIENT_SECRET" --app "$APP_NAME" --stage
+          flyctl secrets set YRAL_AUTH_REDIRECT_URL="https://$APP_NAME.fly.dev/auth/google_redirect" --app "$APP_NAME" --stage
+          flyctl secrets set ANALYTICS_SERVER_TOKEN="$ANALYTICS_SERVER_TOKEN" --app "$APP_NAME" --stage
+          flyctl secrets set YRAL_AUTH_MIGRATION_ES256_PEM="$YRAL_AUTH_MIGRATION_ES256_PEM" --app "$APP_NAME" --stage
+          flyctl secrets set YRAL_METADATA_NOTIFICATION_API_KEY="$YRAL_METADATA_NOTIFICATION_API_KEY" --app "$APP_NAME" --stage
+          flyctl secrets set DOLR_AIRDROP_NEON_DB_URL="$DOLR_AIRDROP_NEON_DB_URL" --app "$APP_NAME" --stage
           flyctl deploy --app $APP_NAME
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET }}
-          BACKEND_ADMIN_IDENTITY: ${{ secrets.YRAL_WHITELISTED_BACKEND_GLOBAL_ADMIN_SECRET_KEY }}
+          BACKEND_ADMIN_IDENTITY: ${{ secrets.YRAL_DAPP_BACKEND_APP_ADMIN_AND_PROPOSAL_SUBMITTER_IDENTITY_PRIVATE_KEY }}
           COOKIE_KEY: ${{ secrets.AUTH_SESSION_COOKIE_SIGNING_SECRET_KEY }}
           REDIS_URL: ${{ secrets.AUTH_FLY_IO_UPSTASH_REDIS_DATABASE_CONNECTION_STRING }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.STAGING_TEMPORARY_GOOGLE_CLIENT_SECRET }}
           FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
           GRPC_AUTH_TOKEN: ${{ secrets.OFF_CHAIN_AGENT_GRPC_AUTH_TOKEN }}
-          HOTORNOT_GOOGLE_CLIENT_SECRET: ${{ secrets.HOT_OR_NOT_WTF_DOMAIN_GOOGLE_LOGIN_AUTH_CLIENT_SECRET }}
-          ICPUMPFUN_GOOGLE_CLIENT_SECRET: ${{secrets.IC_PUMP_FUN_GOOGLE_AUTH_CLIENT_SECRET}}
           HON_GOOGLE_SERVICE_ACCOUNT: ${{ secrets.HOT_OR_NOT_FEED_INTELLIGENCE_FIREBASE_PROJECT_EVENTS_BQ_SERVICE_ACCOUNT_JSON_FOR_WEB_LEPTOS_SSR_APP }}
           QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
           GA4_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET }}
           NSFW_GRPC_TOKEN: ${{ secrets.TOKEN_TO_SIGN_OUTGOING_CALLS_TO_NSFW_DETECT_SERVICE }}
+          ALLOYDB_INSTANCE: ${{ secrets.HOT_OR_NOT_ALLOYDB_INSTANCE }}
+          ALLOYDB_DB_PASSWORD: ${{ secrets.HOT_OR_NOT_ALLOYDB_DB_PASSWORD }}
+          ALLOYDB_SERVICE_ACCOUNT_JSON: ${{ secrets.HOT_OR_NOT_ALLOYDB_SERVICE_ACCOUNT }}
+          HON_WORKER_JWT: ${{ secrets.HOT_OR_NOT_WORKER_JWT }}
+          YRAL_AUTH_CLIENT_SECRET: ${{ secrets.YRAL_AUTH_V2_PREVIEW_SECRET_KEY }}
+          ANALYTICS_SERVER_TOKEN: ${{ secrets.ANALYTICS_SERVER_TOKEN }}
+          YRAL_AUTH_MIGRATION_ES256_PEM: ${{ secrets.AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM }}
+          YRAL_METADATA_NOTIFICATION_API_KEY: ${{ secrets.YRAL_METADATA_NOTIFICATION_API_KEY }}
+          DOLR_AIRDROP_NEON_DB_URL: ${{ steps.neon-dolr-airdrop.outputs.db_url_pooled }}
+  e2e-tests:
+    needs: preview
+    uses: ./.github/workflows/e2e-tests.yml
+    if: ${{ github.event.pull_request.state == 'open'}}
+    secrets: inherit
+    with:
+      preview_url: https://pr-${{github.event.number}}-${{github.repository_owner}}-hot-or-not-web-leptos-ssr.fly.dev
+      build_name: PR-${{github.event.number}}-commit-${{github.sha}}-attempt-${{github.run_attempt}}

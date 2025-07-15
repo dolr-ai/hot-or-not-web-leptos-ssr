@@ -1,0 +1,66 @@
+[package]
+name = "auth"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+candid.workspace = true
+ic-agent.workspace = true
+k256.workspace = true
+leptos.workspace = true
+rand_chacha = {workspace = true}
+serde.workspace = true
+web-time.workspace = true
+yral-canisters-common.workspace = true
+# consts
+yral-types.workspace = true
+bb8 =  {workspace = true, optional = true}
+redis = {workspace = true, optional = true}
+bb8-redis =  {workspace = true, optional = true}
+enum_dispatch = {workspace = true, optional = true}
+tokio = {workspace = true, optional = true}
+redb = {workspace = true, optional = true}
+thiserror.workspace = true
+serde_json.workspace = true
+axum = {workspace = true, optional = true}
+axum-extra = {workspace = true, optional = true}
+http.workspace = true
+leptos_axum = {workspace = true, optional = true}
+openidconnect = {workspace = true, optional = true}
+consts.workspace = true
+jsonwebtoken = { workspace = true, optional = true }
+yral-canisters-client = { workspace = true, optional = true }
+
+[features]
+ssr = [
+    "dep:axum",
+    "dep:tokio",
+    "dep:leptos_axum",
+    "leptos/ssr",
+    "dep:redis",
+    "yral-canisters-common/rustls-tls",
+    "dep:redb",
+    "dep:enum_dispatch",
+    "axum-extra",
+    "bb8",
+    "bb8-redis",
+    "consts/ssr",
+]
+oauth-ssr = ["dep:openidconnect", "dep:jsonwebtoken", "dep:yral-canisters-client", "consts/oauth-ssr"]
+# use ic_agent::{
+#     identity::{Delegation, Secp256k1Identity, SignedDelegation},
+#     Identity,
+# };
+# use k256::elliptic_curve::JwkEcKey;
+# use leptos::{server, server_fn::codec::Json};
+# use leptos::prelude::*;
+# use rand_chacha::rand_core::OsRng;
+# use serde::{Deserialize, Serialize};
+# use web_time::Duration;
+# use yral_canisters_common::utils::time::current_epoch;
+
+# use crate::consts::auth::DELEGATION_MAX_AGE;
+# use yral_types::delegated_identity::DelegatedIdentityWire;

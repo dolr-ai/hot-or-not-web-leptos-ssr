@@ -1,0 +1,53 @@
+{
+  "short_name": "YRAL",
+  "name": "YRAL",
+  "description": "Earn while scrolling through millions of videos with app challenges. Download now!",
+  "icons": [
+    {
+      "src": "/img/yral/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/img/yral/android-chrome-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#E2017B",
+  "background_color": "#000",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "screenshots": [
+    {
+      "src": "/img/yral/1.png",
+      "sizes": "1290x2796",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Powered by Internet Computer"
+    },
+    {
+      "src": "/img/yral/2.png",
+      "sizes": "1290x2796",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Decentralized social media"
+    },
+    {
+      "src": "/img/yral/3.png",
+      "sizes": "1290x2796",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Discover new videos every day"
+    },
+    {
+      "src": "/img/yral/4.png",
+      "sizes": "1290x2796",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Earn by watching videos"
+    }
+  ]
+}

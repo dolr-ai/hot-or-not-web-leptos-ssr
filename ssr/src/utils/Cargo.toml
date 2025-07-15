@@ -1,0 +1,198 @@
+[package]
+name = "utils"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+axum = { workspace = true, optional = true }
+console_error_panic_hook = { workspace = true }
+console_log = { workspace = true }
+leptos = { workspace = true, features = ["nightly"] }
+leptos_axum = { workspace = true, optional = true }
+leptos_meta = { workspace = true, optional = true }
+leptos_router = { workspace = true, optional = true }
+reactive_graph = { workspace = true }
+log = { workspace = true }
+simple_logger = { workspace = true }
+tokio = { workspace = true, optional = true }
+tower = { workspace = true, optional = true }
+tower-http = { workspace = true, optional = true }
+wasm-bindgen = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true, optional = true }
+http = { workspace = true }
+serde.workspace = true
+candid.workspace = true
+ic-agent = { workspace = true }
+ic-base-types = { workspace = true }
+icp-ledger = { workspace = true }
+serde-wasm-bindgen = { workspace = true }
+futures = { workspace = true }
+leptos-use = { workspace = true }
+codee = { workspace = true }
+reqwest = { workspace = true }
+serde_bytes.workspace = true
+hex = { workspace = true }
+leptos_icons = { workspace = true }
+icondata = { workspace = true }
+gloo = { workspace = true }
+once_cell = { workspace = true }
+web-time.workspace = true
+k256 = { workspace = true }
+icondata_core = { workspace = true }
+serde_json = { workspace = true }
+crc32fast = { workspace = true }
+uts2ts = { workspace = true }
+rand_chacha = { workspace = true, optional = true }
+web-sys = { workspace = true, optional = true }
+circular-buffer = { workspace = true }
+redb = { workspace = true, optional = true }
+enum_dispatch = { workspace = true, optional = true }
+axum-extra = { workspace = true, optional = true }
+openidconnect = { workspace = true, optional = true }
+dotenv = { workspace = true, optional = true }
+redis = { workspace = true, optional = true }
+bb8 = { workspace = true, optional = true }
+bb8-redis = { workspace = true, optional = true }
+gob-cloudflare = { workspace = true, optional = true }
+gloo-utils = { workspace = true }
+hmac = { workspace = true, optional = true }
+wasm-bindgen-futures = { workspace = true }
+testcontainers = { workspace = true, optional = true }
+yral-testcontainers = { workspace = true, optional = true }
+sns-validation = { workspace = true }
+js-sys = { workspace = true }
+tonic = { workspace = true }
+prost = { workspace = true }
+priority-queue = { workspace = true }
+rust_decimal = { workspace = true }
+speedate = { workspace = true, optional = true }
+urlencoding = { workspace = true }
+yral-types = { workspace = true }
+yral-canisters-client = { workspace = true }
+yral-canisters-common = { workspace = true }
+limits = { workspace = true }
+ic-certification = { workspace = true }
+ciborium = { workspace = true }
+yral-metadata-client = { workspace = true, optional = true }
+yral-metadata-types = { workspace = true }
+uuid = { workspace = true, features = ["v4", "js"] }
+regex = { workspace = true, optional = true }
+tonic-build = { workspace = true }
+anyhow = { workspace = true }
+send_wrapper = { workspace = true }
+indexmap = { workspace = true }
+
+# workspace specific deps
+consts = { workspace = true }
+
+[build-dependencies]
+tonic-build = { workspace = true }
+anyhow = { workspace = true }
+[features]
+hydrate = [
+    "leptos/hydrate",
+    "leptos_meta",
+    "leptos_router",
+    "ic-agent/wasm-bindgen",
+    "dep:web-sys",
+    "reqwest/native-tls",
+    "dep:rand_chacha",
+    "tonic/codegen",
+    "speedate",
+    "send_wrapper/futures",
+    "consts/hydrate",
+]
+ssr = [
+    "dep:axum",
+    "dep:tokio",
+    "dep:tower",
+    "dep:tower-http",
+    "dep:leptos_axum",
+    "leptos/ssr",
+    "leptos_meta/ssr",
+    "leptos_router/ssr",
+    "dep:tracing",
+    "leptos-use/ssr",
+    "leptos-use/axum",
+    "reqwest/rustls-tls",
+    "dep:redis",
+    "yral-canisters-common/rustls-tls",
+    "dep:redb",
+    "dep:enum_dispatch",
+    "axum-extra",
+    "dep:rand_chacha",
+    "dep:dotenv",
+    "bb8",
+    "bb8-redis",
+    "hmac",
+    "tonic/tls",
+    "tonic/tls-webpki-roots",
+    "tonic/transport",
+    "tonic-build/transport",
+    "speedate",
+    "dep:regex",
+    "consts/ssr",
+]
+# Fetch mock referral history instead of history via canister
+mock-referral-history = [
+    "dep:rand_chacha",
+    "k256/arithmetic",
+    "consts/mock-referral-history",
+]
+
+
+mock-history = [
+    "mock-referral-history",
+    "mock-wallet-history",
+    "consts/mock-history",
+]
+oauth-ssr = ["dep:openidconnect", "consts/oauth-ssr"]
+oauth-hydrate = ["consts/oauth-hydrate"]
+redis-kv = ["consts/redis-kv"]
+cloudflare = ["dep:gob-cloudflare", "consts/cloudflare"]
+backend-admin = ["consts/backend-admin"]
+ga4 = ["consts/ga4"]
+mock-wallet-history = ["dep:rand_chacha", "consts/mock-wallet-history"]
+qstash = ["consts/qstash"]
+release-bin = [
+    "ssr",
+    "cloudflare",
+    "gob-cloudflare/rustls-tls",
+    "redis-kv",
+    "backend-admin",
+    "oauth-ssr",
+    "ga4",
+    "qstash",
+    "consts/release-bin",
+]
+release-lib = [
+    "hydrate",
+    "cloudflare",
+    "redis-kv",
+    "backend-admin",
+    "dep:openidconnect",
+    "oauth-hydrate",
+    "ga4",
+    "consts/release-lib",
+]
+local-bin = [
+    "ssr",
+    "redis-kv",
+    "backend-admin",
+    "dep:testcontainers",
+    "dep:yral-testcontainers",
+    "yral-canisters-common/local",
+    "dep:yral-metadata-client",
+    "consts/local-bin",
+]
+local-lib = [
+    "hydrate",
+    "redis-kv",
+    "backend-admin",
+    "yral-canisters-common/local",
+    "consts/local-lib",
+]

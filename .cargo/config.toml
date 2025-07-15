@@ -1,2 +1,19 @@
-[target.'cfg(all())']
+# Target-specific settings for native Linux platforms
+[target.'cfg(target_os = "linux")']
+rustflags = [
+  "-C",
+  "link-arg=-fuse-ld=mold",
+  "-C",
+  "link-arg=-fdebug-types-section",
+  "--cfg=web_sys_unstable_apis",
+]
+
+# Settings for WebAssembly targets
+[target.wasm32-unknown-unknown]
 rustflags = ["--cfg=web_sys_unstable_apis"]
+
+[profile.dev]
+debug = 1 # Reduce debug info size
+
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-undefined", "-C", "link-arg=dynamic_lookup"]

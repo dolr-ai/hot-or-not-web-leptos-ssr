@@ -1,0 +1,19 @@
+{
+  "name": "e2e",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "percy exec -- nightwatch --env browserstack.chrome --suiteRetries 3",
+    "test:local": "percy exec -- nightwatch"
+  },
+  "keywords": [],
+  "author": "Ravi Sawlani",
+  "license": "ISC",
+  "devDependencies": {
+    "@percy/cli": "^1.30.6",
+    "@percy/nightwatch": "^2.2.0",
+    "nightwatch": "^3.9.0"
+  },
+  "dependencies": {}
+}

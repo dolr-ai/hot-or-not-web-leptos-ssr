@@ -1,9 +1,4 @@
 {
-    "rust-analyzer.rustfmt.overrideCommand": [
-        "leptosfmt",
-        "--stdin",
-        "--rustfmt"
-    ],
     "rust-analyzer.cargo.features": "all",
     "rust-analyzer.check.features": "all",
     "emmet.includeLanguages": {
@@ -22,5 +17,5 @@
         "comments": "on",
         "strings": true
     },
-    "css.validate": false
+    "postman.settings.dotenv-detection-notification-visibility": false,
 }

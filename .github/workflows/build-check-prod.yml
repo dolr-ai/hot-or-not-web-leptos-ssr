@@ -1,0 +1,132 @@
+name: Build and Check linting for prod release
+
+on:
+  workflow_call:
+    inputs:
+      publish-artifact:
+        default: false
+        required: false
+        type: boolean
+  workflow_dispatch:
+
+jobs:
+  build_check:
+    runs-on: warp-ubuntu-latest-x64-32x
+    steps:
+      - name: Set Swap Space # Needed to fix OOM error in runner
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 8
+
+      - name: Checkout repo and submodules
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install mold linker
+        uses: rui314/setup-mold@v1
+
+      - name: Rust Setup
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "nightly-2025-01-09"
+          targets: "wasm32-unknown-unknown"
+          components: "clippy,rustfmt"
+          override: true
+
+      - uses: cargo-bins/cargo-binstall@main
+      - name: cargo-leptos setup
+        run: cargo binstall --no-confirm cargo-leptos --version 0.2.35 --locked
+
+      - name: Cache rust dependencies and build output
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: pnpm/action-setup@v3
+        name: Install pnpm
+        with:
+          version: 8
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - uses: actions/cache@v4
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install npm deps
+        run: pnpm install
+
+      - uses: awalsh128/cache-apt-pkgs-action@v1
+        with:
+          packages: protobuf-compiler pkg-config libssl-dev
+          version: 1.0
+
+      - name: Install clippy
+        run: |
+          rustup component add clippy
+          rustup component add rustfmt
+
+      - name: lint check
+        run: |
+          cargo fmt --check
+          cargo clippy --no-deps --all-features --release -- -Dwarnings
+        env:
+          RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
+
+      - name: Print Rust and Cargo version
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Build the Leptos project to output
+        run: cargo leptos build --release --lib-features release-lib --bin-features release-bin
+        env:
+          RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
+          LEPTOS_HASH_FILES: true
+          LEPTOS_TAILWIND_VERSION: v4.1.7
+      - name: Setup Sentry CLI
+        uses: matbour/setup-sentry-cli@v2
+        with:
+          url: https://sentry.yral.com
+          token: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          organization: sentry
+          project: leptos-ssr-server
+      - name: Upload sentry Rust source context
+        run: |
+          objcopy --only-keep-debug target/prod-release/hot-or-not-web-leptos-ssr{,.d}
+          objcopy --strip-debug --strip-unneeded target/prod-release/hot-or-not-web-leptos-ssr
+          objcopy --add-gnu-debuglink target/prod-release/hot-or-not-web-leptos-ssr{.d,}
+          sentry-cli debug-files upload --org sentry --project leptos-ssr-server --auth-token $SENTRY_AUTH_TOKEN --include-sources .
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        continue-on-error: true
+      - run: touch .empty
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v4
+        if: ${{ inputs.publish-artifact }}
+        with:
+          name: build
+          path: |
+            target/prod-release/hot-or-not-web-leptos-ssr
+            target/prod-release/hash.txt
+            target/site
+            .empty
+
+      - name: Find and display hash file
+        run: |
+          find . -name "hash.txt" -type f
+      # - name: Tree files
+      #   run: |
+      #     tree
