@@ -1961,12 +1961,12 @@ dependencies = [
 [[package]]
 name = "dolr-airdrop"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=feat%2Fsats-airdrop#77048dcc041467e2e3a520468730e4ca583c4356"
+source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#3b7be241c4c965ca0ce19a829b9cf2e0352f6249"
 dependencies = [
  "async-std",
  "sea-orm",
  "sea-orm-migration",
- "utils 0.1.0 (git+https://github.com/dolr-ai/yral-neon-postgres?branch=feat%2Fsats-airdrop)",
+ "utils 0.1.0 (git+https://github.com/dolr-ai/yral-neon-postgres?branch=main)",
 ]
 
 [[package]]
@@ -7323,12 +7323,12 @@ dependencies = [
 [[package]]
 name = "sats-airdrop"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=feat%2Fsats-airdrop#77048dcc041467e2e3a520468730e4ca583c4356"
+source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#3b7be241c4c965ca0ce19a829b9cf2e0352f6249"
 dependencies = [
  "async-std",
  "sea-orm",
  "sea-orm-migration",
- "utils 0.1.0 (git+https://github.com/dolr-ai/yral-neon-postgres?branch=feat%2Fsats-airdrop)",
+ "utils 0.1.0 (git+https://github.com/dolr-ai/yral-neon-postgres?branch=main)",
 ]
 
 [[package]]
@@ -9651,7 +9651,7 @@ dependencies = [
 [[package]]
 name = "utils"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=feat%2Fsats-airdrop#77048dcc041467e2e3a520468730e4ca583c4356"
+source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#3b7be241c4c965ca0ce19a829b9cf2e0352f6249"
 dependencies = [
  "sea-orm",
  "sea-orm-migration",

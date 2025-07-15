@@ -130,8 +130,6 @@ hydrate = [
     "yral-canisters-common/js",
 ]
 ssr = [
-    # TODO: remove before merging
-    "sats-airdrop",
     "dep:axum",
     "dep:tokio",
     "dep:tower",
