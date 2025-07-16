@@ -161,6 +161,10 @@ pub fn LoginProviders(
     let login_action = Action::new(move |id: &DelegatedIdentityWire| {
         // Clone the necessary parts
         let id = id.clone();
+        log::info!(
+            "Redirect url: {:?}",
+            redirect_to.clone().unwrap_or("None".to_string())
+        );
         let redirect_to = redirect_to.clone();
         // Capture the context signal setter
         send_wrap(async move {
@@ -176,7 +180,13 @@ pub fn LoginProviders(
 
             let _ = LoginSuccessful.send_event(canisters.clone());
 
+            log::info!(
+                "Redirect url: {:?}",
+                redirect_to.clone().unwrap_or("None".to_string())
+            );
+
             if let Some(redir_loc) = redirect_to {
+                log::info!("Redirecting to url: {}", &redir_loc);
                 let nav = use_navigate();
                 nav(&redir_loc, Default::default());
             }
