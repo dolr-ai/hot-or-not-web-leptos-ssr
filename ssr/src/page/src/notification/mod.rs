@@ -1,7 +1,10 @@
 use component::{back_btn::BackButton, title::TitleText};
+use ic_agent::Agent;
 use leptos::prelude::*;
 use leptos_meta::*;
-use state::app_state::AppState;
+use state::{app_state::AppState, canisters::auth_state};
+use yral_canisters_client::notification_store::{NotificationData, NotificationStore};
+use yral_canisters_common::cursored_data::CursoredDataProvider;
 
 #[component]
 fn NotificationLoadingItem() -> impl IntoView {
@@ -83,10 +86,41 @@ fn NotificationActionButton(
     }
 }
 
+pub struct NotificationProvider{
+    agent: &Agent
+}
+
+impl CursoredDataProvider for NotificationProvider{
+    type Data = Vec<NotificationData>;
+    type Error = Error;
+
+    async fn get_by_cursor_inner(
+            &self,
+            start: usize,
+            end: usize,
+        ) -> impl std::prelude::rust_2024::Future<Output = Result<yral_canisters_common::cursored_data::PageEntry<Self::Data>, Self::Error>> {
+        let notification_client = NotificationStore(self.agent.get_principal(), self.agent);
+
+        notification_client.get_notifications(end - start + 1, start).await
+    }
+}
+
 #[component]
 pub fn NotificaitonPage() -> impl IntoView {
     let app_state = use_context::<AppState>();
     let page_title = app_state.unwrap().name.to_owned() + " - Notifications";
+
+    let auth = auth_state();
+
+    let data_provider = auth.derive_resource(move || {}, move |cans| async move{
+        let agent = Agent::from(cans.identity());
+
+        let provider = NotificationProvider{
+            agent: &agent
+        };
+
+        provider
+    } );
     view! {
         <Title text=page_title />
         <div class="flex flex-col items-center pt-4 pb-12 w-screen min-h-screen text-white bg-black">
@@ -102,13 +136,34 @@ pub fn NotificaitonPage() -> impl IntoView {
                 </TitleText>
             </div>
 
-            <div class="flex overflow-hidden overflow-y-auto flex-col px-8 mx-auto mt-2 w-full max-w-5xl h-full md:px-16">
+            {
+                move || {
+                    let provider = try_or_redirect_opt!(data_provider.get());
 
-                <NotificationLoadingItem />
-                <NotificationLoadingItem />
-                <NotificationItem />
-                <NotificationItem />
-            </div>
+                    view!{
+                        <NotificationInfiniteScroller provider=data_provider/>
+                    }
+                }
+            }
         </div>
+    }
+}
+
+#[component]
+fn NotificationInfiniteScroller(provider: NotificationProvider){
+
+    view! {
+            <div class="flex overflow-hidden overflow-y-auto flex-col px-8 mx-auto mt-2 w-full max-w-5xl h-full md:px-16">
+                <InfiniteScroller 
+                    provider
+                    fetch_count=10
+                    children=move |notif, _ref| {
+                        view! {
+                            <NotificationItem />
+                        }
+                    }
+                    custom_loader=NotificationLoadingItem
+                />
+            </div>
     }
 }
