@@ -85,10 +85,7 @@ fn CtxProvider(children: Children) -> impl IntoView {
 
     Effect::new(move |_| {
         let pathname = location.pathname.get();
-        logging::log!(
-            "Page visit: {}",
-            pathname
-        );
+        logging::log!("Page visit: {}", pathname);
         let is_logged_in = auth.is_logged_in_with_oauth();
         let Some(principal) = auth.user_principal_if_available() else {
             return;
