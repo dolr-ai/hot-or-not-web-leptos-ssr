@@ -12,7 +12,7 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
-use limits::{CoinState, DEFAULT_BET_COIN_STATE};
+use limits::{CoinState, CREATOR_COMMISSION_PERCENT, DEFAULT_BET_COIN_STATE};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -225,7 +225,7 @@ fn HNButtonOverlay(
                             stake_type: StakeType::Sats,
                             conclusion: game_conclusion,
                             won_loss_amount: win_loss_amount,
-                            creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
+                            creator_commision_percentage: CREATOR_COMMISSION_PERCENT,
                         });
                         play_win_sound_and_vibrate(
                             audio_ref,
@@ -320,32 +320,27 @@ fn HNWonLost(
     let auth = auth_state();
     let event_ctx = auth.event_ctx();
     let won = matches!(game_result, GameResult::Win { .. });
-    let creator_reward = (vote_amount * crate::consts::CREATOR_COMMISION_PERCENT) / 100;
+    let creator_reward_rounded =
+        ((vote_amount * CREATOR_COMMISSION_PERCENT) as f64 / 100.0).ceil() as u64;
     let bet_direction_text = match bet_direction.get() {
         Some(VoteKind::Hot) => "Hot",
         Some(VoteKind::Not) => "Not",
         None => "",
     };
-    let creator_reward_text = if creator_reward > 0 {
-        format!(", creator gets {creator_reward} SATS")
-    } else {
-        "".to_string()
-    };
     let (line1, line2) = match game_result.clone() {
         GameResult::Win { win_amt } => (
-            format!("You voted \"{bet_direction_text}\" - Spot on!"),
+            format!("You voted \"{bet_direction_text}\" - and you were right!"),
             format!(
-                "You won {} SATS{}",
+                "You win {} SATS, the creator gets {}",
                 TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
-                creator_reward_text
+                creator_reward_rounded
             ),
         ),
         GameResult::Loss { lose_amt } => (
-            format!("You voted \"{bet_direction_text}\" - wrong vote."),
+            format!("You voted \"{bet_direction_text}\" - better luck next time!"),
             format!(
-                "You lost {} SATS{}",
-                TokenBalance::new(lose_amt.into(), 0).humanize(),
-                creator_reward_text
+                "You lost {} SATS",
+                TokenBalance::new(lose_amt.into(), 0).humanize()
             ),
         ),
     };
