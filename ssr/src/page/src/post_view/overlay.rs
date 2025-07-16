@@ -691,7 +691,6 @@ pub fn LowSatsBalancePopup(
     let eligibility_resource = Resource::new(
         move || show.get(), // refetch when popup is shown
         move |showing| {
-            log::info!("Showing: {}", showing);
             let auth = auth_state();
             let cans = unauth_canisters();
             async move {
@@ -707,8 +706,7 @@ pub fn LowSatsBalancePopup(
                 let user_principal = auth_cans.user_principal();
                 match is_user_eligible_for_sats_airdrop(user_canister, user_principal).await {
                     Ok(available) => Some(available),
-                    Err(e) => {
-                        log::warn!("Failed to check airdrop eligibility: {:?}", e);
+                    Err(_) => {
                         Some(false)
                     }
                 }
