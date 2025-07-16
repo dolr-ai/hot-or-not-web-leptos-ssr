@@ -35,6 +35,8 @@ use yral_types::delegated_identity::DelegatedIdentityWire;
 //     DelegatedIdentityWire,
 // };
 
+use crate::YralAuthResponse;
+
 use super::{set_cookies, update_user_identity};
 
 const PKCE_VERIFIER_COOKIE: &str = "google-pkce-verifier";
@@ -110,17 +112,18 @@ pub async fn yral_auth_url_impl(
         client_redirect_uri,
     };
 
-    let oauth2_request = oauth2
-        .authorize_url(
-            CoreAuthenticationFlow::AuthorizationCode,
-            move || CsrfToken::new(serde_json::to_string(&oauth_state).unwrap()),
-            Nonce::new_random,
-        )
-        .add_scope(Scope::new("openid".into()))
+    let mut oauth2_request = oauth2.authorize_url(
+        CoreAuthenticationFlow::AuthorizationCode,
+        move || CsrfToken::new(serde_json::to_string(&oauth_state).unwrap()),
+        Nonce::new_random,
+    );
+
+    oauth2_request = oauth2_request.add_scope(Scope::new("email".to_string()));
+
+    oauth2_request = oauth2_request
         .set_pkce_challenge(pkce_challenge)
         .set_login_hint(LoginHint::new(login_hint));
 
-    let mut oauth2_request = oauth2_request;
     if provider != LoginProvider::Any {
         let provider = match provider {
             LoginProvider::Google => "google",
@@ -164,7 +167,7 @@ pub async fn perform_yral_auth_impl(
     provided_csrf: String,
     auth_code: String,
     oauth2: YralOAuthClient,
-) -> Result<DelegatedIdentityWire, ServerFnError> {
+) -> Result<YralAuthResponse, ServerFnError> {
     let key: Key = expect_context();
     let mut jar: PrivateCookieJar = extract_with_state(&key).await?;
 
@@ -199,6 +202,7 @@ pub async fn perform_yral_auth_impl(
     // we don't use a nonce
     let claims = id_token.claims(&id_token_verifier, no_op_nonce_verifier)?;
     let identity = claims.additional_claims().ext_delegated_identity.clone();
+    let email = claims.email().map(|f| f.as_str().to_string());
 
     let jar: SignedCookieJar = extract_with_state(&key).await?;
 
@@ -208,7 +212,10 @@ pub async fn perform_yral_auth_impl(
 
     update_user_identity(&resp, jar, refresh_token.secret().clone())?;
 
-    Ok(identity)
+    Ok(YralAuthResponse {
+        delegated_identity: identity,
+        email,
+    })
 }
 
 // based on https://github.com/dolr-ai/yral-auth-v2/blob/main/src/oauth/jwt/generate.rs
