@@ -344,6 +344,7 @@ fn HNWonLost(
     post: PostDetails,
 ) -> impl IntoView {
     let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
     let event_ctx = auth.event_ctx();
     let won = matches!(game_result, GameResult::Win { .. });
     let creator_reward = (vote_amount * crate::consts::CREATOR_COMMISION_PERCENT) / 100;
@@ -452,7 +453,7 @@ fn HNWonLost(
         <div class="flex w-full flex-col gap-3 py-2">
             <div class="flex gap-2 justify-center items-center w-full">
                 <div class="relative shrink-0 drop-shadow-lg">
-                    <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin />
+                    <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin is_connected />
                     <img src=vote_kind_image class="absolute bottom-0 -right-1 h-7 w-7" />
                 </div>
                 <div class="flex-1 p-1 text-xs md:text-sm font-semibold leading-snug text-white rounded-full">
