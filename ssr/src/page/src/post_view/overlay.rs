@@ -743,8 +743,8 @@ pub fn LowSatsBalancePopup(
                     {
                     if airdrop_claimed_status_loading.get() {
                         view! {
-                            <div class="flex flex-col items-center justify-center w-full">
-                                <div class="size-16">
+                            <div style="padding-top:65%" class="flex flex-col items-center justify-center w-full">
+                                <div class="size-12">
                                     <SpinnerFit />
                                 </div>
                              </div>
