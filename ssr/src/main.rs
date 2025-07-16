@@ -1,11 +1,11 @@
 #![recursion_limit = "256"]
+use axum::{Router, routing::get};
 use axum::{
     body::Body as AxumBody,
     extract::{Path, State},
     http::Request,
     response::{IntoResponse, Response},
 };
-use axum::{routing::get, Router};
 use hot_or_not_web_leptos_ssr::fallback::file_and_error_handler;
 use sentry_tower::{NewSentryLayer, SentryHttpLayer};
 use state::server::AppState;
@@ -16,11 +16,11 @@ use utils::host::is_host_or_origin_from_preview_domain;
 
 use hot_or_not_web_leptos_ssr::app::shell;
 use hot_or_not_web_leptos_ssr::{app::App, init::AppStateBuilder};
-use http::{header, HeaderName, Method};
+use http::{HeaderName, Method, header};
 use leptos::logging::log;
 use leptos::prelude::*;
 use leptos_axum::handle_server_fns_with_context;
-use leptos_axum::{generate_route_list, LeptosRoutes};
+use leptos_axum::{LeptosRoutes, generate_route_list};
 use tower_http::cors::{AllowOrigin, CorsLayer};
 
 #[instrument(skip(app_state))]
@@ -133,7 +133,7 @@ async fn main_impl() {
         let ctrl_c = async {
             signal::ctrl_c()
                 .await
-                .expect("failed to install Ctrl+C handler");
+                .expect("failed to install Ctrl+C handler.");
         };
 
         #[cfg(unix)]
