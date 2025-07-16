@@ -688,36 +688,35 @@ pub fn LowSatsBalancePopup(
     navigate_refer_page: Action<(), ()>,
     claim_airdrop: Action<(), ()>,
 ) -> impl IntoView {
-    let airdrop_claimed_status_loading = RwSignal::new(true);
-    let airdrop_claimed = RwSignal::new(false);
-
-    let fetch_airdrop_claimed_status = Action::new(move |_: &()| {
-        let auth = auth_state();
-        let cans = unauth_canisters();
-        async move {
-            airdrop_claimed_status_loading.set(true);
-            let Ok(auth_cans) = auth.auth_cans(cans).await else {
-                log::warn!("Failed to get authenticated canisters");
-                airdrop_claimed_status_loading.set(false);
-                return;
-            };
-
-            let user_canister = auth_cans.user_canister();
-            let user_principal = auth_cans.user_principal();
-
-            match is_user_eligible_for_sats_airdrop(user_canister, user_principal).await {
-                Ok(available) => {
-                    airdrop_claimed.set(available);
-                    airdrop_claimed_status_loading.set(false);
+    let eligibility_resource = Resource::new(
+        move || show.get(), // refetch when popup is shown
+        move |showing| {
+            log::info!("Showing: {}", showing);
+            let auth = auth_state();
+            let cans = unauth_canisters();
+            async move {
+                if !showing {
+                    // Don't fetch if not showing
+                    return None;
                 }
-                Err(e) => {
-                    log::warn!("Failed to check airdrop eligibility: {:?}", e);
-                    airdrop_claimed.set(false); // Set default value on error
-                    airdrop_claimed_status_loading.set(false);
+                let Ok(auth_cans) = auth.auth_cans(cans).await else {
+                    log::warn!("Failed to get authenticated canisters");
+                    return None;
+                };
+                let user_canister = auth_cans.user_canister();
+                let user_principal = auth_cans.user_principal();
+                match is_user_eligible_for_sats_airdrop(user_canister, user_principal).await {
+                    Ok(available) => Some(available),
+                    Err(e) => {
+                        log::warn!("Failed to check airdrop eligibility: {:?}", e);
+                        Some(false)
+                    }
                 }
             }
         }
-    });
+    );
+    let loading = move || eligibility_resource.get().is_none();
+    let airdrop_claimed = move || eligibility_resource.get().flatten().unwrap_or(false);
 
     view! {
         <ShadowOverlay show=show >
@@ -732,7 +731,7 @@ pub fn LowSatsBalancePopup(
                         <Icon icon=icondata::ChCross />
                     </button>
                     {
-                    if airdrop_claimed_status_loading.get() {
+                    if loading() {
                         view! {
                             <div style="padding-top:50%" class="flex flex-col items-center justify-center w-full">
                                 <div class="size-12">
@@ -746,7 +745,7 @@ pub fn LowSatsBalancePopup(
                                 <img src="/img/hotornot/sad.webp" class="size-14" />
                                 <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on Bitcoin (SATS)"</div>
                                 {
-                                    if airdrop_claimed.get() {
+                                    if airdrop_claimed() {
                                         view! {
                                             <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
                                             <div class="text-neutral-300 text-center">"Meanwhile, earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you refer!"</div>
@@ -762,7 +761,6 @@ pub fn LowSatsBalancePopup(
                                         }.into_any()
                                     }
                                 }
-
 
                                 <HighlightedButton
                                     alt_style=false
