@@ -44,10 +44,10 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
         move |(cans, notif)| async move {
             match notif.notification_type {
                 NotificationType::VideoUpload(v) => {
-                    format!("{}/{}", cans.canister_id(), v.video_uid)
+                    format!("hot-or-not/{}/{}", cans.canister_id(), v.video_uid)
                 }
                 NotificationType::Liked(v) => {
-                    format!("{}/{}", cans.canister_id(), v.post_id)
+                    format!("hot-or-not/{}/{}", cans.canister_id(), v.post_id)
                 }
             }
         },
