@@ -131,6 +131,7 @@ fn HNButtonOverlay(
 
     let show_login_nudget = RwSignal::new(false);
     let show_login_popup = RwSignal::new(false);
+    let login_post = post.clone();
 
     let check_show_login_nudge = move || {
         if !is_connected.get_untracked() && coin.get_untracked() != DEFAULT_BET_COIN_STATE {
@@ -275,7 +276,7 @@ fn HNButtonOverlay(
             </button>
         </div>
         <LoginNudgePopup show=show_login_nudget show_login_popup />
-        <LoginModal show=show_login_popup redirect_to=Some("/".to_string()) />
+        <LoginModal show=show_login_popup redirect_to=Some(format!("/hot-or-not/{}/{}", login_post.canister_id, login_post.post_id)) />
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
