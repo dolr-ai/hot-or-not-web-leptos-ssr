@@ -275,7 +275,7 @@ fn HNButtonOverlay(
             </button>
         </div>
         <LoginNudgePopup show=show_login_nudget show_login_popup />
-        <LoginModal show=show_login_popup redirect_to=Some(format!("/")) />
+        <LoginModal show=show_login_popup redirect_to=Some("/".to_string()) />
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
