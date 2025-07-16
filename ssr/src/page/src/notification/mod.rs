@@ -3,7 +3,9 @@ use ic_agent::Agent;
 use leptos::prelude::*;
 use leptos_meta::*;
 use state::{app_state::AppState, canisters::auth_state};
-use yral_canisters_client::notification_store::{NotificationData, NotificationStore, NotificationType};
+use yral_canisters_client::notification_store::{
+    NotificationData, NotificationStore, NotificationType,
+};
 use yral_canisters_common::cursored_data::CursoredDataProvider;
 
 #[component]
@@ -26,21 +28,30 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
     let img_src = "/img/common/error-logo.svg";
 
     let (title, description) = match &notif.notification_type {
-        NotificationType::VideoUpload(v) => ("Video Uploaded Sucessfully!", format!("{} uploaded a video", v.by_user_principal)),
-        NotificationType::Liked(v) => format!(("Video Liked by {}", v.by_user_principal), format!("{} liked your video", v.by_user_principal))
+        NotificationType::VideoUpload(v) => (
+            "Video Uploaded Sucessfully!",
+            format!("{} uploaded a video", v.by_user_principal),
+        ),
+        NotificationType::Liked(v) => format!(
+            ("Video Liked by {}", v.by_user_principal),
+            format!("{} liked your video", v.by_user_principal)
+        ),
     };
 
     let auth = auth_state();
-    let href = auth.derive_resource(move || notif, move |(cans, notif)| async move {
-        match notif.notification_type {
-            NotificationType::VideoUpload(v) => {
-                format!("{}/{}", cans.canister_id(), v.video_uid)
+    let href = auth.derive_resource(
+        move || notif,
+        move |(cans, notif)| async move {
+            match notif.notification_type {
+                NotificationType::VideoUpload(v) => {
+                    format!("{}/{}", cans.canister_id(), v.video_uid)
+                }
+                NotificationType::Liked(v) => {
+                    format!("{}/{}", cans.canister_id(), v.post_id)
+                }
             }
-            NotificationType::Liked(v) => {
-                format!("{}/{}", cans.canister_id(), v.post_id)
-            }
-        }
-    });
+        },
+    );
 
     view! {
 
@@ -75,7 +86,7 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
                                 </div>
                             </div>
                         </div>
-                    </a>   
+                    </a>
                     }
                 }
             }
@@ -114,22 +125,26 @@ fn NotificationActionButton(
     }
 }
 
-pub struct NotificationProvider{
-    agent: &Agent
+pub struct NotificationProvider {
+    agent: &Agent,
 }
 
-impl CursoredDataProvider for NotificationProvider{
+impl CursoredDataProvider for NotificationProvider {
     type Data = Vec<NotificationData>;
     type Error = Error;
 
     async fn get_by_cursor_inner(
-            &self,
-            start: usize,
-            end: usize,
-        ) -> impl std::prelude::rust_2024::Future<Output = Result<yral_canisters_common::cursored_data::PageEntry<Self::Data>, Self::Error>> {
+        &self,
+        start: usize,
+        end: usize,
+    ) -> impl std::prelude::rust_2024::Future<
+        Output = Result<yral_canisters_common::cursored_data::PageEntry<Self::Data>, Self::Error>,
+    > {
         let notification_client = NotificationStore(self.agent.get_principal(), self.agent);
 
-        notification_client.get_notifications(end - start + 1, start).await
+        notification_client
+            .get_notifications(end - start + 1, start)
+            .await
     }
 }
 
@@ -140,15 +155,16 @@ pub fn NotificaitonPage() -> impl IntoView {
 
     let auth = auth_state();
 
-    let data_provider = auth.derive_resource(move || {}, move |cans| async move{
-        let agent = Agent::from(cans.identity());
+    let data_provider = auth.derive_resource(
+        move || {},
+        move |cans| async move {
+            let agent = Agent::from(cans.identity());
 
-        let provider = NotificationProvider{
-            agent: &agent
-        };
+            let provider = NotificationProvider { agent: &agent };
 
-        provider
-    } );
+            provider
+        },
+    );
     view! {
         <Title text=page_title />
         <div class="flex flex-col items-center pt-4 pb-12 w-screen min-h-screen text-white bg-black">
@@ -180,11 +196,10 @@ pub fn NotificaitonPage() -> impl IntoView {
 }
 
 #[component]
-fn NotificationInfiniteScroller(provider: NotificationProvider){
-
+fn NotificationInfiniteScroller(provider: NotificationProvider) {
     view! {
             <div class="flex overflow-hidden overflow-y-auto flex-col px-8 mx-auto mt-2 w-full max-w-5xl h-full md:px-16">
-                <InfiniteScroller 
+                <InfiniteScroller
                     provider
                     fetch_count=10
                     children=move |notif, _ref| {
