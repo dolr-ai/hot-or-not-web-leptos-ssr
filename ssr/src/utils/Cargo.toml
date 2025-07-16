@@ -85,6 +85,7 @@ tonic-build = { workspace = true }
 anyhow = { workspace = true }
 send_wrapper = { workspace = true }
 indexmap = { workspace = true }
+chrono = "0.4"
 
 # workspace specific deps
 consts = { workspace = true }

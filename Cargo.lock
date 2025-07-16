@@ -3752,6 +3752,7 @@ dependencies = [
  "regex",
  "reqwest 0.12.22",
  "rust_decimal",
+ "sats-airdrop",
  "sea-orm",
  "send_wrapper",
  "sentry",
@@ -6095,6 +6096,7 @@ dependencies = [
  "leptos_router",
  "limits",
  "log",
+ "num-bigint",
  "num-traits",
  "once_cell",
  "openidconnect",
@@ -6107,6 +6109,7 @@ dependencies = [
  "regex",
  "reqwest 0.12.22",
  "rust_decimal",
+ "sats-airdrop",
  "sea-orm",
  "send_wrapper",
  "serde",
@@ -7457,6 +7460,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "sats-airdrop"
+version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#3b7be241c4c965ca0ce19a829b9cf2e0352f6249"
+dependencies = [
+ "async-std",
+ "sea-orm",
+ "sea-orm-migration",
+ "utils 0.1.0 (git+https://github.com/dolr-ai/yral-neon-postgres?branch=main)",
+]
+
+[[package]]
 name = "schannel"
 version = "0.1.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8620,6 +8634,7 @@ dependencies = [
  "regex",
  "reqwest 0.12.22",
  "rust_decimal",
+ "sats-airdrop",
  "sea-orm",
  "send_wrapper",
  "serde",
@@ -9707,6 +9722,7 @@ dependencies = [
  "bb8",
  "bb8-redis",
  "candid",
+ "chrono",
  "ciborium",
  "circular-buffer",
  "codee",

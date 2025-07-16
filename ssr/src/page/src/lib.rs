@@ -5,6 +5,7 @@ pub mod consts;
 pub mod err;
 pub mod faq;
 pub mod hon;
+pub mod internal;
 pub mod leaderboard;
 pub mod logout;
 pub mod menu;
