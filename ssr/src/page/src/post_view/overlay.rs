@@ -1,7 +1,7 @@
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::buttons::HighlightedButton;
 use component::overlay::ShadowOverlay;
-use component::spinner::Spinner;
+use component::spinner::SpinnerFit;
 use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption};
 
 use consts::{UserOnboardingStore, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY};
@@ -731,7 +731,7 @@ pub fn LowSatsBalancePopup(
     view! {
         <ShadowOverlay show=show >
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
-                <div class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
+                <div style="min-height: 50vh;" class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
                     <button
                         on:click=move |_| {
                             show.set(false);
@@ -743,8 +743,10 @@ pub fn LowSatsBalancePopup(
                     {
                     if airdrop_claimed_status_loading.get() {
                         view! {
-                            <div class="size-8">
-                                <Spinner />
+                            <div class="flex flex-col items-center justify-center w-full">
+                                <div class="size-16">
+                                    <SpinnerFit />
+                                </div>
                              </div>
                         }.into_any()
                     } else {
