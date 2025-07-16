@@ -1,5 +1,5 @@
 use consts::auth::REFRESH_MAX_AGE;
-use leptos::{ev, prelude::*};
+use leptos::{ev, logging, prelude::*};
 use leptos_router::components::Outlet;
 use leptos_router::hooks::use_navigate;
 use leptos_use::{use_cookie_with_options, use_event_listener, use_window, UseCookieOptions};
@@ -85,6 +85,10 @@ fn CtxProvider(children: Children) -> impl IntoView {
 
     Effect::new(move |_| {
         let pathname = location.pathname.get();
+        logging::log!(
+            "Page visit: {}",
+            pathname
+        );
         let is_logged_in = auth.is_logged_in_with_oauth();
         let Some(principal) = auth.user_principal_if_available() else {
             return;
