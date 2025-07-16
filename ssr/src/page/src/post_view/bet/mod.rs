@@ -140,7 +140,7 @@ fn HNButtonOverlay(
             Ok(())
         }
     };
-
+    let login_post = post.clone();
     let place_bet_action: Action<VoteKind, Option<()>> =
         Action::new(move |bet_direction: &VoteKind| {
             let post_canister = post.canister_id;
@@ -276,7 +276,7 @@ fn HNButtonOverlay(
             </button>
         </div>
         <LoginNudgePopup show=show_login_nudget show_login_popup />
-        <LoginModal show=show_login_popup redirect_to=None />
+        <LoginModal show=show_login_popup redirect_to=Some(format!("/hot-or-not/{}/{}", login_post.canister_id, login_post.post_id )) />
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
