@@ -3,7 +3,7 @@ use ic_agent::Agent;
 use leptos::prelude::*;
 use leptos_meta::*;
 use state::{app_state::AppState, canisters::auth_state};
-use yral_canisters_client::notification_store::{NotificationData, NotificationStore};
+use yral_canisters_client::notification_store::{NotificationData, NotificationStore, NotificationType};
 use yral_canisters_common::cursored_data::CursoredDataProvider;
 
 #[component]
@@ -22,36 +22,64 @@ fn NotificationLoadingItem() -> impl IntoView {
 }
 
 #[component]
-fn NotificationItem() -> impl IntoView {
+fn NotificationItem(notif: NotificationData) -> impl IntoView {
     let img_src = "/img/common/error-logo.svg";
 
+    let (title, description) = match &notif.notification_type {
+        NotificationType::VideoUpload(v) => ("Video Uploaded Sucessfully!", format!("{} uploaded a video", v.by_user_principal)),
+        NotificationType::Liked(v) => format!(("Video Liked by {}", v.by_user_principal), format!("{} liked your video", v.by_user_principal))
+    };
+
+    let auth = auth_state();
+    let href = auth.derive_resource(move || notif, move |(cans, notif)| async move {
+        match notif.notification_type {
+            NotificationType::VideoUpload(v) => {
+                format!("{}/{}", cans.canister_id(), v.video_uid)
+            }
+            NotificationType::Liked(v) => {
+                format!("{}/{}", cans.canister_id(), v.post_id)
+            }
+        }
+    });
+
     view! {
-        <a href="#target" class="bg-black w-full p-4 border-b border-neutral-900">
-            <div class="flex items-center gap-3">
-                <div class="size-11 rounded-full bg-neutral-800 relative">
-                    <img src={img_src} class="size-11 rounded-full object-cover" />
-                    <div class="size-2 rounded-full bg-pink-700 absolute -left-4 top-5"></div>
-                </div>
-                <div class="flex flex-col gap-1">
-                    <div class="text-neutral-50 font-semibold">
-                        Title
-                    </div>
-                    <div class="text-neutral-500 font-semibold line-clamp-2">
-                        Description
-                    </div>
-                    <div class="flex items-center gap-2 pt-1">
-                        <NotificationActionButton on_click=move || {}>View</NotificationActionButton>
-                        <NotificationActionButton on_click=move || {}>Accept</NotificationActionButton>
-                        <NotificationActionButton on_click=move || {} secondary=true>Reject</NotificationActionButton>
-                    </div>
-                    <div class="flex items-center gap-4 flex-wrap pt-1">
-                        <NotificationItemStatus status="accepted".to_string() />
-                        <NotificationItemStatus status="pending".to_string() />
-                        <NotificationItemStatus status="rejected".to_string() />
-                    </div>
-                </div>
-            </div>
-        </a>
+
+        <Suspense fallback=NotificationLoadingItem>
+            {
+                move || {
+                    let href = href.get();
+
+                    view! {
+                        <a href=href class="bg-black w-full p-4 border-b border-neutral-900">
+                        <div class="flex items-center gap-3">
+                            <div class="size-11 rounded-full bg-neutral-800 relative">
+                                <img src={img_src} class="size-11 rounded-full object-cover" />
+                                <div class="size-2 rounded-full bg-pink-700 absolute -left-4 top-5"></div>
+                            </div>
+                            <div class="flex flex-col gap-1">
+                                <div class="text-neutral-50 font-semibold">
+                                    {title}
+                                </div>
+                                <div class="text-neutral-500 font-semibold line-clamp-2">
+                                    {description}
+                                </div>
+                                <div class="flex items-center gap-2 pt-1">
+                                    <NotificationActionButton on_click=move || {}>View</NotificationActionButton>
+                                    <NotificationActionButton on_click=move || {}>Accept</NotificationActionButton>
+                                    <NotificationActionButton on_click=move || {} secondary=true>Reject</NotificationActionButton>
+                                </div>
+                                <div class="flex items-center gap-4 flex-wrap pt-1">
+                                    <NotificationItemStatus status="accepted".to_string() />
+                                    <NotificationItemStatus status="pending".to_string() />
+                                    <NotificationItemStatus status="rejected".to_string() />
+                                </div>
+                            </div>
+                        </div>
+                    </a>   
+                    }
+                }
+            }
+        </Suspense>
     }
 }
 
@@ -136,6 +164,7 @@ pub fn NotificaitonPage() -> impl IntoView {
                 </TitleText>
             </div>
 
+            <Suspense>
             {
                 move || {
                     let provider = try_or_redirect_opt!(data_provider.get());
@@ -145,6 +174,7 @@ pub fn NotificaitonPage() -> impl IntoView {
                     }
                 }
             }
+            </Suspense>
         </div>
     }
 }
