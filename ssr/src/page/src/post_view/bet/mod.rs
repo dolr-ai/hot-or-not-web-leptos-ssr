@@ -171,13 +171,6 @@ fn HNButtonOverlay(
             let bet_amount: u64 = coin.get_untracked().to_cents();
             let bet_direction = *bet_direction;
 
-            if bet_amount > wallet_balance_store.get() {
-                log::warn!("Insufficient balance for bet amount: {bet_amount}");
-                show_low_balance_popup.set(true);
-                return None;
-            }
-
-
             // Create the original VoteRequest for the server function
             let req = hon_worker_common::VoteRequest {
                 post_canister,
@@ -196,6 +189,12 @@ fn HNButtonOverlay(
 
             let post_mix = post.clone();
             send_wrap(async move {
+                if bet_amount > wallet_balance_store.get() {
+                    log::warn!("Insufficient balance for bet amount: {bet_amount}");
+                    show_low_balance_popup.set(true);
+                    return None;
+                }
+
                 let cans = auth.auth_cans(expect_context()).await.ok()?;
                 let is_logged_in = is_connected.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);

@@ -1,6 +1,7 @@
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::buttons::HighlightedButton;
 use component::overlay::ShadowOverlay;
+use component::spinner::Spinner;
 use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption};
 
 use consts::{UserOnboardingStore, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY};
@@ -8,7 +9,7 @@ use gloo::timers::callback::Timeout;
 use leptos::html::Audio;
 use leptos::{prelude::*, task::spawn_local};
 use leptos_icons::*;
-use leptos_router::hooks::use_location;
+use leptos_router::hooks::{use_location, use_navigate};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
 use state::canisters::{auth_state, unauth_canisters};
@@ -22,6 +23,8 @@ use utils::{
 
 use utils::mixpanel::mixpanel_events::*;
 use yral_canisters_common::utils::posts::PostDetails;
+
+use crate::wallet::airdrop::is_user_eligible_for_sats_airdrop;
 
 use super::bet::HNGameOverlay;
 
@@ -418,6 +421,54 @@ pub fn VideoDetailsOverlay(
     });
 
     let show_low_balance_popup: RwSignal<bool> = RwSignal::new(false);
+    let airdrop_claimed_status_loading = RwSignal::new(true);
+    let airdrop_claimed = RwSignal::new(false);
+
+    let fetch_airdrop_claimed_status = Action::new(move |_: &()| {
+        let auth = auth_state();
+        let cans = unauth_canisters();
+        async move {
+            airdrop_claimed_status_loading.set(true);
+            let Ok(auth_cans) = auth.auth_cans(cans).await else {
+                log::warn!("Failed to get authenticated canisters");
+                airdrop_claimed_status_loading.set(false);
+                return;
+            };
+
+            let user_canister = auth_cans.user_canister();
+            let user_principal = auth_cans.user_principal();
+
+            match is_user_eligible_for_sats_airdrop(user_canister, user_principal).await {
+                Ok(available) => {
+                    airdrop_claimed.set(available);
+                    airdrop_claimed_status_loading.set(false);
+                }
+                Err(e) => {
+                    log::warn!("Failed to check airdrop eligibility: {:?}", e);
+                    airdrop_claimed.set(false); // Set default value on error
+                    airdrop_claimed_status_loading.set(false);
+                }
+            }
+        }
+    });
+
+    Effect::new(move |_| {
+        if show_low_balance_popup.get() {
+            fetch_airdrop_claimed_status.dispatch(());
+        }
+    });
+
+    let navigate = use_navigate();
+    let navigate_to_refer = Action::new(move |_| {
+        let navigate = navigate.clone();
+        async move {
+            navigate("/refer-earn", Default::default());
+        }
+    });
+
+    let claim_airdrop = Action::new(move |_| async move {
+        show_low_balance_popup.set(false);
+    });
 
     view! {
         <div class="flex absolute bottom-0 left-0 flex-col flex-nowrap justify-between pt-5 pb-20 w-full h-full text-white bg-transparent pointer-events-none px-[16px] z-4 md:px-[16px]">
@@ -582,8 +633,12 @@ pub fn VideoDetailsOverlay(
             </div>
         </Modal>
         <HotOrNotTutorialOverlay show=show_tutorial close_action=close_help_popup_action />
-        <LowSatsBalancePopup show=show_low_balance_popup />
-
+        <LowSatsBalancePopup
+            show=show_low_balance_popup
+            navigate_refer_page=navigate_to_refer
+            claim_airdrop=claim_airdrop
+            airdrop_claimed_status_loading
+            airdrop_claimed />
     }.into_any()
 }
 
@@ -668,9 +723,10 @@ pub fn HotOrNotTutorialOverlay(
 #[component]
 pub fn LowSatsBalancePopup(
     show: RwSignal<bool>,
-    claim_airdrop: Action<(), ()>,
     navigate_refer_page: Action<(), ()>,
-    airdrop_claimed: bool,
+    claim_airdrop: Action<(), ()>,
+    airdrop_claimed_status_loading: RwSignal<bool>,
+    airdrop_claimed: RwSignal<bool>,
 ) -> impl IntoView {
     view! {
         <ShadowOverlay show=show >
@@ -684,49 +740,61 @@ pub fn LowSatsBalancePopup(
                     >
                         <Icon icon=icondata::ChCross />
                     </button>
-                    <div class="flex z-[2] relative flex-col items-center gap-5 text-white justify-center p-12">
-                        <img src="/img/hotornot/sad.webp" class="size-14" />
-                        <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on Bitcoin (SATS)"</div>
-                        {
-                            if airdrop_claimed {
-                                view! {
-                                    <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
-                                    <div class="text-neutral-300 text-center">"Meanwhile, earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you refer!"</div>
-                                }.into_any()
-                            } else {
-                                view! {
-                                    <div class="text-neutral-300 text-center">"Earn more in two easy ways:"</div>
-                                    <ul class="flex list-disc flex-col gap-5 text-neutral-300">
-                                        <li>"Unlock your daily"<span class="font-semibold">" Bitcoin (SATS) "</span>"loot every 24 hours!"</li>
-                                        <li>"Refer & earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you invite."</li>
-                                        <li class="font-semibold">"Upload Videos to earn comissions."</li>
-                                    </ul>
-                                }.into_any()
-                            }
-                        }
+                    {
+                    if airdrop_claimed_status_loading.get() {
+                        view! {
+                            <div class="size-8">
+                                <Spinner />
+                             </div>
+                        }.into_any()
+                    } else {
+                        view! {
+                              <div class="flex z-[2] relative flex-col items-center gap-5 text-white justify-center p-12">
+                                <img src="/img/hotornot/sad.webp" class="size-14" />
+                                <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on Bitcoin (SATS)"</div>
+                                {
+                                    if airdrop_claimed.get() {
+                                        view! {
+                                            <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
+                                            <div class="text-neutral-300 text-center">"Meanwhile, earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you refer!"</div>
+                                        }.into_any()
+                                    } else {
+                                        view! {
+                                            <div class="text-neutral-300 text-center">"Earn more in two easy ways:"</div>
+                                            <ul class="flex list-disc flex-col gap-5 text-neutral-300">
+                                                <li>"Unlock your daily"<span class="font-semibold">" Bitcoin (SATS) "</span>"loot every 24 hours!"</li>
+                                                <li>"Refer & earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you invite."</li>
+                                                <li class="font-semibold">"Upload Videos to earn comissions."</li>
+                                            </ul>
+                                        }.into_any()
+                                    }
+                                }
 
 
-                        <HighlightedButton
-                            alt_style=false
-                            disabled=false
-                            on_click=move || {
-                                show.set(false);
-                                claim_airdrop.dispatch(());
-                            }
-                        >
-                            "Claim airdrop"
-                        </HighlightedButton>
-                        <HighlightedButton
-                            alt_style=true
-                            disabled=false
-                            on_click=move || {
-                                show.set(false);
-                                navigate_refer_page.dispatch(());
-                            }
-                        >
-                            "Refer a friend"
-                        </HighlightedButton>
-                    </div>
+                                <HighlightedButton
+                                    alt_style=false
+                                    disabled=false
+                                    on_click=move || {
+                                        show.set(false);
+                                        claim_airdrop.dispatch(());
+                                    }
+                                >
+                                    "Claim airdrop"
+                                </HighlightedButton>
+                                <HighlightedButton
+                                    alt_style=true
+                                    disabled=false
+                                    on_click=move || {
+                                        show.set(false);
+                                        navigate_refer_page.dispatch(());
+                                    }
+                                >
+                                    "Refer a friend"
+                                </HighlightedButton>
+                            </div>
+                        }.into_any()
+                    }
+                    }
                 </div>
             </div>
         </ShadowOverlay>
