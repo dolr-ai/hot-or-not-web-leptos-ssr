@@ -85,7 +85,7 @@ web-sys = { version = "0.3", features = [
     "Worker",
     "XmlHttpRequest",
     "XmlHttpRequestUpload",
-    "ValidityState"
+    "ValidityState",
 ] }
 circular-buffer = "0.1.7"
 redb = { version = "2.0.0" }
@@ -165,7 +165,10 @@ sentry-tower = { version = "0.37.0", features = ["axum", "axum-matched-path"] }
 jsonwebtoken = "9.3.1"
 google-cloud-alloydb-v1 = "0.2.0"
 yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adbf4be5cb62a26f2a90032261321bf1df33f08b", default-features = false }
-sea-orm = { version = "1.1.13", features = ["sqlx-postgres", "runtime-tokio-rustls"] }
+sea-orm = { version = "1.1.13", features = [
+    "sqlx-postgres",
+    "runtime-tokio-rustls",
+] }
 dolr-airdrop = { git = "https://github.com/dolr-ai/yral-neon-postgres", branch = "main" }
 sats-airdrop = { git = "https://github.com/dolr-ai/yral-neon-postgres", branch = "main" }
 cargo-husky = { version = "1.5.0", features = ["user-hooks"] }
@@ -194,14 +197,14 @@ num-bigint = "0.4.6"
 # ===
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], branch = "master", version = "0.1.0" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
+], rev = "58e82be4dbe7231768dc61288a9fc5056d39859b", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", rev = "58e82be4dbe7231768dc61288a9fc5056d39859b" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", rev = "58e82be4dbe7231768dc61288a9fc5056d39859b" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev = "58e82be4dbe7231768dc61288a9fc5056d39859b", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "58e82be4dbe7231768dc61288a9fc5056d39859b" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], branch = "master", version = "0.1.0" }
-limits = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+], rev = "58e82be4dbe7231768dc61288a9fc5056d39859b", version = "0.1.0" }
+limits = { git = "https://github.com/dolr-ai/yral-common.git", rev = "58e82be4dbe7231768dc61288a9fc5056d39859b" }

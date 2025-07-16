@@ -16,7 +16,7 @@ use leptos_icons::*;
 use priority_queue::DoublePriorityQueue;
 use state::canisters::{auth_state, unauth_canisters};
 use std::{cmp::Reverse, collections::HashMap};
-use yral_types::post::PostItem;
+use yral_types::post::PostItemV2;
 
 use candid::Principal;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
@@ -78,7 +78,7 @@ impl PostViewCtx {
 
 #[derive(Clone, Default)]
 pub struct PostDetailsCacheCtx {
-    pub post_details: RwSignal<HashMap<PostId, PostItem>>,
+    pub post_details: RwSignal<HashMap<PostId, PostItemV2>>,
 }
 
 #[component]
@@ -366,7 +366,11 @@ pub fn PostView() -> impl IntoView {
             let post_nsfw_prob = post_details_cache.post_details.with_untracked(|p| {
                 let item = p.get(&(params.canister_id, params.post_id));
                 if let Some(item) = item {
-                    item.nsfw_probability
+                    if item.is_nsfw {
+                        1.0
+                    } else {
+                        0.0
+                    }
                 } else {
                     1.0 // TODO: handle this for when we don't have details (when user shares video)
                 }
