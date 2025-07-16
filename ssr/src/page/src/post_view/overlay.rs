@@ -421,42 +421,6 @@ pub fn VideoDetailsOverlay(
     });
 
     let show_low_balance_popup: RwSignal<bool> = RwSignal::new(false);
-    let airdrop_claimed_status_loading = RwSignal::new(true);
-    let airdrop_claimed = RwSignal::new(false);
-
-    let fetch_airdrop_claimed_status = Action::new(move |_: &()| {
-        let auth = auth_state();
-        let cans = unauth_canisters();
-        async move {
-            airdrop_claimed_status_loading.set(true);
-            let Ok(auth_cans) = auth.auth_cans(cans).await else {
-                log::warn!("Failed to get authenticated canisters");
-                airdrop_claimed_status_loading.set(false);
-                return;
-            };
-
-            let user_canister = auth_cans.user_canister();
-            let user_principal = auth_cans.user_principal();
-
-            match is_user_eligible_for_sats_airdrop(user_canister, user_principal).await {
-                Ok(available) => {
-                    airdrop_claimed.set(available);
-                    airdrop_claimed_status_loading.set(false);
-                }
-                Err(e) => {
-                    log::warn!("Failed to check airdrop eligibility: {:?}", e);
-                    airdrop_claimed.set(false); // Set default value on error
-                    airdrop_claimed_status_loading.set(false);
-                }
-            }
-        }
-    });
-
-    Effect::new(move |_| {
-        if show_low_balance_popup.get() {
-            fetch_airdrop_claimed_status.dispatch(());
-        }
-    });
 
     let navigate = use_navigate();
     let navigate_to_refer = Action::new(move |_| {
@@ -636,9 +600,7 @@ pub fn VideoDetailsOverlay(
         <LowSatsBalancePopup
             show=show_low_balance_popup
             navigate_refer_page=navigate_to_refer
-            claim_airdrop=claim_airdrop
-            airdrop_claimed_status_loading
-            airdrop_claimed />
+            claim_airdrop=claim_airdrop />
     }.into_any()
 }
 
@@ -725,13 +687,42 @@ pub fn LowSatsBalancePopup(
     show: RwSignal<bool>,
     navigate_refer_page: Action<(), ()>,
     claim_airdrop: Action<(), ()>,
-    airdrop_claimed_status_loading: RwSignal<bool>,
-    airdrop_claimed: RwSignal<bool>,
 ) -> impl IntoView {
+    let airdrop_claimed_status_loading = RwSignal::new(true);
+    let airdrop_claimed = RwSignal::new(false);
+
+    let fetch_airdrop_claimed_status = Action::new(move |_: &()| {
+        let auth = auth_state();
+        let cans = unauth_canisters();
+        async move {
+            airdrop_claimed_status_loading.set(true);
+            let Ok(auth_cans) = auth.auth_cans(cans).await else {
+                log::warn!("Failed to get authenticated canisters");
+                airdrop_claimed_status_loading.set(false);
+                return;
+            };
+
+            let user_canister = auth_cans.user_canister();
+            let user_principal = auth_cans.user_principal();
+
+            match is_user_eligible_for_sats_airdrop(user_canister, user_principal).await {
+                Ok(available) => {
+                    airdrop_claimed.set(available);
+                    airdrop_claimed_status_loading.set(false);
+                }
+                Err(e) => {
+                    log::warn!("Failed to check airdrop eligibility: {:?}", e);
+                    airdrop_claimed.set(false); // Set default value on error
+                    airdrop_claimed_status_loading.set(false);
+                }
+            }
+        }
+    });
+
     view! {
         <ShadowOverlay show=show >
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
-                <div style="min-height: 50vh;" class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
+                <div style="min-height: 40vh;" class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
                     <button
                         on:click=move |_| {
                             show.set(false);
@@ -743,7 +734,7 @@ pub fn LowSatsBalancePopup(
                     {
                     if airdrop_claimed_status_loading.get() {
                         view! {
-                            <div style="padding-top:65%" class="flex flex-col items-center justify-center w-full">
+                            <div style="padding-top:50%" class="flex flex-col items-center justify-center w-full">
                                 <div class="size-12">
                                     <SpinnerFit />
                                 </div>
