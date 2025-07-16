@@ -452,6 +452,10 @@ pub fn VideoDetailsOverlay(
                         <ExpandableText clone:post description=post.description />
                     </div>
                 </div>
+                <button class="absolute top-4 left-0 flex w-28 -translate-x-[4.5rem] justify-end gap-5 rounded-r-lg bg-red-500/50 px-2 transition-all hover:translate-0 hover:bg-red-500/60 focus:border focus:delay-1000  active:bg-red-500/30">
+                    <span>Unmute</span>
+                    <span>🔈</span>
+                </button>
                 <button class="py-2 pointer-events-auto">
                     <img
                         on:click=move |_| {
