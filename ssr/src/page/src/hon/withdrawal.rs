@@ -283,7 +283,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                                     href="https://t.me/HotOrNot_app".to_string()
                                 >
                                     <div class="flex items-center gap-2">
-                                        <TelegramIcon class="size-6 text-pink-600" />
+                                        <TelegramIcon classes="size-6 text-pink-600" />
                                         <span>"Chat with us"</span>
                                     </div>
                                 </HighlightedLinkButton>
