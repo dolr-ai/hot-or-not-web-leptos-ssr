@@ -10,6 +10,7 @@ use leptos_icons::Icon;
 use leptos_router::hooks::use_navigate;
 use limits::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use state::canisters::auth_state;
+use state::canisters::unauth_canisters;
 use utils::event_streaming::events::CentsAdded;
 use utils::event_streaming::events::EventCtx;
 use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, ProviderKind};
@@ -18,8 +19,8 @@ use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
 use utils::mixpanel::mixpanel_events::MixpanelLoginSuccessProps;
 use utils::mixpanel::mixpanel_events::MixpanelSignupSuccessProps;
 use utils::send_wrap;
+use utils::types::NewIdentity;
 use yral_canisters_common::Canisters;
-use yral_types::delegated_identity::DelegatedIdentityWire;
 
 #[server]
 async fn issue_referral_rewards(worker_req: ReferralReqWithSignature) -> Result<(), ServerFnError> {
@@ -106,7 +107,7 @@ pub struct LoginProvCtx {
     /// stores the current provider handling the login
     pub processing: ReadSignal<Option<ProviderKind>>,
     pub set_processing: SignalSetter<Option<ProviderKind>>,
-    pub login_complete: SignalSetter<DelegatedIdentityWire>,
+    pub login_complete: SignalSetter<NewIdentity>,
 }
 
 /// Login providers must use this button to trigger the login action
@@ -158,17 +159,19 @@ pub fn LoginProviders(
         MixPanelEvent::track_auth_screen_viewed(global);
     }
 
-    let login_action = Action::new(move |id: &DelegatedIdentityWire| {
+    let base_cans = unauth_canisters();
+    let login_action = Action::new(move |new_id: &NewIdentity| {
         // Clone the necessary parts
-        let id = id.clone();
+        let new_id = new_id.clone();
         let redirect_to = redirect_to.clone();
+        let base_cans = base_cans.clone();
         // Capture the context signal setter
         send_wrap(async move {
             let referrer = auth.referrer_store.get_untracked();
 
-            auth.set_new_identity(id.clone(), true);
-
-            let canisters = Canisters::authenticate_with_network(id, referrer).await?;
+            let canisters = auth
+                .set_new_identity_and_wait_for_authentication(base_cans, new_id.clone(), true)
+                .await?;
 
             if let Err(e) = handle_user_login(canisters.clone(), auth.event_ctx(), referrer).await {
                 log::warn!("failed to handle user login, err {e}. skipping");
@@ -194,7 +197,7 @@ pub fn LoginProviders(
             lock_closing.set(val.is_some());
             processing.set(val);
         }),
-        login_complete: SignalSetter::map(move |val: DelegatedIdentityWire| {
+        login_complete: SignalSetter::map(move |val: NewIdentity| {
             // Dispatch just the DelegatedIdentityWire
             login_action.dispatch(val);
         }),
