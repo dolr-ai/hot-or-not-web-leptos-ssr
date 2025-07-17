@@ -136,10 +136,11 @@ impl<
         let chunk_stream = top_posts
             .into_iter()
             .map(move |item| {
+                // TODO: not changing now since this will be replaced with new post canister service
                 self.canisters.get_post_details_with_nsfw_info(
-                    item.canister_id,
+                    Principal::from_text(item.canister_id).unwrap(),
                     item.post_id,
-                    item.nsfw_probability,
+                    if item.is_nsfw { 1.0 } else { 0.0 },
                 )
             })
             .collect::<FuturesOrdered<_>>()
@@ -185,9 +186,9 @@ impl<
             .into_iter()
             .map(move |item| {
                 self.canisters.get_post_details_with_nsfw_info(
-                    item.canister_id,
+                    Principal::from_text(item.canister_id).unwrap(),
                     item.post_id,
-                    item.nsfw_probability,
+                    if item.is_nsfw { 1.0 } else { 0.0 },
                 )
             })
             .collect::<FuturesOrdered<_>>()
