@@ -5,11 +5,13 @@ use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::components::Redirect;
 use leptos_router::hooks::use_navigate;
-use state::canisters::AuthState;
+use leptos_router::NavigateOptions;
+use state::canisters::{unauth_canisters, AuthState};
 use state::{app_state::AppState, canisters::auth_state};
-use yral_canisters_client::notification_store::LikedPayload;
+use utils::send_wrap;
 use yral_canisters_client::notification_store::VideoUploadPayload;
 use yral_canisters_client::notification_store::{self};
+use yral_canisters_client::notification_store::{LikedPayload, NotificationStore};
 use yral_canisters_client::notification_store::{NotificationData, NotificationType};
 use yral_canisters_common::cursored_data::{CursoredDataProvider, KeyedData, PageEntry};
 use yral_canisters_common::utils::profile::ProfileDetails;
@@ -42,6 +44,7 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
         ),
     };
 
+    let notif_clone = notif.clone();
     let auth = auth_state();
     let href_icon = auth.derive_resource(
         move || notif.clone(),
@@ -56,20 +59,23 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
                     )
                 }
                 NotificationType::Liked(v) => {
-                    let cans_id = cans
-                        .get_individual_canister_v2(v.by_user_principal.to_text())
-                        .await?
-                        .ok_or(ServerFnError::new("Failed to get individual canister"))?;
+                    let cans_id =
+                        send_wrap(cans.get_individual_canister_v2(v.by_user_principal.to_text()))
+                            .await?
+                            .ok_or(ServerFnError::new("Failed to get individual canister"))?;
 
                     let icon = ProfileDetails::from_canister(
                         cans_id,
                         None,
-                        cans.individual_user(v.by_user_principal)
-                            .await
-                            .get_profile_details_v_2()
-                            .await?,
+                        send_wrap(
+                            cans.individual_user(v.by_user_principal)
+                                .await
+                                .get_profile_details_v_2(),
+                        )
+                        .await?,
                     )
                     .profile_pic_or_random();
+
                     (
                         format!("hot-or-not/{}/{}", cans.user_canister(), v.post_id),
                         icon,
@@ -80,21 +86,20 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
         },
     );
 
-    let nav = use_navigate();
-    let set_read = Action::new(move || async move {
-        let cans = auth
-            .auth_cans(unauth_canisters())
+    let set_read = Action::new(move |()| async move {
+        let cans = send_wrap(auth.auth_cans(unauth_canisters()))
             .await
-            .map_err(|e| NotificationError(e.to_string()))?;
+            .map_err(|e| NotificationError(e.to_string()))
+            .unwrap();
         let agent = cans.authenticated_user().await.1;
-        let principal = agent
-            .get_principal()
-            .map_err(|e| NotificationError(e.to_string()))?;
-        let client = NotificationStore(principal, agent);
-        client
-            .mark_as_read(notif.notification_id)
+        let client = NotificationStore(
+            Principal::from_text("mlj75-eyaaa-aaaaa-qbn5q-cai").unwrap(),
+            agent,
+        );
+        send_wrap(client.mark_notification_as_read(notif_clone.notification_id))
             .await
-            .map_err(|e| NotificationError(e.to_string()))?;
+            .map_err(|e| NotificationError(e.to_string()))
+            .unwrap();
     });
 
     view! {
@@ -103,6 +108,9 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
                 let Some(Ok((href_value, icon))) = href_icon.get() else {
                     return Either::Left(view! { <Redirect path="/wallet" /> });
                 };
+
+                let href_value_clone = href_value.clone();
+                let nav = use_navigate();
 
                 Either::Right(view! {
                     <a href=href_value class="bg-black w-full p-4 border-b border-neutral-900">
@@ -120,8 +128,8 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
                                 </div>
                                 <div class="flex items-center gap-2 pt-1">
                                     <NotificationActionButton on_click=move || {
-                                        set_read.dispatch();
-                                        nav.push(href_value.clone());
+                                        set_read.dispatch(());
+                                        nav(&href_value_clone, NavigateOptions::default());
                                     }>View</NotificationActionButton>
                                     // <NotificationActionButton on_click=move || {}>Accept</NotificationActionButton>
                                     // <NotificationActionButton on_click=move || {} secondary=true>Reject</NotificationActionButton>
@@ -140,8 +148,9 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
     }
 }
 
+// Will be required later
 #[component]
-fn NotificationItemStatus(status: String) -> impl IntoView {
+pub fn NotificationItemStatus(status: String) -> impl IntoView {
     view! {
         <span class=format!("text-sm py-1 px-2 rounded-full font-medium capitalize {}", match status.clone().as_str() {
             "accepted" => "text-green-500 bg-green-950/80",
@@ -250,7 +259,10 @@ impl CursoredDataProvider for NotificationProvider {
                 .get_principal()
                 .map_err(|e| NotificationError(e.to_string()))?;
 
-            let client = NotificationStore(principal, agent);
+            let client = NotificationStore(
+                Principal::from_text("mlj75-eyaaa-aaaaa-qbn5q-cai").unwrap(),
+                agent,
+            );
 
             let notifications = client
                 .get_notifications((_end - _start + 1) as u64, _start as u64)
