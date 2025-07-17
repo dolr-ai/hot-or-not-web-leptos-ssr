@@ -267,7 +267,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                         </div>
                     }
                 }>
-                { move || {
+                {
                     if is_treasury_empty.get() {
                         view! {
                             <div class="flex flex-col gap-4 items-center">
@@ -391,7 +391,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                             </div>
                         }.into_any()
                     }
-                    }
+                
                 }
                 </Suspense>
                 </div>
