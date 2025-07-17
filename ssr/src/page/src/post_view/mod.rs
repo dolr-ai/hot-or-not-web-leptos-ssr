@@ -21,7 +21,7 @@ use yral_types::post::PostItem;
 use candid::Principal;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use futures::StreamExt;
-use leptos::prelude::*;
+use leptos::{logging, prelude::*};
 use leptos_router::{
     hooks::{use_navigate, use_params},
     params::Params,
@@ -160,6 +160,13 @@ pub fn CommonPostViewWithUpdates(
                 vq.iter()
                     .position(|p| p.canister_id == canister_id && p.post_id == post_id)
             });
+
+            logging::log!(
+                "Current post params: canister_id: {}, post_id: {}, idx: {:?}",
+                canister_id,
+                post_id,
+                maybe_idx
+            );
 
             if let Some(idx) = maybe_idx {
                 current_post_params.set(Some(utils::types::PostParams {
