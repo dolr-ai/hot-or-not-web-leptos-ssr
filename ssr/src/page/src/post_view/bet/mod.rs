@@ -11,7 +11,7 @@ use hon_worker_common::{
 };
 use ic_agent::Identity;
 use leptos::html::Audio;
-use leptos::{logging, prelude::*};
+use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
 use limits::{CoinState, DEFAULT_BET_COIN_STATE};
@@ -266,29 +266,17 @@ fn HNButtonOverlay(
 
     let running = place_bet_action.pending();
 
-    let prev_login_popup = RwSignal::new(show_login_popup.get_untracked());
+    let was_connected = RwSignal::new(is_connected.get_untracked());
 
     Effect::new(move |_| {
-        let was_open = prev_login_popup.get_untracked();
-        let is_open = show_login_popup.get();
-        let connected = is_connected.get();
-        logging::log!(
-            "Login popup state changed: was_open={}, is_open={}, connected={}",
-            was_open,
-            is_open,
-            connected
-        );
-        if was_open && !is_open && connected {
+        if !was_connected.get_untracked() && is_connected.get() {
             let window = window();
-            // let url = format!(
-            //     "/hot-or-not/{}/{}",
-            //     login_post.canister_id, login_post.post_id
-            // );
-            // let _ = window.location().set_href(&url);
-            window.location().reload().unwrap();
-        }
-        if was_open != is_open {
-            prev_login_popup.set(is_open);
+            let url = format!(
+                "/hot-or-not/{}/{}",
+                login_post.canister_id, login_post.post_id
+            );
+            let _ = window.location().set_href(&url);
+            // window.location().reload().unwrap();
         }
     });
 
