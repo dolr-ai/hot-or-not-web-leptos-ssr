@@ -374,9 +374,10 @@ fn DeleteAccountFlow(show_popup: RwSignal<bool>, is_authenticated: bool) -> impl
         is_nsfw_enabled: f.is_nsfw_enabled,
         page_name: "settings".into(),
     });
-
-    if let Some(props) = analytics_delete_account_props.clone() {
-        MixPanelEvent::track_delete_account_clicked(props);
+    if show_popup.get() {
+        if let Some(props) = analytics_delete_account_props.clone() {
+            MixPanelEvent::track_delete_account_clicked(props);
+        }
     }
     view! {
         <Show when=move || show_popup.get()>
