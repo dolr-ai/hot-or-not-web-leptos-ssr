@@ -149,35 +149,6 @@ pub fn CommonPostViewWithUpdates(
         })
     });
 
-    let current_params = use_params::<PostParams>();
-    Effect::new(move |_| {
-        if let Ok(PostParams {
-            canister_id,
-            post_id,
-        }) = current_params.get()
-        {
-            let maybe_idx = video_queue.with(|vq| {
-                vq.iter()
-                    .position(|p| p.canister_id == canister_id && p.post_id == post_id)
-            });
-
-            logging::log!(
-                "Current post params: canister_id: {}, post_id: {}, idx: {:?}",
-                canister_id,
-                post_id,
-                maybe_idx
-            );
-
-            if let Some(idx) = maybe_idx {
-                current_post_params.set(Some(utils::types::PostParams {
-                    canister_id,
-                    post_id,
-                }));
-                current_idx.set(idx);
-            }
-        }
-    });
-
     Effect::new(move || {
         let Some((canister_id, post_id)) = current_post_base() else {
             return;

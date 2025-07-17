@@ -266,6 +266,26 @@ fn HNButtonOverlay(
 
     let running = place_bet_action.pending();
 
+    let prev_login_popup = RwSignal::new(show_login_popup.get_untracked());
+
+    Effect::new(move |_| {
+        let was_open = prev_login_popup.get_untracked();
+        let is_open = show_login_popup.get();
+        let connected = is_connected.get();
+
+        if was_open && !is_open && connected {
+            let window = window();
+            let url = format!(
+                "/hot-or-not/{}/{}",
+                login_post.canister_id, login_post.post_id
+            );
+            let _ = window.location().set_href(&url);
+        }
+        if was_open != is_open {
+            prev_login_popup.set(is_open);
+        }
+    });
+
     view! {
         <div class="flex justify-center w-full touch-manipulation">
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
