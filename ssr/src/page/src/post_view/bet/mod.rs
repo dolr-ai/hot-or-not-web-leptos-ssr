@@ -266,10 +266,14 @@ fn HNButtonOverlay(
 
     let running = place_bet_action.pending();
 
-    let was_connected = RwSignal::new(is_connected.get_untracked());
+    let prev_login_popup = RwSignal::new(show_login_popup.get_untracked());
 
     Effect::new(move |_| {
-        if !was_connected.get_untracked() && is_connected.get() {
+        let was_open = prev_login_popup.get_untracked();
+        let is_open = show_login_popup.get();
+        let connected = is_connected.get();
+
+        if was_open && !is_open && connected {
             let window = window();
             let url = format!(
                 "/hot-or-not/{}/{}",
@@ -277,6 +281,9 @@ fn HNButtonOverlay(
             );
             let _ = window.location().set_href(&url);
             // window.location().reload().unwrap();
+        }
+        if was_open != is_open {
+            prev_login_popup.set(is_open);
         }
     });
 
