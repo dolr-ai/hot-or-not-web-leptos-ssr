@@ -51,7 +51,8 @@ wasm-bindgen = "=0.2.100"
 thiserror = "2.0"
 tracing = { version = "0.1.37" }
 http = "1.1.0"
-ic-agent = { version = "0.38.1", default-features = false, features = ["pem"] }
+
+ic-agent = { version = "0.41.0", default-features = false, features = ["pem"] }
 ic-base-types = { git = "https://github.com/dfinity/ic", rev = "tags/release-2024-10-17_03-07-base" }
 icp-ledger = { git = "https://github.com/dfinity/ic", rev = "tags/release-2024-10-17_03-07-base" }
 serde-wasm-bindgen = "0.6.5"
@@ -164,7 +165,7 @@ sentry = { version = "0.37.0", default-features = false, features = [
 sentry-tower = { version = "0.37.0", features = ["axum", "axum-matched-path"] }
 jsonwebtoken = "9.3.1"
 google-cloud-alloydb-v1 = "0.2.0"
-yral-identity = { git = "https://github.com/yral-dapp/yral-identity", rev = "adbf4be5cb62a26f2a90032261321bf1df33f08b", default-features = false }
+yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", default-features = false }
 sea-orm = { version = "1.1.13", features = ["sqlx-postgres", "runtime-tokio-rustls"] }
 dolr-airdrop = { git = "https://github.com/dolr-ai/yral-neon-postgres", branch = "main" }
 sats-airdrop = { git = "https://github.com/dolr-ai/yral-neon-postgres", branch = "main" }
@@ -194,14 +195,14 @@ num-bigint = "0.4.6"
 # ===
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], rev="36da4d1292aa563378c0d21f2c5bb8391e3e90b8" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", rev="36da4d1292aa563378c0d21f2c5bb8391e3e90b8" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", rev="36da4d1292aa563378c0d21f2c5bb8391e3e90b8" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev="36da4d1292aa563378c0d21f2c5bb8391e3e90b8", features = [
+], branch = "master", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", rev="36da4d1292aa563378c0d21f2c5bb8391e3e90b8" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common", features = [
     "client",
-], rev="36da4d1292aa563378c0d21f2c5bb8391e3e90b8" }
-limits = { git = "https://github.com/dolr-ai/yral-common.git", rev="36da4d1292aa563378c0d21f2c5bb8391e3e90b8" }
+], branch = "master", version = "0.1.0" }
+limits = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
