@@ -8,7 +8,7 @@ use candid::Principal;
 use codee::string::FromToStringCodec;
 use consts::{
     auth::REFRESH_MAX_AGE, ACCOUNT_CONNECTED_STORE, AUTH_UTIL_COOKIES_MAX_AGE_MS, REFERRER_COOKIE,
-    USERNAME_MAX_LEN, USER_CANISTER_ID_STORE, USER_PRINCIPAL_STORE,
+    USER_CANISTER_ID_STORE, USER_PRINCIPAL_STORE,
 };
 use futures::FutureExt;
 use leptos::prelude::*;
@@ -39,8 +39,7 @@ async fn set_fallback_username(cans: &mut Canisters<true>, mut username: String)
 
         match e {
             Metadata(MetadataError::Api(ApiError::DuplicateUsername)) => {
-                let free_characters = username.len().saturating_sub(USERNAME_MAX_LEN);
-                if free_characters == 0 {
+                if username.len() >= 13 {
                     break;
                 }
                 let rng = rng.get_or_insert_with(|| {
