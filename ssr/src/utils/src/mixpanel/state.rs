@@ -23,4 +23,9 @@ impl MixpanelState {
         let this = use_context::<Self>().unwrap_or_else(Self::init);
         this.custom_device_id
     }
+
+    pub fn clear_device_id() {
+        let this = use_context::<Self>().unwrap_or_else(Self::init);
+        this.device_id.set(None);
+    }
 }
