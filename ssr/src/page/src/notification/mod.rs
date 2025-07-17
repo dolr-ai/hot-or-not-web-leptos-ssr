@@ -79,6 +79,23 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
         },
     );
 
+    let nav = use_navigate();
+    let set_read = Action::new(move || async move {
+        let cans = auth
+            .auth_cans(unauth_canisters())
+            .await
+            .map_err(|e| NotificationError(e.to_string()))?;
+        let agent = cans.authenticated_user().await.1;
+        let principal = agent
+            .get_principal()
+            .map_err(|e| NotificationError(e.to_string()))?;
+        let client = NotificationStore(principal, agent);
+        client
+            .mark_as_read(notif.notification_id)
+            .await
+            .map_err(|e| NotificationError(e.to_string()))?;
+    });
+
     view! {
         <Suspense fallback=NotificationLoadingItem>
             {move || {
@@ -101,15 +118,18 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
                                     {description.clone()}
                                 </div>
                                 <div class="flex items-center gap-2 pt-1">
-                                    <NotificationActionButton on_click=move || {}>View</NotificationActionButton>
-                                    <NotificationActionButton on_click=move || {}>Accept</NotificationActionButton>
-                                    <NotificationActionButton on_click=move || {} secondary=true>Reject</NotificationActionButton>
+                                    <NotificationActionButton on_click=move || {
+                                        set_read.dispatch();
+                                        nav.push(href_value.clone());
+                                    }>View</NotificationActionButton>
+                                    // <NotificationActionButton on_click=move || {}>Accept</NotificationActionButton>
+                                    // <NotificationActionButton on_click=move || {} secondary=true>Reject</NotificationActionButton>
                                 </div>
-                                <div class="flex items-center gap-4 flex-wrap pt-1">
-                                    <NotificationItemStatus status="accepted".to_string() />
-                                    <NotificationItemStatus status="pending".to_string() />
-                                    <NotificationItemStatus status="rejected".to_string() />
-                                </div>
+                                // <div class="flex items-center gap-4 flex-wrap pt-1">
+                                //     <NotificationItemStatus status="accepted".to_string() />
+                                //     <NotificationItemStatus status="pending".to_string() />
+                                //     <NotificationItemStatus status="rejected".to_string() />
+                                // </div>
                             </div>
                         </div>
                     </a>
