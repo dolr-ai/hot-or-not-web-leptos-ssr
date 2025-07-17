@@ -4,6 +4,7 @@ use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::components::Redirect;
+use leptos_router::hooks::use_navigate;
 use state::canisters::AuthState;
 use state::{app_state::AppState, canisters::auth_state};
 use yral_canisters_client::notification_store::LikedPayload;
