@@ -1315,7 +1315,7 @@ dependencies = [
  "http 1.3.1",
  "ic-agent",
  "ic-base-types",
- "ic-certification 2.6.0",
+ "ic-certification",
  "icondata",
  "icondata_core",
  "icp-ledger",
@@ -1479,7 +1479,7 @@ dependencies = [
  "http 1.3.1",
  "ic-agent",
  "ic-base-types",
- "ic-certification 2.6.0",
+ "ic-certification",
  "icondata",
  "icondata_core",
  "icp-ledger",
@@ -3726,7 +3726,7 @@ dependencies = [
  "http 1.3.1",
  "ic-agent",
  "ic-base-types",
- "ic-certification 2.6.0",
+ "ic-certification",
  "icondata",
  "icondata_core",
  "icp-ledger",
@@ -4126,7 +4126,7 @@ dependencies = [
  "hex",
  "http 1.3.1",
  "http-body 1.0.1",
- "ic-certification 3.0.3",
+ "ic-certification",
  "ic-ed25519",
  "ic-transport-types",
  "ic-verify-bls-signature",
@@ -4239,18 +4239,6 @@ dependencies = [
  "serde",
  "serde_tokenstream",
  "syn 2.0.104",
-]
-
-[[package]]
-name = "ic-certification"
-version = "3.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffb40d73f9f8273dc6569a68859003bbd467c9dc6d53c6fd7d174742f857209d"
-dependencies = [
- "hex",
- "serde",
- "serde_bytes",
- "sha2 0.10.9",
 ]
 
 [[package]]
@@ -4395,7 +4383,7 @@ checksum = "5527e1eed0407cf4aa8ced1bc22181c2ae09f8385a00d270f146310b9379c6ad"
 dependencies = [
  "candid",
  "hex",
- "ic-certification 3.0.3",
+ "ic-certification",
  "leb128",
  "serde",
  "serde_bytes",
@@ -6015,7 +6003,7 @@ dependencies = [
  "http 1.3.1",
  "ic-agent",
  "ic-base-types",
- "ic-certification 2.6.0",
+ "ic-certification",
  "icondata",
  "icondata_core",
  "icp-ledger",
@@ -8544,7 +8532,7 @@ dependencies = [
  "http 1.3.1",
  "ic-agent",
  "ic-base-types",
- "ic-certification 2.6.0",
+ "ic-certification",
  "icondata",
  "icondata_core",
  "icp-ledger",
@@ -9675,7 +9663,7 @@ dependencies = [
  "http 1.3.1",
  "ic-agent",
  "ic-base-types",
- "ic-certification 2.6.0",
+ "ic-certification",
  "icondata",
  "icondata_core",
  "icp-ledger",
@@ -10494,7 +10482,7 @@ dependencies = [
 [[package]]
 name = "yral-identity"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#9360407769f25d2d4b7f49391dae12afd98af4a1"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#44532b7e0246b1ffa4898ab9719e80fc69fa62cc"
 dependencies = [
  "candid",
  "ic-agent",
