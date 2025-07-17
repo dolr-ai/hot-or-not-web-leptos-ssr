@@ -174,7 +174,7 @@ impl std::error::Error for NotificationError {}
 
 #[derive(Clone, Copy)]
 pub struct NotificationProvider {
-    auth: AuthState,
+    pub auth: AuthState,
 }
 
 impl CursoredDataProvider for NotificationProvider {
@@ -183,42 +183,11 @@ impl CursoredDataProvider for NotificationProvider {
 
     async fn get_by_cursor_inner(
         &self,
-        start: usize,
-        end: usize,
+        _start: usize,
+        _end: usize,
     ) -> Result<PageEntry<Self::Data>, Self::Error> {
-        #[cfg(not(any(feature = "local-bin", feature = "local-lib")))]
-        {
-            use state::canisters::unauth_canisters;
-            use yral_canisters_client::notification_store::NotificationStore;
-            let cans = self
-                .auth
-                .auth_cans(unauth_canisters())
-                .await
-                .map_err(|e| NotificationError(e.to_string()))?;
-
-            let agent = cans.authenticated_user().await.1;
-            let principal = agent
-                .get_principal()
-                .map_err(|e| NotificationError(e.to_string()))?;
-
-            let client = NotificationStore(principal, agent);
-
-            let notifications = client
-                .get_notifications((end - start + 1) as u64, start as u64)
-                .await
-                .map_err(|e| NotificationError(e.to_string()))?;
-
-            let list_end = notifications.len() < (end - start);
-            return Ok(PageEntry {
-                data: notifications
-                    .into_iter()
-                    .map(NotificationDataKeyed)
-                    .collect(),
-                end: list_end,
-            });
-        }
-
-        Ok(PageEntry {
+        #[cfg(any(feature = "local-bin", feature = "local-lib"))]
+        return Ok(PageEntry {
             data: vec![
                 NotificationDataKeyed(NotificationData {
                     notification_id: 1,
@@ -243,7 +212,39 @@ impl CursoredDataProvider for NotificationProvider {
                 }),
             ],
             end: true,
-        })
+        });
+
+        #[cfg(not(any(feature = "local-bin", feature = "local-lib")))]
+        {
+            use state::canisters::unauth_canisters;
+            use yral_canisters_client::notification_store::NotificationStore;
+            let cans = self
+                .auth
+                .auth_cans(unauth_canisters())
+                .await
+                .map_err(|e| NotificationError(e.to_string()))?;
+
+            let agent = cans.authenticated_user().await.1;
+            let principal = agent
+                .get_principal()
+                .map_err(|e| NotificationError(e.to_string()))?;
+
+            let client = NotificationStore(principal, agent);
+
+            let notifications = client
+                .get_notifications((_end - _start + 1) as u64, _start as u64)
+                .await
+                .map_err(|e| NotificationError(e.to_string()))?;
+
+            let list_end = notifications.len() < (_end - _start);
+            return Ok(PageEntry {
+                data: notifications
+                    .into_iter()
+                    .map(NotificationDataKeyed)
+                    .collect(),
+                end: list_end,
+            });
+        }
     }
 }
 
