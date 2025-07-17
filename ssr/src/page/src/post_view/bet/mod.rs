@@ -11,7 +11,7 @@ use hon_worker_common::{
 };
 use ic_agent::Identity;
 use leptos::html::Audio;
-use leptos::prelude::*;
+use leptos::{logging, prelude::*};
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
 use limits::{CoinState, DEFAULT_BET_COIN_STATE};
@@ -272,7 +272,12 @@ fn HNButtonOverlay(
         let was_open = prev_login_popup.get_untracked();
         let is_open = show_login_popup.get();
         let connected = is_connected.get();
-
+        logging::log!(
+            "Login popup state changed: was_open={}, is_open={}, connected={}",
+            was_open,
+            is_open,
+            connected
+        );
         if was_open && !is_open && connected {
             let window = window();
             // let url = format!(
