@@ -275,11 +275,12 @@ fn HNButtonOverlay(
 
         if was_open && !is_open && connected {
             let window = window();
-            let url = format!(
-                "/hot-or-not/{}/{}",
-                login_post.canister_id, login_post.post_id
-            );
-            let _ = window.location().set_href(&url);
+            // let url = format!(
+            //     "/hot-or-not/{}/{}",
+            //     login_post.canister_id, login_post.post_id
+            // );
+            // let _ = window.location().set_href(&url);
+            window.location().reload().unwrap();
         }
         if was_open != is_open {
             prev_login_popup.set(is_open);
