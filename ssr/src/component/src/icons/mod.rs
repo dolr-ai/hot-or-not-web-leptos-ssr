@@ -9,3 +9,4 @@ pub mod notification_nudge;
 pub mod padlock_icon;
 pub mod send_icon;
 pub mod share_icon;
+pub mod telegram_icon;
