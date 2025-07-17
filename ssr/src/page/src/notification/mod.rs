@@ -1,13 +1,17 @@
+use candid::Principal;
 use component::{back_btn::BackButton, infinite_scroller::InfiniteScroller, title::TitleText};
+use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_meta::*;
-use state::canisters::unauth_canisters;
+use leptos_router::components::Redirect;
 use state::canisters::AuthState;
 use state::{app_state::AppState, canisters::auth_state};
-use yral_canisters_client::notification_store::{
-    NotificationData, NotificationStore, NotificationType,
-};
+use yral_canisters_client::notification_store::{self};
+use yral_canisters_client::notification_store::LikedPayload;
+use yral_canisters_client::notification_store::VideoUploadPayload;
+use yral_canisters_client::notification_store::{NotificationData, NotificationType};
 use yral_canisters_common::cursored_data::{CursoredDataProvider, KeyedData, PageEntry};
+use yral_canisters_common::utils::profile::ProfileDetails;
 
 #[component]
 fn NotificationLoadingItem() -> impl IntoView {
@@ -26,8 +30,6 @@ fn NotificationLoadingItem() -> impl IntoView {
 
 #[component]
 fn NotificationItem(notif: NotificationData) -> impl IntoView {
-    let img_src = "/img/common/error-logo.svg";
-
     let (title, description) = match &notif.payload {
         NotificationType::VideoUpload(v) => (
             "Video Uploaded Sucessfully!".to_string(),
@@ -40,15 +42,37 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
     };
 
     let auth = auth_state();
-    let href = auth.derive_resource(
+    let href_icon = auth.derive_resource(
         move || notif.clone(),
         move |cans, notif| async move {
             let path = match notif.payload {
                 NotificationType::VideoUpload(v) => {
-                    format!("hot-or-not/{}/{}", cans.user_canister(), v.video_uid)
+                    let icon = cans.profile_details().profile_pic_or_random();
+
+                    (
+                        format!("hot-or-not/{}/{}", cans.user_canister(), v.video_uid),
+                        icon,
+                    )
                 }
                 NotificationType::Liked(v) => {
-                    format!("hot-or-not/{}/{}", cans.user_canister(), v.post_id)
+                    let cans_id = cans
+                        .get_individual_canister_v2(v.by_user_principal.to_text())
+                        .await?
+                        .ok_or(ServerFnError::new("Failed to get individual canister"))?;
+
+                    let icon = ProfileDetails::from_canister(
+                        cans_id,
+                        None,
+                        cans.individual_user(v.by_user_principal)
+                            .await
+                            .get_profile_details_v_2()
+                            .await?,
+                    )
+                    .profile_pic_or_random();
+                    (
+                        format!("hot-or-not/{}/{}", cans.user_canister(), v.post_id),
+                        icon,
+                    )
                 }
             };
             Ok(path)
@@ -58,16 +82,15 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
     view! {
         <Suspense fallback=NotificationLoadingItem>
             {move || {
-                let href_value = match href.get() {
-                    Some(Ok(path)) => path,
-                    _ => "/wallet".to_string(),
+                let Some(Ok((href_value, icon))) = href_icon.get() else {
+                    return Either::Left(view! { <Redirect path="/wallet" /> });
                 };
 
-                view! {
+                Either::Right(view! {
                     <a href=href_value class="bg-black w-full p-4 border-b border-neutral-900">
                         <div class="flex items-center gap-3">
                             <div class="size-11 rounded-full bg-neutral-800 relative">
-                                <img src={img_src} class="size-11 rounded-full object-cover" />
+                                <img src={icon.clone()} class="size-11 rounded-full object-cover" />
                                 <div class="size-2 rounded-full bg-pink-700 absolute -left-4 top-5"></div>
                             </div>
                             <div class="flex flex-col gap-1">
@@ -90,7 +113,7 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
                             </div>
                         </div>
                     </a>
-                }
+                })
             }}
         </Suspense>
     }
@@ -163,32 +186,63 @@ impl CursoredDataProvider for NotificationProvider {
         start: usize,
         end: usize,
     ) -> Result<PageEntry<Self::Data>, Self::Error> {
-        // Get authenticated canisters and build a NotificationStore on-demand
-        let cans = self
-            .auth
-            .auth_cans(unauth_canisters())
-            .await
-            .map_err(|e| NotificationError(e.to_string()))?;
+        #[cfg(not(any(feature = "local-bin", feature = "local-lib")))]
+        {
+            use state::canisters::unauth_canisters;
+            use yral_canisters_client::notification_store::NotificationStore;
+            let cans = self
+                .auth
+                .auth_cans(unauth_canisters())
+                .await
+                .map_err(|e| NotificationError(e.to_string()))?;
 
-        let agent = cans.authenticated_user().await.1;
-        let principal = agent
-            .get_principal()
-            .map_err(|e| NotificationError(e.to_string()))?;
+            let agent = cans.authenticated_user().await.1;
+            let principal = agent
+                .get_principal()
+                .map_err(|e| NotificationError(e.to_string()))?;
 
-        let client = NotificationStore(principal, agent);
+            let client = NotificationStore(principal, agent);
 
-        let notifications = client
-            .get_notifications((end - start + 1) as u64, start as u64)
-            .await
-            .map_err(|e| NotificationError(e.to_string()))?;
+            let notifications = client
+                .get_notifications((end - start + 1) as u64, start as u64)
+                .await
+                .map_err(|e| NotificationError(e.to_string()))?;
 
-        let list_end = notifications.len() < (end - start);
+            let list_end = notifications.len() < (end - start);
+            return Ok(PageEntry {
+                data: notifications
+                    .into_iter()
+                    .map(NotificationDataKeyed)
+                    .collect(),
+                end: list_end,
+            });
+        }
+
         Ok(PageEntry {
-            data: notifications
-                .into_iter()
-                .map(NotificationDataKeyed)
-                .collect(),
-            end: list_end,
+            data: vec![
+                NotificationDataKeyed(NotificationData {
+                    notification_id: 1,
+                    payload: NotificationType::VideoUpload(VideoUploadPayload { video_uid: 1 }),
+                    read: false,
+                    created_at: notification_store::SystemTime {
+                        nanos_since_epoch: 0,
+                        secs_since_epoch: 0,
+                    },
+                }),
+                NotificationDataKeyed(NotificationData {
+                    notification_id: 2,
+                    payload: NotificationType::Liked(LikedPayload {
+                        post_id: 1,
+                        by_user_principal: Principal::anonymous(),
+                    }),
+                    read: false,
+                    created_at: notification_store::SystemTime {
+                        nanos_since_epoch: 0,
+                        secs_since_epoch: 0,
+                    },
+                }),
+            ],
+            end: true,
         })
     }
 }
@@ -233,9 +287,6 @@ fn NotificationInfiniteScroller(provider: NotificationProvider) -> impl IntoView
                                 <NotificationItem notif=notifications.0 />
                             </div>
                         }
-                    }
-                    custom_loader=move || {
-                        view! { <NotificationLoadingItem /> }
                     }
                 />
             </div>
