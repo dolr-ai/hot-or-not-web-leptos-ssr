@@ -5,6 +5,7 @@ use component::{
     icons::notification_icon::NotificationIcon, icons::telegram_icon::TelegramIcon,
     spinner::SpinnerFit, title::TitleText,
 };
+use consts::{CKBTC_LEDGER_CANISTER, SATS_CKBTC_CANISTER};
 use futures::TryFutureExt;
 use hon_worker_common::{HoNGameWithdrawReq, SatsBalanceInfo};
 use leptos::prelude::*;
@@ -237,22 +238,20 @@ pub fn HonWithdrawal() -> impl IntoView {
 
     let zero = Nat::from(0_usize);
 
+    
+    use state::canisters::unauth_canisters;
     let treasury_balance = Resource::new(
-        move || details_res.get().map(|r| r.ok().map(|d| d.balance.into())),
-        |res| async move {
-            if let Some(res) = res {
-                res.unwrap_or_default()
-            } else {
-                Nat::from(0_usize)
+        || (),
+        |_| async move {
+            let cans = unauth_canisters();
+            let ledger = CKBTC_LEDGER_CANISTER.parse().unwrap();
+            let treasury = SATS_CKBTC_CANISTER.parse().unwrap();
+            // 0 decimals for SATS
+            match cans.icrc1_balance_of(treasury, ledger).await {
+                Ok(balance) => Nat::from(balance),
+                Err(_) => Nat::from(0_usize),
             }
         },
-    );
-
-    let is_treasury_empty = RwSignal::new(
-        treasury_balance
-            .get()
-            .map(|balance| balance == Nat::from(0_usize))
-            .unwrap_or(true),
     );
 
     view! {
@@ -268,7 +267,8 @@ pub fn HonWithdrawal() -> impl IntoView {
                     }
                 }>
                 {
-                    if is_treasury_empty.get() {
+                    let is_treasury_empty = treasury_balance.get().map(|balance| balance == Nat::from(0_usize)).unwrap_or(true);
+                    if is_treasury_empty {
                         view! {
                             <div class="flex flex-col gap-4 items-center">
                                 <img src="/img/hotornot/bank-empty.webp" alt="Treasury is empty" class="size-40" />
