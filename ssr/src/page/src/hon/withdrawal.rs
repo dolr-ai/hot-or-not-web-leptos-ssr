@@ -238,7 +238,6 @@ pub fn HonWithdrawal() -> impl IntoView {
 
     let zero = Nat::from(0_usize);
 
-    
     use state::canisters::unauth_canisters;
     let treasury_balance = Resource::new(
         || (),
@@ -391,7 +390,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                             </div>
                         }.into_any()
                     }
-                
+
                 }
                 </Suspense>
                 </div>
