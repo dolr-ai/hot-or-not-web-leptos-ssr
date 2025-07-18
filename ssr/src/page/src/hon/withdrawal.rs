@@ -247,7 +247,7 @@ pub fn HonWithdrawal() -> impl IntoView {
             let treasury = SATS_CKBTC_CANISTER.parse().unwrap();
             // 0 decimals for SATS
             match cans.icrc1_balance_of(treasury, ledger).await {
-                Ok(balance) => Nat::from(balance),
+                Ok(balance) => balance,
                 Err(_) => Nat::from(0_usize),
             }
         },
@@ -266,7 +266,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                     }
                 }>
                 {
-                    let is_treasury_empty = treasury_balance.get().map(|balance| balance == Nat::from(0_usize)).unwrap_or(true);
+                    let is_treasury_empty = treasury_balance.get().map(|balance| balance == 0_usize).unwrap_or(true);
                     if is_treasury_empty {
                         view! {
                             <div class="flex flex-col gap-4 items-center">
