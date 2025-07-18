@@ -1,74 +1,35 @@
 mod server_impl;
 
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
+use component::login_modal::LoginModal;
+use component::login_nudge_popup::LoginNudgePopup;
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
 use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
 use hon_worker_common::{
     sign_vote_request_v3, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV3,
-    WORKER_URL,
+    VoteResV2, WORKER_URL,
 };
 use ic_agent::Identity;
 use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
-use limits::{CoinState, BET_COIN_ENABLED_STATES, DEFAULT_BET_COIN_STATE};
+use limits::{CoinState, DEFAULT_BET_COIN_STATE};
 use num_traits::cast::ToPrimitive;
+use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
 use state::canisters::auth_state;
+use state::hn_bet_state::{HnBetState, VideoComparisonResult};
 use utils::try_or_redirect_opt;
 use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
     posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
 };
 
-trait CoinStateWrapping {
-    fn wrapping_next(self) -> Self;
-    fn wrapping_prev(self) -> Self;
-}
-
-impl CoinStateWrapping for CoinState {
-    fn wrapping_next(self) -> Self {
-        let current_index = BET_COIN_ENABLED_STATES.iter().position(|&x| x == self);
-        match current_index {
-            Some(idx) => {
-                let next_idx = (idx + 1) % BET_COIN_ENABLED_STATES.len();
-                BET_COIN_ENABLED_STATES[next_idx]
-            }
-            None => DEFAULT_BET_COIN_STATE,
-        }
-    }
-
-    fn wrapping_prev(self) -> Self {
-        let current_index = BET_COIN_ENABLED_STATES.iter().position(|&x| x == self);
-        match current_index {
-            Some(idx) => {
-                let prev_idx = if idx == 0 {
-                    BET_COIN_ENABLED_STATES.len() - 1
-                } else {
-                    idx - 1
-                };
-                BET_COIN_ENABLED_STATES[prev_idx]
-            }
-            None => DEFAULT_BET_COIN_STATE,
-        }
-    }
-}
-
-trait CoinStateToCents {
-    fn to_cents(&self) -> u64;
-}
-
-impl CoinStateToCents for CoinState {
-    fn to_cents(&self) -> u64 {
-        match self {
-            CoinState::C10 => 10,
-            CoinState::C20 => 20,
-            CoinState::C50 => 50,
-            CoinState::C100 => 100,
-            CoinState::C200 => 200,
-        }
-    }
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct VoteAPIRes {
+    pub game_result: VoteResV2,
+    pub video_comparison_result: VideoComparisonResult,
 }
 
 #[component]
@@ -76,13 +37,20 @@ fn CoinStateView(
     #[prop(into)] coin: Signal<CoinState>,
     #[prop(into)] class: String,
     #[prop(optional, into)] disabled: Signal<bool>,
+    #[prop(optional, into)] is_connected: Signal<bool>,
 ) -> impl IntoView {
     let icon = Signal::derive(move || match coin() {
         CoinState::C10 => C10Icon,
+        CoinState::C1 => C1Icon,
+        CoinState::C5 => C5Icon,
         CoinState::C20 => C20Icon,
         CoinState::C50 => C50Icon,
         CoinState::C100 => C100Icon,
         CoinState::C200 => C200Icon,
+    });
+
+    let disabled = Signal::derive(move || {
+        disabled.get() || (!is_connected.get() && coin.get() != CoinState::C1)
     });
 
     view! {
@@ -161,6 +129,18 @@ fn HNButtonOverlay(
         }
     }
 
+    let show_login_nudge = RwSignal::new(false);
+    let show_login_popup = RwSignal::new(false);
+    let login_post = post.clone();
+
+    let check_show_login_nudge = move || {
+        if !is_connected.get_untracked() && coin.get_untracked() != DEFAULT_BET_COIN_STATE {
+            show_login_nudge.set(true);
+            Err(())
+        } else {
+            Ok(())
+        }
+    };
     let place_bet_action: Action<VoteKind, Option<()>> =
         Action::new(move |bet_direction: &VoteKind| {
             let post_canister = post.canister_id;
@@ -185,6 +165,10 @@ fn HNButtonOverlay(
 
             let post_mix = post.clone();
             send_wrap(async move {
+                let res = check_show_login_nudge();
+                if res.is_err() {
+                    return None;
+                }
                 let cans = auth.auth_cans(expect_context()).await.ok()?;
                 let is_logged_in = is_connected.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
@@ -215,11 +199,11 @@ fn HNButtonOverlay(
                     Ok(res) => {
                         let is_logged_in = is_connected.get_untracked();
                         let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-                        let game_conclusion = match res.game_result {
+                        let game_conclusion = match res.game_result.game_result {
                             GameResultV2::Win { .. } => GameConclusion::Win,
                             GameResultV2::Loss { .. } => GameConclusion::Loss,
                         };
-                        let win_loss_amount = match res.game_result.clone() {
+                        let win_loss_amount = match res.game_result.game_result.clone() {
                             GameResultV2::Win {
                                 win_amt,
                                 updated_balance: _,
@@ -233,7 +217,9 @@ fn HNButtonOverlay(
                         let (_, set_wallet_balalnce_store, _) =
                             use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
-                        set_wallet_balalnce_store.set(match res.game_result.clone() {
+                        HnBetState::set(post_mix.uid.clone(), res.video_comparison_result);
+
+                        set_wallet_balalnce_store.set(match res.game_result.game_result.clone() {
                             GameResultV2::Win {
                                 win_amt: _,
                                 updated_balance,
@@ -266,7 +252,7 @@ fn HNButtonOverlay(
                         });
                         play_win_sound_and_vibrate(
                             audio_ref,
-                            matches!(res.game_result, GameResultV2::Win { .. }),
+                            matches!(res.game_result.game_result, GameResultV2::Win { .. }),
                         );
                         Some(())
                     }
@@ -280,6 +266,19 @@ fn HNButtonOverlay(
 
     let running = place_bet_action.pending();
 
+    let was_connected = RwSignal::new(is_connected.get_untracked());
+
+    Effect::new(move |_| {
+        if !was_connected.get_untracked() && is_connected.get() {
+            let window = window();
+            let url = format!(
+                "/hot-or-not/{}/{}",
+                login_post.canister_id, login_post.post_id
+            );
+            let _ = window.location().set_href(&url);
+        }
+    });
+
     view! {
         <div class="flex justify-center w-full touch-manipulation">
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
@@ -289,6 +288,8 @@ fn HNButtonOverlay(
                 />
             </button>
         </div>
+        <LoginNudgePopup show=show_login_nudge show_login_popup />
+        <LoginModal show=show_login_popup redirect_to=Some(format!("/hot-or-not/{}/{}", login_post.canister_id, login_post.post_id)) />
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
@@ -296,6 +297,7 @@ fn HNButtonOverlay(
                     disabled=running
                     class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-lg"
                     coin
+                    is_connected
                 />
             </button>
             <HNButton disabled=running bet_direction kind=VoteKind::Not place_bet_action />
@@ -352,8 +354,10 @@ fn HNWonLost(
     bet_direction: RwSignal<Option<VoteKind>>,
     show_tutorial: RwSignal<bool>,
     video_uid: String,
+    post: PostDetails,
 ) -> impl IntoView {
     let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
     let event_ctx = auth.event_ctx();
     let won = matches!(game_result, GameResult::Win { .. });
     let creator_reward = (vote_amount * crate::consts::CREATOR_COMMISION_PERCENT) / 100;
@@ -362,22 +366,34 @@ fn HNWonLost(
         Some(VoteKind::Not) => "Not",
         None => "",
     };
-    let result_message = match game_result.clone() {
-        GameResult::Win { win_amt } => format!(
-            "You won {} SATS, by betting on {}! {} SATS will go to the creator.",
-            TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
-            bet_direction_text,
-            creator_reward
+    let creator_reward_text = if creator_reward > 0 {
+        format!(", creator gets {creator_reward} SATS")
+    } else {
+        "".to_string()
+    };
+    let (line1, line2) = match game_result.clone() {
+        GameResult::Win { win_amt } => (
+            format!("You voted \"{bet_direction_text}\" - Spot on!"),
+            format!(
+                "You won {} SATS{}",
+                TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
+                creator_reward_text
+            ),
         ),
-        GameResult::Loss { lose_amt } => format!(
-            "You voted {} - better luck next time. You lost {} SATS, the creator gets {} SATS",
-            bet_direction_text,
-            TokenBalance::new(lose_amt.into(), 0).humanize(),
-            creator_reward
+        GameResult::Loss { lose_amt } => (
+            format!("You voted \"{bet_direction_text}\" - wrong vote."),
+            format!(
+                "You lost {} SATS{}",
+                TokenBalance::new(lose_amt.into(), 0).humanize(),
+                creator_reward_text
+            ),
         ),
     };
+
     let bet_amount = vote_amount;
     let coin = match bet_amount {
+        1 => CoinState::C1,
+        5 => CoinState::C5,
         10 => CoinState::C10,
         20 => CoinState::C20,
         50 => CoinState::C50,
@@ -447,14 +463,15 @@ fn HNWonLost(
     });
 
     view! {
-        <div class="flex w-full flex-col gap-3 p-4">
-            <div class="flex gap-6 justify-center items-center w-full">
+        <div class="flex w-full flex-col gap-3 py-2">
+            <div class="flex gap-2 justify-center items-center w-full">
                 <div class="relative shrink-0 drop-shadow-lg">
-                    <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin />
+                    <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin is_connected />
                     <img src=vote_kind_image class="absolute bottom-0 -right-1 h-7 w-7" />
                 </div>
                 <div class="flex-1 p-1 text-xs md:text-sm font-semibold leading-snug text-white rounded-full">
-                    {result_message}
+                    {line1}<br/>
+                    {line2}
                 </div>
                 <button
                 class="relative shrink-0 cursor-pointer"
@@ -469,8 +486,57 @@ fn HNWonLost(
                     </ShowAny>
                 </button>
             </div>
+            {move || HnBetState::get(post.uid.clone()).map(|bet_res| {
+                    view! {
+                        <VideoScoreComparison
+                            current_score=bet_res.current_video_score
+                            previous_score=bet_res.previous_video_score
+                            won
+                        />
+                    }})
+            }
             <div class=format!("flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-[#158F5C]" } else { "bg-[#F14331]" })>
                 {total_balance_text}
+            </div>
+        </div>
+    }
+}
+
+#[component]
+fn VideoScoreComparison(current_score: f32, previous_score: f32, won: bool) -> impl IntoView {
+    let is_current_higher = current_score > previous_score;
+    let comparison_symbol = if is_current_higher { ">" } else { "<" };
+    let comparison_color = if won {
+        "text-green-500"
+    } else {
+        "text-[#F14331]"
+    };
+
+    let mut current_score_int = current_score.round() as u32;
+    let mut previous_score_int = previous_score.round() as u32;
+
+    if current_score_int == previous_score_int {
+        if won && is_current_higher {
+            current_score_int += 1;
+        } else {
+            previous_score_int += 1;
+        }
+    }
+
+    view! {
+        <div class="flex justify-center items-center gap-6 bg-black/40 rounded-full px-6 py-2 text-white text-sm font-semibold">
+            <div class="flex gap-2 items-center text-start">
+                <span class="text-lg">{current_score_int}</span>
+                <span class="text-xs">Current Video<br/>Engagement Score</span>
+            </div>
+
+            <span class=format!("text-lg font-bold {}", comparison_color)>
+                {comparison_symbol}
+            </span>
+
+            <div class="flex gap-2 items-center text-start">
+                <span class="text-lg">{previous_score_int}</span>
+                <span class="text-xs">Previous Video<br/>Engagement Score</span>
             </div>
         </div>
     }
@@ -500,8 +566,10 @@ pub fn HNUserParticipation(
         .expect("We only allow voting with 200 max, so this is alright");
     let video_uid = post.uid.clone();
 
+    let post = post.clone();
+
     view! {
-        <HNWonLost game_result vote_amount bet_direction show_tutorial video_uid />
+        <HNWonLost game_result vote_amount bet_direction show_tutorial video_uid post />
         <ShadowBg />
     }
 }

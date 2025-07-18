@@ -63,6 +63,7 @@ pub struct AuthState {
     user_principal_cookie: (Signal<Option<Principal>>, WriteSignal<Option<Principal>>),
     event_ctx: EventCtx,
     pub user_identity: Resource<Result<DelegatedIdentityWire, ServerFnError>>,
+    new_cans_setter: RwSignal<Option<CanistersAuthWire>>,
 }
 
 impl Default for AuthState {
@@ -138,14 +139,25 @@ impl Default for AuthState {
             },
         );
 
+        let new_cans_setter = RwSignal::new(None::<CanistersAuthWire>);
+
         let canisters_resource: AuthCansResource = Resource::new(
             move || {
                 user_identity_resource.track();
-                MockPartialEq(())
+                MockPartialEq(new_cans_setter())
             },
-            move |_| {
+            move |new_cans| {
                 send_wrap(async move {
                     let id_wire = user_identity_resource.await?;
+                    match new_cans.0 {
+                        Some(cans) if cans.id.from_key == id_wire.from_key => {
+                            return Ok::<_, ServerFnError>(cans);
+                        }
+                        // this means that the user did the following:
+                        // 1. Changed their username, then
+                        // 2. Logged in with oauth (or logged out)
+                        _ => {}
+                    };
                     let ref_principal = referrer_principal.get_untracked();
 
                     let res = do_canister_auth(id_wire, ref_principal).await?;
@@ -238,6 +250,7 @@ impl Default for AuthState {
             user_canister_id_cookie,
             event_ctx,
             user_identity: user_identity_resource,
+            new_cans_setter,
         }
     }
 }
@@ -345,5 +358,18 @@ impl AuthState {
                 let cans_wire = c.ok()?;
                 Canisters::from_wire(cans_wire, base).ok()
             })
+    }
+
+    /// Update the username of the user
+    /// WARN: all subscribers to the canisters resource will be notified
+    pub async fn update_username(
+        &self,
+        mut cans: Canisters<true>,
+        new_username: String,
+    ) -> yral_canisters_common::Result<()> {
+        cans.set_username(new_username).await?;
+        self.new_cans_setter.set(Some(cans.into()));
+
+        Ok(())
     }
 }

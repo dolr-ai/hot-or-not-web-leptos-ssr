@@ -1,24 +1,73 @@
 use candid::Principal;
 use consts::ML_FEED_URL;
+use serde::Deserialize;
+use serde::Serialize;
 use yral_canisters_common::utils::posts::PostDetails;
-use yral_types::post::FeedRequest;
 use yral_types::post::FeedRequestV2;
-use yral_types::post::FeedResponse;
 use yral_types::post::FeedResponseV2;
-use yral_types::post::PostItem;
+use yral_types::post::PostItemV2;
+
+const RECOMMENDATION_SERVICE_URL: &str =
+    "https://recommendation-service-749244211103.us-central1.run.app/recommendations";
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct WatchHistoryItem {
+    pub video_id: String,
+    pub last_watched_timestamp: String,
+    pub mean_percentage_watched: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RecommendationRequest {
+    pub user_id: String,
+    pub exclude_items: Vec<String>, // IDs of videos to exclude from recommendations
+    pub nsfw_label: bool,           // Whether to include NSFW content in recommendations
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Recommendation {
+    pub publisher_user_id: String,
+    pub canister_id: String,
+    pub post_id: u64,
+    pub video_id: String,
+    pub nsfw_probability: f32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct RecommendationResponse {
+    pub recommendations: Vec<Recommendation>,
+}
+
+impl From<RecommendationResponse> for FeedResponseV2 {
+    fn from(response: RecommendationResponse) -> Self {
+        FeedResponseV2 {
+            posts: response
+                .recommendations
+                .into_iter()
+                .map(|rec| PostItemV2 {
+                    publisher_user_id: rec.publisher_user_id,
+                    post_id: rec.post_id,
+                    canister_id: rec.canister_id,
+                    video_id: rec.video_id,
+                    is_nsfw: rec.nsfw_probability > 0.4,
+                })
+                .collect(),
+        }
+    }
+}
 
 // New v2 REST APIs
 
 pub async fn get_ml_feed_coldstart_clean(
-    canister_id: Principal,
+    user_id: Principal,
     num_results: u32,
     filter_results: Vec<PostDetails>,
-) -> Result<Vec<PostItem>, anyhow::Error> {
+) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let ml_feed_url = ML_FEED_URL.join("api/v1/feed/coldstart/clean").unwrap();
+    let ml_feed_url = ML_FEED_URL.join("api/v3/feed/coldstart/clean").unwrap();
 
-    let req = FeedRequest {
-        canister_id,
+    let req = FeedRequestV2 {
+        user_id,
         filter_results: post_details_to_post_item(filter_results),
         num_results,
     };
@@ -30,21 +79,21 @@ pub async fn get_ml_feed_coldstart_clean(
             response.text().await?
         )));
     }
-    let response = response.json::<FeedResponse>().await?;
+    let response = response.json::<FeedResponseV2>().await?;
 
     Ok(response.posts)
 }
 
 pub async fn get_ml_feed_coldstart_nsfw(
-    canister_id: Principal,
+    user_id: Principal,
     num_results: u32,
     filter_results: Vec<PostDetails>,
-) -> Result<Vec<PostItem>, anyhow::Error> {
+) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let ml_feed_url = ML_FEED_URL.join("api/v1/feed/coldstart/nsfw").unwrap();
+    let ml_feed_url = ML_FEED_URL.join("api/v3/feed/coldstart/nsfw").unwrap();
 
-    let req = FeedRequest {
-        canister_id,
+    let req = FeedRequestV2 {
+        user_id,
         filter_results: post_details_to_post_item(filter_results),
         num_results,
     };
@@ -56,201 +105,76 @@ pub async fn get_ml_feed_coldstart_nsfw(
             response.text().await?
         )));
     }
-    let response = response.json::<FeedResponse>().await?;
-
-    Ok(response.posts)
-}
-
-pub async fn get_ml_feed_coldstart_mixed(
-    canister_id: Principal,
-    num_results: u32,
-    filter_results: Vec<PostDetails>,
-) -> Result<Vec<PostItem>, anyhow::Error> {
-    let client = reqwest::Client::new();
-    let ml_feed_url = ML_FEED_URL.join("api/v1/feed/coldstart/mixed").unwrap();
-
-    let req = FeedRequest {
-        canister_id,
-        filter_results: post_details_to_post_item(filter_results),
-        num_results,
-    };
-
-    let response = client.post(ml_feed_url).json(&req).send().await?;
-    if !response.status().is_success() {
-        return Err(anyhow::anyhow!(format!(
-            "Error fetching ML feed: {:?}",
-            response.text().await?
-        )));
-    }
-    let response = response.json::<FeedResponse>().await?;
+    let response = response.json::<FeedResponseV2>().await?;
 
     Ok(response.posts)
 }
 
 pub async fn get_ml_feed_clean(
-    canister_id: Principal,
-    num_results: u32,
+    user_id: Principal,
+    _num_results: u32,
     filter_results: Vec<PostDetails>,
-) -> Result<Vec<PostItem>, anyhow::Error> {
+) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let ml_feed_url = ML_FEED_URL.join("api/v1/feed/clean").unwrap();
-
-    let req = FeedRequest {
-        canister_id,
-        filter_results: post_details_to_post_item(filter_results),
-        num_results,
+    let recommendation_request = RecommendationRequest {
+        user_id: user_id.to_string(),
+        exclude_items: post_details_to_video_ids(filter_results),
+        nsfw_label: false,
     };
 
-    let response = client.post(ml_feed_url).json(&req).send().await?;
+    let response = client
+        .post(RECOMMENDATION_SERVICE_URL)
+        .json(&recommendation_request)
+        .send()
+        .await?;
     if !response.status().is_success() {
         return Err(anyhow::anyhow!(format!(
             "Error fetching ML feed: {:?}",
             response.text().await?
         )));
     }
-    let response = response.json::<FeedResponse>().await?;
-
+    let response = response.json::<RecommendationResponse>().await?;
+    let response: FeedResponseV2 = response.into();
     Ok(response.posts)
 }
 
 pub async fn get_ml_feed_nsfw(
-    canister_id: Principal,
-    num_results: u32,
+    user_id: Principal,
+    _num_results: u32,
     filter_results: Vec<PostDetails>,
-) -> Result<Vec<PostItem>, anyhow::Error> {
+) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let ml_feed_url = ML_FEED_URL.join("api/v1/feed/nsfw").unwrap();
-
-    let req = FeedRequest {
-        canister_id,
-        filter_results: post_details_to_post_item(filter_results),
-        num_results,
+    let recommendation_request = RecommendationRequest {
+        user_id: user_id.to_string(),
+        exclude_items: post_details_to_video_ids(filter_results),
+        nsfw_label: true,
     };
 
-    let response = client.post(ml_feed_url).json(&req).send().await?;
+    let response = client
+        .post(RECOMMENDATION_SERVICE_URL)
+        .json(&recommendation_request)
+        .send()
+        .await?;
     if !response.status().is_success() {
         return Err(anyhow::anyhow!(format!(
             "Error fetching ML feed: {:?}",
             response.text().await?
         )));
     }
-    let response = response.json::<FeedResponse>().await?;
-
+    let response = response.json::<RecommendationResponse>().await?;
+    let response: FeedResponseV2 = response.into();
     Ok(response.posts)
 }
 
-pub async fn get_ml_feed_mixed(
-    canister_id: Principal,
-    num_results: u32,
-    filter_results: Vec<PostDetails>,
-) -> Result<Vec<PostItem>, anyhow::Error> {
-    let client = reqwest::Client::new();
-    let ml_feed_url = ML_FEED_URL.join("api/v1/feed/mixed").unwrap();
-
-    let req = FeedRequest {
-        canister_id,
-        filter_results: post_details_to_post_item(filter_results),
-        num_results,
-    };
-
-    let response = client.post(ml_feed_url).json(&req).send().await?;
-    if !response.status().is_success() {
-        return Err(anyhow::anyhow!(format!(
-            "Error fetching ML feed: {:?}",
-            response.text().await?
-        )));
-    }
-    let response = response.json::<FeedResponse>().await?;
-
-    Ok(response.posts)
-}
-
-pub async fn get_ml_feed_clean_v2(
-    canister_id: Principal,
-    user_id: Principal,
-    num_results: u32,
-    filter_results: Vec<PostDetails>,
-) -> Result<Vec<PostItem>, anyhow::Error> {
-    let client = reqwest::Client::new();
-    let ml_feed_url = ML_FEED_URL.join("api/v2/feed/clean").unwrap();
-
-    let req = FeedRequestV2 {
-        user_id: user_id.to_string(),
-        canister_id: canister_id.to_string(),
-        filter_results: post_details_to_video_ids(filter_results),
-        num_results,
-    };
-
-    let response = client.post(ml_feed_url).json(&req).send().await?;
-    if !response.status().is_success() {
-        return Err(anyhow::anyhow!(format!(
-            "Error fetching ML feed: {:?}",
-            response.text().await?
-        )));
-    }
-    let response = response.json::<FeedResponseV2>().await?;
-
-    let posts = response
-        .posts
-        .into_iter()
-        .map(|post| PostItem {
-            post_id: post.post_id,
-            canister_id: Principal::from_text(post.canister_id).unwrap(),
-            video_id: post.video_id,
-            nsfw_probability: post.nsfw_probability,
-        })
-        .collect();
-
-    Ok(posts)
-}
-
-pub async fn get_ml_feed_nsfw_v2(
-    canister_id: Principal,
-    user_id: Principal,
-    num_results: u32,
-    filter_results: Vec<PostDetails>,
-) -> Result<Vec<PostItem>, anyhow::Error> {
-    let client = reqwest::Client::new();
-    let ml_feed_url = ML_FEED_URL.join("api/v2/feed/nsfw").unwrap();
-
-    let req = FeedRequestV2 {
-        user_id: user_id.to_string(),
-        canister_id: canister_id.to_string(),
-        filter_results: post_details_to_video_ids(filter_results),
-        num_results,
-    };
-
-    let response = client.post(ml_feed_url).json(&req).send().await?;
-    if !response.status().is_success() {
-        return Err(anyhow::anyhow!(format!(
-            "Error fetching ML feed: {:?}",
-            response.text().await?
-        )));
-    }
-    let response = response.json::<FeedResponseV2>().await?;
-
-    let posts = response
-        .posts
-        .into_iter()
-        .map(|post| PostItem {
-            post_id: post.post_id,
-            canister_id: Principal::from_text(post.canister_id).unwrap(),
-            video_id: post.video_id,
-            nsfw_probability: post.nsfw_probability,
-        })
-        .collect();
-
-    Ok(posts)
-}
-
-pub fn post_details_to_post_item(post_details: Vec<PostDetails>) -> Vec<PostItem> {
+pub fn post_details_to_post_item(post_details: Vec<PostDetails>) -> Vec<PostItemV2> {
     post_details
         .into_iter()
-        .map(|post_detail| PostItem {
+        .map(|post_detail| PostItemV2 {
+            publisher_user_id: post_detail.poster_principal.to_text(),
             post_id: post_detail.post_id,
-            canister_id: post_detail.canister_id,
+            canister_id: post_detail.canister_id.to_text(),
             video_id: post_detail.uid,
-            nsfw_probability: post_detail.nsfw_probability,
+            is_nsfw: post_detail.is_nsfw,
         })
         .collect()
 }

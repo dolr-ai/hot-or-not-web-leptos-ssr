@@ -88,8 +88,10 @@ send_wrapper = { workspace = true }
 rand.workspace = true
 indexmap.workspace = true
 yral-identity.workspace = true
-yral-spacetime-bindings = { workspace = true, optional = true }
-fasthash = { workspace = true, optional = true }
+sea-orm = { workspace = true, optional = true }
+dolr-airdrop = { workspace = true, optional = true }
+sats-airdrop = { workspace = true, optional = true }
+num-bigint = { workspace = true }
 num-traits.workspace = true
 
 # local deps`
@@ -183,7 +185,17 @@ oauth-hydrate = [
     "component/oauth-hydrate",
     "state/oauth-hydrate",
 ]
-stdb-backend = ["dep:yral-spacetime-bindings", "dep:fasthash"]
+neon-postgres = [
+    "dep:sea-orm",
+]
+dolr-airdrop = [
+    "neon-postgres",
+    "dep:dolr-airdrop",
+]
+sats-airdrop = [
+    "neon-postgres",
+    "dep:sats-airdrop",
+]
 redis-kv = [
     "consts/redis-kv",
     "utils/redis-kv",

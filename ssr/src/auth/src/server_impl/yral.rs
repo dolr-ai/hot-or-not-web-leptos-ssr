@@ -229,7 +229,7 @@ pub async fn migrate_identity_to_yral_auth(
         let user_canister_id = if let Some(user_canister) = user_canister {
             user_canister
         } else {
-            cans.get_individual_canister_by_user_principal(principal)
+            cans.get_individual_canister_v2(principal.to_text())
                 .await?
                 .ok_or_else(|| ServerFnError::new("User canister not found"))?
         };
