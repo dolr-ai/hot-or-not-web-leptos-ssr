@@ -24,7 +24,10 @@ use utils::{
 use utils::mixpanel::mixpanel_events::*;
 use yral_canisters_common::utils::posts::PostDetails;
 
-use crate::wallet::airdrop::is_user_eligible_for_sats_airdrop;
+use crate::wallet::airdrop::{
+    claim_sats_airdrop, is_user_eligible_for_sats_airdrop, SatsAirdropPopup,
+};
+use leptos::prelude::ServerFnError;
 
 use super::bet::HNGameOverlay;
 
@@ -421,6 +424,46 @@ pub fn VideoDetailsOverlay(
     });
 
     let show_low_balance_popup: RwSignal<bool> = RwSignal::new(false);
+    // Add state for sats airdrop popup
+    let show_sats_airdrop_popup = RwSignal::new(false);
+    let sats_airdrop_claimed = RwSignal::new(false);
+    let sats_airdrop_amount = RwSignal::new(0u64);
+    let sats_airdrop_error = RwSignal::new(false);
+    // Action for claiming sats airdrop
+    let claim_sats_airdrop_action = Action::new_local(move |_| {
+        let show_sats_airdrop_popup = show_sats_airdrop_popup.clone();
+        let sats_airdrop_claimed = sats_airdrop_claimed.clone();
+        let sats_airdrop_amount = sats_airdrop_amount.clone();
+        let sats_airdrop_error = sats_airdrop_error.clone();
+        async move {
+            show_sats_airdrop_popup.set(true);
+            sats_airdrop_claimed.set(false);
+            sats_airdrop_error.set(false);
+            let auth = auth_state();
+            let cans = unauth_canisters();
+            let Ok(auth_cans) = auth.auth_cans(cans).await else {
+                sats_airdrop_error.set(true);
+                return Err(ServerFnError::new("Failed to get authenticated canisters"));
+            };
+            let user_canister = auth_cans.user_canister();
+            let user_principal = auth_cans.user_principal();
+            let request = hon_worker_common::ClaimRequest { user_principal };
+            let signature =
+                hon_worker_common::sign_claim_request(auth_cans.identity(), request.clone())
+                    .unwrap();
+            match claim_sats_airdrop(user_canister, request, signature).await {
+                Ok(amount) => {
+                    sats_airdrop_claimed.set(true);
+                    sats_airdrop_amount.set(amount);
+                    Ok(amount)
+                }
+                Err(e) => {
+                    sats_airdrop_error.set(true);
+                    Err(e)
+                }
+            }
+        }
+    });
 
     let navigate = use_navigate();
     let navigate_to_refer = Action::new(move |_| {
@@ -428,10 +471,6 @@ pub fn VideoDetailsOverlay(
         async move {
             navigate("/refer-earn", Default::default());
         }
-    });
-
-    let claim_airdrop = Action::new(move |_| async move {
-        show_low_balance_popup.set(false);
     });
 
     view! {
@@ -600,7 +639,19 @@ pub fn VideoDetailsOverlay(
         <LowSatsBalancePopup
             show=show_low_balance_popup
             navigate_refer_page=navigate_to_refer
-            claim_airdrop=claim_airdrop />
+            claim_airdrop=Action::new(move |_| {
+                show_low_balance_popup.set(false);
+                claim_sats_airdrop_action.dispatch(auth_state().is_logged_in_with_oauth().get());
+                async move {}
+            })
+        />
+        <SatsAirdropPopup
+            show=show_sats_airdrop_popup
+            claimed=sats_airdrop_claimed.read_only()
+            amount_claimed=sats_airdrop_amount.read_only()
+            error=sats_airdrop_error.read_only()
+            try_again=claim_sats_airdrop_action
+        />
     }.into_any()
 }
 
@@ -706,12 +757,10 @@ pub fn LowSatsBalancePopup(
                 let user_principal = auth_cans.user_principal();
                 match is_user_eligible_for_sats_airdrop(user_canister, user_principal).await {
                     Ok(available) => Some(available),
-                    Err(_) => {
-                        Some(false)
-                    }
+                    Err(_) => Some(false),
                 }
             }
-        }
+        },
     );
     let loading = move || eligibility_resource.get().is_none();
     let airdrop_claimed = move || eligibility_resource.get().flatten().unwrap_or(false);
