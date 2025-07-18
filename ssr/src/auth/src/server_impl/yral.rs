@@ -5,7 +5,7 @@ use axum_extra::extract::{
     PrivateCookieJar, SignedCookieJar,
 };
 use candid::Principal;
-use consts::{auth::REFRESH_MAX_AGE, LoginProvider};
+use consts::{auth::REFRESH_MAX_AGE, LoginProvider, USERNAME_MAX_LEN};
 use leptos::prelude::*;
 use leptos_axum::{extract_with_state, ResponseOptions};
 use openidconnect::{
@@ -198,7 +198,13 @@ pub async fn perform_yral_auth_impl(
 
     let username = claims.email().and_then(|e| {
         let mail: String = e.deref().clone();
-        let username = mail.split_once("@")?.0;
+        let mut username = mail.split_once("@")?.0;
+        username = username
+            .char_indices()
+            .nth(USERNAME_MAX_LEN)
+            .map(|(i, _)| &username[..i])
+            .unwrap_or(username);
+
         USERNAME_REGEX
             .is_match(username)
             .then(|| username.to_string())
