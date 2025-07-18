@@ -39,7 +39,8 @@ async fn set_fallback_username(cans: &mut Canisters<true>, mut username: String)
 
         match e {
             Metadata(MetadataError::Api(ApiError::DuplicateUsername)) => {
-                if username.len() >= USERNAME_MAX_LEN {
+                let remaining_chars = username.len().saturating_sub(USERNAME_MAX_LEN);
+                if remaining_chars == 0 {
                     break;
                 }
                 let rng = rng.get_or_insert_with(|| {
@@ -48,7 +49,12 @@ async fn set_fallback_username(cans: &mut Canisters<true>, mut username: String)
 
                     SmallRng::from_seed(seed)
                 });
-                username.push(rng.sample(Alphanumeric) as char);
+                // append random characters in chunks of 3
+                let rand_chars = rng
+                    .sample_iter(Alphanumeric)
+                    .map(|c| c as char)
+                    .take(remaining_chars.min(3));
+                username.extend(rand_chars);
             }
             e => log::warn!("failed to set fallback username, err: {e}, ignoring"),
         }
