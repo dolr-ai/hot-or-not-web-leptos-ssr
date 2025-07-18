@@ -475,10 +475,6 @@ pub fn VideoDetailsOverlay(
     let sats_airdrop_error = RwSignal::new(false);
     // Action for claiming sats airdrop
     let claim_sats_airdrop_action = Action::new_local(move |_| {
-        let show_sats_airdrop_popup = show_sats_airdrop_popup.clone();
-        let sats_airdrop_claimed = sats_airdrop_claimed.clone();
-        let sats_airdrop_amount = sats_airdrop_amount.clone();
-        let sats_airdrop_error = sats_airdrop_error.clone();
         async move {
             show_sats_airdrop_popup.set(true);
             sats_airdrop_claimed.set(false);
