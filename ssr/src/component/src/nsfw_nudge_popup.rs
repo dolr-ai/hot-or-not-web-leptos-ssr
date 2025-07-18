@@ -45,7 +45,7 @@ pub fn NsfwUnlockPopup(
             let window = window();
             let _ = window
                 .location()
-                .set_href(&format!("/?nsfw={}", nsfw_enabled.get_untracked()));
+                .set_href(&format!("/?nsfw={}", true));
         }
         async {}
     });
