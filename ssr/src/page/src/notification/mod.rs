@@ -54,7 +54,7 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
                     let icon = cans.profile_details().profile_pic_or_random();
 
                     (
-                        format!("hot-or-not/{}/{}", cans.user_canister(), v.video_uid),
+                        format!("/hot-or-not/{}/{}", cans.user_canister(), v.video_uid),
                         icon,
                     )
                 }
@@ -77,7 +77,7 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
                     .profile_pic_or_random();
 
                     (
-                        format!("hot-or-not/{}/{}", cans.user_canister(), v.post_id),
+                        format!("/hot-or-not/{}/{}", cans.user_canister(), v.post_id),
                         icon,
                     )
                 }
