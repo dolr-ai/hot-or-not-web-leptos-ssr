@@ -1,11 +1,11 @@
-use std::env;
+use std::{env, ops::Deref, sync::LazyLock};
 
 use axum_extra::extract::{
     cookie::{Cookie, Key, SameSite},
     PrivateCookieJar, SignedCookieJar,
 };
 use candid::Principal;
-use consts::{auth::REFRESH_MAX_AGE, LoginProvider};
+use consts::{auth::REFRESH_MAX_AGE, LoginProvider, USERNAME_MAX_LEN};
 use leptos::prelude::*;
 use leptos_axum::{extract_with_state, ResponseOptions};
 use openidconnect::{
@@ -21,19 +21,12 @@ use openidconnect::{
     LoginHint, Nonce, OAuth2TokenResponse, PkceCodeChallenge, PkceCodeVerifier, Scope,
     StandardErrorResponse, StandardTokenResponse,
 };
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use web_time::Duration;
 use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::{utils::time::current_epoch, Canisters};
 use yral_types::delegated_identity::DelegatedIdentityWire;
-
-// use crate::auth::{
-//     server_impl::{
-//         fetch_identity_from_kv, store::KVStore, try_extract_identity,
-//         update_user_identity_and_delegate,
-//     },
-//     DelegatedIdentityWire,
-// };
 
 use super::{set_cookies, update_user_identity};
 
@@ -164,7 +157,7 @@ pub async fn perform_yral_auth_impl(
     provided_csrf: String,
     auth_code: String,
     oauth2: YralOAuthClient,
-) -> Result<DelegatedIdentityWire, ServerFnError> {
+) -> Result<(DelegatedIdentityWire, Option<String>), ServerFnError> {
     let key: Key = expect_context();
     let mut jar: PrivateCookieJar = extract_with_state(&key).await?;
 
@@ -198,7 +191,24 @@ pub async fn perform_yral_auth_impl(
         .ok_or_else(|| ServerFnError::new("Google did not return an ID token"))?;
     // we don't use a nonce
     let claims = id_token.claims(&id_token_verifier, no_op_nonce_verifier)?;
-    let identity = claims.additional_claims().ext_delegated_identity.clone();
+    let identity: DelegatedIdentityWire = claims.additional_claims().ext_delegated_identity.clone();
+
+    static USERNAME_REGEX: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"^([a-zA-Z0-9]){3,15}$").unwrap());
+
+    let username = claims.email().and_then(|e| {
+        let mail: String = e.deref().clone();
+        let mut username = mail.split_once("@")?.0;
+        username = username
+            .char_indices()
+            .nth(USERNAME_MAX_LEN)
+            .map(|(i, _)| &username[..i])
+            .unwrap_or(username);
+
+        USERNAME_REGEX
+            .is_match(username)
+            .then(|| username.to_string())
+    });
 
     let jar: SignedCookieJar = extract_with_state(&key).await?;
 
@@ -208,7 +218,7 @@ pub async fn perform_yral_auth_impl(
 
     update_user_identity(&resp, jar, refresh_token.secret().clone())?;
 
-    Ok(identity)
+    Ok((identity, username))
 }
 
 // based on https://github.com/dolr-ai/yral-auth-v2/blob/main/src/oauth/jwt/generate.rs
