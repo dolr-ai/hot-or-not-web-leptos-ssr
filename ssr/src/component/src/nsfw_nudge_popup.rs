@@ -11,7 +11,7 @@ use yral_canisters_common::utils::posts::PostDetails;
 #[component]
 pub fn NsfwUnlockPopup(
     show: RwSignal<bool>,
-    current_post: RwSignal<Option<PostDetails>>,
+    current_post: Signal<Option<PostDetails>>,
 ) -> impl IntoView {
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();

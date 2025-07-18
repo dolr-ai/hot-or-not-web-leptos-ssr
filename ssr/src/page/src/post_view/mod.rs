@@ -350,20 +350,16 @@ pub fn PostView() -> impl IntoView {
         ..
     } = expect_context();
 
-    let current_post: RwSignal<Option<PostDetails>> = RwSignal::new(None::<PostDetails>);
+    let current_post = Signal::derive(move || {
+        let index = current_idx.get();
+        video_queue.with(|q| q.get_index(index).cloned())
+    });
 
     Effect::new(move |_| {
         let index = current_idx.get();
-        if index == 2 && !nsfw_shown_idx.get_untracked().contains(&index) {
+        if (index == 2 || index == 8) && !nsfw_shown_idx.get_untracked().contains(&index) {
             show_nsfw_popup.set(true);
             nsfw_shown_idx.update(|f| f.push(index));
-            let post = video_queue.with_untracked(|q| q.get_index(index).cloned());
-            current_post.set(post);
-        } else if index == 8 && !nsfw_shown_idx.get_untracked().contains(&index) {
-            show_nsfw_popup.set(true);
-            nsfw_shown_idx.update(|f| f.push(index));
-            let post = video_queue.with_untracked(|q| q.get_index(index).cloned());
-            current_post.set(post);
         }
     });
 
