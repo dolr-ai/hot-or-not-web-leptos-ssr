@@ -32,11 +32,14 @@ pub fn Logout() -> impl IntoView {
                         Ok(id) => {
                             auth.set_new_identity(NewIdentity::new_without_username(id), false);
                             set_notifs_enabled(false);
-                            let device_id = uuid::Uuid::new_v4().to_string();
-                            set_device_id(device_id.clone());
-                            MixpanelState::reset_device_id(device_id);
-                            reset_mixpanel();
                             LogoutConfirmation.send_event(ev_ctx);
+                            #[cfg(feature = "hydrate")]
+                            {
+                                let device_id = uuid::Uuid::new_v4().to_string();
+                                set_device_id(device_id.clone());
+                                MixpanelState::reset_device_id(device_id);
+                                reset_mixpanel();
+                            }
                             view! { <Redirect path="/menu" /> }
                         }
                         Err(e) => {
