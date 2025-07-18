@@ -350,14 +350,20 @@ pub fn PostView() -> impl IntoView {
         ..
     } = expect_context();
 
+    let current_post: RwSignal<Option<PostDetails>> = RwSignal::new(None::<PostDetails>);
+
     Effect::new(move |_| {
         let index = current_idx.get();
         if index == 2 && !nsfw_shown_idx.get_untracked().contains(&index) {
             show_nsfw_popup.set(true);
-            nsfw_shown_idx.update(|f| f.push(2));
+            nsfw_shown_idx.update(|f| f.push(index));
+            let post = video_queue.with_untracked(|q| q.get_index(index).cloned());
+            current_post.set(post);
         } else if index == 8 && !nsfw_shown_idx.get_untracked().contains(&index) {
             show_nsfw_popup.set(true);
-            nsfw_shown_idx.update(|f| f.push(2));
+            nsfw_shown_idx.update(|f| f.push(index));
+            let post = video_queue.with_untracked(|q| q.get_index(index).cloned());
+            current_post.set(post);
         }
     });
 
@@ -435,7 +441,7 @@ pub fn PostView() -> impl IntoView {
                 { Some(view! { <PostViewWithUpdatesMLFeed initial_post /> }.into_any()) }
             })}
         </Suspense>
-        <NsfwUnlockPopup show=show_nsfw_popup />
+        <NsfwUnlockPopup show=show_nsfw_popup current_post />
         <OnboardingWelcomePopup show=show_onboarding_popup close_action=close_onboarding_action />
     }
     .into_any()
