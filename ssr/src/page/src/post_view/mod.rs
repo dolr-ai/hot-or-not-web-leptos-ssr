@@ -16,7 +16,7 @@ use leptos_icons::*;
 use priority_queue::DoublePriorityQueue;
 use state::canisters::{auth_state, unauth_canisters};
 use std::{cmp::Reverse, collections::HashMap};
-use yral_types::post::PostItem;
+use yral_types::post::PostItemV2;
 
 use candid::Principal;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
@@ -78,7 +78,7 @@ impl PostViewCtx {
 
 #[derive(Clone, Default)]
 pub struct PostDetailsCacheCtx {
-    pub post_details: RwSignal<HashMap<PostId, PostItem>>,
+    pub post_details: RwSignal<HashMap<PostId, PostItemV2>>,
 }
 
 #[component]
@@ -366,7 +366,11 @@ pub fn PostView() -> impl IntoView {
             let post_nsfw_prob = post_details_cache.post_details.with_untracked(|p| {
                 let item = p.get(&(params.canister_id, params.post_id));
                 if let Some(item) = item {
-                    item.nsfw_probability
+                    if item.is_nsfw {
+                        1.0
+                    } else {
+                        0.0
+                    }
                 } else {
                     1.0 // TODO: handle this for when we don't have details (when user shares video)
                 }
@@ -425,18 +429,20 @@ pub fn PostView() -> impl IntoView {
 pub fn OnboardingWelcomePopup(show: RwSignal<bool>, close_action: Action<(), ()>) -> impl IntoView {
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
-    const CREDITED_AMOUNT: u64 = 100;
+    const CREDITED_AMOUNT: u64 = limits::NEW_USER_SIGNUP_REWARD_SATS;
     Effect::new(move || {
-        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_onboarding_popup(MixpanelOnboardingPopupViewProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                credited_amount: CREDITED_AMOUNT,
-                popup_type: MixpanelOnboardingPopupType::SatsCreditPopup,
-            });
+        if show.get() {
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                MixPanelEvent::track_onboarding_popup(MixpanelOnboardingPopupViewProps {
+                    user_id: global.user_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
+                    credited_amount: CREDITED_AMOUNT,
+                    popup_type: MixpanelOnboardingPopupType::SatsCreditPopup,
+                });
+            }
         }
     });
     view! {
@@ -460,7 +466,7 @@ pub fn OnboardingWelcomePopup(show: RwSignal<bool>, close_action: Action<(), ()>
                         <img src="/img/hotornot/onboarding-welcome.webp" class="h-60" />
                         <div class="text-center text-2xl font-semibold">Bitcoin credited to<br/> your wallet!</div>
                         <div class="text-center">
-                            "You've got free "<span class="font-semibold">Bitcoin (100 SATS)</span>.
+                            "You've got free "<span class="font-semibold">{format!("Bitcoin ({CREDITED_AMOUNT} SATS)")}</span>.
                             <br/>
                             "Here's how to make it grow"
                         </div>

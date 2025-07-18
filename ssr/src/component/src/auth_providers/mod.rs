@@ -8,7 +8,7 @@ use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
 use leptos_icons::Icon;
 use leptos_router::hooks::use_navigate;
-use limits::{NEW_USER_SIGNUP_REWARD, REFERRAL_REWARD};
+use limits::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use state::canisters::auth_state;
 use utils::event_streaming::events::CentsAdded;
 use utils::event_streaming::events::EventCtx;
@@ -35,7 +35,7 @@ async fn mark_user_registered(user_principal: Principal) -> Result<bool, ServerF
     // TODO: verify that user principal is registered
     let canisters = unauth_canisters();
     let user_canister = canisters
-        .get_individual_canister_by_user_principal(user_principal)
+        .get_individual_canister_v2(user_principal.to_text())
         .await?
         .ok_or_else(|| ServerFnError::new("User not found"))?;
     mark_user_registered_impl(user_canister).await
@@ -52,7 +52,7 @@ pub async fn handle_user_login(
     let auth_journey = MixpanelGlobalProps::get_auth_journey();
 
     if first_time_login {
-        CentsAdded.send_event(event_ctx, "signup".to_string(), NEW_USER_SIGNUP_REWARD);
+        CentsAdded.send_event(event_ctx, "signup".to_string(), NEW_USER_SIGNUP_REWARD_SATS);
         let global = MixpanelGlobalProps::try_get(&canisters, true);
         MixPanelEvent::track_signup_success(MixpanelSignupSuccessProps {
             user_id: global.user_id,
@@ -84,7 +84,7 @@ pub async fn handle_user_login(
                 referrer: referrer_principal,
                 referee: user_principal,
                 referee_canister: canisters.user_canister(),
-                amount: REFERRAL_REWARD,
+                amount: REFERRAL_REWARD_SATS,
             };
             let sig = sign_referral_request(canisters.identity(), req.clone())?;
             issue_referral_rewards(ReferralReqWithSignature {
@@ -92,7 +92,7 @@ pub async fn handle_user_login(
                 signature: sig,
             })
             .await?;
-            CentsAdded.send_event(event_ctx, "referral".to_string(), REFERRAL_REWARD);
+            CentsAdded.send_event(event_ctx, "referral".to_string(), REFERRAL_REWARD_SATS);
             Ok(())
         }
         _ => Ok(()),

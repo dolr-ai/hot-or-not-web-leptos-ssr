@@ -7,7 +7,7 @@ use leptos::task::spawn_local;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_timeout_fn;
 use leptos_use::UseTimeoutFnReturn;
-use limits::REFERRAL_REWARD;
+use limits::REFERRAL_REWARD_SATS;
 use serde::Serialize;
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
@@ -17,11 +17,15 @@ use yral_canisters_common::Canisters;
 
 use crate::event_streaming::events::EventCtx;
 use crate::event_streaming::events::HistoryCtx;
+use crate::mixpanel::state::MixpanelState;
 
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = mixpanel, catch)]
     fn track(event_name: &str, properties: JsValue) -> Result<(), JsValue>;
+
+    #[wasm_bindgen(js_namespace = mixpanel)]
+    fn reset();
 
     /// mixpanel.identify(user_id)
     #[wasm_bindgen(js_namespace = mixpanel, catch)]
@@ -31,6 +35,10 @@ extern "C" {
 /// Call once you know the logged-in user's ID
 pub fn identify_user(user_id: &str) {
     let _ = identify(user_id);
+}
+
+pub fn reset_mixpanel() {
+    reset();
 }
 
 #[server]
@@ -131,6 +139,7 @@ where
 {
     let mut props = serde_json::to_value(&props).unwrap();
     props["event"] = event_name.into();
+    props["time"] = chrono::Utc::now().timestamp().into();
     props["$device_id"] = MixpanelGlobalProps::get_device_id().into();
     props["custom_device_id"] = MixpanelGlobalProps::get_custom_device_id().into();
     let user_id = props.get("user_id").and_then(Value::as_str);
@@ -254,11 +263,26 @@ impl MixpanelGlobalProps {
     }
 
     pub fn get_device_id() -> String {
-        crate::local_storage::LocalStorage::uuid_get_or_init(DEVICE_ID)
+        let device_id = MixpanelState::get_device_id();
+        if let Some(device_id) = device_id.get_untracked() {
+            device_id
+        } else {
+            let device_id_val = crate::local_storage::LocalStorage::uuid_get_or_init(DEVICE_ID);
+            device_id.set(Some(device_id_val.clone()));
+            device_id_val
+        }
     }
 
     pub fn get_custom_device_id() -> String {
-        crate::local_storage::LocalStorage::uuid_get_or_init(CUSTOM_DEVICE_ID)
+        let custom_device_id = MixpanelState::get_custom_device_id();
+        if let Some(custom_device_id) = custom_device_id.get_untracked() {
+            custom_device_id
+        } else {
+            let custom_device_id_val =
+                crate::local_storage::LocalStorage::uuid_get_or_init(CUSTOM_DEVICE_ID);
+            custom_device_id.set(Some(custom_device_id_val.clone()));
+            custom_device_id_val
+        }
     }
 
     pub fn get_auth_journey() -> String {
@@ -998,7 +1022,7 @@ impl MixPanelEvent {
                         is_logged_in: home_props.is_logged_in,
                         canister_id: home_props.canister_id,
                         is_nsfw_enabled: home_props.is_nsfw_enabled,
-                        referral_bonus: REFERRAL_REWARD,
+                        referral_bonus: REFERRAL_REWARD_SATS,
                     });
                 }
                 if props.page == "/menu" {

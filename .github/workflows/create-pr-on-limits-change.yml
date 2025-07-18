@@ -4,7 +4,6 @@ permissions:
   contents: write
   pull-requests: write
 
-
 on:
   repository_dispatch:
     types: [limits-common-change]
@@ -24,12 +23,12 @@ jobs:
           components: "clippy,rustfmt"
 
       - name: Update cargo dependencies
-        run: cargo update
+        run: cargo update -p limits
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          token: ${{ secrets.LEPTOS_SSR_DISPATCH_TOKEN }}
+          token: ${{ secrets.LIMITS_CHANGE_DISPATCH_TOKEN }}
           title: 'Cargo update: yral common updated ${{ github.event.client_payload.commit_hash }}'
           body: |
             Cargo update triggered by push to update to limits create in yral-common repository
@@ -39,9 +38,6 @@ jobs:
           author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
           branch: cargo-update-yral-common-${{ github.event.client_payload.commit_hash }}
           add-paths: |
-            **/Cargo.toml
-            **/Cargo.lock
-          draft: false
-          team-reviewers: |
-            rust-full-stack
+            Cargo.toml
+            Cargo.lock
             
