@@ -18,10 +18,19 @@ pub fn Logout() -> impl IntoView {
     LogoutClicked.send_event(ev_ctx);
     let auth_res = OnceResource::new_blocking(logout_identity());
 
-    let (_, set_notifs_enabled, _) =
+    let (notif_enabled, set_notifs_enabled, _) =
         use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
 
     let (_, set_device_id, _) = use_local_storage::<String, FromToStringCodec>(DEVICE_ID);
+
+    Effect::new(move || {
+        if notif_enabled.get() {
+            let device_id = uuid::Uuid::new_v4().to_string();
+            set_device_id(device_id.clone());
+            MixpanelState::reset_device_id(device_id);
+            reset_mixpanel();
+        }
+    });
 
     view! {
         <Loading text="Logging out...".to_string()>
@@ -32,10 +41,6 @@ pub fn Logout() -> impl IntoView {
                         Ok(id) => {
                             auth.set_new_identity(NewIdentity::new_without_username(id), false);
                             set_notifs_enabled(false);
-                            let device_id = uuid::Uuid::new_v4().to_string();
-                            set_device_id(device_id.clone());
-                            MixpanelState::reset_device_id(device_id);
-                            reset_mixpanel();
                             LogoutConfirmation.send_event(ev_ctx);
                             view! { <Redirect path="/menu" /> }
                         }
