@@ -6,7 +6,6 @@ pub mod yral;
 use candid::Principal;
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
-use ic_agent::Identity;
 use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
 use leptos_icons::Icon;
@@ -40,7 +39,7 @@ pub async fn handle_user_login(
     event_ctx: EventCtx,
     referrer: Option<Principal>,
 ) -> Result<(), ServerFnError> {
-    let user_principal = canisters.identity().sender().unwrap();
+    let user_principal = canisters.user_principal();
     let first_time_login = mark_user_registered(user_principal).await?;
 
     let auth_journey = MixpanelGlobalProps::get_auth_journey();
@@ -162,9 +161,16 @@ pub fn LoginProviders(
         send_wrap(async move {
             let referrer = auth.referrer_store.get_untracked();
 
-            let canisters = auth
+            let mut canisters = auth
                 .set_new_identity_and_wait_for_authentication(base_cans, new_id.clone(), true)
                 .await?;
+            // HACK: leptos can panic sometimes and reach an undefined state
+            // while the panic is not fixed, we use this workaround
+            if canisters.user_principal()
+                != Principal::self_authenticating(&new_id.id_wire.from_key)
+            {
+                canisters = Canisters::authenticate_with_network(new_id.id_wire, referrer).await?;
+            }
 
             if let Err(e) = handle_user_login(canisters.clone(), auth.event_ctx(), referrer).await {
                 log::warn!("failed to handle user login, err {e}. skipping");
