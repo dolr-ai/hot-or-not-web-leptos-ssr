@@ -845,6 +845,7 @@ pub fn FastWalletCard(
                 canister_id: global.canister_id,
                 is_nsfw_enabled: global.is_nsfw_enabled,
                 token_type: token_type.clone(),
+                page_name: "wallet".to_string(),
             });
             error_claiming_airdrop.set(false);
             show_airdrop_popup.set(true);
@@ -860,6 +861,7 @@ pub fn FastWalletCard(
                         canister_id: global_dispatched.canister_id,
                         is_nsfw_enabled: global.is_nsfw_enabled,
                         token_type,
+                        page_name: "wallet".to_string(),
                     });
                     is_airdrop_claimed.set(true);
                     error_claiming_airdrop.set(false);
@@ -878,6 +880,7 @@ pub fn FastWalletCard(
                         canister_id: global_dispatched.canister_id,
                         is_nsfw_enabled: global.is_nsfw_enabled,
                         token_type,
+                        page_name: "wallet".to_string(),
                     });
                     error_claiming_airdrop.set(true);
                     Err(err)

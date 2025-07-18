@@ -424,6 +424,51 @@ pub fn VideoDetailsOverlay(
     });
 
     let show_low_balance_popup: RwSignal<bool> = RwSignal::new(false);
+
+    let eligibility_resource = Resource::new(
+        {
+            let show_low_balance_popup = show_low_balance_popup.clone();
+            move || show_low_balance_popup.get()
+        },
+        move |showing| {
+            let auth = auth_state();
+            let cans = unauth_canisters();
+            async move {
+                if !showing {
+                    // Don't fetch if not showing
+                    return None;
+                }
+                let Ok(auth_cans) = auth.auth_cans(cans).await else {
+                    log::warn!("Failed to get authenticated canisters");
+                    return None;
+                };
+                let user_canister = auth_cans.user_canister();
+                let user_principal = auth_cans.user_principal();
+                match is_user_eligible_for_sats_airdrop(user_canister, user_principal).await {
+                    Ok(available) => Some(available),
+                    Err(_) => Some(false),
+                }
+            }
+        },
+    );
+
+    {
+        let show_low_balance_popup = show_low_balance_popup.clone();
+        let eligibility_resource = eligibility_resource.clone();
+        Effect::new(move || {
+            if show_low_balance_popup.get_untracked() {
+                let is_airdrop_eligible = eligibility_resource.get().flatten().unwrap_or(false);
+                spawn_local(async move {
+                    MixPanelEvent::track_low_on_sats_popup_shown(
+                        MixpanelLowOnSatsPopupShownProps {
+                            is_airdrop_eligible,
+                            page_name: "home_low_sats".to_string(),
+                        },
+                    );
+                });
+            }
+        });
+    }
     // Add state for sats airdrop popup
     let show_sats_airdrop_popup = RwSignal::new(false);
     let sats_airdrop_claimed = RwSignal::new(false);
@@ -442,9 +487,33 @@ pub fn VideoDetailsOverlay(
             let auth = auth_state();
             let cans = unauth_canisters();
             let Ok(auth_cans) = auth.auth_cans(cans).await else {
+                // Fallback: no canister/user info available
+                MixPanelEvent::track_claim_airdrop_clicked(MixpanelClaimAirdropClickedProps {
+                    user_id: None,
+                    visitor_id: None,
+                    is_logged_in: false,
+                    canister_id: String::new(),
+                    is_nsfw_enabled: false,
+                    token_type: StakeType::Sats,
+                    page_name: "home_low_sats".to_string(),
+                });
                 sats_airdrop_error.set(true);
                 return Err(ServerFnError::new("Failed to get authenticated canisters"));
             };
+            let global = MixpanelGlobalProps::try_get(
+                &auth_cans,
+                auth.is_logged_in_with_oauth().get_untracked(),
+            );
+            // Track claim_airdrop_clicked
+            MixPanelEvent::track_claim_airdrop_clicked(MixpanelClaimAirdropClickedProps {
+                user_id: global.user_id.clone(),
+                visitor_id: global.visitor_id.clone(),
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id.clone(),
+                is_nsfw_enabled: global.is_nsfw_enabled,
+                token_type: StakeType::Sats,
+                page_name: "home_low_sats".to_string(),
+            });
             let user_canister = auth_cans.user_canister();
             let user_principal = auth_cans.user_principal();
             let request = hon_worker_common::ClaimRequest { user_principal };
@@ -455,10 +524,34 @@ pub fn VideoDetailsOverlay(
                 Ok(amount) => {
                     sats_airdrop_claimed.set(true);
                     sats_airdrop_amount.set(amount);
+                    // Track airdrop_claimed (success)
+                    MixPanelEvent::track_airdrop_claimed(MixpanelAirdropClaimedProps {
+                        is_success: true,
+                        claimed_amount: amount,
+                        user_id: global.user_id,
+                        visitor_id: global.visitor_id,
+                        is_logged_in: global.is_logged_in,
+                        canister_id: global.canister_id,
+                        is_nsfw_enabled: global.is_nsfw_enabled,
+                        token_type: StakeType::Sats,
+                        page_name: "home_low_sats".to_string(),
+                    });
                     Ok(amount)
                 }
                 Err(e) => {
                     sats_airdrop_error.set(true);
+                    // Track airdrop_claimed (failure)
+                    MixPanelEvent::track_airdrop_claimed(MixpanelAirdropClaimedProps {
+                        is_success: false,
+                        claimed_amount: 0,
+                        user_id: global.user_id,
+                        visitor_id: global.visitor_id,
+                        is_logged_in: global.is_logged_in,
+                        canister_id: global.canister_id,
+                        is_nsfw_enabled: global.is_nsfw_enabled,
+                        token_type: StakeType::Sats,
+                        page_name: "home_low_sats".to_string(),
+                    });
                     Err(e)
                 }
             }
@@ -468,9 +561,31 @@ pub fn VideoDetailsOverlay(
     let navigate = use_navigate();
     let navigate_to_refer = Action::new(move |_| {
         let navigate = navigate.clone();
-        async move {
+        let eligibility_resource = eligibility_resource.clone();
+        spawn_local(async move {
+            let is_airdrop_eligible = eligibility_resource.get().flatten().unwrap_or(false);
+            let auth = auth_state();
+            let cans = unauth_canisters();
+            let Ok(auth_cans) = auth.auth_cans(cans).await else {
+                return;
+            };
+            let global = MixpanelGlobalProps::try_get(
+                &auth_cans,
+                auth.is_logged_in_with_oauth().get_untracked(),
+            );
+            MixPanelEvent::track_refer_friend_clicked(MixpanelReferFriendClickedProps {
+                is_airdrop_eligible,
+                cta_type: "low_sats_popup".to_string(),
+                page_name: "home_low_sats".to_string(),
+                user_id: global.user_id,
+                visitor_id: global.visitor_id,
+                is_logged_in: global.is_logged_in,
+                canister_id: global.canister_id,
+                is_nsfw_enabled: global.is_nsfw_enabled,
+            });
             navigate("/refer-earn", Default::default());
-        }
+        });
+        async move {}
     });
 
     view! {
@@ -644,6 +759,7 @@ pub fn VideoDetailsOverlay(
                 claim_sats_airdrop_action.dispatch(auth_state().is_logged_in_with_oauth().get());
                 async move {}
             })
+            eligibility_resource=eligibility_resource.clone()
         />
         <SatsAirdropPopup
             show=show_sats_airdrop_popup
@@ -738,30 +854,8 @@ pub fn LowSatsBalancePopup(
     show: RwSignal<bool>,
     navigate_refer_page: Action<(), ()>,
     claim_airdrop: Action<(), ()>,
+    eligibility_resource: Resource<Option<bool>>, // new prop
 ) -> impl IntoView {
-    let eligibility_resource = Resource::new(
-        move || show.get(), // refetch when popup is shown
-        move |showing| {
-            let auth = auth_state();
-            let cans = unauth_canisters();
-            async move {
-                if !showing {
-                    // Don't fetch if not showing
-                    return None;
-                }
-                let Ok(auth_cans) = auth.auth_cans(cans).await else {
-                    log::warn!("Failed to get authenticated canisters");
-                    return None;
-                };
-                let user_canister = auth_cans.user_canister();
-                let user_principal = auth_cans.user_principal();
-                match is_user_eligible_for_sats_airdrop(user_canister, user_principal).await {
-                    Ok(available) => Some(available),
-                    Err(_) => Some(false),
-                }
-            }
-        },
-    );
     let loading = move || eligibility_resource.get().is_none();
     let airdrop_claimed = move || eligibility_resource.get().flatten().unwrap_or(false);
 

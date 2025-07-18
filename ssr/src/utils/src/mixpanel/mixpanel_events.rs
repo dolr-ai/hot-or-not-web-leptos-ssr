@@ -479,6 +479,7 @@ pub struct MixpanelClaimAirdropClickedProps {
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
     pub token_type: StakeType,
+    pub page_name: String,
 }
 
 #[derive(Serialize)]
@@ -491,6 +492,7 @@ pub struct MixpanelAirdropClaimedProps {
     pub token_type: StakeType,
     pub is_success: bool,
     pub claimed_amount: u64,
+    pub page_name: String,
 }
 
 #[derive(Serialize, Clone)]
@@ -874,6 +876,26 @@ pub struct MixpanelThirdPartyWalletTransferredProps {
     pub gas_fee: f64,
 }
 
+/// Properties for the low_on_sats_popup_shown event
+#[derive(Serialize)]
+pub struct MixpanelLowOnSatsPopupShownProps {
+    pub is_airdrop_eligible: bool,
+    pub page_name: String,
+}
+
+/// Properties for the refer_friend_clicked event
+#[derive(Serialize)]
+pub struct MixpanelReferFriendClickedProps {
+    pub is_airdrop_eligible: bool,
+    pub cta_type: String, // e.g. "low_sats_popup"
+    pub page_name: String,
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+}
+
 pub struct MixPanelEvent;
 impl MixPanelEvent {
     /// Call once you know the logged-in user's ID
@@ -1133,5 +1155,13 @@ impl MixPanelEvent {
 
     pub fn track_how_to_play_clicked(p: MixpanelHowToPlayGameClickedProps) {
         track_event("how_to_play_clicked", p);
+    }
+
+    pub fn track_low_on_sats_popup_shown(p: MixpanelLowOnSatsPopupShownProps) {
+        send_event_to_server("low_on_sats_popup_shown", p);
+    }
+
+    pub fn track_refer_friend_clicked(p: MixpanelReferFriendClickedProps) {
+        send_event_to_server("refer_friend_clicked", p);
     }
 }
