@@ -24,6 +24,7 @@ use utils::{
 use utils::mixpanel::mixpanel_events::*;
 use yral_canisters_common::utils::posts::PostDetails;
 
+use crate::wallet::airdrop::sats_airdrop::{claim_sats_airdrop, is_user_eligible_for_sats_airdrop};
 use crate::wallet::airdrop::SatsAirdropPopup;
 use leptos::prelude::ServerFnError;
 
