@@ -1,5 +1,8 @@
+#[cfg(feature = "ssr")]
+mod server_impl;
 #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
 pub mod yral;
+
 use candid::Principal;
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
@@ -24,22 +27,12 @@ use yral_canisters_common::Canisters;
 
 #[server]
 async fn issue_referral_rewards(worker_req: ReferralReqWithSignature) -> Result<(), ServerFnError> {
-    use self::server_fn_impl::issue_referral_rewards_impl;
-    issue_referral_rewards_impl(worker_req).await
+    server_impl::issue_referral_rewards(worker_req).await
 }
 
 #[server]
 async fn mark_user_registered(user_principal: Principal) -> Result<bool, ServerFnError> {
-    use self::server_fn_impl::mark_user_registered_impl;
-    use state::canisters::unauth_canisters;
-
-    // TODO: verify that user principal is registered
-    let canisters = unauth_canisters();
-    let user_canister = canisters
-        .get_individual_canister_v2(user_principal.to_text())
-        .await?
-        .ok_or_else(|| ServerFnError::new("User not found"))?;
-    mark_user_registered_impl(user_canister).await
+    server_impl::mark_user_registered(user_principal).await
 }
 
 pub async fn handle_user_login(
@@ -241,90 +234,5 @@ pub fn LoginProviders(
                 </div>
             </div>
         </div>
-    }
-}
-
-#[cfg(feature = "ssr")]
-mod server_fn_impl {
-    #[cfg(feature = "backend-admin")]
-    pub use backend_admin::*;
-    #[cfg(not(feature = "backend-admin"))]
-    pub use mock::*;
-
-    #[cfg(feature = "backend-admin")]
-    mod backend_admin {
-        use candid::Principal;
-        use hon_worker_common::ReferralReqWithSignature;
-        use hon_worker_common::WORKER_URL;
-        use leptos::prelude::*;
-        use state::server::HonWorkerJwt;
-        use yral_canisters_client::individual_user_template::{Result15, Result7};
-
-        pub async fn issue_referral_rewards_impl(
-            worker_req: ReferralReqWithSignature,
-        ) -> Result<(), ServerFnError> {
-            let req_url = format!("{WORKER_URL}referral_reward");
-            let client = reqwest::Client::new();
-            let jwt = expect_context::<HonWorkerJwt>();
-            let res = client
-                .post(&req_url)
-                .json(&worker_req)
-                .bearer_auth(jwt.0)
-                .send()
-                .await?;
-
-            if res.status() != reqwest::StatusCode::OK {
-                return Err(ServerFnError::new(format!(
-                    "worker error: {}",
-                    res.text().await?
-                )));
-            }
-
-            Ok(())
-        }
-
-        pub async fn mark_user_registered_impl(
-            user_canister: Principal,
-        ) -> Result<bool, ServerFnError> {
-            use state::admin_canisters::admin_canisters;
-            use yral_canisters_client::individual_user_template::SessionType;
-
-            let admin_cans = admin_canisters();
-            let user = admin_cans.individual_user_for(user_canister).await;
-            if matches!(
-                user.get_session_type().await?,
-                Result7::Ok(SessionType::RegisteredSession)
-            ) {
-                return Ok(false);
-            }
-            user.update_session_type(SessionType::RegisteredSession)
-                .await
-                .map_err(ServerFnError::from)
-                .and_then(|res| match res {
-                    Result15::Ok(_) => Ok(()),
-                    Result15::Err(e) => Err(ServerFnError::new(format!(
-                        "failed to mark user as registered {e}"
-                    ))),
-                })?;
-            Ok(true)
-        }
-    }
-
-    #[cfg(not(feature = "backend-admin"))]
-    mod mock {
-        use candid::Principal;
-        use hon_worker_common::ReferralReqWithSignature;
-        use leptos::prelude::ServerFnError;
-        pub async fn issue_referral_rewards_impl(
-            _worker_req: ReferralReqWithSignature,
-        ) -> Result<(), ServerFnError> {
-            Ok(())
-        }
-
-        pub async fn mark_user_registered_impl(
-            _user_canister: Principal,
-        ) -> Result<bool, ServerFnError> {
-            Ok(true)
-        }
     }
 }
