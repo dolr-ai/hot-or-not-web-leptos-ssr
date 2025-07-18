@@ -8,13 +8,13 @@ use leptos_use::storage::use_local_storage;
 use state::canisters::auth_state;
 use utils::event_streaming::events::{LogoutClicked, LogoutConfirmation};
 use utils::mixpanel::mixpanel_events::reset_mixpanel;
+use utils::mixpanel::state::MixpanelState;
 
 #[component]
 pub fn Logout() -> impl IntoView {
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
     LogoutClicked.send_event(ev_ctx);
-
     let auth_res = OnceResource::new_blocking(logout_identity());
 
     let (_, set_notifs_enabled, _) =
@@ -31,7 +31,9 @@ pub fn Logout() -> impl IntoView {
                         Ok(id) => {
                             auth.set_new_identity(id, false);
                             set_notifs_enabled(false);
-                            set_device_id(uuid::Uuid::new_v4().to_string());
+                            let device_id = uuid::Uuid::new_v4().to_string();
+                            set_device_id(device_id.clone());
+                            MixpanelState::reset_device_id(device_id);
                             reset_mixpanel();
                             LogoutConfirmation.send_event(ev_ctx);
                             view! { <Redirect path="/menu" /> }
