@@ -241,14 +241,16 @@ pub fn HonWithdrawal() -> impl IntoView {
     use state::canisters::unauth_canisters;
     let treasury_balance = Resource::new(
         || (),
-        |_| async move {
+        |_| {
             let cans = unauth_canisters();
             let ledger = CKBTC_LEDGER_CANISTER.parse().unwrap();
             let treasury = SATS_CKBTC_CANISTER.parse().unwrap();
-            // 0 decimals for SATS
-            match cans.icrc1_balance_of(treasury, ledger).await {
-                Ok(balance) => balance,
-                Err(_) => Nat::from(0_usize),
+
+            async move {
+                match cans.icrc1_balance_of(treasury, ledger).await {
+                    Ok(balance) => balance,
+                    Err(_) => Nat::from(0_usize),
+                }
             }
         },
     );
