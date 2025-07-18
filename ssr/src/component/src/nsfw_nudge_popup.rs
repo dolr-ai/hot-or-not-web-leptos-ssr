@@ -5,16 +5,15 @@ use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
 use state::canisters::auth_state;
-use utils::mixpanel::mixpanel_events::*;
+use utils::{event_streaming::events::EventCtx, mixpanel::mixpanel_events::*};
 use yral_canisters_common::utils::posts::PostDetails;
 
 #[component]
 pub fn NsfwUnlockPopup(
     show: RwSignal<bool>,
     current_post: Signal<Option<PostDetails>>,
+    ev_ctx: EventCtx,
 ) -> impl IntoView {
-    let auth = auth_state();
-    let ev_ctx = auth.event_ctx();
     let agreed = RwSignal::new(true);
     let (nsfw_enabled, set_nsfw_enabled, _) =
         use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);

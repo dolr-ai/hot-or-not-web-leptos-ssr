@@ -21,7 +21,7 @@ use yral_types::post::PostItemV2;
 use candid::Principal;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use futures::StreamExt;
-use leptos::prelude::*;
+use leptos::{ev, prelude::*};
 use leptos_router::{
     hooks::{use_navigate, use_params},
     params::Params,
@@ -316,6 +316,7 @@ pub fn PostView() -> impl IntoView {
     let nsfw_shown_idx: RwSignal<Vec<usize>> = RwSignal::new(Vec::new());
 
     let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
     let (nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
     Effect::new(move |_| {
         if home_page_viewed_sent.get_untracked() {
@@ -437,7 +438,7 @@ pub fn PostView() -> impl IntoView {
                 { Some(view! { <PostViewWithUpdatesMLFeed initial_post /> }.into_any()) }
             })}
         </Suspense>
-        <NsfwUnlockPopup show=show_nsfw_popup current_post />
+        <NsfwUnlockPopup show=show_nsfw_popup current_post ev_ctx />
         <OnboardingWelcomePopup show=show_onboarding_popup close_action=close_onboarding_action />
     }
     .into_any()
