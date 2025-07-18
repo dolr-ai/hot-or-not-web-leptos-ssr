@@ -82,6 +82,7 @@ regex = { workspace = true, optional = true }
 tonic-build = { workspace = true }
 anyhow = { workspace = true }
 send_wrapper = { workspace = true }
+jsonwebtoken = { workspace = true, optional = true }
 
 
 [features]
@@ -132,7 +133,7 @@ mock-referral-history = ["dep:rand_chacha", "k256/arithmetic"]
 
 
 mock-history = ["mock-referral-history", "mock-wallet-history"]
-oauth-ssr = ["dep:openidconnect"]
+oauth-ssr = ["dep:openidconnect", "dep:jsonwebtoken"]
 oauth-hydrate = []
 redis-kv = []
 cloudflare = ["dep:gob-cloudflare"]
