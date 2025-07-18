@@ -97,9 +97,12 @@ fn HNButtonOverlay(
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
     audio_ref: NodeRef<Audio>,
+    show_low_balance_popup: RwSignal<bool>,
 ) -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
+    let (wallet_balance_store, _, _) =
+        use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
     fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
         #[cfg(not(feature = "hydrate"))]
@@ -147,6 +150,7 @@ fn HNButtonOverlay(
             let post_id = post.post_id;
             let bet_amount: u64 = coin.get_untracked().to_cents();
             let bet_direction = *bet_direction;
+
             // Create the original VoteRequest for the server function
             let req = hon_worker_common::VoteRequest {
                 post_canister,
@@ -165,6 +169,12 @@ fn HNButtonOverlay(
 
             let post_mix = post.clone();
             send_wrap(async move {
+                if bet_amount > wallet_balance_store.get() {
+                    log::warn!("Insufficient balance for bet amount: {bet_amount}");
+                    show_low_balance_popup.set(true);
+                    return None;
+                }
+
                 let res = check_show_login_nudge();
                 if res.is_err() {
                     return None;
@@ -214,12 +224,12 @@ fn HNButtonOverlay(
                             } => TokenBalance::new((lose_amt + 0u64).into(), 0).humanize(),
                         };
 
-                        let (_, set_wallet_balalnce_store, _) =
+                        let (_, set_wallet_balance_store, _) =
                             use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
                         HnBetState::set(post_mix.uid.clone(), res.video_comparison_result);
 
-                        set_wallet_balalnce_store.set(match res.game_result.game_result.clone() {
+                        set_wallet_balance_store.set(match res.game_result.game_result.clone() {
                             GameResultV2::Win {
                                 win_amt: _,
                                 updated_balance,
@@ -598,6 +608,7 @@ pub fn HNGameOverlay(
     prev_post: Option<PostDetails>,
     win_audio_ref: NodeRef<Audio>,
     show_tutorial: RwSignal<bool>,
+    show_low_balance_popup: RwSignal<bool>,
 ) -> impl IntoView {
     let bet_direction = RwSignal::new(None::<VoteKind>);
     let coin = RwSignal::new(DEFAULT_BET_COIN_STATE);
@@ -656,6 +667,7 @@ pub fn HNGameOverlay(
                                         coin
                                         refetch_bet
                                         audio_ref=win_audio_ref
+                                        show_low_balance_popup
                                     />
                                 }
                                     .into_any()
