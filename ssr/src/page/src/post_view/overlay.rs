@@ -453,7 +453,6 @@ pub fn VideoDetailsOverlay(
 
     {
         let show_low_balance_popup = show_low_balance_popup.clone();
-        let eligibility_resource = eligibility_resource.clone();
         Effect::new(move || {
             if show_low_balance_popup.get_untracked() {
                 let is_airdrop_eligible = eligibility_resource.get().flatten().unwrap_or(false);
@@ -556,7 +555,6 @@ pub fn VideoDetailsOverlay(
     let navigate = use_navigate();
     let navigate_to_refer = Action::new(move |_| {
         let navigate = navigate.clone();
-        let eligibility_resource = eligibility_resource.clone();
         spawn_local(async move {
             let is_airdrop_eligible = eligibility_resource.get().flatten().unwrap_or(false);
             let auth = auth_state();
@@ -754,7 +752,7 @@ pub fn VideoDetailsOverlay(
                 claim_sats_airdrop_action.dispatch(auth_state().is_logged_in_with_oauth().get());
                 async move {}
             })
-            eligibility_resource=eligibility_resource.clone()
+            eligibility_resource=eligibility_resource
         />
         <SatsAirdropPopup
             show=show_sats_airdrop_popup
