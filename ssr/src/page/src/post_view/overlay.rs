@@ -348,6 +348,8 @@ pub fn VideoDetailsOverlay(
                             publisher_user_id: post.poster_principal.to_text(),
                             video_id,
                             is_nsfw: post.is_nsfw,
+                            page_name: "home".to_string(),
+                            cta_type: None,
                         });
                     }
                     set_nsfw_enabled(true);

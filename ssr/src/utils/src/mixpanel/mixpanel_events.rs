@@ -195,6 +195,16 @@ pub struct MixpanelGlobalProps {
     pub is_nsfw_enabled: bool,
 }
 
+#[derive(Clone, Serialize)]
+pub struct MixpanelNudgeNsfwPopupProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub page_name: String,
+}
+
 /// Global properties for Mixpanel events
 #[derive(Serialize)]
 pub struct MixpanelAuthClickedProps {
@@ -606,6 +616,8 @@ pub struct MixpanelNsfwToggleProps {
     pub publisher_user_id: String,
     pub video_id: String,
     pub is_nsfw: bool,
+    pub page_name: String,
+    pub cta_type: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -1098,6 +1110,10 @@ impl MixPanelEvent {
 
     pub fn track_sats_to_btc_converted(p: MixpanelSatsToBtcConvertedProps) {
         track_event("sats_to_btc_converted", p);
+    }
+
+    pub fn track_enable_nsfw_popup_shown(p: MixpanelNudgeNsfwPopupProps) {
+        send_event_to_server("enable_nsfw_popup_shown", p);
     }
 
     pub fn track_nsfw_true(p: MixpanelNsfwToggleProps) {
