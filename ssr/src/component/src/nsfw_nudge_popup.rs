@@ -46,7 +46,7 @@ pub fn NsfwUnlockPopup(show: RwSignal<bool>) -> impl IntoView {
                             />
                             <span>
                                 "I’m 18+ and agree to all "
-                                <a href="/privacy-policy" class="underline">"content policy"</a>
+                                <a href="/terms-of-service" class="underline">"content policy"</a>
                             </span>
                         </label>
                         {move || {
