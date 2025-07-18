@@ -49,28 +49,26 @@ pub fn NsfwUnlockPopup(show: RwSignal<bool>) -> impl IntoView {
                                 <a href="/privacy-policy" class="underline">"content policy"</a>
                             </span>
                         </label>
-                        {
-                            move || {
-                                let disabled = !agreed.get();
-                                view!{
-                                    <HighlightedButton
-                                        alt_style=true
-                                        disabled=disabled
-                                        on_click=move || {
-                                            if agreed.get() {
-                                                set_nsfw_enabled.set(true);
-                                                let window = window();
-                                                let _ = window
-                                                    .location()
-                                                    .set_href(&format!("/?nsfw={}", nsfw_enabled.get_untracked()));
-                                            }
+                        {move || {
+                            let disabled = !agreed.get();
+                            view!{
+                                <HighlightedButton
+                                    alt_style=true
+                                    disabled=disabled
+                                    on_click=move || {
+                                        if agreed.get() {
+                                            set_nsfw_enabled.set(true);
+                                            let window = window();
+                                            let _ = window
+                                                .location()
+                                                .set_href(&format!("/?nsfw={}", nsfw_enabled.get_untracked()));
                                         }
-                                    >
-                                        "Unlock 18+ Content"
-                                    </HighlightedButton>
-                                }
+                                    }
+                                >
+                                    "Unlock 18+ Content"
+                                </HighlightedButton>
                             }
-                        }
+                        }}
                     </div>
                 </div>
             </div>
