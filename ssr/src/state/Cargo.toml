@@ -75,8 +75,8 @@ yral-canisters-client = { workspace = true }
 yral-canisters-common = { workspace = true }
 ic-certification = { workspace = true }
 ciborium = { workspace = true }
-yral-metadata-client = { workspace = true, optional = true }
-yral-metadata-types = { workspace = true, optional = true }
+yral-metadata-client = { workspace = true }
+yral-metadata-types = { workspace = true }
 uuid = { workspace = true, features = ["v4", "js"] }
 regex = { workspace = true, optional = true }
 tonic-build = { workspace = true }
@@ -87,6 +87,7 @@ jsonwebtoken = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
 dolr-airdrop = { workspace = true, optional = true }
 sats-airdrop = { workspace = true, optional = true }
+rand = { workspace = true }
 
 # workspace deps
 consts.workspace = true
@@ -199,8 +200,6 @@ local-bin = [
     "dep:testcontainers",
     "dep:yral-testcontainers",
     "yral-canisters-common/local",
-    "dep:yral-metadata-client",
-    "dep:yral-metadata-types",
 ]
 local-lib = [
     "hydrate",

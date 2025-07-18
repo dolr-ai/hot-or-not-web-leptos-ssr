@@ -270,7 +270,7 @@ fn DeleteAccountPopup(show_delete_popup: RwSignal<bool>) -> impl IntoView {
         send_wrap(async move {
             let value = value.clone();
             match auth.user_identity.await {
-                Ok(identity_wire) => match delete_user::initiate_delete_user(identity_wire).await {
+                Ok(id) => match delete_user::initiate_delete_user(id.id_wire).await {
                     Ok(_) => {
                         if let Some(props) = value.clone() {
                             MixPanelEvent::track_account_deleted(props);
@@ -374,10 +374,13 @@ fn DeleteAccountFlow(show_popup: RwSignal<bool>, is_authenticated: bool) -> impl
         is_nsfw_enabled: f.is_nsfw_enabled,
         page_name: "settings".into(),
     });
-
-    if let Some(props) = analytics_delete_account_props.clone() {
-        MixPanelEvent::track_delete_account_clicked(props);
-    }
+    Effect::new(move || {
+        if show_popup.get() {
+            if let Some(props) = analytics_delete_account_props.clone() {
+                MixPanelEvent::track_delete_account_clicked(props);
+            }
+        }
+    });
     view! {
         <Show when=move || show_popup.get()>
             {

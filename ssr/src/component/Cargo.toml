@@ -84,6 +84,7 @@ regex = { workspace = true, optional = true }
 tonic-build = { workspace = true }
 anyhow = { workspace = true }
 send_wrapper = { workspace = true }
+jsonwebtoken = { workspace = true, optional = true }
 
 # local deps
 consts.workspace = true
@@ -140,6 +141,7 @@ ssr = [
     "utils/ssr",
     "state/ssr",
     "auth/ssr",
+    "dep:jsonwebtoken",
 ]
 # Fetch mock referral history instead of history via canister
 mock-referral-history = [

@@ -1,6 +1,8 @@
 mod server_impl;
 
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
+use component::login_modal::LoginModal;
+use component::login_nudge_popup::LoginNudgePopup;
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
 use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
 use hon_worker_common::{
@@ -35,6 +37,7 @@ fn CoinStateView(
     #[prop(into)] coin: Signal<CoinState>,
     #[prop(into)] class: String,
     #[prop(optional, into)] disabled: Signal<bool>,
+    #[prop(optional, into)] is_connected: Signal<bool>,
 ) -> impl IntoView {
     let icon = Signal::derive(move || match coin() {
         CoinState::C10 => C10Icon,
@@ -44,6 +47,10 @@ fn CoinStateView(
         CoinState::C50 => C50Icon,
         CoinState::C100 => C100Icon,
         CoinState::C200 => C200Icon,
+    });
+
+    let disabled = Signal::derive(move || {
+        disabled.get() || (!is_connected.get() && coin.get() != CoinState::C1)
     });
 
     view! {
@@ -122,6 +129,18 @@ fn HNButtonOverlay(
         }
     }
 
+    let show_login_nudge = RwSignal::new(false);
+    let show_login_popup = RwSignal::new(false);
+    let login_post = post.clone();
+
+    let check_show_login_nudge = move || {
+        if !is_connected.get_untracked() && coin.get_untracked() != DEFAULT_BET_COIN_STATE {
+            show_login_nudge.set(true);
+            Err(())
+        } else {
+            Ok(())
+        }
+    };
     let place_bet_action: Action<VoteKind, Option<()>> =
         Action::new(move |bet_direction: &VoteKind| {
             let post_canister = post.canister_id;
@@ -146,6 +165,10 @@ fn HNButtonOverlay(
 
             let post_mix = post.clone();
             send_wrap(async move {
+                let res = check_show_login_nudge();
+                if res.is_err() {
+                    return None;
+                }
                 let cans = auth.auth_cans(expect_context()).await.ok()?;
                 let is_logged_in = is_connected.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
@@ -243,6 +266,19 @@ fn HNButtonOverlay(
 
     let running = place_bet_action.pending();
 
+    let was_connected = RwSignal::new(is_connected.get_untracked());
+
+    Effect::new(move |_| {
+        if !was_connected.get_untracked() && is_connected.get() {
+            let window = window();
+            let url = format!(
+                "/hot-or-not/{}/{}",
+                login_post.canister_id, login_post.post_id
+            );
+            let _ = window.location().set_href(&url);
+        }
+    });
+
     view! {
         <div class="flex justify-center w-full touch-manipulation">
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
@@ -252,6 +288,8 @@ fn HNButtonOverlay(
                 />
             </button>
         </div>
+        <LoginNudgePopup show=show_login_nudge show_login_popup />
+        <LoginModal show=show_login_popup redirect_to=Some(format!("/hot-or-not/{}/{}", login_post.canister_id, login_post.post_id)) />
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
@@ -259,6 +297,7 @@ fn HNButtonOverlay(
                     disabled=running
                     class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 drop-shadow-lg"
                     coin
+                    is_connected
                 />
             </button>
             <HNButton disabled=running bet_direction kind=VoteKind::Not place_bet_action />
@@ -318,6 +357,7 @@ fn HNWonLost(
     post: PostDetails,
 ) -> impl IntoView {
     let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
     let event_ctx = auth.event_ctx();
     let won = matches!(game_result, GameResult::Win { .. });
     let creator_reward = (vote_amount * crate::consts::CREATOR_COMMISION_PERCENT) / 100;
@@ -426,7 +466,7 @@ fn HNWonLost(
         <div class="flex w-full flex-col gap-3 py-2">
             <div class="flex gap-2 justify-center items-center w-full">
                 <div class="relative shrink-0 drop-shadow-lg">
-                    <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin />
+                    <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin is_connected />
                     <img src=vote_kind_image class="absolute bottom-0 -right-1 h-7 w-7" />
                 </div>
                 <div class="flex-1 p-1 text-xs md:text-sm font-semibold leading-snug text-white rounded-full">

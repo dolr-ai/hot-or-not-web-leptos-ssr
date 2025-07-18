@@ -453,6 +453,7 @@ dependencies = [
  "rand_chacha 0.3.1",
  "redb",
  "redis",
+ "regex",
  "serde",
  "serde_json",
  "thiserror 2.0.12",
@@ -1320,6 +1321,7 @@ dependencies = [
  "icondata_core",
  "icp-ledger",
  "js-sys",
+ "jsonwebtoken",
  "k256",
  "leptos",
  "leptos-use",
@@ -1484,6 +1486,7 @@ dependencies = [
  "icondata_core",
  "icp-ledger",
  "js-sys",
+ "jsonwebtoken",
  "k256",
  "leptos",
  "leptos-use",
@@ -3677,7 +3680,7 @@ dependencies = [
  "serde_with",
  "thiserror 2.0.12",
  "url",
- "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common?branch=master)",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
 ]
 
 [[package]]
@@ -6060,7 +6063,7 @@ dependencies = [
  "web-time",
  "yral-canisters-client",
  "yral-canisters-common",
- "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common?branch=master)",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
  "yral-metadata-client",
  "yral-metadata-types",
  "yral-pump-n-dump-common",
@@ -8550,6 +8553,7 @@ dependencies = [
  "openidconnect",
  "priority-queue",
  "prost",
+ "rand 0.9.1",
  "rand_chacha 0.3.1",
  "redb",
  "redis",
@@ -10460,7 +10464,7 @@ dependencies = [
  "url",
  "web-time",
  "yral-canisters-client",
- "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common?branch=master)",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
  "yral-metadata-client",
  "yral-metadata-types",
  "yral-pump-n-dump-common",
@@ -10529,7 +10533,7 @@ dependencies = [
  "url",
  "uuid",
  "yral-canisters-client",
- "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common?branch=master)",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
 ]
 
 [[package]]

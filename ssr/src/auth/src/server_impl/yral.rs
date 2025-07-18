@@ -1,11 +1,11 @@
-use std::env;
+use std::{ops::Deref, sync::LazyLock};
 
 use axum_extra::extract::{
     cookie::{Cookie, Key, SameSite},
     PrivateCookieJar, SignedCookieJar,
 };
 use candid::Principal;
-use consts::{auth::REFRESH_MAX_AGE, LoginProvider};
+use consts::{LoginProvider, USERNAME_MAX_LEN};
 use leptos::prelude::*;
 use leptos_axum::{extract_with_state, ResponseOptions};
 use openidconnect::{
@@ -21,19 +21,10 @@ use openidconnect::{
     LoginHint, Nonce, OAuth2TokenResponse, PkceCodeChallenge, PkceCodeVerifier, Scope,
     StandardErrorResponse, StandardTokenResponse,
 };
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use web_time::Duration;
-use yral_canisters_client::individual_user_template::{Result7, SessionType};
-use yral_canisters_common::{utils::time::current_epoch, Canisters};
 use yral_types::delegated_identity::DelegatedIdentityWire;
-
-// use crate::auth::{
-//     server_impl::{
-//         fetch_identity_from_kv, store::KVStore, try_extract_identity,
-//         update_user_identity_and_delegate,
-//     },
-//     DelegatedIdentityWire,
-// };
 
 use super::{set_cookies, update_user_identity};
 
@@ -164,7 +155,7 @@ pub async fn perform_yral_auth_impl(
     provided_csrf: String,
     auth_code: String,
     oauth2: YralOAuthClient,
-) -> Result<DelegatedIdentityWire, ServerFnError> {
+) -> Result<(DelegatedIdentityWire, Option<String>), ServerFnError> {
     let key: Key = expect_context();
     let mut jar: PrivateCookieJar = extract_with_state(&key).await?;
 
@@ -198,7 +189,24 @@ pub async fn perform_yral_auth_impl(
         .ok_or_else(|| ServerFnError::new("Google did not return an ID token"))?;
     // we don't use a nonce
     let claims = id_token.claims(&id_token_verifier, no_op_nonce_verifier)?;
-    let identity = claims.additional_claims().ext_delegated_identity.clone();
+    let identity: DelegatedIdentityWire = claims.additional_claims().ext_delegated_identity.clone();
+
+    static USERNAME_REGEX: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"^([a-zA-Z0-9]){3,15}$").unwrap());
+
+    let username = claims.email().and_then(|e| {
+        let mail: String = e.deref().clone();
+        let mut username = mail.split_once("@")?.0;
+        username = username
+            .char_indices()
+            .nth(USERNAME_MAX_LEN)
+            .map(|(i, _)| &username[..i])
+            .unwrap_or(username);
+
+        USERNAME_REGEX
+            .is_match(username)
+            .then(|| username.to_string())
+    });
 
     let jar: SignedCookieJar = extract_with_state(&key).await?;
 
@@ -208,90 +216,5 @@ pub async fn perform_yral_auth_impl(
 
     update_user_identity(&resp, jar, refresh_token.secret().clone())?;
 
-    Ok(identity)
-}
-
-// based on https://github.com/dolr-ai/yral-auth-v2/blob/main/src/oauth/jwt/generate.rs
-/// returns the new refresh token
-pub async fn migrate_identity_to_yral_auth(
-    principal: Principal,
-    user_canister: Option<Principal>,
-    mut is_anonymous: bool,
-) -> Result<String, ServerFnError> {
-    let enc_key: jsonwebtoken::EncodingKey = expect_context();
-
-    let client_id =
-        env::var("YRAL_AUTH_CLIENT_ID").expect("expected to have `YRAL_AUTH_CLIENT_ID`");
-
-    // verify user anonimity
-    if !is_anonymous {
-        let cans: Canisters<false> = use_context().unwrap_or_default();
-        let user_canister_id = if let Some(user_canister) = user_canister {
-            user_canister
-        } else {
-            cans.get_individual_canister_v2(principal.to_text())
-                .await?
-                .ok_or_else(|| ServerFnError::new("User canister not found"))?
-        };
-        let user_canister = cans.individual_user(user_canister_id).await;
-
-        // critical loops we don't want to fail here
-        let mut retry_cnt = 0;
-        let is_owner = loop {
-            if retry_cnt > 5 {
-                return Err(ServerFnError::new(
-                    "Failed to lookup profile details for user",
-                ));
-            }
-            match user_canister.get_profile_details_v_2().await {
-                Ok(details) => break details.principal_id == principal,
-                Err(e) => {
-                    eprintln!(
-                        "failed to lookup profile details for {user_canister_id}: {e}, retrying"
-                    );
-                    tokio::time::sleep(Duration::from_millis(300)).await;
-                }
-            }
-            retry_cnt += 1;
-        };
-        if !is_owner {
-            return Err(ServerFnError::new(
-                "Principal is not the owner of the user canister",
-            ));
-        }
-
-        retry_cnt = 0;
-        is_anonymous = loop {
-            if retry_cnt > 5 {
-                return Err(ServerFnError::new("Failed to lookup session type for user"));
-            }
-            match user_canister.get_session_type().await {
-                Ok(Result7::Ok(session_type)) => {
-                    break session_type != SessionType::RegisteredSession
-                }
-                e => {
-                    eprintln!(
-                        "failed to lookup session type for {user_canister_id}: {e:?}, retrying"
-                    );
-                    tokio::time::sleep(Duration::from_millis(300)).await;
-                }
-            }
-            retry_cnt += 1;
-        };
-    }
-
-    let now = current_epoch();
-    let claims = YralAuthRefreshTokenClaims {
-        aud: client_id,
-        exp: (now + REFRESH_MAX_AGE).as_millis() as usize,
-        iat: now.as_millis() as usize,
-        iss: "https://auth.yral.com".to_string(),
-        sub: principal,
-        ext_is_anonymous: is_anonymous,
-    };
-
-    let mut jwt_headers = jsonwebtoken::Header::new(jsonwebtoken::Algorithm::ES256);
-    jwt_headers.kid = Some("default".to_string());
-
-    Ok(jsonwebtoken::encode(&jwt_headers, &claims, &enc_key).expect("failed to encode JWT?!"))
+    Ok((identity, username))
 }
