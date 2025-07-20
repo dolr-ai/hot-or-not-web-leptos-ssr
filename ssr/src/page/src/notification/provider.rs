@@ -55,12 +55,13 @@ impl CursoredDataProvider for NotificationProvider {
             .map_err(|e| NotificationError(e.to_string()))?;
 
         let list_end = notifications.len() < (_end - _start);
-        return Ok(PageEntry {
+        
+        Ok(PageEntry {
             data: notifications
                 .into_iter()
                 .map(NotificationDataKeyed)
                 .collect(),
             end: list_end,
-        });
+        })
     }
 }
