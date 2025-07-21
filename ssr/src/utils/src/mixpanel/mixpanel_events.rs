@@ -89,7 +89,6 @@ pub fn parse_query_params_utm() -> Result<Vec<(String, String)>, String> {
     Ok(Vec::new())
 }
 
-
 fn send_event_to_server<T>(event_name: &str, props: T)
 where
     T: Serialize,
