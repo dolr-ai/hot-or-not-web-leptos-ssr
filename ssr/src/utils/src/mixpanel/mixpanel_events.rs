@@ -10,36 +10,12 @@ use leptos_use::use_timeout_fn;
 use leptos_use::UseTimeoutFnReturn;
 use serde::Serialize;
 use serde_json::Value;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsValue;
 use yral_canisters_common::utils::vote::VoteKind;
 use yral_canisters_common::Canisters;
 
 use crate::event_streaming::events::EventCtx;
 use crate::event_streaming::events::HistoryCtx;
 use crate::mixpanel::state::MixpanelState;
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = mixpanel, catch)]
-    fn track(event_name: &str, properties: JsValue) -> Result<(), JsValue>;
-
-    #[wasm_bindgen(js_namespace = mixpanel)]
-    fn reset();
-
-    /// mixpanel.identify(user_id)
-    #[wasm_bindgen(js_namespace = mixpanel, catch)]
-    fn identify(user_id: &str) -> Result<(), JsValue>;
-}
-
-/// Call once you know the logged-in user's ID
-pub fn identify_user(user_id: &str) {
-    let _ = identify(user_id);
-}
-
-pub fn reset_mixpanel() {
-    reset();
-}
 
 #[server]
 async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
@@ -118,18 +94,6 @@ pub fn track_event<T>(event_name: &str, props: T)
 where
     T: Serialize,
 {
-    let track_props = serde_wasm_bindgen::to_value(&props);
-    match track_props {
-        Ok(props) => {
-            if let Err(e) = track(event_name, props) {
-                logging::error!("Error tracking Mixpanel client event: {:?}", e);
-            }
-        }
-        Err(e) => {
-            logging::error!("Error serializing Mixpanel event properties: {:?}", e);
-        }
-    }
-
     send_event_to_server(event_name, props);
 }
 
@@ -912,10 +876,6 @@ pub struct MixpanelThirdPartyWalletTransferredProps {
 
 pub struct MixPanelEvent;
 impl MixPanelEvent {
-    /// Call once you know the logged-in user's ID
-    pub fn identify_user(user_id: &str) {
-        let _ = identify(user_id);
-    }
     pub fn track_home_page_viewed(p: MixpanelBottomBarPageViewedProps) {
         track_event("home_page_viewed", p);
     }
