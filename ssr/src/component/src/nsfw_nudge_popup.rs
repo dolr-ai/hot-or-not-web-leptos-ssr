@@ -4,7 +4,6 @@ use consts::NSFW_TOGGLE_STORE;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
-use state::canisters::auth_state;
 use utils::{event_streaming::events::EventCtx, mixpanel::mixpanel_events::*};
 use yral_canisters_common::utils::posts::PostDetails;
 

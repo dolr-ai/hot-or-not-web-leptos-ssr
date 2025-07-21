@@ -21,7 +21,7 @@ use yral_types::post::PostItemV2;
 use candid::Principal;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use futures::StreamExt;
-use leptos::{ev, prelude::*};
+use leptos::prelude::*;
 use leptos_router::{
     hooks::{use_navigate, use_params},
     params::Params,
