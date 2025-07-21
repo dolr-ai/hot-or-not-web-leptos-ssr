@@ -20,10 +20,7 @@ pub fn NsfwUnlockPopup(
 
     let unlock_action = Action::new(move |_: &()| {
         if agreed.get() {
-            if let Some(global) = MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(
-                ev_ctx,
-                nsfw_enabled.get_untracked(),
-            ) {
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(ev_ctx, false) {
                 if let Some(current_post) = current_post.get_untracked() {
                     MixPanelEvent::track_nsfw_true(MixpanelNsfwToggleProps {
                         user_id: global.user_id,
