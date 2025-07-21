@@ -22,6 +22,7 @@ pub struct RecommendationRequest {
     pub user_id: String,
     pub exclude_items: Vec<String>, // IDs of videos to exclude from recommendations
     pub nsfw_label: bool,           // Whether to include NSFW content in recommendations
+    num_results: u32,               // Number of results to return
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -35,14 +36,14 @@ pub struct Recommendation {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct RecommendationResponse {
-    pub recommendations: Vec<Recommendation>,
+    pub posts: Vec<Recommendation>,
 }
 
 impl From<RecommendationResponse> for FeedResponseV2 {
     fn from(response: RecommendationResponse) -> Self {
         FeedResponseV2 {
             posts: response
-                .recommendations
+                .posts
                 .into_iter()
                 .map(|rec| PostItemV2 {
                     publisher_user_id: rec.publisher_user_id,
@@ -112,7 +113,7 @@ pub async fn get_ml_feed_coldstart_nsfw(
 
 pub async fn get_ml_feed_clean(
     user_id: Principal,
-    _num_results: u32,
+    num_results: u32,
     filter_results: Vec<PostDetails>,
 ) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
@@ -120,6 +121,7 @@ pub async fn get_ml_feed_clean(
         user_id: user_id.to_string(),
         exclude_items: post_details_to_video_ids(filter_results),
         nsfw_label: false,
+        num_results,
     };
 
     let response = client
@@ -140,7 +142,7 @@ pub async fn get_ml_feed_clean(
 
 pub async fn get_ml_feed_nsfw(
     user_id: Principal,
-    _num_results: u32,
+    num_results: u32,
     filter_results: Vec<PostDetails>,
 ) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
@@ -148,6 +150,7 @@ pub async fn get_ml_feed_nsfw(
         user_id: user_id.to_string(),
         exclude_items: post_details_to_video_ids(filter_results),
         nsfw_label: true,
+        num_results,
     };
 
     let response = client
