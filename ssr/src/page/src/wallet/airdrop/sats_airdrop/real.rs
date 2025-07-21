@@ -2,9 +2,9 @@ use std::time::Duration;
 
 use anyhow::ensure;
 use candid::Principal;
+use global_constants::{MAX_BET_AMOUNT_SATS, SATS_AIRDROP_LIMIT_RANGE_SATS};
 use hon_worker_common::{ClaimRequest, SatsBalanceUpdateRequestV2, WORKER_URL};
 use leptos::prelude::*;
-use global_constants::{MAX_BET_AMOUNT_SATS, SATS_AIRDROP_LIMIT_RANGE_SATS};
 use num_bigint::BigUint;
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use reqwest::Url;

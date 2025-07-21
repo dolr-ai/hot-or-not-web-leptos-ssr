@@ -4,13 +4,13 @@ mod server_impl;
 pub mod yral;
 
 use candid::Principal;
+use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
 use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
 use leptos_icons::Icon;
 use leptos_router::hooks::use_navigate;
-use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use state::canisters::auth_state;
 use state::canisters::unauth_canisters;
 use utils::event_streaming::events::CentsAdded;
