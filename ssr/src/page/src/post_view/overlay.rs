@@ -424,8 +424,9 @@ pub fn VideoDetailsOverlay(
 
     let show_low_balance_popup: RwSignal<bool> = RwSignal::new(false);
 
-    let eligibility_resource =
-        Resource::new({ move || show_low_balance_popup.get() }, move |showing| {
+    let eligibility_resource = Resource::new(
+        move || show_low_balance_popup.get(),
+        move |showing| {
             let auth = auth_state();
             let cans = unauth_canisters();
             async move {
@@ -444,7 +445,8 @@ pub fn VideoDetailsOverlay(
                     Err(_) => Some(false),
                 }
             }
-        });
+        },
+    );
 
     {
         Effect::new(move || {
