@@ -1,13 +1,13 @@
 use candid::Principal;
 use codee::string::FromToStringCodec;
 use consts::{AUTH_JOURNET, CUSTOM_DEVICE_ID, DEVICE_ID, NSFW_TOGGLE_STORE};
+use global_constants::REFERRAL_REWARD_SATS;
 use leptos::logging;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_timeout_fn;
 use leptos_use::UseTimeoutFnReturn;
-use limits::REFERRAL_REWARD_SATS;
 use serde::Serialize;
 use serde_json::Value;
 use wasm_bindgen::prelude::*;
