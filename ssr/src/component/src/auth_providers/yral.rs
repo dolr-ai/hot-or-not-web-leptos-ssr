@@ -4,11 +4,10 @@ use ic_agent::identity::DelegatedIdentity;
 use leptos::{ev, prelude::*};
 use leptos_use::{storage::use_local_storage, use_event_listener, use_interval_fn, use_window};
 use state::canisters::auth_state;
-use utils::mixpanel::mixpanel_events::*;
+use utils::{mixpanel::mixpanel_events::*, types::NewIdentity};
 use yral_canisters_common::yral_auth_login_hint;
-use yral_types::delegated_identity::DelegatedIdentityWire;
 
-pub type YralAuthMessage = Result<DelegatedIdentityWire, String>;
+pub type YralAuthMessage = Result<NewIdentity, String>;
 
 use super::{LoginProvButton, LoginProvCtx, ProviderKind};
 
@@ -48,8 +47,8 @@ pub fn YralAuthProvider() -> impl IntoView {
             let provider = *provider;
 
             let url_fut = async move {
-                let id_wire = auth.user_identity.await?;
-                let id = DelegatedIdentity::try_from(id_wire)?;
+                let id = auth.user_identity.await?;
+                let id = DelegatedIdentity::try_from(id.id_wire)?;
                 let login_hint = yral_auth_login_hint(&id)?;
 
                 yral_auth_login_url(login_hint, provider).await

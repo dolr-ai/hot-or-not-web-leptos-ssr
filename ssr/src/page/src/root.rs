@@ -10,10 +10,10 @@ use leptos_router::hooks::use_query_map;
 use leptos_use::storage::use_local_storage;
 use utils::host::show_nsfw_content;
 use utils::ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw};
-use yral_types::post::PostItem;
+use yral_types::post::PostItemV2;
 
 #[server]
-async fn get_top_post_id_global_clean_feed() -> Result<Option<PostItem>, ServerFnError> {
+async fn get_top_post_id_global_clean_feed() -> Result<Option<PostItemV2>, ServerFnError> {
     let posts = get_ml_feed_coldstart_clean(Principal::anonymous(), 1, vec![])
         .await
         .map_err(|e| {
@@ -28,7 +28,7 @@ async fn get_top_post_id_global_clean_feed() -> Result<Option<PostItem>, ServerF
 }
 
 #[server]
-async fn get_top_post_id_global_nsfw_feed() -> Result<Option<PostItem>, ServerFnError> {
+async fn get_top_post_id_global_nsfw_feed() -> Result<Option<PostItemV2>, ServerFnError> {
     let posts = get_ml_feed_coldstart_nsfw(Principal::anonymous(), 1, vec![])
         .await
         .map_err(|e| {
@@ -93,12 +93,13 @@ pub fn YralRootPage() -> impl IntoView {
                     let utms = store_utms.await;
                     let mut url = match target_post.await {
                         Ok(Some(post_item)) => {
-                            let canister_id = post_item.canister_id;
+                            let publisher_user_id = post_item.publisher_user_id.clone();
+                            let canister_id = post_item.canister_id.clone();
                             let post_id = post_item.post_id;
                             post_details_cache
                                 .post_details
                                 .update(|post_details| {
-                                    post_details.insert((canister_id, post_id), post_item.clone());
+                                    post_details.insert((Principal::from_text(publisher_user_id).unwrap(), post_id), post_item.clone());
                                 });
                             format!("/hot-or-not/{canister_id}/{post_id}")
                         }

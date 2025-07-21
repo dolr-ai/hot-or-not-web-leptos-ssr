@@ -295,7 +295,7 @@ dependencies = [
  "futures-lite",
  "parking",
  "polling",
- "rustix 1.0.7",
+ "rustix 1.0.8",
  "slab",
  "tracing",
  "windows-sys 0.59.0",
@@ -379,6 +379,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "async-watch"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a078faf4e27c0c6cc0efb20e5da59dcccc04968ebf2801d8e0b2195124cdcdb2"
+dependencies = [
+ "event-listener 2.5.3",
+]
+
+[[package]]
 name = "atoi"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -444,6 +453,7 @@ dependencies = [
  "rand_chacha 0.3.1",
  "redb",
  "redis",
+ "regex",
  "serde",
  "serde_json",
  "thiserror 2.0.12",
@@ -1297,6 +1307,7 @@ dependencies = [
  "dotenv",
  "enum_dispatch",
  "futures",
+ "global-constants",
  "gloo",
  "gloo-utils",
  "gob-cloudflare",
@@ -1311,6 +1322,7 @@ dependencies = [
  "icondata_core",
  "icp-ledger",
  "js-sys",
+ "jsonwebtoken",
  "k256",
  "leptos",
  "leptos-use",
@@ -1318,7 +1330,6 @@ dependencies = [
  "leptos_icons",
  "leptos_meta",
  "leptos_router",
- "limits",
  "log",
  "once_cell",
  "openidconnect",
@@ -1475,6 +1486,7 @@ dependencies = [
  "icondata_core",
  "icp-ledger",
  "js-sys",
+ "jsonwebtoken",
  "k256",
  "leptos",
  "leptos-use",
@@ -1617,9 +1629,9 @@ checksum = "19d374276b40fb8bbdee95aef7c7fa6b5316ec764510eb64b8dd0e2ed0d7e7f5"
 
 [[package]]
 name = "crc32fast"
-version = "1.4.2"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a97769d94ddab943e4510d138150169a2758b5ef3eb191a9ee688de3e23ef7b3"
+checksum = "9481c1c90cbf2ac953f07c8d4a58aa3945c425b7185c9154d67a65e4230da511"
 dependencies = [
  "cfg-if",
 ]
@@ -1688,6 +1700,8 @@ dependencies = [
  "curve25519-dalek-derive",
  "digest 0.10.7",
  "fiat-crypto",
+ "group",
+ "rand_core 0.6.4",
  "rustc_version",
  "subtle",
  "zeroize",
@@ -1961,7 +1975,7 @@ dependencies = [
 [[package]]
 name = "dolr-airdrop"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#77166578ea194ed84b02e245f86d38a57184e330"
+source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#3b7be241c4c965ca0ce19a829b9cf2e0352f6249"
 dependencies = [
  "async-std",
  "sea-orm",
@@ -2046,8 +2060,11 @@ checksum = "70e796c081cee67dc755e1a36a0a172b897fab85fc3f6bc48307991f64e4eca9"
 dependencies = [
  "curve25519-dalek",
  "ed25519",
+ "merlin",
+ "rand_core 0.6.4",
  "serde",
  "sha2 0.10.9",
+ "signature",
  "subtle",
  "zeroize",
 ]
@@ -2835,9 +2852,9 @@ dependencies = [
 
 [[package]]
 name = "gix-path"
-version = "0.10.18"
+version = "0.10.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "567f65fec4ef10dfab97ae71f26a27fd4d7fe7b8e3f90c8a58551c41ff3fb65b"
+checksum = "c6279d323d925ad4790602105ae27df4b915e7a7d81e4cdba2603121c03ad111"
 dependencies = [
  "bstr",
  "gix-trace",
@@ -2950,9 +2967,9 @@ dependencies = [
 
 [[package]]
 name = "gix-trace"
-version = "0.1.12"
+version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c396a2036920c69695f760a65e7f2677267ccf483f25046977d87e4cb2665f7"
+checksum = "e2ccaf54b0b1743a695b482ca0ab9d7603744d8d10b2e5d1a332fef337bee658"
 
 [[package]]
 name = "gix-traverse"
@@ -3020,6 +3037,18 @@ name = "glob"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8d1add55171497b4705a648c6b583acafb01d58050a51727785f0b2c8e0a2b2"
+
+[[package]]
+name = "global-constants"
+version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#4fc5b59e0074715db25bcbc7927e6ec51885f280"
+dependencies = [
+ "candid",
+ "num-bigint",
+ "serde",
+ "serde_with",
+ "thiserror 2.0.12",
+]
 
 [[package]]
 name = "gloo"
@@ -3653,17 +3682,17 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#911f7b272fbdf85ad178663a20ee3c32ec2b08bc"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#4fc5b59e0074715db25bcbc7927e6ec51885f280"
 dependencies = [
  "candid",
+ "global-constants",
  "ic-agent",
- "limits",
  "num-bigint",
  "serde",
  "serde_with",
  "thiserror 2.0.12",
  "url",
- "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
 ]
 
 [[package]]
@@ -3738,6 +3767,7 @@ dependencies = [
  "regex",
  "reqwest 0.12.22",
  "rust_decimal",
+ "sats-airdrop",
  "sea-orm",
  "send_wrapper",
  "sentry",
@@ -4090,43 +4120,48 @@ dependencies = [
 
 [[package]]
 name = "ic-agent"
-version = "0.38.2"
+version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "17a656d3b25007f59ba0700e65b332efd56d5dbfc6014994000ab3dbb221f54a"
+checksum = "e9f0125ba06162d2626d80318cad1d3540426a92d2929c5a7a10edc0b0127cca"
 dependencies = [
+ "arc-swap",
+ "async-channel 1.9.0",
  "async-lock",
  "async-trait",
+ "async-watch",
  "backoff",
  "cached",
  "candid",
+ "der",
+ "ecdsa",
  "ed25519-consensus",
+ "elliptic-curve",
  "futures-util",
  "getrandom 0.2.16",
  "hex",
  "http 1.3.1",
  "http-body 1.0.1",
  "ic-certification",
+ "ic-ed25519",
  "ic-transport-types",
  "ic-verify-bls-signature",
  "js-sys",
  "k256",
  "leb128",
  "p256",
- "pem",
+ "pem 3.0.5",
  "pkcs8",
  "rand 0.8.5",
  "rangemap",
  "reqwest 0.12.22",
- "ring",
- "rustls-webpki 0.102.8",
  "sec1",
  "serde",
  "serde_bytes",
  "serde_cbor",
  "serde_repr",
  "sha2 0.10.9",
- "simple_asn1",
- "thiserror 1.0.69",
+ "stop-token",
+ "thiserror 2.0.12",
  "time",
  "tokio",
  "tower-service",
@@ -4223,9 +4258,9 @@ dependencies = [
 
 [[package]]
 name = "ic-certification"
-version = "2.6.0"
+version = "3.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e64ee3d8b6e81b51f245716d3e0badb63c283c00f3c9fb5d5219afc30b5bf821"
+checksum = "ffb40d73f9f8273dc6569a68859003bbd467c9dc6d53c6fd7d174742f857209d"
 dependencies = [
  "hex",
  "serde",
@@ -4247,6 +4282,21 @@ version = "0.9.0"
 source = "git+https://github.com/dfinity/ic?rev=tags%2Frelease-2024-10-17_03-07-base#e54d3fa34ded227c885d04e64505fa4b5d564743"
 dependencies = [
  "ic-crypto-internal-sha2",
+]
+
+[[package]]
+name = "ic-ed25519"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0a381e86a9d559c816a7ff4419e56f5d37f96357258fb63b0cb7026db0f729b"
+dependencies = [
+ "curve25519-dalek",
+ "ed25519-dalek",
+ "hkdf",
+ "pem 1.1.1",
+ "rand 0.8.5",
+ "thiserror 2.0.12",
+ "zeroize",
 ]
 
 [[package]]
@@ -4342,9 +4392,9 @@ dependencies = [
 
 [[package]]
 name = "ic-transport-types"
-version = "0.38.2"
+version = "0.41.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "894b183f280e87b29aac98e7de0972cf632435e1f0a462969d9f5e0ccacc4d25"
+checksum = "5527e1eed0407cf4aa8ced1bc22181c2ae09f8385a00d270f146310b9379c6ad"
 dependencies = [
  "candid",
  "hex",
@@ -4355,7 +4405,7 @@ dependencies = [
  "serde_cbor",
  "serde_repr",
  "sha2 0.10.9",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -4949,7 +4999,7 @@ checksum = "5a87cc7a48537badeae96744432de36f4be2b4a34a05a5ef32e9dd8a1c169dde"
 dependencies = [
  "base64 0.22.1",
  "js-sys",
- "pem",
+ "pem 3.0.5",
  "ring",
  "serde",
  "serde_json",
@@ -4968,6 +5018,15 @@ dependencies = [
  "once_cell",
  "sha2 0.10.9",
  "signature",
+]
+
+[[package]]
+name = "keccak"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ecc2af9a1119c51f12a14607e783cb977bde58bc069ff0c3da1095e635d70654"
+dependencies = [
+ "cpufeatures",
 ]
 
 [[package]]
@@ -5027,16 +5086,16 @@ checksum = "884e2677b40cc8c339eaefcb701c32ef1fd2493d71118dc0ca4b6a736c93bd67"
 
 [[package]]
 name = "leptos"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ceaf7d86820125c57dcd380edac4b972debf480ee4c7eea6dd7cea212615978"
+checksum = "6c202a7897aa73c90ac4ce73713512d871f75e79847558d9e88f778659b164dc"
 dependencies = [
  "any_spawner",
  "base64 0.22.1",
  "cfg-if",
  "either_of",
  "futures",
- "getrandom 0.2.16",
+ "getrandom 0.3.3",
  "hydration_context",
  "leptos_config",
  "leptos_dom",
@@ -5046,7 +5105,7 @@ dependencies = [
  "oco_ref",
  "or_poisoned",
  "paste",
- "rand 0.8.5",
+ "rand 0.9.1",
  "reactive_graph",
  "rustc-hash",
  "rustc_version",
@@ -5093,9 +5152,9 @@ dependencies = [
 
 [[package]]
 name = "leptos_axum"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1734594e53c07c9415c837439193cd30d679db19e96ec63f71c108ffe88513eb"
+checksum = "a84872a7df15ec047f8b27b27e35354752a8cc62ab8b789e3dc9d4ed5613bcea"
 dependencies = [
  "any_spawner",
  "axum 0.8.4",
@@ -5107,7 +5166,6 @@ dependencies = [
  "leptos_macro",
  "leptos_meta",
  "leptos_router",
- "once_cell",
  "parking_lot",
  "server_fn",
  "tachys",
@@ -5118,9 +5176,9 @@ dependencies = [
 
 [[package]]
 name = "leptos_config"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf4100ad54455f82b686c9d0500a45c909eb50ce68ccb2ed51439ff2596f54fd"
+checksum = "74eec2103dfa808f4b13c149dfbd3842f13a5948489fda3de31cc565fb28dbec"
 dependencies = [
  "config",
  "regex",
@@ -5131,9 +5189,9 @@ dependencies = [
 
 [[package]]
 name = "leptos_dom"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "adaca2ec1d6215a7c43dc6353d487e4e34faf325b8e4df2ca3df488964d403be"
+checksum = "25b845379c33884f0dead9abb5aa3d258d7bd507789fc2527a5972f82c0757c7"
 dependencies = [
  "js-sys",
  "or_poisoned",
@@ -5146,9 +5204,9 @@ dependencies = [
 
 [[package]]
 name = "leptos_hot_reload"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "597f84532609518092960ac241741963c90c216ee11f752e1b238b846f043640"
+checksum = "fae732329192df886803f076515d73c883166a4c8cbc5532584d0d1e43539300"
 dependencies = [
  "anyhow",
  "camino",
@@ -5174,9 +5232,9 @@ dependencies = [
 
 [[package]]
 name = "leptos_integration_utils"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77da211bc85005a31db4835d7cf033b5508ae71d6663667e0b245f2e41425293"
+checksum = "51059fee81537ba299323e2b58c9d721f66fd8a2d42df710a020efbdfb8efae2"
 dependencies = [
  "futures",
  "hydration_context",
@@ -5189,9 +5247,9 @@ dependencies = [
 
 [[package]]
 name = "leptos_macro"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a2ec91579e9a1344adc1eee637cb774a01354a3d25857cbd028b0289efe131d"
+checksum = "8e32ae8783d4b64838167e026ef773dbc53399e9e6658e9c2f65e0ce67a5ccec"
 dependencies = [
  "attribute-derive",
  "cfg-if",
@@ -5212,14 +5270,13 @@ dependencies = [
 
 [[package]]
 name = "leptos_meta"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c03b2d5e0a9e7060bce4862c009ced3c2ad0afe45d005eaa4defa3872d2d2aac"
+checksum = "ef0521aeb2e73cbae8e6278287da485020b971e0b2cd471c5de5eb8cbcaa8802"
 dependencies = [
  "futures",
  "indexmap 2.10.0",
  "leptos",
- "once_cell",
  "or_poisoned",
  "send_wrapper",
  "wasm-bindgen",
@@ -5228,9 +5285,9 @@ dependencies = [
 
 [[package]]
 name = "leptos_router"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d1b70dbd176bd0129e5db0e2ed48b7ff076c1b17cf52bbd0e85dcc3e6b9cbc0"
+checksum = "e1b6df1b107c301bd39c114768a1196a8dfcbdae869364b3f0247e3f554b503a"
 dependencies = [
  "any_spawner",
  "either_of",
@@ -5239,7 +5296,6 @@ dependencies = [
  "js-sys",
  "leptos",
  "leptos_router_macro",
- "once_cell",
  "or_poisoned",
  "percent-encoding",
  "reactive_graph",
@@ -5254,9 +5310,9 @@ dependencies = [
 
 [[package]]
 name = "leptos_router_macro"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8403f583a69812524b98c97f2ed0258771e205cd0f715b1bc6ba5e4f70dcb94b"
+checksum = "0d35d4bb7922e74546fac3e852b0f3252e9996e04fca12c359aba1e5958cfda8"
 dependencies = [
  "proc-macro-error2",
  "proc-macro2",
@@ -5266,9 +5322,9 @@ dependencies = [
 
 [[package]]
 name = "leptos_server"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5af59932aa8a640da4d3d20650cf07084433e25db0ee690203d893b81773db29"
+checksum = "26851048e161998b8f9fb3261a833ec64df2a2669ea95f360c54b7f47a1e07cb"
 dependencies = [
  "any_spawner",
  "base64 0.22.1",
@@ -5324,18 +5380,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "172a788537a2221661b480fee8dc5f96c580eb34fa88764d3205dc356c7e4221"
 dependencies = [
  "zlib-rs",
-]
-
-[[package]]
-name = "limits"
-version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#911f7b272fbdf85ad178663a20ee3c32ec2b08bc"
-dependencies = [
- "candid",
- "num-bigint",
- "serde",
- "serde_with",
- "thiserror 2.0.12",
 ]
 
 [[package]]
@@ -5496,11 +5540,23 @@ checksum = "32a282da65faaf38286cf3be983213fcf1d2e2a58700e808f83f4ea9a4804bc0"
 
 [[package]]
 name = "memmap2"
-version = "0.9.5"
+version = "0.9.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd3f7eed9d3848f8b98834af67102b720745c4ec028fcd0aa0239277e7de374f"
+checksum = "483758ad303d734cec05e5c12b41d7e93e6a6390c5e9dae6bdeb7c1259012d28"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "merlin"
+version = "3.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58c38e2799fc0978b65dfff8023ec7843e2330bb462f19198840b34b6582397d"
+dependencies = [
+ "byteorder",
+ "keccak",
+ "rand_core 0.6.4",
+ "zeroize",
 ]
 
 [[package]]
@@ -5941,6 +5997,7 @@ dependencies = [
  "dotenv",
  "futures",
  "getrandom 0.3.3",
+ "global-constants",
  "gloo",
  "gloo-utils",
  "gob-cloudflare",
@@ -5963,8 +6020,8 @@ dependencies = [
  "leptos_icons",
  "leptos_meta",
  "leptos_router",
- "limits",
  "log",
+ "num-bigint",
  "num-traits",
  "once_cell",
  "openidconnect",
@@ -5977,6 +6034,7 @@ dependencies = [
  "regex",
  "reqwest 0.12.22",
  "rust_decimal",
+ "sats-airdrop",
  "sea-orm",
  "send_wrapper",
  "serde",
@@ -6005,7 +6063,7 @@ dependencies = [
  "web-time",
  "yral-canisters-client",
  "yral-canisters-common",
- "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
  "yral-metadata-client",
  "yral-metadata-types",
  "yral-pump-n-dump-common",
@@ -6087,6 +6145,15 @@ name = "pathdiff"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
+
+[[package]]
+name = "pem"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a8835c273a76a90455d7344889b0964598e3316e2a79ede8e36f16bdcf2228b8"
+dependencies = [
+ "base64 0.13.1",
+]
 
 [[package]]
 name = "pem"
@@ -6272,7 +6339,7 @@ dependencies = [
  "concurrent-queue",
  "hermit-abi",
  "pin-project-lite",
- "rustix 1.0.7",
+ "rustix 1.0.8",
  "tracing",
  "windows-sys 0.59.0",
 ]
@@ -6705,9 +6772,9 @@ checksum = "f60fcc7d6849342eff22c4350c8b9a989ee8ceabc4b481253e8946b9fe83d684"
 
 [[package]]
 name = "reactive_graph"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac68cd988635779e6f378871257cbccfd51d7eeb7bc0bf6184835842aed51cc1"
+checksum = "c79f7561c7c246e2c2feab3b0b63502b213e589d7768032bbfc5ea7b267140b9"
 dependencies = [
  "any_spawner",
  "async-lock",
@@ -6727,9 +6794,9 @@ dependencies = [
 
 [[package]]
 name = "reactive_stores"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23e02f30b9cc6645e330e926dd778d4bcbd0e5770bdf4ec3d422dc0fe3c52a41"
+checksum = "9edd67f166cfec4ffc6abf271bada268c13dac0b0318f4c6a76a877490d0617a"
 dependencies = [
  "dashmap",
  "guardian",
@@ -6744,9 +6811,9 @@ dependencies = [
 
 [[package]]
 name = "reactive_stores_macro"
-version = "0.2.2"
+version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f2bfb3b29c0b93d2d58a157b2a6783957bb592b296ab0b98a18fc3cdc574b07"
+checksum = "2418b703f385f35481737d8f2ccd9ae3de850dd778bce09817f30338f3cb5ca2"
 dependencies = [
  "convert_case 0.8.0",
  "proc-macro-error2",
@@ -7159,15 +7226,15 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "1.0.7"
+version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c71e83d6afe7ff64890ec6b71d6a69bb8a610ab78ce364b3352876bb4c801266"
+checksum = "11181fbabf243db407ef8df94a6ce0b2f9a733bd8be4ad02b4eda9602296cac8"
 dependencies = [
  "bitflags 2.9.1",
  "errno",
  "libc",
  "linux-raw-sys 0.9.4",
- "windows-sys 0.59.0",
+ "windows-sys 0.60.2",
 ]
 
 [[package]]
@@ -7315,6 +7382,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "sats-airdrop"
+version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#3b7be241c4c965ca0ce19a829b9cf2e0352f6249"
+dependencies = [
+ "async-std",
+ "sea-orm",
+ "sea-orm-migration",
+ "utils 0.1.0 (git+https://github.com/dolr-ai/yral-neon-postgres?branch=main)",
 ]
 
 [[package]]
@@ -7836,9 +7914,9 @@ dependencies = [
 
 [[package]]
 name = "serde_qs"
-version = "0.14.0"
+version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b417bedc008acbdf6d6b4bc482d29859924114bbe2650b7921fb68a261d0aa6"
+checksum = "f3faaf9e727533a19351a43cc5a8de957372163c7d35cc48c90b75cdda13c352"
 dependencies = [
  "percent-encoding",
  "serde",
@@ -7933,9 +8011,9 @@ dependencies = [
 
 [[package]]
 name = "server_fn"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09b0f92b9d3a62c73f238ac21f7a09f15bad335a9d1651514d9da80d2eaf8d4c"
+checksum = "9c27fbd25ecc066481e383e2ed62ab2480e708aa3fe46cba36e95f58e61dfd04"
 dependencies = [
  "axum 0.8.4",
  "base64 0.22.1",
@@ -7950,7 +8028,6 @@ dependencies = [
  "hyper 1.6.0",
  "inventory",
  "js-sys",
- "once_cell",
  "pin-project-lite",
  "rustc_version",
  "rustversion",
@@ -7974,9 +8051,9 @@ dependencies = [
 
 [[package]]
 name = "server_fn_macro"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "341dd1087afe9f3e546c5979a4f0b6d55ac072e1201313f86e7fe364223835ac"
+checksum = "b9d530c872590473016016679c94e3bddf47372941fc924f687ffd11a1778a71"
 dependencies = [
  "const_format",
  "convert_case 0.8.0",
@@ -7989,9 +8066,9 @@ dependencies = [
 
 [[package]]
 name = "server_fn_macro_default"
-version = "0.8.2"
+version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc5ab934f581482a66da82f2b57b15390ad67c9ab85bd9a6c54bb65060fb1380"
+checksum = "ca7abc92ed696648275ed9ff171131a83d571af11748593dc2e6eb6a4e22a5b9"
 dependencies = [
  "server_fn_macro",
  "syn 2.0.104",
@@ -8150,7 +8227,7 @@ dependencies = [
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#911f7b272fbdf85ad178663a20ee3c32ec2b08bc"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#4fc5b59e0074715db25bcbc7927e6ec51885f280"
 dependencies = [
  "candid",
  "humantime",
@@ -8476,12 +8553,14 @@ dependencies = [
  "openidconnect",
  "priority-queue",
  "prost",
+ "rand 0.9.1",
  "rand_chacha 0.3.1",
  "redb",
  "redis",
  "regex",
  "reqwest 0.12.22",
  "rust_decimal",
+ "sats-airdrop",
  "sea-orm",
  "send_wrapper",
  "serde",
@@ -8520,6 +8599,18 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
+name = "stop-token"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af91f480ee899ab2d9f8435bfdfc14d08a5754bd9d3fef1f1a1c23336aad6c8b"
+dependencies = [
+ "async-channel 1.9.0",
+ "cfg-if",
+ "futures-core",
+ "pin-project-lite",
+]
 
 [[package]]
 name = "string_cache"
@@ -8711,9 +8802,9 @@ dependencies = [
 
 [[package]]
 name = "tachys"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51a9a5d6436e532fd27b49bcca005a038bf510fc369687de830121a74811ccf4"
+checksum = "9d706b2ab0fa7e14b878d638faee3dafed08a2ab9ff7f116ad2445cce04bfaaa"
 dependencies = [
  "any_spawner",
  "async-trait",
@@ -8729,7 +8820,6 @@ dependencies = [
  "linear-map",
  "next_tuple",
  "oco_ref",
- "once_cell",
  "or_poisoned",
  "parking_lot",
  "paste",
@@ -8759,7 +8849,7 @@ dependencies = [
  "fastrand",
  "getrandom 0.3.3",
  "once_cell",
- "rustix 1.0.7",
+ "rustix 1.0.8",
  "windows-sys 0.59.0",
 ]
 
@@ -9558,6 +9648,7 @@ dependencies = [
  "bb8",
  "bb8-redis",
  "candid",
+ "chrono",
  "ciborium",
  "circular-buffer",
  "codee",
@@ -9568,6 +9659,7 @@ dependencies = [
  "dotenv",
  "enum_dispatch",
  "futures",
+ "global-constants",
  "gloo",
  "gloo-utils",
  "gob-cloudflare",
@@ -9589,7 +9681,6 @@ dependencies = [
  "leptos_icons",
  "leptos_meta",
  "leptos_router",
- "limits",
  "log",
  "once_cell",
  "openidconnect",
@@ -9636,7 +9727,7 @@ dependencies = [
 [[package]]
 name = "utils"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#77166578ea194ed84b02e245f86d38a57184e330"
+source = "git+https://github.com/dolr-ai/yral-neon-postgres?branch=main#3b7be241c4c965ca0ce19a829b9cf2e0352f6249"
 dependencies = [
  "sea-orm",
  "sea-orm-migration",
@@ -10331,7 +10422,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#911f7b272fbdf85ad178663a20ee3c32ec2b08bc"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#4fc5b59e0074715db25bcbc7927e6ec51885f280"
 dependencies = [
  "anyhow",
  "candid",
@@ -10351,7 +10442,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#911f7b272fbdf85ad178663a20ee3c32ec2b08bc"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#4fc5b59e0074715db25bcbc7927e6ec51885f280"
 dependencies = [
  "candid",
  "ciborium",
@@ -10373,7 +10464,7 @@ dependencies = [
  "url",
  "web-time",
  "yral-canisters-client",
- "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
  "yral-metadata-client",
  "yral-metadata-types",
  "yral-pump-n-dump-common",
@@ -10383,43 +10474,43 @@ dependencies = [
 [[package]]
 name = "yral-identity"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-identity.git?rev=156bc0e7a4bc3d9a3b4faab4b9b3048e88a0c701#156bc0e7a4bc3d9a3b4faab4b9b3048e88a0c701"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#4fc5b59e0074715db25bcbc7927e6ec51885f280"
 dependencies = [
  "candid",
  "ic-agent",
  "serde",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "web-time",
 ]
 
 [[package]]
 name = "yral-identity"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b#adbf4be5cb62a26f2a90032261321bf1df33f08b"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#4fc5b59e0074715db25bcbc7927e6ec51885f280"
 dependencies = [
  "candid",
  "ic-agent",
  "serde",
- "thiserror 1.0.69",
+ "thiserror 2.0.12",
  "web-time",
 ]
 
 [[package]]
 name = "yral-metadata-client"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-metadata?branch=master#9ce1fc1b5dcb31b5a620ec5c1fde886559dcba26"
+source = "git+https://github.com/yral-dapp/yral-metadata?branch=master#51b7d980bc15e11eac3603289212633a77a35415"
 dependencies = [
  "ic-agent",
  "reqwest 0.12.22",
  "thiserror 1.0.69",
- "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity.git?rev=156bc0e7a4bc3d9a3b4faab4b9b3048e88a0c701)",
+ "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
  "yral-metadata-types",
 ]
 
 [[package]]
 name = "yral-metadata-types"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-metadata?branch=master#9ce1fc1b5dcb31b5a620ec5c1fde886559dcba26"
+source = "git+https://github.com/yral-dapp/yral-metadata?branch=master#51b7d980bc15e11eac3603289212633a77a35415"
 dependencies = [
  "candid",
  "serde",
@@ -10427,13 +10518,13 @@ dependencies = [
  "thiserror 1.0.69",
  "utoipa",
  "utoipa-swagger-ui",
- "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity.git?rev=156bc0e7a4bc3d9a3b4faab4b9b3048e88a0c701)",
+ "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-common.git?branch=master)",
 ]
 
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#911f7b272fbdf85ad178663a20ee3c32ec2b08bc"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#4fc5b59e0074715db25bcbc7927e6ec51885f280"
 dependencies = [
  "candid",
  "ic-agent",
@@ -10442,7 +10533,7 @@ dependencies = [
  "url",
  "uuid",
  "yral-canisters-client",
- "yral-identity 0.1.0 (git+https://github.com/yral-dapp/yral-identity?rev=adbf4be5cb62a26f2a90032261321bf1df33f08b)",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
 ]
 
 [[package]]
@@ -10459,11 +10550,14 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common?branch=master#911f7b272fbdf85ad178663a20ee3c32ec2b08bc"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#4fc5b59e0074715db25bcbc7927e6ec51885f280"
 dependencies = [
  "ic-agent",
  "k256",
  "serde",
+ "serde_json",
+ "utoipa",
+ "utoipa-swagger-ui",
 ]
 
 [[package]]
@@ -10512,6 +10606,20 @@ name = "zeroize"
 version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ced3678a2879b30306d323f4542626697a464a97c0a07c9aebf7ebca65cd4dde"
+dependencies = [
+ "zeroize_derive",
+]
+
+[[package]]
+name = "zeroize_derive"
+version = "1.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce36e65b0d2999d2aafac989fb249189a141aee1f53c612c1f37d72631959f69"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.104",
+]
 
 [[package]]
 name = "zerotrie"

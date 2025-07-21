@@ -78,9 +78,7 @@ pub async fn generate_anonymous_identity_if_required(
 
 /// this server function is purely a side effect and only sets the refresh token cookie
 #[server(endpoint = "set_anonymous_identity_cookie", input = Json, output = Json)]
-pub async fn set_anonymous_identity_cookie(
-    refresh_jwt: Option<String>,
-) -> Result<(), ServerFnError> {
+pub async fn set_anonymous_identity_cookie(refresh_jwt: String) -> Result<(), ServerFnError> {
     server_impl::set_anonymous_identity_cookie_impl(refresh_jwt).await
 }
 

@@ -6,6 +6,7 @@ use leptos_meta::*;
 use leptos_router::hooks::use_location;
 use leptos_router::{components::*, path, MatchNestedRoutes};
 use page::about_us::AboutUs;
+use page::internal::clear_sats::ClearSats;
 use page::leaderboard::Leaderboard;
 use page::post_view::PostDetailsCacheCtx;
 use page::root::YralRootPage;
@@ -36,6 +37,7 @@ use state::hn_bet_state::HnBetState;
 use state::{audio_state::AudioState, content_seed_client::ContentSeedClient};
 use utils::event_streaming::events::HistoryCtx;
 use utils::event_streaming::EventHistory;
+use utils::mixpanel::state::MixpanelState;
 use utils::types::PostParams;
 use yral_canisters_common::Canisters;
 
@@ -113,6 +115,8 @@ pub fn App() -> impl IntoView {
     provide_context(history_ctx.clone());
 
     let _ = HnBetState::init();
+
+    let _ = MixpanelState::init();
 
     let current_post_params = RwSignal::new(None::<PostParams>);
     provide_context(current_post_params);
@@ -212,6 +216,7 @@ pub fn App() -> impl IntoView {
                         />
                         <Route path=path!("/terms-ios") view=TermsIos />
                         <Route path=path!("/terms-android") view=TermsAndroid />
+                        <Route path=path!("/internal/clear-sats") view=ClearSats />
                     </ParentRoute>
                 </Routes>
 

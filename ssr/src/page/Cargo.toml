@@ -74,7 +74,7 @@ yral-types = { workspace = true }
 yral-canisters-client = { workspace = true }
 yral-canisters-common = { workspace = true }
 hon-worker-common = { workspace = true }
-limits = { workspace = true }
+global-constants = { workspace = true }
 yral-pump-n-dump-common = { workspace = true }
 ic-certification = { workspace = true }
 ciborium = { workspace = true }
@@ -90,6 +90,8 @@ indexmap.workspace = true
 yral-identity.workspace = true
 sea-orm = { workspace = true, optional = true }
 dolr-airdrop = { workspace = true, optional = true }
+sats-airdrop = { workspace = true, optional = true }
+num-bigint = { workspace = true }
 num-traits.workspace = true
 
 # local deps`
@@ -189,6 +191,10 @@ neon-postgres = [
 dolr-airdrop = [
     "neon-postgres",
     "dep:dolr-airdrop",
+]
+sats-airdrop = [
+    "neon-postgres",
+    "dep:sats-airdrop",
 ]
 redis-kv = [
     "consts/redis-kv",
