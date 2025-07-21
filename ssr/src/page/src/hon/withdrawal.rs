@@ -239,7 +239,6 @@ pub fn HonWithdrawal() -> impl IntoView {
     let zero = Nat::from(0_usize);
 
     use state::canisters::unauth_canisters;
-    use utils::send_wrap;
     let cans = unauth_canisters();
     let treasury_balance = Resource::new(
         || (),
