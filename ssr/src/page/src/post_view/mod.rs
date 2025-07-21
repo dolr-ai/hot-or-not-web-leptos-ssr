@@ -5,9 +5,9 @@ pub mod single_post;
 pub mod video_iter;
 pub mod video_loader;
 use crate::scrolling_post_view::ScrollingPostView;
-use component::buttons::HighlightedButton;
 use component::overlay::ShadowOverlay;
 use component::spinner::FullScreenSpinner;
+use component::{buttons::HighlightedButton, nsfw_nudge_popup::NsfwUnlockPopup};
 use consts::{
     UserOnboardingStore, MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY,
 };
@@ -312,7 +312,11 @@ pub fn PostView() -> impl IntoView {
     let params = use_params::<PostParams>();
     let initial_canister_and_post = RwSignal::new(params.get_untracked().ok());
     let home_page_viewed_sent = RwSignal::new(false);
+    let show_nsfw_popup = RwSignal::new(false);
+    let nsfw_shown_idx: RwSignal<Vec<usize>> = RwSignal::new(Vec::new());
+
     let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
     let (nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
     Effect::new(move |_| {
         if home_page_viewed_sent.get_untracked() {
@@ -346,6 +350,20 @@ pub fn PostView() -> impl IntoView {
         current_idx,
         ..
     } = expect_context();
+
+    let current_post = Signal::derive(move || {
+        let index = current_idx.get();
+        video_queue.with(|q| q.get_index(index).cloned())
+    });
+
+    Effect::new(move |_| {
+        let index = current_idx.get();
+        if (index == 2 || index == 8) && !nsfw_shown_idx.get_untracked().contains(&index) {
+            show_nsfw_popup.set(true);
+            nsfw_shown_idx.update(|f| f.push(index));
+        }
+    });
+
     let canisters = unauth_canisters();
     let post_details_cache: PostDetailsCacheCtx = expect_context();
 
@@ -420,6 +438,7 @@ pub fn PostView() -> impl IntoView {
                 { Some(view! { <PostViewWithUpdatesMLFeed initial_post /> }.into_any()) }
             })}
         </Suspense>
+        <NsfwUnlockPopup show=show_nsfw_popup current_post ev_ctx />
         <OnboardingWelcomePopup show=show_onboarding_popup close_action=close_onboarding_action />
     }
     .into_any()

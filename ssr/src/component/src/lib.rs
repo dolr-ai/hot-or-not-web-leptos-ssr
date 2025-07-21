@@ -23,6 +23,7 @@ pub mod nav;
 pub mod nav_icons;
 pub mod notification_display;
 pub mod notification_nudge;
+pub mod nsfw_nudge_popup;
 pub mod onboarding_flow;
 pub mod option;
 pub mod overlay;
