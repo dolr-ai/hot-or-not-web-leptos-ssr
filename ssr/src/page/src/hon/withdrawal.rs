@@ -239,6 +239,7 @@ pub fn HonWithdrawal() -> impl IntoView {
     let zero = Nat::from(0_usize);
 
     use state::canisters::unauth_canisters;
+    use utils::send_wrap;
     let cans = unauth_canisters();
     let treasury_balance = Resource::new(
         || (),
@@ -247,12 +248,12 @@ pub fn HonWithdrawal() -> impl IntoView {
             let ledger = CKBTC_LEDGER_CANISTER.parse().unwrap();
             let treasury = SATS_CKBTC_CANISTER.parse().unwrap();
 
-            async move {
+            send_wrap(async move {
                 match cans.icrc1_balance_of(treasury, ledger).await {
                     Ok(balance) => balance,
                     Err(_) => Nat::from(0_usize),
                 }
-            }
+            })
         },
     );
 
