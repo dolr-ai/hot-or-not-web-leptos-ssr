@@ -424,12 +424,8 @@ pub fn VideoDetailsOverlay(
 
     let show_low_balance_popup: RwSignal<bool> = RwSignal::new(false);
 
-    let eligibility_resource = Resource::new(
-        {
-            let show_low_balance_popup = show_low_balance_popup.clone();
-            move || show_low_balance_popup.get()
-        },
-        move |showing| {
+    let eligibility_resource =
+        Resource::new({ move || show_low_balance_popup.get() }, move |showing| {
             let auth = auth_state();
             let cans = unauth_canisters();
             async move {
@@ -448,11 +444,9 @@ pub fn VideoDetailsOverlay(
                     Err(_) => Some(false),
                 }
             }
-        },
-    );
+        });
 
     {
-        let show_low_balance_popup = show_low_balance_popup.clone();
         Effect::new(move || {
             if show_low_balance_popup.get_untracked() {
                 let is_airdrop_eligible = eligibility_resource.get().flatten().unwrap_or(false);
