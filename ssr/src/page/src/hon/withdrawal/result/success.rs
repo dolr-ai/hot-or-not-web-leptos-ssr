@@ -37,7 +37,7 @@ pub fn Success() -> impl IntoView {
                 canister_id: global.canister_id,
                 is_nsfw_enabled: global.is_nsfw_enabled,
                 sats_converted: sats_value,
-                conversion_ratio: crate::consts::SATS_TO_BTC_CONVERSION_RATIO,
+                conversion_ratio: consts::SATS_TO_BTC_CONVERSION_RATIO,
             });
         }
     });
