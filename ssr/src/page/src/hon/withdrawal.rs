@@ -239,10 +239,11 @@ pub fn HonWithdrawal() -> impl IntoView {
     let zero = Nat::from(0_usize);
 
     use state::canisters::unauth_canisters;
+    let cans = unauth_canisters();
     let treasury_balance = Resource::new(
         || (),
-        |_| {
-            let cans = unauth_canisters();
+        move |_| {
+            let cans = cans.clone();
             let ledger = CKBTC_LEDGER_CANISTER.parse().unwrap();
             let treasury = SATS_CKBTC_CANISTER.parse().unwrap();
 
