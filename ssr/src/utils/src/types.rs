@@ -1,5 +1,7 @@
 use candid::Principal;
+use serde::{Deserialize, Serialize};
 use yral_canisters_client::individual_user_template::PostStatus as PostStatusCandid;
+use yral_types::delegated_identity::DelegatedIdentityWire;
 
 pub type PostId = (Principal, u64);
 
@@ -30,6 +32,21 @@ impl From<&PostStatusCandid> for PostStatus {
             PostStatusCandid::ReadyToView => PostStatus::ReadyToView,
             PostStatusCandid::Transcoding => PostStatus::Transcoding,
             PostStatusCandid::Deleted => PostStatus::Deleted,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct NewIdentity {
+    pub id_wire: DelegatedIdentityWire,
+    pub fallback_username: Option<String>,
+}
+
+impl NewIdentity {
+    pub fn new_without_username(id: DelegatedIdentityWire) -> Self {
+        Self {
+            id_wire: id,
+            fallback_username: None,
         }
     }
 }

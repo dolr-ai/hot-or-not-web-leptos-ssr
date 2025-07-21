@@ -8,15 +8,19 @@ use openidconnect::CsrfToken;
 use serde::{Deserialize, Serialize};
 use server_fn::codec::Json;
 use utils::route::go_to_root;
-use yral_types::delegated_identity::DelegatedIdentityWire;
+use utils::types::NewIdentity;
 
 #[server(input = Json, output = Json)]
-async fn perform_yral_oauth(oauth: OAuthQuery) -> Result<DelegatedIdentityWire, ServerFnError> {
+async fn perform_yral_oauth(oauth: OAuthQuery) -> Result<NewIdentity, ServerFnError> {
     use auth::server_impl::yral::perform_yral_auth_impl;
     use auth::server_impl::yral::YralOAuthClient;
 
     let oauth2: YralOAuthClient = expect_context();
-    perform_yral_auth_impl(oauth.state, oauth.code, oauth2).await
+    let (id, fallback_username) = perform_yral_auth_impl(oauth.state, oauth.code, oauth2).await?;
+    Ok(NewIdentity {
+        id_wire: id,
+        fallback_username,
+    })
 }
 
 #[derive(Params, Debug, PartialEq, Clone, Serialize, Deserialize)]

@@ -270,7 +270,7 @@ fn DeleteAccountPopup(show_delete_popup: RwSignal<bool>) -> impl IntoView {
         send_wrap(async move {
             let value = value.clone();
             match auth.user_identity.await {
-                Ok(identity_wire) => match delete_user::initiate_delete_user(identity_wire).await {
+                Ok(id) => match delete_user::initiate_delete_user(id.id_wire).await {
                     Ok(_) => {
                         if let Some(props) = value.clone() {
                             MixPanelEvent::track_account_deleted(props);

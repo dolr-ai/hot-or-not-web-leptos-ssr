@@ -11,7 +11,7 @@ axum = { workspace = true, optional = true }
 console_error_panic_hook = { workspace = true }
 console_log = { workspace = true }
 hon-worker-common = { workspace = true }
-limits = { workspace = true }
+global-constants = { workspace = true }
 leptos = { workspace = true, features = ["nightly"] }
 leptos_axum = { workspace = true, optional = true }
 leptos_meta = { workspace = true, optional = true }
@@ -84,6 +84,7 @@ regex = { workspace = true, optional = true }
 tonic-build = { workspace = true }
 anyhow = { workspace = true }
 send_wrapper = { workspace = true }
+jsonwebtoken = { workspace = true, optional = true }
 
 # local deps
 consts.workspace = true
@@ -140,6 +141,7 @@ ssr = [
     "utils/ssr",
     "state/ssr",
     "auth/ssr",
+    "dep:jsonwebtoken",
 ]
 # Fetch mock referral history instead of history via canister
 mock-referral-history = [
