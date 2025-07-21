@@ -7,7 +7,7 @@ use futures::TryFutureExt;
 use hon_worker_common::{HoNGameWithdrawReq, SatsBalanceInfo};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
-use limits::{MAX_WITHDRAWAL_PER_TXN_SATS, MIN_WITHDRAWAL_PER_TXN_SATS};
+use global_constants::{MAX_WITHDRAWAL_PER_TXN_SATS, MIN_WITHDRAWAL_PER_TXN_SATS};
 use log;
 use state::{canisters::auth_state, server::HonWorkerJwt};
 use utils::send_wrap;

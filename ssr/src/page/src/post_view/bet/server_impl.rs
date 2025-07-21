@@ -17,9 +17,9 @@ pub async fn vote_with_cents_on_post(
     #[cfg(not(feature = "alloydb"))]
     use mock::vote_with_cents_on_post;
 
-    // validate request against limits
+    // validate request against global_constants
 
-    use limits::MAX_BET_AMOUNT_SATS;
+    use global_constants::MAX_BET_AMOUNT_SATS;
     if req.vote_amount > MAX_BET_AMOUNT_SATS as u128 {
         return Err(ServerFnError::new(format!(
             "bet amount exceeds maximum allowed: {} > {}",

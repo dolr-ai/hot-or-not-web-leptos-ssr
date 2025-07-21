@@ -6,7 +6,7 @@ permissions:
 
 on:
   repository_dispatch:
-    types: [limits-common-change]
+    types: [global-constants-change]
 
 jobs:
   cargo-update-and-create-pr:
@@ -23,7 +23,7 @@ jobs:
           components: "clippy,rustfmt"
 
       - name: Update cargo dependencies
-        run: cargo update -p limits
+        run: cargo update -p global-constants
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
@@ -31,9 +31,9 @@ jobs:
           token: ${{ secrets.LIMITS_CHANGE_DISPATCH_TOKEN }}
           title: 'Cargo update: yral common updated ${{ github.event.client_payload.commit_hash }}'
           body: |
-            Cargo update triggered by push to update to limits create in yral-common repository
+            Cargo update triggered by push to update to global-constants create in yral-common repository
             - Link to commit: (${{ github.event.client_payload.commit_hash }})[https://github.com/dolr-ai/yral-common/commit/${{ github.event.client_payload.commit_hash }}]
-          commit-message: "Cargo update: limits changed ${{ github.event.client_payload.commit_hash }}"
+          commit-message: "Cargo update: global-constants changed ${{ github.event.client_payload.commit_hash }}"
           committer: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
           author: ${{ github.actor }} <${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com>
           branch: cargo-update-yral-common-${{ github.event.client_payload.commit_hash }}

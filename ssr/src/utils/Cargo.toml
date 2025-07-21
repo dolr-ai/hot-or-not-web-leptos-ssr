@@ -74,7 +74,7 @@ urlencoding = { workspace = true }
 yral-types = { workspace = true }
 yral-canisters-client = { workspace = true }
 yral-canisters-common = { workspace = true }
-limits = { workspace = true }
+global-constants = { workspace = true }
 ic-certification = { workspace = true }
 ciborium = { workspace = true }
 yral-metadata-client = { workspace = true, optional = true }

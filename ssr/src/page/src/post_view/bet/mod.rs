@@ -14,7 +14,7 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
-use limits::{CoinState, DEFAULT_BET_COIN_STATE};
+use global_constants::{CoinState, DEFAULT_BET_COIN_STATE};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
