@@ -54,7 +54,6 @@ http = "1.1.0"
 ic-agent = { version = "0.41.0", default-features = false, features = ["pem"] }
 ic-base-types = { git = "https://github.com/dfinity/ic", rev = "tags/release-2024-10-17_03-07-base" }
 icp-ledger = { git = "https://github.com/dfinity/ic", rev = "tags/release-2024-10-17_03-07-base" }
-serde-wasm-bindgen = "0.6.5"
 futures = "0.3.30"
 leptos-use = { version = "0.16.0-beta2" }
 codee = { version = "0.3.0", features = ["json_serde"] }

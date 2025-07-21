@@ -29,7 +29,6 @@ candid.workspace = true
 ic-agent = { workspace = true }
 ic-base-types = { workspace = true }
 icp-ledger = { workspace = true }
-serde-wasm-bindgen = { workspace = true }
 futures = { workspace = true }
 leptos-use = { workspace = true }
 codee = { workspace = true }
