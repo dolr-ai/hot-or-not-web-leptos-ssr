@@ -1,45 +1,21 @@
 use candid::Principal;
 use codee::string::FromToStringCodec;
 use consts::{AUTH_JOURNET, CUSTOM_DEVICE_ID, DEVICE_ID, NSFW_TOGGLE_STORE};
+use global_constants::REFERRAL_REWARD_SATS;
 use leptos::logging;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_timeout_fn;
 use leptos_use::UseTimeoutFnReturn;
-use limits::REFERRAL_REWARD_SATS;
 use serde::Serialize;
 use serde_json::Value;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsValue;
 use yral_canisters_common::utils::vote::VoteKind;
 use yral_canisters_common::Canisters;
 
 use crate::event_streaming::events::EventCtx;
 use crate::event_streaming::events::HistoryCtx;
 use crate::mixpanel::state::MixpanelState;
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = mixpanel, catch)]
-    fn track(event_name: &str, properties: JsValue) -> Result<(), JsValue>;
-
-    #[wasm_bindgen(js_namespace = mixpanel)]
-    fn reset();
-
-    /// mixpanel.identify(user_id)
-    #[wasm_bindgen(js_namespace = mixpanel, catch)]
-    fn identify(user_id: &str) -> Result<(), JsValue>;
-}
-
-/// Call once you know the logged-in user's ID
-pub fn identify_user(user_id: &str) {
-    let _ = identify(user_id);
-}
-
-pub fn reset_mixpanel() {
-    reset();
-}
 
 #[server]
 async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
@@ -113,26 +89,6 @@ pub fn parse_query_params_utm() -> Result<Vec<(String, String)>, String> {
     Ok(Vec::new())
 }
 
-/// Generic helper: serializes `props` and calls Mixpanel.track
-pub fn track_event<T>(event_name: &str, props: T)
-where
-    T: Serialize,
-{
-    let track_props = serde_wasm_bindgen::to_value(&props);
-    match track_props {
-        Ok(props) => {
-            if let Err(e) = track(event_name, props) {
-                logging::error!("Error tracking Mixpanel client event: {:?}", e);
-            }
-        }
-        Err(e) => {
-            logging::error!("Error serializing Mixpanel event properties: {:?}", e);
-        }
-    }
-
-    send_event_to_server(event_name, props);
-}
-
 fn send_event_to_server<T>(event_name: &str, props: T)
 where
     T: Serialize,
@@ -193,6 +149,16 @@ pub struct MixpanelGlobalProps {
     pub is_logged_in: bool,
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
+}
+
+#[derive(Clone, Serialize)]
+pub struct MixpanelNudgeNsfwPopupProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub page_name: String,
 }
 
 /// Global properties for Mixpanel events
@@ -606,6 +572,8 @@ pub struct MixpanelNsfwToggleProps {
     pub publisher_user_id: String,
     pub video_id: String,
     pub is_nsfw: bool,
+    pub page_name: String,
+    pub cta_type: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -900,12 +868,8 @@ pub struct MixpanelThirdPartyWalletTransferredProps {
 
 pub struct MixPanelEvent;
 impl MixPanelEvent {
-    /// Call once you know the logged-in user's ID
-    pub fn identify_user(user_id: &str) {
-        let _ = identify(user_id);
-    }
     pub fn track_home_page_viewed(p: MixpanelBottomBarPageViewedProps) {
-        track_event("home_page_viewed", p);
+        send_event_to_server("home_page_viewed", p);
     }
     pub fn track_wallet_page_viewed(p: MixpanelBottomBarPageViewedProps) {
         send_event_to_server("wallet_page_viewed", p);
@@ -1057,7 +1021,7 @@ impl MixPanelEvent {
                 //         });
                 //     }
                 // }
-                track_event("page_viewed", props);
+                send_event_to_server("page_viewed", props);
             },
             10.0,
         );
@@ -1085,31 +1049,35 @@ impl MixPanelEvent {
     }
 
     pub fn track_signup_success(p: MixpanelSignupSuccessProps) {
-        track_event("signup_success", p);
+        send_event_to_server("signup_success", p);
     }
 
     pub fn track_login_success(p: MixpanelLoginSuccessProps) {
-        track_event("login_success", p);
+        send_event_to_server("login_success", p);
     }
 
     pub fn track_sats_to_btc_conversion_failed(p: MixpanelSatsToBtcConvertedProps) {
-        track_event("sats_to_btc_converted", p);
+        send_event_to_server("sats_to_btc_converted", p);
     }
 
     pub fn track_sats_to_btc_converted(p: MixpanelSatsToBtcConvertedProps) {
-        track_event("sats_to_btc_converted", p);
+        send_event_to_server("sats_to_btc_converted", p);
+    }
+
+    pub fn track_enable_nsfw_popup_shown(p: MixpanelNudgeNsfwPopupProps) {
+        send_event_to_server("enable_nsfw_popup_shown", p);
     }
 
     pub fn track_nsfw_true(p: MixpanelNsfwToggleProps) {
-        track_event("nsfw_enabled", p);
+        send_event_to_server("nsfw_enabled", p);
     }
 
     pub fn track_nsfw_false(p: MixpanelNsfwToggleProps) {
-        track_event("NSFW_False", p);
+        send_event_to_server("NSFW_False", p);
     }
 
     pub fn track_video_clicked(p: MixpanelVideoClickedProps) {
-        track_event("video_clicked", p);
+        send_event_to_server("video_clicked", p);
     }
 
     pub fn track_video_reported(p: MixpanelVideoReportedProps) {
@@ -1117,15 +1085,15 @@ impl MixPanelEvent {
     }
 
     pub fn track_video_clicked_profile(p: MixpanelVideoClickedProfileProps) {
-        track_event("video_clicked", p);
+        send_event_to_server("video_clicked", p);
     }
 
     pub fn track_refer_and_earn(p: MixpanelReferAndEarnProps) {
-        track_event("refer_and_earn", p);
+        send_event_to_server("refer_and_earn", p);
     }
 
     pub fn track_video_viewed(p: MixpanelVideoViewedProps) {
-        track_event("video_viewed", p);
+        send_event_to_server("video_viewed", p);
     }
 
     pub fn track_video_impression(p: MixpanelVideoViewedProps) {
@@ -1133,29 +1101,29 @@ impl MixPanelEvent {
     }
 
     pub fn track_video_started(p: MixpanelVideoStartedProps) {
-        track_event("video_started", p);
+        send_event_to_server("video_started", p);
     }
 
     pub fn track_game_played(p: MixpanelGamePlayedProps) {
-        track_event("game_played", p);
+        send_event_to_server("game_played", p);
     }
     pub fn track_game_clicked(p: MixpanelGameClickedProps) {
-        track_event("game_voted", p);
+        send_event_to_server("game_voted", p);
     }
 
     pub fn track_video_upload_success(p: MixpanelVideoUploadSuccessProps) {
-        track_event("video_upload_success", p);
+        send_event_to_server("video_upload_success", p);
     }
 
     pub fn track_cents_to_dolr(p: MixpanelCentsToDolrProps) {
-        track_event("cents_to_DOLR", p);
+        send_event_to_server("cents_to_DOLR", p);
     }
 
     pub fn track_third_party_wallet_transferred(p: MixpanelThirdPartyWalletTransferredProps) {
-        track_event("third_party_wallet_transferred", p);
+        send_event_to_server("third_party_wallet_transferred", p);
     }
 
     pub fn track_how_to_play_clicked(p: MixpanelHowToPlayGameClickedProps) {
-        track_event("how_to_play_clicked", p);
+        send_event_to_server("how_to_play_clicked", p);
     }
 }

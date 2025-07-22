@@ -72,7 +72,6 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <meta name="facebook-domain-verification" content="sqtv2sr90ar0ck7t7zcklos44fw8t3" />
                 <script fetchpriority="low" type="module" src="/js/sentry-init.js" async></script>
-                <script fetchpriority="low" type="module" src="/js/mixpanel-init.js" async></script>
                 <script
                     fetchpriority="low"
                     type="module"

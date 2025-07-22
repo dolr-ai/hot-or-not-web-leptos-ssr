@@ -1307,6 +1307,7 @@ dependencies = [
  "dotenv",
  "enum_dispatch",
  "futures",
+ "global-constants",
  "gloo",
  "gloo-utils",
  "gob-cloudflare",
@@ -1329,7 +1330,6 @@ dependencies = [
  "leptos_icons",
  "leptos_meta",
  "leptos_router",
- "limits",
  "log",
  "once_cell",
  "openidconnect",
@@ -1343,7 +1343,6 @@ dependencies = [
  "rust_decimal",
  "send_wrapper",
  "serde",
- "serde-wasm-bindgen",
  "serde_bytes",
  "serde_json",
  "simple_logger",
@@ -1507,7 +1506,6 @@ dependencies = [
  "rust_decimal",
  "send_wrapper",
  "serde",
- "serde-wasm-bindgen",
  "serde_bytes",
  "serde_json",
  "simple_logger",
@@ -3039,6 +3037,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8d1add55171497b4705a648c6b583acafb01d58050a51727785f0b2c8e0a2b2"
 
 [[package]]
+name = "global-constants"
+version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#4fc5b59e0074715db25bcbc7927e6ec51885f280"
+dependencies = [
+ "candid",
+ "num-bigint",
+ "serde",
+ "serde_with",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "gloo"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3673,8 +3683,8 @@ version = "0.1.0"
 source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#c21b591e0950be0ecb7df8c2988f21193d2f177d"
 dependencies = [
  "candid",
+ "global-constants",
  "ic-agent",
- "limits",
  "num-bigint",
  "serde",
  "serde_with",
@@ -3762,7 +3772,6 @@ dependencies = [
  "sentry-tower",
  "sentry-tracing",
  "serde",
- "serde-wasm-bindgen",
  "serde_bytes",
  "serde_json",
  "simple_logger",
@@ -5997,6 +6006,7 @@ dependencies = [
  "dotenv",
  "futures",
  "getrandom 0.3.3",
+ "global-constants",
  "gloo",
  "gloo-utils",
  "gob-cloudflare",
@@ -6019,7 +6029,6 @@ dependencies = [
  "leptos_icons",
  "leptos_meta",
  "leptos_router",
- "limits",
  "log",
  "num-bigint",
  "num-traits",
@@ -6038,7 +6047,6 @@ dependencies = [
  "sea-orm",
  "send_wrapper",
  "serde",
- "serde-wasm-bindgen",
  "serde_bytes",
  "serde_json",
  "simple_logger",
@@ -6533,7 +6541,7 @@ version = "0.13.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
- "heck 0.5.0",
+ "heck 0.4.1",
  "itertools 0.14.0",
  "log",
  "multimap",
@@ -8564,7 +8572,6 @@ dependencies = [
  "sea-orm",
  "send_wrapper",
  "serde",
- "serde-wasm-bindgen",
  "serde_bytes",
  "serde_json",
  "simple_logger",
@@ -9659,6 +9666,7 @@ dependencies = [
  "dotenv",
  "enum_dispatch",
  "futures",
+ "global-constants",
  "gloo",
  "gloo-utils",
  "gob-cloudflare",
@@ -9680,7 +9688,6 @@ dependencies = [
  "leptos_icons",
  "leptos_meta",
  "leptos_router",
- "limits",
  "log",
  "once_cell",
  "openidconnect",
@@ -9695,7 +9702,6 @@ dependencies = [
  "rust_decimal",
  "send_wrapper",
  "serde",
- "serde-wasm-bindgen",
  "serde_bytes",
  "serde_json",
  "simple_logger",
