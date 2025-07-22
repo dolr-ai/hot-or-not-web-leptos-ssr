@@ -15,7 +15,6 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
-use leptos_use::use_cookie;
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -215,21 +214,23 @@ fn HNButtonOverlay(
                             } => TokenBalance::new((lose_amt + 0u64).into(), 0).humanize(),
                         };
 
-                        let (_, set_wallet_balalnce_store) =
-                            use_cookie::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+                        let (_, set_wallet_balalnce_store, _) =
+                            use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
                         HnBetState::set(post_mix.uid.clone(), res.video_comparison_result);
 
-                        set_wallet_balalnce_store.set(match res.game_result.game_result.clone() {
+                        let balance = match res.game_result.game_result.clone() {
                             GameResultV2::Win {
                                 win_amt: _,
                                 updated_balance,
-                            } => updated_balance.to_u64(),
+                            } => updated_balance.to_u64().unwrap_or(0),
                             GameResultV2::Loss {
                                 lose_amt: _,
                                 updated_balance,
-                            } => updated_balance.to_u64(),
-                        });
+                            } => updated_balance.to_u64().unwrap_or(0),
+                        };
+                        HnBetState::set_balance(balance);
+                        set_wallet_balalnce_store.set(balance);
 
                         MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
                             is_nsfw: post_mix.is_nsfw,
@@ -495,17 +496,25 @@ fn HNWonLost(
 
 #[component]
 fn TotalBalance(won: bool) -> impl IntoView {
-    let (wallet_balance_store, _) = use_cookie::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+    let (wallet_balance_store, _, _) =
+        use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+
     let total_balance_text = move || {
-        wallet_balance_store
-            .get()
-            .map(|f| format!("Total balance: {f} SATS"))
+        let balance = HnBetState::get_balance().unwrap_or(0);
+        format!("Total balance: {balance} SATS")
     };
 
+    Effect::new(move |_| {
+        if HnBetState::get_balance().is_none() {
+            let balance = wallet_balance_store.get();
+            HnBetState::set_balance(balance);
+        }
+    });
+
     view! {
-        <Show when=move || total_balance_text().is_some()>
+        <Show when=move|| HnBetState::get_balance().is_some()>
             <div class=format!("flex items-center text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-[#158F5C]" } else { "bg-[#F14331]" })>
-                {total_balance_text}
+                {move || total_balance_text()}
             </div>
         </Show>
     }
@@ -636,8 +645,8 @@ pub fn HNGameOverlay(
     );
 
     view! {
+        <TotalBalance won=true />
         <Suspense fallback=LoaderWithShadowBg>
-
             {move || {
                 create_game_info
                     .get()
