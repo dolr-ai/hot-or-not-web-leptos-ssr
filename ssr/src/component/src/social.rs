@@ -10,14 +10,7 @@ fn FollowItem(#[prop(into)] href: String, #[prop(into)] icon: icondata::Icon) ->
     let ev_ctx = auth.event_ctx();
     let follow_on_clicked = move || {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_menu_clicked(MixpanelMenuClickedProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                cta_type: MixpanelMenuClickedCTAType::FollowOn,
-            });
+            MixPanelEvent::track_menu_clicked(global, MixpanelMenuClickedCTAType::FollowOn);
         }
     };
 

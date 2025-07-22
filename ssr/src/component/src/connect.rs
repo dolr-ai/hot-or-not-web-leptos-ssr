@@ -22,7 +22,8 @@ pub fn ConnectLogin(
     let login_click_action = Action::new(move |()| async move {
         LoginCta.send_event(cta_location.to_string());
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
-            MixPanelEvent::track_auth_clicked(global.into_auth_clicked());
+            let page_name = global.page_name();
+            MixPanelEvent::track_signup_clicked(global, page_name);
         }
     });
 

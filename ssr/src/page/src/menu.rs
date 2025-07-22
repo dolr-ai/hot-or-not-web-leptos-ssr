@@ -35,14 +35,7 @@ fn MenuItem(
     let ev_ctx = auth.event_ctx();
     let track_menu_clicked = move || {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_menu_clicked(MixpanelMenuClickedProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                cta_type: click_cta_type,
-            });
+            MixPanelEvent::track_menu_clicked(global, click_cta_type);
         }
     };
     view! {
@@ -198,14 +191,7 @@ pub fn Menu() -> impl IntoView {
 
     let view_profile_clicked = move || {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
-            MixPanelEvent::track_menu_clicked(MixpanelMenuClickedProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                cta_type: MixpanelMenuClickedCTAType::ViewProfile,
-            });
+            MixPanelEvent::track_menu_clicked(global, MixpanelMenuClickedCTAType::ViewProfile);
         }
     };
 

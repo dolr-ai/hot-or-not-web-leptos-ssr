@@ -74,14 +74,7 @@ pub fn YralAuthProvider() -> impl IntoView {
         let origin = window.origin();
 
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
-            MixPanelEvent::track_auth_initiated(MixpanelLoginSuccessProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                auth_journey: auth_journey.to_string(),
-            });
+            MixPanelEvent::track_auth_initiated(global, auth_journey.to_string());
         }
         // open a target window
         let target = window.open().transpose().and_then(|w| w.ok()).unwrap();

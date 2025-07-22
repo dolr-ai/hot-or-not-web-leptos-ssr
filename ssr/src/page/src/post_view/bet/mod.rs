@@ -172,23 +172,19 @@ fn HNButtonOverlay(
                 let cans = auth.auth_cans(expect_context()).await.ok()?;
                 let is_logged_in = is_connected.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-                MixPanelEvent::track_game_clicked(MixpanelGameClickedProps {
-                    is_nsfw: post_mix.is_nsfw,
-                    user_id: global.user_id,
-                    visitor_id: global.visitor_id,
-                    is_logged_in: global.is_logged_in,
-                    canister_id: global.canister_id,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                    game_type: MixpanelPostGameType::HotOrNot,
-                    option_chosen: bet_direction.into(),
-                    publisher_user_id: post_mix.poster_principal.to_text(),
-                    video_id: post_mix.uid.clone(),
-                    view_count: post_mix.views,
-                    like_count: post_mix.likes,
-                    stake_amount: bet_amount,
-                    is_game_enabled: true,
-                    stake_type: StakeType::Sats,
-                });
+                MixPanelEvent::track_game_clicked(
+                    global,
+                    post_mix.poster_principal.to_text(),
+                    post_mix.likes,
+                    post_mix.views,
+                    true,
+                    post_mix.uid.clone(),
+                    MixpanelPostGameType::HotOrNot,
+                    bet_direction.into(),
+                    bet_amount,
+                    StakeType::Sats,
+                    post.is_nsfw,
+                );
                 let identity = cans.identity();
                 let sender = identity.sender().unwrap();
                 let sig = sign_vote_request_v3(identity, req_v3).ok()?;
@@ -230,26 +226,22 @@ fn HNButtonOverlay(
                             } => updated_balance.to_u64().unwrap_or(0),
                         });
 
-                        MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
-                            is_nsfw: post_mix.is_nsfw,
-                            user_id: global.user_id,
-                            visitor_id: global.visitor_id,
-                            is_logged_in: global.is_logged_in,
-                            canister_id: global.canister_id,
-                            is_nsfw_enabled: global.is_nsfw_enabled,
-                            game_type: MixpanelPostGameType::HotOrNot,
-                            option_chosen: bet_direction.into(),
-                            publisher_user_id: post_mix.poster_principal.to_text(),
-                            video_id: post_mix.uid.clone(),
-                            view_count: post_mix.views,
-                            like_count: post_mix.likes,
-                            stake_amount: bet_amount,
-                            is_game_enabled: true,
-                            stake_type: StakeType::Sats,
-                            conclusion: game_conclusion,
-                            won_loss_amount: win_loss_amount,
-                            creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
-                        });
+                        MixPanelEvent::track_game_played(
+                            global,
+                            post_mix.uid.clone(),
+                            post_mix.poster_principal.to_text(),
+                            MixpanelPostGameType::HotOrNot,
+                            bet_amount,
+                            StakeType::Sats,
+                            bet_direction.into(),
+                            post_mix.likes,
+                            post_mix.views,
+                            true,
+                            game_conclusion,
+                            win_loss_amount,
+                            crate::consts::CREATOR_COMMISION_PERCENT,
+                            post.is_nsfw,
+                        );
                         play_win_sound_and_vibrate(
                             audio_ref,
                             matches!(res.game_result.game_result, GameResultV2::Win { .. }),
@@ -445,19 +437,18 @@ fn HNWonLost(
         let vote_amount = vote_amount_cloned;
         async move {
             if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
-                MixPanelEvent::track_how_to_play_clicked(MixpanelHowToPlayGameClickedProps {
-                    user_id: global.user_id,
-                    game_type: MixpanelPostGameType::HotOrNot,
+                MixPanelEvent::track_how_to_play_clicked(
+                    global,
                     video_id,
-                    visitor_id: global.visitor_id,
-                    is_logged_in: global.is_logged_in,
-                    canister_id: global.canister_id,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                    stake_amount: vote_amount,
-                    stake_type: StakeType::Sats,
-                    option_chosen: bet_direction.get().unwrap_or(VoteKind::Hot).into(),
+                    MixpanelPostGameType::HotOrNot,
+                    vote_amount,
+                    StakeType::Sats,
+                    bet_direction
+                        .get_untracked()
+                        .unwrap_or(VoteKind::Hot)
+                        .into(),
                     conclusion,
-                });
+                );
             }
         }
     });

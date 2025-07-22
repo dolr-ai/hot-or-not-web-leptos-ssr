@@ -57,31 +57,14 @@ pub fn PreVideoUpload(
     let ev_ctx = auth.event_ctx();
     let file_upload_clicked = Action::new(move |_: &()| {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_video_upload_select_file_clicked(
-                MixpanelVideoUploadFileSelectionInitProps {
-                    user_id: global.user_id,
-                    visitor_id: global.visitor_id,
-                    is_logged_in: global.is_logged_in,
-                    canister_id: global.canister_id,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                },
-            );
+            MixPanelEvent::track_select_file_clicked(global);
         }
         async {}
     });
 
     let file_selection_success = Action::new(move |_: &()| {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_video_upload_file_selection_success(
-                MixpanelVideoFileSelectionSuccessProps {
-                    user_id: global.user_id,
-                    visitor_id: global.visitor_id,
-                    is_logged_in: global.is_logged_in,
-                    canister_id: global.canister_id,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                    file_type: "video".into(),
-                },
-            );
+            MixPanelEvent::track_file_selection_success(global, "video".into());
         }
         async {}
     });
@@ -119,16 +102,7 @@ pub fn PreVideoUpload(
                 .inspect_err(|e| {
                     VideoUploadUnsuccessful.send_event(ev_ctx, e.to_string(), 0, false, true);
                     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                        MixPanelEvent::track_video_upload_error_shown(
-                            MixpanelVideoUploadFailureProps {
-                                user_id: global.user_id,
-                                visitor_id: global.visitor_id,
-                                is_logged_in: global.is_logged_in,
-                                canister_id: global.canister_id,
-                                is_nsfw_enabled: global.is_nsfw_enabled,
-                                error: e.to_string(),
-                            },
-                        );
+                        MixPanelEvent::track_video_upload_error_shown(global, e.to_string());
                     }
                 }));
 
@@ -444,17 +418,13 @@ pub fn VideoUploader(
                 Ok(_) => {
                     let is_logged_in = is_connected.get_untracked();
                     let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
-                    MixPanelEvent::track_video_upload_success(MixpanelVideoUploadSuccessProps {
-                        user_id: global.user_id,
-                        visitor_id: global.visitor_id,
-                        is_logged_in: global.is_logged_in,
-                        canister_id: global.canister_id,
-                        is_nsfw_enabled: global.is_nsfw_enabled,
-                        video_id: uid_value.clone(),
-                        is_game_enabled: true,
-                        creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
-                        game_type: MixpanelPostGameType::HotOrNot,
-                    });
+                    MixPanelEvent::track_video_upload_success(
+                        global,
+                        uid_value.clone(),
+                        crate::consts::CREATOR_COMMISION_PERCENT,
+                        true,
+                        MixpanelPostGameType::HotOrNot,
+                    );
                     published.set(true)
                 }
                 Err(_) => {
