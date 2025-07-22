@@ -424,10 +424,10 @@ fn HNWonLost(
     let (wallet_balance_store, _, _) =
         use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
-    let total_balance_text = move || {
+    let total_balance_text = Signal::derive(move || {
         let balance = wallet_balance_store.get();
         format!("Total balance: {balance} SATS")
-    };
+    });
 
     let show_ping = move || show_help_ping.get() && !won;
 
@@ -496,7 +496,7 @@ fn HNWonLost(
                     }})
             }
             <div class=format!("flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-[#158F5C]" } else { "bg-[#F14331]" })>
-                {move || total_balance_text()}
+                {move || total_balance_text.get()}
             </div>
         </div>
     }
