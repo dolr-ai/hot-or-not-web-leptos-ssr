@@ -18,7 +18,7 @@ jobs:
       - name: Rust Setup
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "nightly-2025-01-09"
+          toolchain: "nightly-2025-06-14"
           targets: "wasm32-unknown-unknown"
           components: "clippy,rustfmt"
 
