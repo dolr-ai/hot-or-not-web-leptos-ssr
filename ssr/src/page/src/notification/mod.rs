@@ -1,6 +1,5 @@
 use crate::notification::provider::{NotificationError, NotificationProvider};
 use component::{back_btn::BackButton, infinite_scroller::InfiniteScroller, title::TitleText};
-use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::components::Redirect;
@@ -46,34 +45,42 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
     let notif_clone = notif.clone();
     let auth = auth_state();
     let href_icon = auth.derive_resource(
-        move || (),
-        move |cans, _| {
-            let notif = notif.clone();
-            async move {
-                let path = match notif.payload {
-                    NotificationType::VideoUpload(v) => {
-                        let icon = cans.profile_details().profile_pic_or_random();
-    
-                        (
-                            format!("/hot-or-not/{}/{}", cans.user_canister(), v.video_uid),
-                            icon,
-                        )
-                    }
-                    NotificationType::Liked(v) => {
-                        let user_details =
-                            send_wrap(cans.get_profile_details(v.by_user_principal.to_string()))
-                                .await?
-                                .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
-    
-                        (
-                            format!("/hot-or-not/{}/{}", cans.user_canister(), v.post_id),
-                            user_details.profile_pic_or_random(),
-                        )
-                    }
-                };
-                Ok(path)
-            }
-        }
+        move || notif.clone(),
+        move |cans, notif| async move {
+            let path = match notif.payload.clone() {
+                NotificationType::VideoUpload(v) => {
+                    let icon = cans.profile_details().profile_pic_or_random();
+
+                    (
+                        format!("/hot-or-not/{}/{}", cans.user_canister(), v.video_uid),
+                        icon,
+                    )
+                }
+                NotificationType::Liked(v) => {
+                    let user_details =
+                        match send_wrap(cans.get_profile_details(v.by_user_principal.to_string()))
+                            .await
+                        {
+                            Ok(Some(details)) => details,
+                            Ok(None) => {
+                                return Err(ServerFnError::new("No profile details found"));
+                            }
+                            Err(e) => {
+                                return Err(ServerFnError::new(format!(
+                                    "Failed to get profile details: {}",
+                                    e
+                                )));
+                            }
+                        };
+
+                    (
+                        format!("/hot-or-not/{}/{}", cans.user_canister(), v.post_id),
+                        user_details.profile_pic_or_random(),
+                    )
+                }
+            };
+            Ok(path)
+        },
     );
 
     let set_read = Action::new(move |()| async move {
@@ -92,45 +99,54 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
     view! {
         <Suspense fallback=NotificationLoadingItem>
             {move || {
-                let Some(Ok((href_value, icon))) = href_icon.get() else {
-                    log::info!("{:?}", href_icon.get());
-                    return Either::Left(view! { <Redirect path="/wallet" /> });
-                };
+                match href_icon.get() {
+                    Some(Ok((href_value, icon))) => {
+                        let href_value_clone = href_value.clone();
+                        let nav = use_navigate();
 
-                let href_value_clone = href_value.clone();
-                let nav = use_navigate();
-
-                Either::Right(view! {
-                    <div class="bg-black w-full p-4 border-b border-neutral-900">
-                        <div class="flex items-center gap-3">
-                            <div class="size-11 rounded-full bg-neutral-800 relative">
-                                <img src={icon.clone()} class="size-11 rounded-full object-cover" />
-                                <div class="size-2 rounded-full bg-pink-700 absolute -left-4 top-5"></div>
+                        view! {
+                            <div class="bg-black w-full p-4 border-b border-neutral-900">
+                                <div class="flex items-center gap-3">
+                                    <div class="size-11 rounded-full bg-neutral-800 relative">
+                                        <img src={icon.clone()} class="size-11 rounded-full object-cover" />
+                                        <div class="size-2 rounded-full bg-pink-700 absolute -left-4 top-5"></div>
+                                    </div>
+                                    <div class="flex flex-col gap-1">
+                                        <div class="text-neutral-50 font-semibold">
+                                            {title.clone()}
+                                        </div>
+                                        <div class="text-neutral-500 font-semibold line-clamp-2">
+                                            {description.clone()}
+                                        </div>
+                                        <div class="flex items-center gap-2 pt-1">
+                                            <NotificationActionButton on_click=move || {
+                                                set_read.dispatch(());
+                                                nav(&href_value_clone, NavigateOptions::default());
+                                            }>View</NotificationActionButton>
+                                            // <NotificationActionButton on_click=move || {}>Accept</NotificationActionButton>
+                                            // <NotificationActionButton on_click=move || {} secondary=true>Reject</NotificationActionButton>
+                                        </div>
+                                        // <div class="flex items-center gap-4 flex-wrap pt-1">
+                                        //     <NotificationItemStatus status="accepted".to_string() />
+                                        //     <NotificationItemStatus status="pending".to_string() />
+                                        //     <NotificationItemStatus status="rejected".to_string() />
+                                        // </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="flex flex-col gap-1">
-                                <div class="text-neutral-50 font-semibold">
-                                    {title.clone()}
-                                </div>
-                                <div class="text-neutral-500 font-semibold line-clamp-2">
-                                    {description.clone()}
-                                </div>
-                                <div class="flex items-center gap-2 pt-1">
-                                    <NotificationActionButton on_click=move || {
-                                        set_read.dispatch(());
-                                        nav(&href_value_clone, NavigateOptions::default());
-                                    }>View</NotificationActionButton>
-                                    // <NotificationActionButton on_click=move || {}>Accept</NotificationActionButton>
-                                    // <NotificationActionButton on_click=move || {} secondary=true>Reject</NotificationActionButton>
-                                </div>
-                                // <div class="flex items-center gap-4 flex-wrap pt-1">
-                                //     <NotificationItemStatus status="accepted".to_string() />
-                                //     <NotificationItemStatus status="pending".to_string() />
-                                //     <NotificationItemStatus status="rejected".to_string() />
-                                // </div>
-                            </div>
-                        </div>
-                    </div>
-                })
+                        }.into_any()
+                    }
+                    Some(Err(_)) => {
+                        view! {
+                            <Redirect path="/wallet" />
+                        }.into_any()
+                    }
+                    None => {
+                        view! {
+                            <NotificationLoadingItem />
+                        }.into_any()
+                    }
+                }
             }}
         </Suspense>
     }
