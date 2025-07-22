@@ -86,8 +86,8 @@ jobs:
 
       - name: Install clippy
         run: |
-          rustup component add clippy
-          rustup component add rustfmt
+          rustup component add --toolchain nightly-2025-01-09 clippy
+          rustup component add --toolchain nightly-2025-01-09 rustfmt
 
       - name: lint check
         run: |
