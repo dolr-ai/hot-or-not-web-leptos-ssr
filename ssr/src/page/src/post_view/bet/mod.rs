@@ -496,7 +496,7 @@ fn HNWonLost(
                     }})
             }
             <div class=format!("flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-[#158F5C]" } else { "bg-[#F14331]" })>
-                {total_balance_text}
+                {move || total_balance_text()}
             </div>
         </div>
     }
