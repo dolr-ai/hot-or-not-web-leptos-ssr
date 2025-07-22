@@ -1,3 +1,4 @@
+use crate::notification::provider::{NotificationError, NotificationProvider};
 use component::{back_btn::BackButton, infinite_scroller::InfiniteScroller, title::TitleText};
 use leptos::either::Either;
 use leptos::prelude::*;
@@ -11,9 +12,6 @@ use utils::send_wrap;
 use yral_canisters_client::ic::NOTIFICATION_STORE_ID;
 use yral_canisters_client::notification_store::NotificationStore;
 use yral_canisters_client::notification_store::{NotificationData, NotificationType};
-use yral_canisters_common::utils::profile::ProfileDetails;
-
-use crate::notification::provider::{NotificationError, NotificationProvider};
 
 pub mod provider;
 
