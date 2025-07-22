@@ -104,6 +104,7 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
         <Suspense fallback=NotificationLoadingItem>
             {move || {
                 let Some(Ok((href_value, icon))) = href_icon.get() else {
+                    log::info!("{:?}", href_icon.get());
                     return Either::Left(view! { <Redirect path="/wallet" /> });
                 };
 
