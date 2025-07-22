@@ -60,26 +60,14 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
                     )
                 }
                 NotificationType::Liked(v) => {
-                    let cans_id =
-                        send_wrap(cans.get_individual_canister_v2(v.by_user_principal.to_text()))
-                            .await?
-                            .ok_or(ServerFnError::new("Failed to get individual canister"))?;
-
-                    let icon = ProfileDetails::from_canister(
-                        cans_id,
-                        None,
-                        send_wrap(
-                            cans.individual_user(cans_id)
-                                .await
-                                .get_profile_details_v_2(),
-                        )
-                        .await?,
-                    )
-                    .profile_pic_or_random();
+                    let user_details = cans
+                        .get_profile_details(v.by_user_principal.to_string())
+                        .await?
+                        .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
 
                     (
                         format!("/hot-or-not/{}/{}", cans.user_canister(), v.post_id),
-                        icon,
+                        user_details.profile_pic_or_random(),
                     )
                 }
             };
