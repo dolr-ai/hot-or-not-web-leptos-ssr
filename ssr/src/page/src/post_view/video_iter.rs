@@ -210,7 +210,23 @@ impl<
         allow_nsfw: bool,
         video_queue: Vec<PostDetails>,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
-        self.fetch_post_uids_ml_feed_chunked(chunks, allow_nsfw, video_queue.clone())
-            .await
+        if video_queue.len() < 10 {
+            self.cursor.set_limit(30);
+            self.fetch_post_uids_mlfeed_cache_chunked(chunks, allow_nsfw, video_queue)
+                .await
+        } else {
+            let res = self
+                .fetch_post_uids_ml_feed_chunked(chunks, allow_nsfw, video_queue.clone())
+                .await;
+
+            match res {
+                Ok(res) => Ok(res),
+                Err(_) => {
+                    self.cursor.set_limit(50);
+                    self.fetch_post_uids_mlfeed_cache_chunked(chunks, allow_nsfw, video_queue)
+                        .await
+                }
+            }
+        }
     }
 }

@@ -1,9 +1,7 @@
 use candid::Principal;
-use consts::ML_FEED_URL;
 use serde::Deserialize;
 use serde::Serialize;
 use yral_canisters_common::utils::posts::PostDetails;
-use yral_types::post::FeedRequestV2;
 use yral_types::post::FeedResponseV2;
 use yral_types::post::PostItemV2;
 
@@ -65,23 +63,27 @@ pub async fn get_ml_feed_coldstart_clean(
     filter_results: Vec<PostDetails>,
 ) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let ml_feed_url = ML_FEED_URL.join("api/v3/feed/coldstart/clean").unwrap();
-
-    let req = FeedRequestV2 {
-        user_id,
-        filter_results: post_details_to_post_item(filter_results),
+    let recommendation_request = RecommendationRequest {
+        user_id: user_id.to_string(),
+        exclude_items: post_details_to_video_ids(filter_results),
+        nsfw_label: false,
         num_results,
     };
 
-    let response = client.post(ml_feed_url).json(&req).send().await?;
+    let cache_url = format!("{RECOMMENDATION_SERVICE_URL}/cache");
+    let response = client
+        .post(&cache_url)
+        .json(&recommendation_request)
+        .send()
+        .await?;
     if !response.status().is_success() {
         return Err(anyhow::anyhow!(format!(
             "Error fetching ML feed: {:?}",
             response.text().await?
         )));
     }
-    let response = response.json::<FeedResponseV2>().await?;
-
+    let response = response.json::<RecommendationResponse>().await?;
+    let response: FeedResponseV2 = response.into();
     Ok(response.posts)
 }
 
@@ -91,23 +93,27 @@ pub async fn get_ml_feed_coldstart_nsfw(
     filter_results: Vec<PostDetails>,
 ) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let ml_feed_url = ML_FEED_URL.join("api/v3/feed/coldstart/nsfw").unwrap();
-
-    let req = FeedRequestV2 {
-        user_id,
-        filter_results: post_details_to_post_item(filter_results),
+    let recommendation_request = RecommendationRequest {
+        user_id: user_id.to_string(),
+        exclude_items: post_details_to_video_ids(filter_results),
+        nsfw_label: true,
         num_results,
     };
 
-    let response = client.post(ml_feed_url).json(&req).send().await?;
+    let cache_url = format!("{RECOMMENDATION_SERVICE_URL}/cache");
+    let response = client
+        .post(&cache_url)
+        .json(&recommendation_request)
+        .send()
+        .await?;
     if !response.status().is_success() {
         return Err(anyhow::anyhow!(format!(
             "Error fetching ML feed: {:?}",
             response.text().await?
         )));
     }
-    let response = response.json::<FeedResponseV2>().await?;
-
+    let response = response.json::<RecommendationResponse>().await?;
+    let response: FeedResponseV2 = response.into();
     Ok(response.posts)
 }
 
