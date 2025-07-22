@@ -645,7 +645,6 @@ pub fn HNGameOverlay(
     );
 
     view! {
-        <TotalBalance won=true />
         <Suspense fallback=LoaderWithShadowBg>
             {move || {
                 create_game_info
