@@ -46,31 +46,34 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
     let notif_clone = notif.clone();
     let auth = auth_state();
     let href_icon = auth.derive_resource(
-        move || notif.clone(),
-        move |cans, notif| async move {
-            let path = match notif.payload {
-                NotificationType::VideoUpload(v) => {
-                    let icon = cans.profile_details().profile_pic_or_random();
-
-                    (
-                        format!("/hot-or-not/{}/{}", cans.user_canister(), v.video_uid),
-                        icon,
-                    )
-                }
-                NotificationType::Liked(v) => {
-                    let user_details =
-                        send_wrap(cans.get_profile_details(v.by_user_principal.to_string()))
-                            .await?
-                            .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
-
-                    (
-                        format!("/hot-or-not/{}/{}", cans.user_canister(), v.post_id),
-                        user_details.profile_pic_or_random(),
-                    )
-                }
-            };
-            Ok(path)
-        },
+        move || (),
+        move |cans, _| {
+            let notif = notif.clone();
+            async move {
+                let path = match notif.payload {
+                    NotificationType::VideoUpload(v) => {
+                        let icon = cans.profile_details().profile_pic_or_random();
+    
+                        (
+                            format!("/hot-or-not/{}/{}", cans.user_canister(), v.video_uid),
+                            icon,
+                        )
+                    }
+                    NotificationType::Liked(v) => {
+                        let user_details =
+                            send_wrap(cans.get_profile_details(v.by_user_principal.to_string()))
+                                .await?
+                                .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
+    
+                        (
+                            format!("/hot-or-not/{}/{}", cans.user_canister(), v.post_id),
+                            user_details.profile_pic_or_random(),
+                        )
+                    }
+                };
+                Ok(path)
+            }
+        }
     );
 
     let set_read = Action::new(move |()| async move {
