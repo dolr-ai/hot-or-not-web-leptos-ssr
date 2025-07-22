@@ -15,6 +15,7 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
+use leptos_use::use_cookie;
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -214,8 +215,8 @@ fn HNButtonOverlay(
                             } => TokenBalance::new((lose_amt + 0u64).into(), 0).humanize(),
                         };
 
-                        let (_, set_wallet_balalnce_store, _) =
-                            use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+                        let (_, set_wallet_balalnce_store) =
+                            use_cookie::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
                         HnBetState::set(post_mix.uid.clone(), res.video_comparison_result);
 
@@ -223,11 +224,11 @@ fn HNButtonOverlay(
                             GameResultV2::Win {
                                 win_amt: _,
                                 updated_balance,
-                            } => updated_balance.to_u64().unwrap_or(0),
+                            } => updated_balance.to_u64(),
                             GameResultV2::Loss {
                                 lose_amt: _,
                                 updated_balance,
-                            } => updated_balance.to_u64().unwrap_or(0),
+                            } => updated_balance.to_u64(),
                         });
 
                         MixPanelEvent::track_game_played(MixpanelGamePlayedProps {
@@ -421,9 +422,6 @@ fn HNWonLost(
         }
     });
 
-    let (wallet_balance_store, _, _) =
-        use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
-
     let show_ping = move || show_help_ping.get() && !won;
 
     let conclusion = match game_result {
@@ -490,10 +488,26 @@ fn HNWonLost(
                         />
                     }})
             }
-            <div class=format!("flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-[#158F5C]" } else { "bg-[#F14331]" })>
-                Total Balance: {move || wallet_balance_store.get()} SATS
-            </div>
+            <TotalBalance won />
         </div>
+    }
+}
+
+#[component]
+fn TotalBalance(won: bool) -> impl IntoView {
+    let (wallet_balance_store, _) = use_cookie::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+    let total_balance_text = move || {
+        wallet_balance_store
+            .get()
+            .map(|f| format!("Total balance: {f} SATS"))
+    };
+
+    view! {
+        <Show when=move || total_balance_text().is_some()>
+            <div class=format!("flex items-center text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-[#158F5C]" } else { "bg-[#F14331]" })>
+                {total_balance_text}
+            </div>
+        </Show>
     }
 }
 
