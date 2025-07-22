@@ -69,7 +69,7 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
                         cans_id,
                         None,
                         send_wrap(
-                            cans.individual_user(v.by_user_principal)
+                            cans.individual_user(cans_id)
                                 .await
                                 .get_profile_details_v_2(),
                         )
