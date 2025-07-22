@@ -205,4 +205,3 @@ hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", featur
 ], branch = "master", version = "0.1.0" }
 global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", default-features = false }
-limits = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
