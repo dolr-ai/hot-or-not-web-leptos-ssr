@@ -1,9 +1,7 @@
 use candid::Principal;
 use codee::string::FromToStringCodec;
-use consts::AUTH_JOURNET;
-use consts::DEVICE_ID;
-use consts::NSFW_TOGGLE_STORE;
-use consts::REFERRAL_REWARD;
+use consts::{AUTH_JOURNET, CUSTOM_DEVICE_ID, DEVICE_ID, NSFW_TOGGLE_STORE};
+use global_constants::REFERRAL_REWARD_SATS;
 use leptos::logging;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -12,28 +10,12 @@ use leptos_use::use_timeout_fn;
 use leptos_use::UseTimeoutFnReturn;
 use serde::Serialize;
 use serde_json::Value;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsValue;
 use yral_canisters_common::utils::vote::VoteKind;
 use yral_canisters_common::Canisters;
 
 use crate::event_streaming::events::EventCtx;
 use crate::event_streaming::events::HistoryCtx;
-
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = mixpanel, catch)]
-    fn track(event_name: &str, properties: JsValue) -> Result<(), JsValue>;
-
-    /// mixpanel.identify(user_id)
-    #[wasm_bindgen(js_namespace = mixpanel, catch)]
-    fn identify(user_id: &str) -> Result<(), JsValue>;
-}
-
-/// Call once you know the logged-in user's ID
-pub fn identify_user(user_id: &str) {
-    let _ = identify(user_id);
-}
+use crate::mixpanel::state::MixpanelState;
 
 #[server]
 async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
@@ -107,25 +89,15 @@ pub fn parse_query_params_utm() -> Result<Vec<(String, String)>, String> {
     Ok(Vec::new())
 }
 
-/// Generic helper: serializes `props` and calls Mixpanel.track
-pub fn track_event<T>(event_name: &str, props: T)
-where
-    T: Serialize,
-{
-    let track_props = serde_wasm_bindgen::to_value(&props);
-    if let Ok(track_props) = track_props {
-        let _ = track(event_name, track_props);
-    }
-    send_event_to_server(event_name, props);
-}
-
 fn send_event_to_server<T>(event_name: &str, props: T)
 where
     T: Serialize,
 {
     let mut props = serde_json::to_value(&props).unwrap();
     props["event"] = event_name.into();
+    props["time"] = chrono::Utc::now().timestamp().into();
     props["$device_id"] = MixpanelGlobalProps::get_device_id().into();
+    props["custom_device_id"] = MixpanelGlobalProps::get_custom_device_id().into();
     let user_id = props.get("user_id").and_then(Value::as_str);
     props["principal"] = if user_id.is_some() {
         user_id.into()
@@ -179,6 +151,37 @@ pub struct MixpanelGlobalProps {
     pub is_nsfw_enabled: bool,
 }
 
+#[derive(Clone, Serialize)]
+pub struct MixpanelNudgeNsfwPopupProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub page_name: String,
+}
+
+/// Global properties for Mixpanel events
+#[derive(Serialize)]
+pub struct MixpanelAuthClickedProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub page_name: BottomNavigationCategory,
+}
+
+#[derive(Serialize)]
+pub struct MixpanelNotificationPropsClickedProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub toggle: bool,
+}
+
 impl MixpanelGlobalProps {
     pub fn new(
         user_principal: Principal,
@@ -226,16 +229,25 @@ impl MixpanelGlobalProps {
     }
 
     pub fn get_device_id() -> String {
-        let (device_id, set_device_id, _) =
-            use_local_storage::<String, FromToStringCodec>(DEVICE_ID);
-        // Extracting the device ID value
-        let device_id_value = device_id.get_untracked();
-        if device_id_value.is_empty() {
-            let new_device_id = uuid::Uuid::new_v4().to_string();
-            set_device_id.set(new_device_id.clone());
-            new_device_id
+        let device_id = MixpanelState::get_device_id();
+        if let Some(device_id) = device_id.get_untracked() {
+            device_id
         } else {
-            device_id_value
+            let device_id_val = crate::local_storage::LocalStorage::uuid_get_or_init(DEVICE_ID);
+            device_id.set(Some(device_id_val.clone()));
+            device_id_val
+        }
+    }
+
+    pub fn get_custom_device_id() -> String {
+        let custom_device_id = MixpanelState::get_custom_device_id();
+        if let Some(custom_device_id) = custom_device_id.get_untracked() {
+            custom_device_id
+        } else {
+            let custom_device_id_val =
+                crate::local_storage::LocalStorage::uuid_get_or_init(CUSTOM_DEVICE_ID);
+            custom_device_id.set(Some(custom_device_id_val.clone()));
+            custom_device_id_val
         }
     }
 
@@ -310,6 +322,18 @@ impl MixpanelGlobalProps {
             is_nsfw_enabled,
         }
     }
+
+    pub fn into_auth_clicked(&self) -> MixpanelAuthClickedProps {
+        let path = window().location().pathname().unwrap_or_default();
+        MixpanelAuthClickedProps {
+            user_id: self.user_id.clone(),
+            visitor_id: self.visitor_id.clone(),
+            is_logged_in: self.is_logged_in,
+            canister_id: self.canister_id.clone(),
+            is_nsfw_enabled: self.is_nsfw_enabled,
+            page_name: path.try_into().unwrap_or(BottomNavigationCategory::Profile),
+        }
+    }
 }
 
 #[derive(Serialize)]
@@ -318,7 +342,39 @@ pub struct MixpanelBottomBarPageViewedProps {
     pub visitor_id: Option<String>,
     pub is_logged_in: bool,
     pub canister_id: String,
+
     pub is_nsfw_enabled: bool,
+}
+#[derive(Serialize)]
+pub struct MixpanelProfileClickedProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub is_own_profile: bool,
+    pub publisher_user_id: String,
+    pub cta_type: MixpanelProfileClickedCTAType,
+}
+
+#[derive(Serialize)]
+pub struct MixpanelMenuClickedProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub cta_type: MixpanelMenuClickedCTAType,
+}
+
+#[derive(Serialize, Clone)]
+pub struct MixpanelDeleteAccountClickedProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub page_name: String,
 }
 
 #[derive(Serialize)]
@@ -331,6 +387,22 @@ pub struct MixpanelReferAndEarnPageViewedProps {
     pub referral_bonus: u64,
 }
 #[derive(Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MixpanelOnboardingPopupType {
+    SatsCreditPopup,
+}
+
+#[derive(Serialize)]
+pub struct MixpanelOnboardingPopupViewProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub credited_amount: u64,
+    pub popup_type: MixpanelOnboardingPopupType,
+}
+#[derive(Serialize)]
 pub struct MixpanelVideoUploadFailureProps {
     pub user_id: Option<String>,
     pub visitor_id: Option<String>,
@@ -338,6 +410,36 @@ pub struct MixpanelVideoUploadFailureProps {
     pub canister_id: String,
     pub is_nsfw_enabled: bool,
     pub error: String,
+}
+
+#[derive(Serialize)]
+pub struct MixpanelVideoUploadFileSelectionInitProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+}
+
+#[derive(Serialize)]
+pub struct MixpanelVideoFileSelectionSuccessProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub file_type: String,
+}
+
+#[derive(Serialize)]
+pub struct MixpanelVideoUploadInitProps {
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub caption_added: bool,
+    pub hashtags_added: bool,
 }
 #[derive(Serialize)]
 pub struct MixpanelProfilePageViewedProps {
@@ -426,7 +528,6 @@ impl TryFrom<String> for BottomNavigationCategory {
 
 #[derive(Serialize)]
 pub struct MixpanelSignupSuccessProps {
-    // #[serde(flatten)]
     pub user_id: Option<String>,
     pub visitor_id: Option<String>,
     pub is_logged_in: bool,
@@ -471,6 +572,8 @@ pub struct MixpanelNsfwToggleProps {
     pub publisher_user_id: String,
     pub video_id: String,
     pub is_nsfw: bool,
+    pub page_name: String,
+    pub cta_type: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -488,6 +591,63 @@ pub struct MixpanelVideoClickedProps {
     pub video_id: String,
     pub game_type: MixpanelPostGameType,
     pub cta_type: MixpanelVideoClickedCTAType,
+    pub is_nsfw: bool,
+}
+
+#[derive(Serialize)]
+pub struct MixpanelVideoReportedProps {
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub publisher_user_id: String,
+    pub is_game_enabled: bool,
+    pub video_id: String,
+    pub game_type: MixpanelPostGameType,
+    pub is_nsfw: bool,
+    pub report_reason: String,
+}
+
+#[derive(Serialize)]
+pub struct MixpanelVideoClickedProfileProps {
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub publisher_user_id: String,
+    pub like_count: u64,
+    pub view_count: u64,
+    pub is_game_enabled: bool,
+    pub video_id: String,
+    pub game_type: MixpanelPostGameType,
+    pub cta_type: MixpanelVideoClickedCTAType,
+    pub position: Option<u64>,
+    pub is_own_profile: bool,
+    pub is_nsfw: bool,
+    pub page_name: String,
+}
+
+#[derive(Serialize)]
+pub struct MixpanelGameClickedProps {
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub publisher_user_id: String,
+    pub like_count: u64,
+    pub view_count: u64,
+    pub is_game_enabled: bool,
+    pub video_id: String,
+    pub game_type: MixpanelPostGameType,
+    pub option_chosen: ChosenGameOption,
+    pub stake_amount: u64,
+    pub stake_type: StakeType,
     pub is_nsfw: bool,
 }
 
@@ -535,6 +695,31 @@ pub enum MixpanelVideoClickedCTAType {
     Mute,
     Unmute,
     CreatorProfile,
+    VideoPlay,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum MixpanelMenuClickedCTAType {
+    TalkToTheTeam,
+    TermsOfService,
+    PrivacyPolicy,
+    LogOut,
+    FollowOn,
+    ReferAndEarn,
+    Leaderboard,
+    Settings,
+    AboutUs,
+    ViewProfile,
+    Follow,
+}
+
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "snake_case")]
+pub enum MixpanelProfileClickedCTAType {
+    Videos,
+    GamesPlayed,
+    MemeCoin,
 }
 
 #[derive(Serialize)]
@@ -595,6 +780,22 @@ pub struct MixpanelGamePlayedProps {
 }
 
 #[derive(Serialize)]
+pub struct MixpanelHowToPlayGameClickedProps {
+    // #[serde(flatten)]
+    pub user_id: Option<String>,
+    pub visitor_id: Option<String>,
+    pub is_logged_in: bool,
+    pub canister_id: String,
+    pub is_nsfw_enabled: bool,
+    pub video_id: String,
+    pub game_type: MixpanelPostGameType,
+    pub stake_amount: u64,
+    pub stake_type: StakeType,
+    pub option_chosen: ChosenGameOption,
+    pub conclusion: GameConclusion,
+}
+
+#[derive(Serialize, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum GameConclusion {
     Pending,
@@ -667,12 +868,8 @@ pub struct MixpanelThirdPartyWalletTransferredProps {
 
 pub struct MixPanelEvent;
 impl MixPanelEvent {
-    /// Call once you know the logged-in user's ID
-    pub fn identify_user(user_id: &str) {
-        let _ = identify(user_id);
-    }
     pub fn track_home_page_viewed(p: MixpanelBottomBarPageViewedProps) {
-        track_event("home_page_viewed", p);
+        send_event_to_server("home_page_viewed", p);
     }
     pub fn track_wallet_page_viewed(p: MixpanelBottomBarPageViewedProps) {
         send_event_to_server("wallet_page_viewed", p);
@@ -683,12 +880,27 @@ impl MixPanelEvent {
     pub fn track_menu_page_viewed(p: MixpanelBottomBarPageViewedProps) {
         send_event_to_server("menu_page_viewed", p);
     }
+    pub fn track_menu_clicked(p: MixpanelMenuClickedProps) {
+        send_event_to_server("menu_clicked", p);
+    }
+    pub fn track_profile_clicked(p: MixpanelProfileClickedProps) {
+        send_event_to_server("profile_tab_clicked", p);
+    }
+    pub fn track_delete_account_clicked(p: MixpanelDeleteAccountClickedProps) {
+        send_event_to_server("delete_account_clicked", p);
+    }
+    pub fn track_delete_account_confirmed(p: MixpanelDeleteAccountClickedProps) {
+        send_event_to_server("delete_account_confirmed", p);
+    }
+    pub fn track_account_deleted(p: MixpanelDeleteAccountClickedProps) {
+        send_event_to_server("account_deleted", p);
+    }
     pub fn track_refer_and_earn_page_viewed(p: MixpanelReferAndEarnPageViewedProps) {
         send_event_to_server("refer_and_earn_page_viewed", p);
     }
-    // pub fn track_profile_page_viewed(p: MixpanelProfilePageViewedProps) {
-    //     send_event_to_server("profile_page_viewed", p);
-    // }
+    pub fn track_profile_page_viewed(p: MixpanelProfilePageViewedProps) {
+        send_event_to_server("profile_page_viewed", p);
+    }
     pub fn track_withdraw_tokens_clicked(p: MixpanelWithdrawTokenClickedProps) {
         send_event_to_server("withdraw_tokens_clicked", p);
     }
@@ -706,6 +918,18 @@ impl MixPanelEvent {
     }
     pub fn track_video_upload_error_shown(p: MixpanelVideoUploadFailureProps) {
         send_event_to_server("video_upload_error_shown", p);
+    }
+    pub fn track_onboarding_popup(p: MixpanelOnboardingPopupViewProps) {
+        send_event_to_server("onboarding_popup_shown", p);
+    }
+    pub fn track_video_upload_select_file_clicked(p: MixpanelVideoUploadFileSelectionInitProps) {
+        send_event_to_server("select_file_clicked", p);
+    }
+    pub fn track_video_upload_file_selection_success(p: MixpanelVideoFileSelectionSuccessProps) {
+        send_event_to_server("file_selection_success", p);
+    }
+    pub fn track_video_upload_init(p: MixpanelVideoUploadInitProps) {
+        send_event_to_server("video_upload_initiated", p);
     }
 
     pub fn track_page_viewed(p: MixpanelPageViewedProps) {
@@ -740,7 +964,7 @@ impl MixPanelEvent {
                         is_logged_in: home_props.is_logged_in,
                         canister_id: home_props.canister_id,
                         is_nsfw_enabled: home_props.is_nsfw_enabled,
-                        referral_bonus: REFERRAL_REWARD,
+                        referral_bonus: REFERRAL_REWARD_SATS,
                     });
                 }
                 if props.page == "/menu" {
@@ -797,7 +1021,7 @@ impl MixPanelEvent {
                 //         });
                 //     }
                 // }
-                track_event("page_viewed", props);
+                send_event_to_server("page_viewed", props);
             },
             10.0,
         );
@@ -808,59 +1032,98 @@ impl MixPanelEvent {
         send_event_to_server("bottom_navigation_clicked", p);
     }
 
+    pub fn track_notification_toggled(p: MixpanelNotificationPropsClickedProps) {
+        send_event_to_server("enable_notifications", p);
+    }
+
+    pub fn track_auth_clicked(p: MixpanelAuthClickedProps) {
+        send_event_to_server("signup_clicked", p);
+    }
+
+    pub fn track_auth_screen_viewed(p: MixpanelGlobalProps) {
+        send_event_to_server("auth_screen_viewed", p);
+    }
+
+    pub fn track_auth_initiated(p: MixpanelLoginSuccessProps) {
+        send_event_to_server("signup_journey_selected", p);
+    }
+
     pub fn track_signup_success(p: MixpanelSignupSuccessProps) {
-        track_event("signup_success", p);
+        send_event_to_server("signup_success", p);
     }
 
     pub fn track_login_success(p: MixpanelLoginSuccessProps) {
-        track_event("login_success", p);
+        send_event_to_server("login_success", p);
     }
 
     pub fn track_sats_to_btc_conversion_failed(p: MixpanelSatsToBtcConvertedProps) {
-        track_event("sats_to_btc_converted", p);
+        send_event_to_server("sats_to_btc_converted", p);
     }
 
     pub fn track_sats_to_btc_converted(p: MixpanelSatsToBtcConvertedProps) {
-        track_event("sats_to_btc_converted", p);
+        send_event_to_server("sats_to_btc_converted", p);
+    }
+
+    pub fn track_enable_nsfw_popup_shown(p: MixpanelNudgeNsfwPopupProps) {
+        send_event_to_server("enable_nsfw_popup_shown", p);
     }
 
     pub fn track_nsfw_true(p: MixpanelNsfwToggleProps) {
-        track_event("nsfw_enabled", p);
+        send_event_to_server("nsfw_enabled", p);
     }
 
     pub fn track_nsfw_false(p: MixpanelNsfwToggleProps) {
-        track_event("NSFW_False", p);
+        send_event_to_server("NSFW_False", p);
     }
 
     pub fn track_video_clicked(p: MixpanelVideoClickedProps) {
-        track_event("video_clicked", p);
+        send_event_to_server("video_clicked", p);
+    }
+
+    pub fn track_video_reported(p: MixpanelVideoReportedProps) {
+        send_event_to_server("video_reported", p);
+    }
+
+    pub fn track_video_clicked_profile(p: MixpanelVideoClickedProfileProps) {
+        send_event_to_server("video_clicked", p);
     }
 
     pub fn track_refer_and_earn(p: MixpanelReferAndEarnProps) {
-        track_event("refer_and_earn", p);
+        send_event_to_server("refer_and_earn", p);
     }
 
     pub fn track_video_viewed(p: MixpanelVideoViewedProps) {
-        track_event("video_viewed", p);
+        send_event_to_server("video_viewed", p);
+    }
+
+    pub fn track_video_impression(p: MixpanelVideoViewedProps) {
+        send_event_to_server("video_impression", p);
     }
 
     pub fn track_video_started(p: MixpanelVideoStartedProps) {
-        track_event("video_started", p);
+        send_event_to_server("video_started", p);
     }
 
     pub fn track_game_played(p: MixpanelGamePlayedProps) {
-        track_event("game_played", p);
+        send_event_to_server("game_played", p);
+    }
+    pub fn track_game_clicked(p: MixpanelGameClickedProps) {
+        send_event_to_server("game_voted", p);
     }
 
     pub fn track_video_upload_success(p: MixpanelVideoUploadSuccessProps) {
-        track_event("video_upload_success", p);
+        send_event_to_server("video_upload_success", p);
     }
 
     pub fn track_cents_to_dolr(p: MixpanelCentsToDolrProps) {
-        track_event("cents_to_DOLR", p);
+        send_event_to_server("cents_to_DOLR", p);
     }
 
     pub fn track_third_party_wallet_transferred(p: MixpanelThirdPartyWalletTransferredProps) {
-        track_event("third_party_wallet_transferred", p);
+        send_event_to_server("third_party_wallet_transferred", p);
+    }
+
+    pub fn track_how_to_play_clicked(p: MixpanelHowToPlayGameClickedProps) {
+        send_event_to_server("how_to_play_clicked", p);
     }
 }

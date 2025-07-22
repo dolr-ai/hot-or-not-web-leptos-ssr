@@ -1,7 +1,6 @@
 use candid::Principal;
-use consts::NEW_USER_SIGNUP_REWARD;
+use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use gloo::timers::callback::Timeout;
-use hon_worker_common::limits::REFERRAL_REWARD;
 use leptos::either::Either;
 use leptos::prelude::*;
 use leptos_icons::*;
@@ -83,7 +82,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
                     is_logged_in: global.is_logged_in,
                     canister_id: global.canister_id,
                     is_nsfw_enabled: global.is_nsfw_enabled,
-                    referral_bonus: REFERRAL_REWARD,
+                    referral_bonus: REFERRAL_REWARD_SATS,
                 });
             }
 
@@ -93,7 +92,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
     });
     let refer_link_share = refer_link.clone();
     let handle_share = move || {
-        let text = format!("Join YRAL—the world's 1st social platform on BITCOIN\nGet FREE BITCOIN ({NEW_USER_SIGNUP_REWARD} SATS) Instantly\nAdditional BITCOIN ({REFERRAL_REWARD} SATS) when you log in using the link.");
+        let text = format!("Join YRAL—the world's 1st social platform on BITCOIN\nGet FREE BITCOIN ({NEW_USER_SIGNUP_REWARD_SATS} SATS) Instantly\nAdditional BITCOIN ({REFERRAL_REWARD_SATS} SATS) when you log in using the link.");
         let global = MixpanelGlobalProps::from_ev_ctx(ev_ctx);
         if let Some(global) = global {
             MixPanelEvent::track_share_invites_clicked(MixpanelReferAndEarnPageViewedProps {
@@ -102,7 +101,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
                 is_logged_in: global.is_logged_in,
                 canister_id: global.canister_id,
                 is_nsfw_enabled: global.is_nsfw_enabled,
-                referral_bonus: REFERRAL_REWARD,
+                referral_bonus: REFERRAL_REWARD_SATS,
             });
         }
         if share(&refer_link_share, &text).is_some() {
@@ -213,7 +212,7 @@ fn ReferView() -> impl IntoView {
             <div class="flex flex-col gap-4 items-center w-full text-center z-[1]">
                 <span class="text-xl font-bold md:text-2xl">
                     Invite & get Bitcoin
-                    <span style="color: #A3A3A3">"("{REFERRAL_REWARD} " SATS)"</span>
+                    <span style="color: #A3A3A3">"("{REFERRAL_REWARD_SATS} " SATS)"</span>
                 </span>
             </div>
             <div class="flex flex-col gap-2 items-center px-4 w-full text-white z-[1]">
@@ -235,7 +234,7 @@ fn ReferView() -> impl IntoView {
                         head="STEP 2"
                     />
                     <WorkButton
-                        text=format!("You both earn Bitcoin ({REFERRAL_REWARD} SATS)")
+                        text=format!("You both earn Bitcoin ({REFERRAL_REWARD_SATS} SATS)")
                         head="STEP 3"
                     />
                 </div>

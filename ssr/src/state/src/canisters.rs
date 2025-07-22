@@ -8,18 +8,21 @@ use candid::Principal;
 use codee::string::FromToStringCodec;
 use consts::{
     auth::REFRESH_MAX_AGE, ACCOUNT_CONNECTED_STORE, AUTH_UTIL_COOKIES_MAX_AGE_MS, REFERRER_COOKIE,
-    USER_CANISTER_ID_STORE, USER_PRINCIPAL_STORE,
+    USERNAME_MAX_LEN, USER_CANISTER_ID_STORE, USER_PRINCIPAL_STORE,
 };
 use futures::FutureExt;
 use leptos::prelude::*;
 use leptos_router::{hooks::use_query, params::Params};
 use leptos_use::{use_cookie_with_options, UseCookieOptions};
+use rand::{distr::Alphanumeric, rngs::SmallRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
-use yral_canisters_common::{Canisters, CanistersAuthWire};
+use yral_canisters_common::{utils::time::current_epoch, Canisters, CanistersAuthWire};
 
 use utils::{
     event_streaming::events::{EventCtx, EventUserDetails},
-    send_wrap, MockPartialEq,
+    send_wrap,
+    types::NewIdentity,
+    MockPartialEq,
 };
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
@@ -27,12 +30,53 @@ pub fn unauth_canisters() -> Canisters<false> {
     expect_context()
 }
 
+async fn set_fallback_username(cans: &mut Canisters<true>, mut username: String) {
+    let mut rng: Option<SmallRng> = None;
+    while let Err(e) = cans.set_username(username.clone()).await {
+        use yral_canisters_common::Error::*;
+        use yral_metadata_client::Error as MetadataError;
+        use yral_metadata_types::error::ApiError;
+
+        match e {
+            Metadata(MetadataError::Api(ApiError::DuplicateUsername)) => {
+                let remaining_chars = username.len().saturating_sub(USERNAME_MAX_LEN);
+                if remaining_chars == 0 {
+                    break;
+                }
+                let rng = rng.get_or_insert_with(|| {
+                    let mut seed = [0u8; 32];
+                    seed[..16].copy_from_slice(&current_epoch().as_nanos().to_be_bytes());
+
+                    SmallRng::from_seed(seed)
+                });
+                // append random characters in chunks of 3
+                let rand_chars = rng
+                    .sample_iter(Alphanumeric)
+                    .map(|c| c as char)
+                    .take(remaining_chars.min(3));
+                username.extend(rand_chars);
+            }
+            e => log::warn!("failed to set fallback username, err: {e}, ignoring"),
+        }
+    }
+}
+
 async fn do_canister_auth(
     auth: DelegatedIdentityWire,
     referrer: Option<Principal>,
+    fallback_username: Option<String>,
 ) -> Result<CanistersAuthWire, ServerFnError> {
     let auth_fut = Canisters::authenticate_with_network(auth, referrer);
-    let canisters = send_wrap(auth_fut).await?;
+    let mut canisters = send_wrap(auth_fut).await?;
+    if canisters.profile_details().username.is_some() {
+        return Ok(canisters.into());
+    }
+    let Some(username) = fallback_username else {
+        return Ok(canisters.into());
+    };
+
+    set_fallback_username(&mut canisters, username).await;
+
     Ok(canisters.into())
 }
 type AuthCansResource = Resource<Result<CanistersAuthWire, ServerFnError>>;
@@ -55,14 +99,15 @@ pub struct AuthState {
     _temp_id_cookie_resource: LocalResource<()>,
     pub referrer_store: Signal<Option<Principal>>,
     is_logged_in_with_oauth: (Signal<Option<bool>>, WriteSignal<Option<bool>>),
-    new_identity_setter: RwSignal<Option<DelegatedIdentityWire>>,
+    new_identity_setter: RwSignal<Option<NewIdentity>>,
     canisters_resource: AuthCansResource,
     pub user_canister: Resource<Result<Principal, ServerFnError>>,
     user_canister_id_cookie: (Signal<Option<Principal>>, WriteSignal<Option<Principal>>),
     pub user_principal: Resource<Result<Principal, ServerFnError>>,
     user_principal_cookie: (Signal<Option<Principal>>, WriteSignal<Option<Principal>>),
     event_ctx: EventCtx,
-    pub user_identity: Resource<Result<DelegatedIdentityWire, ServerFnError>>,
+    pub user_identity: Resource<Result<NewIdentity, ServerFnError>>,
+    new_cans_setter: RwSignal<Option<CanistersAuthWire>>,
 }
 
 impl Default for AuthState {
@@ -75,10 +120,10 @@ impl Default for AuthState {
                 .expect("Failed to generate anonymous identity?!")
         });
         let temp_id_cookie_resource = LocalResource::new(move || async move {
-            let temp_identity = temp_identity_resource.await;
-            if let Err(e) =
-                set_anonymous_identity_cookie(temp_identity.map(|id| id.refresh_token)).await
-            {
+            let Some(temp_identity) = temp_identity_resource.await else {
+                return;
+            };
+            if let Err(e) = set_anonymous_identity_cookie(temp_identity.refresh_token).await {
                 log::error!("Failed to set anonymous identity as cookie?! err {e}");
             }
         });
@@ -112,7 +157,7 @@ impl Default for AuthState {
                 .max_age(REFRESH_MAX_AGE.as_millis() as i64),
         );
 
-        let new_identity_setter = RwSignal::new(None::<DelegatedIdentityWire>);
+        let new_identity_setter = RwSignal::new(None::<NewIdentity>);
 
         let user_identity_resource = Resource::new(
             move || MockPartialEq(new_identity_setter()),
@@ -131,24 +176,43 @@ impl Default for AuthState {
                             return Err(ServerFnError::new(e.to_string()));
                         }
                     };
-                    return Ok(id_wire);
+                    return Ok(NewIdentity {
+                        id_wire,
+                        fallback_username: None,
+                    });
                 };
 
-                Ok(id.identity)
+                Ok(NewIdentity {
+                    id_wire: id.identity,
+                    fallback_username: None,
+                })
             },
         );
+
+        let new_cans_setter = RwSignal::new(None::<CanistersAuthWire>);
 
         let canisters_resource: AuthCansResource = Resource::new(
             move || {
                 user_identity_resource.track();
-                MockPartialEq(())
+                MockPartialEq(new_cans_setter())
             },
-            move |_| {
+            move |new_cans| {
                 send_wrap(async move {
-                    let id_wire = user_identity_resource.await?;
+                    let new_id = user_identity_resource.await?;
+                    match new_cans.0 {
+                        Some(cans) if cans.id.from_key == new_id.id_wire.from_key => {
+                            return Ok::<_, ServerFnError>(cans);
+                        }
+                        // this means that the user did the following:
+                        // 1. Changed their username, then
+                        // 2. Logged in with oauth (or logged out)
+                        _ => {}
+                    };
                     let ref_principal = referrer_principal.get_untracked();
 
-                    let res = do_canister_auth(id_wire, ref_principal).await?;
+                    let res =
+                        do_canister_auth(new_id.id_wire, ref_principal, new_id.fallback_username)
+                            .await?;
 
                     Ok::<_, ServerFnError>(res)
                 })
@@ -172,7 +236,7 @@ impl Default for AuthState {
                 }
 
                 let id_wire = user_identity_resource.await?;
-                let princ = Principal::self_authenticating(&id_wire.from_key);
+                let princ = Principal::self_authenticating(&id_wire.id_wire.from_key);
                 user_principal_cookie.1.set(Some(princ));
 
                 Ok(princ)
@@ -238,6 +302,7 @@ impl Default for AuthState {
             user_canister_id_cookie,
             event_ctx,
             user_identity: user_identity_resource,
+            new_cans_setter,
         }
     }
 }
@@ -248,11 +313,10 @@ impl AuthState {
         Signal::derive(move || logged_in.get().unwrap_or_default())
     }
 
-    pub fn set_new_identity(
-        &self,
-        new_identity: DelegatedIdentityWire,
-        is_logged_in_with_oauth: bool,
-    ) {
+    /// Updates the identity
+    /// fallback_username will be the username of this id
+    /// if not already set
+    pub fn set_new_identity(&self, new_identity: NewIdentity, is_logged_in_with_oauth: bool) {
         self.is_logged_in_with_oauth
             .1
             .set(Some(is_logged_in_with_oauth));
@@ -260,8 +324,22 @@ impl AuthState {
         self.user_canister_id_cookie.1.set(None);
         self.user_principal_cookie
             .1
-            .set(Some(Principal::self_authenticating(&new_identity.from_key)));
+            .set(Some(Principal::self_authenticating(
+                &new_identity.id_wire.from_key,
+            )));
         self.new_identity_setter.set(Some(new_identity));
+    }
+
+    pub async fn set_new_identity_and_wait_for_authentication(
+        &self,
+        base: Canisters<false>,
+        new_identity: NewIdentity,
+        is_logged_in_with_oauth: bool,
+    ) -> Result<Canisters<true>, ServerFnError> {
+        self.set_new_identity(new_identity, is_logged_in_with_oauth);
+        self.canisters_resource.ready().await;
+
+        self.auth_cans(base).await
     }
 
     /// WARN: This function MUST be used with `<Suspense>`, if used inside view! {}
@@ -345,5 +423,18 @@ impl AuthState {
                 let cans_wire = c.ok()?;
                 Canisters::from_wire(cans_wire, base).ok()
             })
+    }
+
+    /// Update the username of the user
+    /// WARN: all subscribers to the canisters resource will be notified
+    pub async fn update_username(
+        &self,
+        mut cans: Canisters<true>,
+        new_username: String,
+    ) -> yral_canisters_common::Result<()> {
+        cans.set_username(new_username).await?;
+        self.new_cans_setter.set(Some(cans.into()));
+
+        Ok(())
     }
 }

@@ -48,11 +48,14 @@ fn ProfileCard(
                     alt="Profile picture"
                     class="object-cover w-12 h-12 rounded-full shrink-0"
                 />
-                <span class="text-lg font-semibold select-all line-clamp-1 font-kumbh text-neutral-50">
-                    // TEMP: Workaround for hydration bug until leptos 0.7
-                    // class=("md:w-5/12", move || !is_connected())
-                    {details.display_name_or_fallback()}
-                </span>
+                <div class="flex flex-col gap-2">
+                    <span class="text-lg font-semibold select-all line-clamp-1 font-kumbh text-neutral-50">
+                        @{details.display_name_or_fallback()}
+                    </span>
+                    <span class="text-xs text-neutral-400 line-clamp-1 select-all">
+                        {details.principal()}
+                    </span>
+                </div>
             </div>
 
             <Show when=move || !is_connected.get() && is_own_account>
@@ -73,7 +76,10 @@ fn ProfileCardLoading() -> impl IntoView {
         <div class="flex flex-col gap-4 p-4 w-full rounded-lg bg-neutral-900">
             <div class="flex gap-4 items-center">
                 <div class="w-12 h-12 rounded-full bg-loading shrink-0" />
-                <div class="flex-1 h-7 rounded-lg bg-loading"></div>
+                <div class="flex flex-col gap-2 w-full animate-pulse">
+                    <div class="w-full h-7 rounded-full bg-white/20"></div>
+                    <div class="w-full h-4 rounded-full bg-white/20"></div>
+                </div>
             </div>
         </div>
     }
@@ -98,7 +104,7 @@ fn Header(details: ProfileDetails, is_own_account: bool) -> impl IntoView {
             <div class="flex gap-8 items-center">
                 <ShareButtonWithFallbackPopup share_link message />
                 <Show when=move || is_own_account>
-                    <a href="/wallet/notifications">
+                    <a href="/notifications">
                         <NotificationIcon show_dot=false class="w-6 h-6 text-neutral-300" />
                     </a>
                 </Show>
@@ -191,20 +197,24 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
     let cans = unauth_canisters();
 
     let cans2 = cans.clone();
-    let canister_id = OnceResource::new(send_wrap(async move {
+    let metadata = OnceResource::new(send_wrap(async move {
         let canisters = cans2;
         let user_canister = canisters
-            .get_individual_canister_by_user_principal(principal)
+            .get_user_metadata(principal.to_text())
             .await?
             .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
         Ok::<_, ServerFnError>(user_canister)
     }));
 
     let profile_info_res = OnceResource::new(send_wrap(async move {
-        let user_canister = canister_id.await?;
-        let user = cans.individual_user(user_canister).await;
-        let user_details = user.get_profile_details().await?;
-        Ok::<ProfileDetails, ServerFnError>(user_details.into())
+        let meta = metadata.await?;
+        let user = cans.individual_user(meta.user_canister_id).await;
+        let user_details = user.get_profile_details_v_2().await?;
+        Ok::<ProfileDetails, ServerFnError>(ProfileDetails::from_canister(
+            meta.user_canister_id,
+            Some(meta.user_name),
+            user_details,
+        ))
     }));
 
     let auth = auth_state();
@@ -261,9 +271,9 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
                 </Suspense>
                 <Suspense>
                     {move || Suspend::new(async move {
-                        let canister_id = canister_id.await;
-                        match canister_id {
-                            Ok(canister_id) => {
+                        let meta = metadata.await;
+                        match meta {
+                            Ok(meta) => {
                                 Either::Left(
                                     view! {
                                         <div class="self-start pt-3 text-lg font-bold text-white font-kumbh">
@@ -271,7 +281,7 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
                                         </div>
                                         <TokenList
                                             user_principal=principal
-                                            user_canister=canister_id
+                                            user_canister=meta.user_canister_id
                                         />
                                     },
                                 )

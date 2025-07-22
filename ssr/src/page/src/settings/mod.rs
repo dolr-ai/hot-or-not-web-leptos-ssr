@@ -17,6 +17,7 @@ use leptos_router::{hooks::use_params, params::Params};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use state::canisters::auth_state;
+use utils::mixpanel::mixpanel_events::*;
 use utils::notifications::{
     get_device_registeration_token, get_fcm_token, notification_permission_granted,
 };
@@ -159,9 +160,20 @@ fn EnableNotifications() -> impl IntoView {
             .auth_cans(use_context().unwrap_or_default())
             .await
             .unwrap();
-
         let browser_permission = Notification::permission();
         let notifs_enabled_val = notifs_enabled.get_untracked();
+
+        let global =
+            MixpanelGlobalProps::try_get(&cans, auth.is_logged_in_with_oauth().get_untracked());
+
+        MixPanelEvent::track_notification_toggled(MixpanelNotificationPropsClickedProps {
+            toggle: notifs_enabled_val,
+            user_id: global.user_id,
+            visitor_id: global.visitor_id,
+            canister_id: global.canister_id,
+            is_logged_in: global.is_logged_in,
+            is_nsfw_enabled: global.is_nsfw_enabled,
+        });
 
         if notifs_enabled_val && matches!(browser_permission, NotificationPermission::Default) {
             match notification_permission_granted().await {
@@ -237,15 +249,32 @@ fn DeleteAccountPopup(show_delete_popup: RwSignal<bool>) -> impl IntoView {
     let auth = auth_state();
     let navigate = use_navigate();
     let (is_deleting, set_is_deleting) = signal(false);
+    let global = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx());
+    let analytics_delete_account_props = global.map(|f| MixpanelDeleteAccountClickedProps {
+        user_id: f.user_id,
+        visitor_id: f.visitor_id,
+        is_logged_in: f.is_logged_in,
+        canister_id: f.canister_id,
+        is_nsfw_enabled: f.is_nsfw_enabled,
+        page_name: "settings".into(),
+    });
 
     let handle_delete = Action::new(move |&()| {
         set_is_deleting(true);
+        if let Some(props) = analytics_delete_account_props.clone() {
+            MixPanelEvent::track_delete_account_confirmed(props);
+        }
         let navigate = navigate.clone();
 
+        let value = analytics_delete_account_props.clone();
         send_wrap(async move {
+            let value = value.clone();
             match auth.user_identity.await {
-                Ok(identity_wire) => match delete_user::initiate_delete_user(identity_wire).await {
+                Ok(id) => match delete_user::initiate_delete_user(id.id_wire).await {
                     Ok(_) => {
+                        if let Some(props) = value.clone() {
+                            MixPanelEvent::track_account_deleted(props);
+                        }
                         navigate("/logout", Default::default());
                     }
                     Err(e) => {
@@ -276,9 +305,11 @@ fn DeleteAccountPopup(show_delete_popup: RwSignal<bool>) -> impl IntoView {
                     <h2 class="text-lg font-bold mb-4 text-center">"Delete your account"</h2>
 
                     <p class="text-sm text-neutral-300 mb-6 text-center">
-                        "This action will not be reverted. All your data including your Bitcoin and other token balance will be removed from our platform."
+                        <span class="font-medium">Are you sure you want to delete your account?</span>
                         <br/><br/>
-                        "Are you sure you want to delete your account?"
+                        This action is permanent and cannot be undone.
+                        <br/><br/>
+                        "All your data — including your Bitcoin and token balances — will be permanently removed from the platform."
                     </p>
 
                     <div class="flex justify-center gap-4">
@@ -333,6 +364,23 @@ fn DeleteAccount(show_popup: RwSignal<bool>) -> impl IntoView {
 
 #[component]
 fn DeleteAccountFlow(show_popup: RwSignal<bool>, is_authenticated: bool) -> impl IntoView {
+    let auth = auth_state();
+    let global = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx());
+    let analytics_delete_account_props = global.map(|f| MixpanelDeleteAccountClickedProps {
+        user_id: f.user_id,
+        visitor_id: f.visitor_id,
+        is_logged_in: f.is_logged_in,
+        canister_id: f.canister_id,
+        is_nsfw_enabled: f.is_nsfw_enabled,
+        page_name: "settings".into(),
+    });
+    Effect::new(move || {
+        if show_popup.get() {
+            if let Some(props) = analytics_delete_account_props.clone() {
+                MixPanelEvent::track_delete_account_clicked(props);
+            }
+        }
+    });
     view! {
         <Show when=move || show_popup.get()>
             {

@@ -6,7 +6,9 @@ use leptos_meta::*;
 use leptos_router::hooks::use_location;
 use leptos_router::{components::*, path, MatchNestedRoutes};
 use page::about_us::AboutUs;
+use page::internal::clear_sats::ClearSats;
 use page::leaderboard::Leaderboard;
+use page::notification::NotificationPage;
 use page::post_view::PostDetailsCacheCtx;
 use page::root::YralRootPage;
 use page::terms_android::TermsAndroid;
@@ -18,7 +20,9 @@ use page::{
     post_view::{single_post::SinglePost, PostView, PostViewCtx},
     privacy::PrivacyPolicy,
     profile::{
-        profile_post::ProfilePost, LoggedInUserProfileView, ProfilePostsContext, ProfileView,
+        edit::{username::ProfileUsernameEdit, ProfileEdit},
+        profile_post::ProfilePost,
+        LoggedInUserProfileView, ProfilePostsContext, ProfileView,
     },
     refer_earn::ReferEarn,
     settings::Settings,
@@ -30,9 +34,11 @@ use page::{
 use page::{hon, pumpdump};
 use state::app_state::AppState;
 use state::app_type::AppType;
+use state::hn_bet_state::HnBetState;
 use state::{audio_state::AudioState, content_seed_client::ContentSeedClient};
 use utils::event_streaming::events::HistoryCtx;
 use utils::event_streaming::EventHistory;
+use utils::mixpanel::state::MixpanelState;
 use utils::types::PostParams;
 use yral_canisters_common::Canisters;
 
@@ -64,8 +70,8 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
             <head>
                 <meta charset="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
+                <meta name="facebook-domain-verification" content="sqtv2sr90ar0ck7t7zcklos44fw8t3" />
                 <script fetchpriority="low" type="module" src="/js/sentry-init.js" async></script>
-                <script fetchpriority="low" type="module" src="/js/mixpanel-init.js" async></script>
                 <script
                     fetchpriority="low"
                     type="module"
@@ -75,8 +81,8 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
 
                 <AutoReload options=options.clone() />
                 <HashedStylesheet id="leptos" options=options.clone() />
-                <Meta property="og:title" content="DOLR AI" />
-                <Meta property="og:image" content="/img/common/refer-earn.webp" />
+                <Meta property="og:title" content="YRAL - World's first social on Bitcoin" />
+                <Meta property="og:image" content="/img/common/preview.webp" />
                 <HydrationScripts options />
                 <MetaTags />
             </head>
@@ -98,7 +104,7 @@ pub fn App() -> impl IntoView {
     // Existing context providers
     provide_context(Canisters::default());
     provide_context(ContentSeedClient::default());
-    provide_context(PostViewCtx::default());
+    provide_context(PostViewCtx::new());
     provide_context(ProfilePostsContext::default());
     provide_context(AuthorizedUserToSeedContent::default());
     provide_context(AudioState::default());
@@ -107,6 +113,10 @@ pub fn App() -> impl IntoView {
     // History Tracking
     let history_ctx = HistoryCtx::default();
     provide_context(history_ctx.clone());
+
+    let _ = HnBetState::init();
+
+    let _ = MixpanelState::init();
 
     let current_post_params = RwSignal::new(None::<PostParams>);
     provide_context(current_post_params);
@@ -175,6 +185,8 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/settings") view=Settings />
                         <Route path=path!("/settings/:action") view=Settings />
                         <Route path=path!("/refer-earn") view=ReferEarn />
+                        <Route path=path!("/profile/edit") view=ProfileEdit />
+                        <Route path=path!("/profile/edit/username") view=ProfileUsernameEdit />
                         <Route path=path!("/profile/:id/:tab") view=ProfileView />
                         <Route path=path!("/profile/:tab") view=LoggedInUserProfileView />
                         <Route path=path!("/terms-of-service") view=TermsOfService />
@@ -182,6 +194,7 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/about-us") view=AboutUs />
                         <Route path=path!("/wallet/:id") view=Wallet />
                         <Route path=path!("/wallet") view=Wallet />
+                        <Route path=path!("/notifications") view=NotificationPage />
                         <Route path=path!("/leaderboard") view=Leaderboard />
                         <Route path=path!("/logout") view=Logout />
                         <Route
@@ -204,6 +217,7 @@ pub fn App() -> impl IntoView {
                         />
                         <Route path=path!("/terms-ios") view=TermsIos />
                         <Route path=path!("/terms-android") view=TermsAndroid />
+                        <Route path=path!("/internal/clear-sats") view=ClearSats />
                     </ParentRoute>
                 </Routes>
 

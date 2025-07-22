@@ -1,18 +1,17 @@
-use std::cmp::Ordering;
-
 use indexmap::IndexSet;
 use leptos::html::Audio;
-use leptos::{ev, logging};
+use leptos::logging;
 use leptos::{html::Video, prelude::*};
-use leptos_use::use_event_listener;
-use state::canisters::{auth_state, unauth_canisters};
-use utils::mixpanel::mixpanel_events::*;
-use utils::send_wrap;
-use yral_canisters_client::individual_user_template::PostViewDetailsFromFrontend;
+use state::canisters::auth_state;
+use utils::event_streaming::events::VideoWatched;
 
 use component::video_player::VideoPlayer;
-use utils::event_streaming::events::VideoWatched;
+use futures::FutureExt;
+use gloo::timers::future::TimeoutFuture;
 use utils::{bg_url, mp4_url};
+
+/// Maximum PostDetails, time in milliseconds to waitay promise to resolve
+const VIDEO_PLAY_TIMEOUT_MS: u64 = 5000;
 
 use super::{overlay::VideoDetailsOverlay, PostDetails};
 
@@ -47,8 +46,7 @@ pub fn BgView(
     view! {
         <div class="overflow-hidden relative w-full h-full bg-transparent">
             <div
-                class="absolute top-0 left-0 w-full h-full bg-center bg-cover z-1 blur-lg"
-                style:background-color="rgb(0, 0, 0)"
+                class="absolute top-0 left-0 w-full h-full bg-center bg-cover z-1 blur-lg bg-black"
                 style:background-image=move || format!("url({})", bg_url(uid()))
             ></div>
             <audio
@@ -72,60 +70,39 @@ pub fn VideoView(
     #[prop(into)] post: Signal<Option<PostDetails>>,
     #[prop(optional)] _ref: NodeRef<Video>,
     #[prop(optional)] autoplay_at_render: bool,
+    to_load: Memo<bool>,
     muted: RwSignal<bool>,
+    #[prop(optional, into)] is_current: Option<Signal<bool>>,
 ) -> impl IntoView {
     let post_for_uid = post;
-    let post_for_mixpanel = post;
-    let uid = Memo::new(move |_| post_for_uid.with(|p| p.as_ref().map(|p| p.uid.clone())));
+    let uid = Memo::new(move |_| {
+        if !to_load() {
+            return None;
+        }
+        post_for_uid.with(|p| p.as_ref().map(|p| p.uid.clone()))
+    });
     let view_bg_url = move || uid().map(bg_url);
     let view_video_url = move || uid().map(mp4_url);
-    let mixpanel_video_muted = RwSignal::new(muted.get_untracked());
+
+    // Preload the background image
+    // This is a workaround to ensure the image is loaded before the video starts
+    Effect::new(move |_| {
+        use leptos::web_sys::HtmlImageElement;
+
+        if let Some(bg_url) = view_bg_url() {
+            if let Ok(img) = HtmlImageElement::new() {
+                img.set_src(&bg_url);
+            }
+        }
+    });
 
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
-
-    let mixpanel_video_clicked_audio_state = Action::new(move |muted: &bool| {
-        let ret = async {};
-        if *muted == mixpanel_video_muted.get_untracked() {
-            return ret;
-        }
-        mixpanel_video_muted.set(*muted);
-
-        let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
-            return ret;
-        };
-
-        let post = post_for_mixpanel.get_untracked().unwrap();
-        let is_game_enabled = true;
-
-        MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-            user_id: global.user_id,
-            visitor_id: global.visitor_id,
-            is_logged_in: global.is_logged_in,
-            canister_id: global.canister_id,
-            is_nsfw_enabled: global.is_nsfw_enabled,
-            publisher_user_id: post.poster_principal.to_text(),
-            like_count: post.likes,
-            view_count: post.views,
-            is_game_enabled,
-            video_id: post.uid,
-            is_nsfw: post.is_nsfw,
-
-            game_type: MixpanelPostGameType::HotOrNot,
-            cta_type: if *muted {
-                MixpanelVideoClickedCTAType::Mute
-            } else {
-                MixpanelVideoClickedCTAType::Unmute
-            },
-        });
-        ret
-    });
 
     // Handles mute/unmute
     Effect::new(move |_| {
         let vid = _ref.get()?;
         vid.set_muted(muted());
-        mixpanel_video_clicked_audio_state.dispatch(muted());
         Some(())
     });
 
@@ -133,7 +110,7 @@ pub fn VideoView(
         let vid = _ref.get()?;
         // the attributes in DOM don't seem to be working
         vid.set_muted(muted.get_untracked());
-        vid.set_loop(true);
+        // vid.set_loop(true);
         if autoplay_at_render {
             vid.set_autoplay(true);
             _ = vid.play();
@@ -141,122 +118,11 @@ pub fn VideoView(
         Some(())
     });
 
-    // Video views send to canister
-    // 1. When video is paused -> partial video view
-    // 2. When video is 95% done -> full view
-    let post_for_view = post;
-    let send_view_detail_action =
-        Action::new(move |(percentage_watched, watch_count): &(u8, u8)| {
-            let percentage_watched = *percentage_watched;
-            let watch_count = *watch_count;
-            let post_for_view = post_for_view;
-
-            send_wrap(async move {
-                let canisters = unauth_canisters();
-
-                let payload = match percentage_watched.cmp(&95) {
-                    Ordering::Less => {
-                        PostViewDetailsFromFrontend::WatchedPartially { percentage_watched }
-                    }
-                    _ => PostViewDetailsFromFrontend::WatchedMultipleTimes {
-                        percentage_watched,
-                        watch_count,
-                    },
-                };
-
-                let post = post_for_view.get_untracked();
-                let post_id = post.as_ref().map(|p| p.post_id).unwrap();
-                let canister_id = post.as_ref().map(|p| p.canister_id).unwrap();
-                let send_view_res = canisters
-                    .individual_user(canister_id)
-                    .await
-                    .update_post_add_view_details(post_id, payload)
-                    .await;
-
-                if let Err(err) = send_view_res {
-                    log::warn!("failed to send view details: {err:?}");
-                }
-                Some(())
-            })
-        });
-
-    let playing_started = RwSignal::new(false);
-
-    let mixpanel_send_view_event = Action::new(move |_| {
-        send_wrap(async move {
-            let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
-                return;
-            };
-            let post = post_for_view.get_untracked().unwrap();
-            let is_logged_in = ev_ctx.is_connected();
-            let is_game_enabled = true;
-
-            MixPanelEvent::track_video_viewed(MixpanelVideoViewedProps {
-                publisher_user_id: post.poster_principal.to_text(),
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                video_id: post.uid,
-                view_count: post.views,
-                like_count: post.likes,
-                game_type: MixpanelPostGameType::HotOrNot,
-                is_nsfw: post.is_nsfw,
-                is_game_enabled,
-            });
-            playing_started.set(false);
-        })
-    });
-
-    let mixpanel_video_started_event = Action::new(move |_: &()| {
-        send_wrap(async move {
-            let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
-                return;
-            };
-            let post = post_for_view.get_untracked().unwrap();
-            let is_logged_in = ev_ctx.is_connected();
-            let is_game_enabled = true;
-
-            MixPanelEvent::track_video_started(MixpanelVideoStartedProps {
-                publisher_user_id: post.poster_principal.to_text(),
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                video_id: post.uid,
-                view_count: post.views,
-                like_count: post.likes,
-                game_type: MixpanelPostGameType::HotOrNot,
-                is_nsfw: post.is_nsfw,
-                is_game_enabled,
-            });
-        })
-    });
-
-    let _ = use_event_listener(_ref, ev::playing, move |_evt| {
-        let Some(_) = _ref.get() else {
-            return;
-        };
-        playing_started.set(true);
-        send_view_detail_action.dispatch((100, 0_u8));
-        mixpanel_video_started_event.dispatch(());
-    });
-
-    let _ = use_event_listener(_ref, ev::timeupdate, move |_evt| {
-        let Some(video) = _ref.get() else {
-            return;
-        };
-        // let duration = video.duration();
-        let current_time = video.current_time();
-
-        if current_time >= 3.0 && playing_started() {
-            mixpanel_send_view_event.dispatch(());
-        }
-    });
-
-    VideoWatched.send_event(ev_ctx, post, _ref);
+    if let Some(is_current) = is_current {
+        VideoWatched.send_event_with_current(ev_ctx, post, _ref, muted, is_current);
+    } else {
+        VideoWatched.send_event(ev_ctx, post, _ref, muted);
+    }
 
     view! {
         <VideoPlayer
@@ -270,37 +136,72 @@ pub fn VideoView(
 
 #[component]
 pub fn VideoViewForQueue(
-    video_queue: RwSignal<IndexSet<PostDetails>>,
+    post: RwSignal<Option<PostDetails>>,
     current_idx: RwSignal<usize>,
     idx: usize,
     muted: RwSignal<bool>,
+    to_load: Memo<bool>,
 ) -> impl IntoView {
     let container_ref = NodeRef::<Video>::new();
+
+    // Track if video is already playing to prevent multiple play attempts
+    let is_playing = RwSignal::new(false);
 
     // Handles autoplay
     Effect::new(move |_| {
         let Some(vid) = container_ref.get() else {
             return;
         };
-        if idx != current_idx() {
-            _ = vid.pause();
+
+        let is_current = idx == current_idx();
+        if !is_current {
+            if is_playing.get_untracked() {
+                is_playing.set(false);
+                _ = vid.pause();
+            }
             return;
         }
-        vid.set_autoplay(true);
-        let promise = vid.play();
-        if let Ok(promise) = promise {
-            wasm_bindgen_futures::spawn_local(async move {
-                let rr = wasm_bindgen_futures::JsFuture::from(promise).await;
-                if let Err(e) = rr {
-                    logging::error!("promise failed: {e:?}");
-                }
-            });
-        } else {
-            logging::error!("Failed to play video");
+
+        // Only attempt to play if not already playing
+        if is_current && !is_playing.get_untracked() {
+            is_playing.set(true);
+            vid.set_autoplay(true);
+
+            let promise = vid.play();
+            if let Ok(promise) = promise {
+                wasm_bindgen_futures::spawn_local(async move {
+                    // Create futures
+                    let mut play_future = wasm_bindgen_futures::JsFuture::from(promise).fuse();
+                    let mut timeout_future =
+                        TimeoutFuture::new(VIDEO_PLAY_TIMEOUT_MS as u32).fuse();
+
+                    // Race between play and timeout
+                    futures::select! {
+                        play_result = play_future => {
+                            if let Err(e) = play_result {
+                                logging::error!("video_log: Video play() promise failed: {e:?}");
+                            }
+                        }
+                        _ = timeout_future => {
+                            logging::error!("video_log: Video play() did not resolve within 5 seconds");
+                        }
+                    }
+                });
+            }
         }
     });
 
-    let post = Signal::derive(move || video_queue.with(|q| q.get_index(idx).cloned()));
+    // Create a signal that tracks whether this video is current
+    let is_current_signal = Signal::derive(move || idx == current_idx());
 
-    view! { <VideoView post _ref=container_ref muted /> }.into_any()
+    view! {
+        <VideoView
+            post
+            _ref=container_ref
+            to_load
+            muted
+            is_current=is_current_signal
+        />
+    }
+    .into_any()
 }

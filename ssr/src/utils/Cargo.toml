@@ -29,7 +29,6 @@ candid.workspace = true
 ic-agent = { workspace = true }
 ic-base-types = { workspace = true }
 icp-ledger = { workspace = true }
-serde-wasm-bindgen = { workspace = true }
 futures = { workspace = true }
 leptos-use = { workspace = true }
 codee = { workspace = true }
@@ -74,6 +73,7 @@ urlencoding = { workspace = true }
 yral-types = { workspace = true }
 yral-canisters-client = { workspace = true }
 yral-canisters-common = { workspace = true }
+global-constants = { workspace = true }
 ic-certification = { workspace = true }
 ciborium = { workspace = true }
 yral-metadata-client = { workspace = true, optional = true }
@@ -84,6 +84,7 @@ tonic-build = { workspace = true }
 anyhow = { workspace = true }
 send_wrapper = { workspace = true }
 indexmap = { workspace = true }
+chrono = "0.4"
 
 # workspace specific deps
 consts = { workspace = true }

@@ -23,7 +23,8 @@ use std::time::Duration;
 
 use crate::wallet::airdrop::dolr_airdrop::{claim_dolr_airdrop, is_user_eligible_for_dolr_airdrop};
 use crate::wallet::airdrop::{
-    claim_sats_airdrop, AirdropClaimState, AirdropStatus, SatsAirdropPopup, StatefulAirdropPopup,
+    sats_airdrop::claim_sats_airdrop, AirdropClaimState, AirdropStatus, SatsAirdropPopup,
+    StatefulAirdropPopup,
 };
 use candid::Principal;
 use component::action_btn::{ActionButton, ActionButtonLink};
@@ -55,7 +56,7 @@ use yral_canisters_common::utils::token::{load_cents_balance, load_sats_balance}
 use yral_canisters_common::{Canisters, CENT_TOKEN_NAME};
 use yral_canisters_common::{SATS_TOKEN_NAME, SATS_TOKEN_SYMBOL};
 
-use super::airdrop::is_user_eligible_for_sats_airdrop;
+use super::airdrop::sats_airdrop::is_user_eligible_for_sats_airdrop;
 use super::ShowLoginSignal;
 
 #[component]
@@ -109,7 +110,7 @@ impl AirdropStatusFetcherType {
 }
 
 /// Different strategies for loading balances of tokens as [`yral_canisters_common::utils::token::balance::TokenBalance`]
-enum BalanceFetcherType {
+pub enum BalanceFetcherType {
     Icrc1 { ledger: Principal, decimals: u8 },
     Sats,
     Cents,
@@ -118,7 +119,7 @@ enum BalanceFetcherType {
 impl BalanceFetcherType {
     // Both `user_principal` and `user_canister` must be provided by the
     // caller, which allows for perfomance optimizations
-    async fn fetch(
+    pub async fn fetch(
         &self,
         cans: Canisters<false>,
         user_canister: Principal,
@@ -318,7 +319,6 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
     let tokens = [
         TokenType::Sats,
         TokenType::Btc,
-        TokenType::Cents,
         TokenType::Dolr,
         TokenType::Usdc,
     ];

@@ -33,6 +33,7 @@ openidconnect = {workspace = true, optional = true}
 consts.workspace = true
 jsonwebtoken = { workspace = true, optional = true }
 yral-canisters-client = { workspace = true, optional = true }
+regex = { workspace = true, optional = true }
 
 [features]
 ssr = [
@@ -48,6 +49,7 @@ ssr = [
     "bb8",
     "bb8-redis",
     "consts/ssr",
+    "dep:regex",
 ]
 oauth-ssr = ["dep:openidconnect", "dep:jsonwebtoken", "dep:yral-canisters-client", "consts/oauth-ssr"]
 # use ic_agent::{

@@ -5,16 +5,21 @@ pub mod single_post;
 pub mod video_iter;
 pub mod video_loader;
 use crate::scrolling_post_view::ScrollingPostView;
+use component::overlay::ShadowOverlay;
 use component::spinner::FullScreenSpinner;
-use consts::NSFW_TOGGLE_STORE;
+use component::{buttons::HighlightedButton, nsfw_nudge_popup::NsfwUnlockPopup};
+use consts::{
+    UserOnboardingStore, MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY,
+};
 use indexmap::IndexSet;
+use leptos_icons::*;
 use priority_queue::DoublePriorityQueue;
 use state::canisters::{auth_state, unauth_canisters};
 use std::{cmp::Reverse, collections::HashMap};
-use yral_types::post::PostItem;
+use yral_types::post::PostItemV2;
 
 use candid::Principal;
-use codee::string::FromToStringCodec;
+use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use futures::StreamExt;
 use leptos::prelude::*;
 use leptos_router::{
@@ -23,8 +28,11 @@ use leptos_router::{
 };
 use leptos_use::{storage::use_local_storage, use_debounce_fn};
 use utils::{
-    mixpanel::mixpanel_events::*, posts::FetchCursor, route::failure_redirect, send_wrap,
-    try_or_redirect, types::PostId,
+    mixpanel::mixpanel_events::*,
+    posts::{FeedPostCtx, FetchCursor},
+    route::failure_redirect,
+    send_wrap, try_or_redirect,
+    types::PostId,
 };
 
 use video_iter::{new_video_fetch_stream, new_video_fetch_stream_auth, FeedResultType};
@@ -44,15 +52,33 @@ pub struct PostViewCtx {
     // as uids only occupy 32 bytes each
     // but ideally this should be cleaned up
     video_queue: RwSignal<IndexSet<PostDetails>>,
+    video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
     current_idx: RwSignal<usize>,
     queue_end: RwSignal<bool>,
     priority_q: RwSignal<DoublePriorityQueue<PostDetails, (usize, Reverse<usize>)>>, // we are using DoublePriorityQueue for GC in the future through pop_min
     batch_cnt: RwSignal<usize>,
 }
 
+impl PostViewCtx {
+    pub fn new() -> Self {
+        let mut video_queue_for_feed = Vec::new();
+        for i in 0..MAX_VIDEO_ELEMENTS_FOR_FEED {
+            video_queue_for_feed.push(FeedPostCtx {
+                key: i,
+                value: RwSignal::new(None),
+            });
+        }
+
+        Self {
+            video_queue_for_feed: RwSignal::new(video_queue_for_feed),
+            ..Default::default()
+        }
+    }
+}
+
 #[derive(Clone, Default)]
 pub struct PostDetailsCacheCtx {
-    pub post_details: RwSignal<HashMap<PostId, PostItem>>,
+    pub post_details: RwSignal<HashMap<PostId, PostItemV2>>,
 }
 
 #[component]
@@ -66,6 +92,7 @@ pub fn CommonPostViewWithUpdates(
         video_queue,
         current_idx,
         queue_end,
+        video_queue_for_feed,
         ..
     } = expect_context();
 
@@ -84,11 +111,17 @@ pub fn CommonPostViewWithUpdates(
                 // Safe to do a GC here
                 let rem = 0..(current_idx.get_untracked().saturating_sub(6));
                 current_idx.update(|c| *c -= rem.len());
-                v.drain(rem);
+                v.drain(rem.clone());
+                video_queue_for_feed.update_untracked(|vqf| {
+                    vqf.drain(rem);
+                });
                 return;
             }
             *v = IndexSet::new();
-            v.insert(initial_post);
+            v.insert(initial_post.clone());
+            video_queue_for_feed.update(|vq| {
+                vq[0].value.set(Some(initial_post.clone()));
+            });
         })
     }
 
@@ -130,14 +163,18 @@ pub fn CommonPostViewWithUpdates(
         );
     });
 
+    let hard_refresh_target = RwSignal::new("/".to_string());
+
     view! {
         <ScrollingPostView
             video_queue
+            video_queue_for_feed
             current_idx
             recovering_state
             fetch_next_videos=next_videos
             queue_end
             threshold_trigger_fetch
+            hard_refresh_target
         />
     }
     .into_any()
@@ -152,6 +189,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
         priority_q,
         batch_cnt,
         current_idx,
+        video_queue_for_feed,
         ..
     } = expect_context();
 
@@ -171,11 +209,19 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                 let mut cnt = 0;
                 while let Some((next, _)) = prio_q.pop_max() {
                     video_queue.update(|vq| {
-                        if vq.insert(next) {
+                        if vq.insert(next.clone()) {
+                            let len_vq = vq.len();
+                            if len_vq > MAX_VIDEO_ELEMENTS_FOR_FEED {
+                                return;
+                            }
+
+                            video_queue_for_feed.update(|vqf| {
+                                vqf[len_vq - 1].value.set(Some(next.clone()));
+                            });
                             cnt += 1;
                         }
                     });
-                    if cnt >= 25 {
+                    if cnt >= 10 {
                         break;
                     }
                 }
@@ -219,10 +265,18 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                         if video_queue
                             .with_untracked(|vq| vq.len())
                             .saturating_sub(current_idx.get_untracked())
-                            <= 25
+                            <= 10
                         {
                             video_queue.update(|vq| {
-                                let _ = vq.insert(post_detail);
+                                if vq.insert(post_detail.clone()) {
+                                    let len_vq = vq.len();
+                                    if len_vq > MAX_VIDEO_ELEMENTS_FOR_FEED {
+                                        return;
+                                    }
+                                    video_queue_for_feed.update(|vqf| {
+                                        vqf[len_vq - 1].value.set(Some(post_detail.clone()));
+                                    });
+                                }
                             });
                         } else {
                             priority_q.update(|pq| {
@@ -250,7 +304,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
         })
     });
 
-    view! { <CommonPostViewWithUpdates initial_post fetch_video_action threshold_trigger_fetch=50 /> }.into_any()
+    view! { <CommonPostViewWithUpdates initial_post fetch_video_action threshold_trigger_fetch=20 /> }.into_any()
 }
 
 #[component]
@@ -258,7 +312,11 @@ pub fn PostView() -> impl IntoView {
     let params = use_params::<PostParams>();
     let initial_canister_and_post = RwSignal::new(params.get_untracked().ok());
     let home_page_viewed_sent = RwSignal::new(false);
+    let show_nsfw_popup = RwSignal::new(false);
+    let nsfw_shown_idx: RwSignal<Vec<usize>> = RwSignal::new(Vec::new());
+
     let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
     let (nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
     Effect::new(move |_| {
         if home_page_viewed_sent.get_untracked() {
@@ -292,6 +350,20 @@ pub fn PostView() -> impl IntoView {
         current_idx,
         ..
     } = expect_context();
+
+    let current_post = Signal::derive(move || {
+        let index = current_idx.get();
+        video_queue.with(|q| q.get_index(index).cloned())
+    });
+
+    Effect::new(move |_| {
+        let index = current_idx.get();
+        if (index == 2 || index == 8) && !nsfw_shown_idx.get_untracked().contains(&index) {
+            show_nsfw_popup.set(true);
+            nsfw_shown_idx.update(|f| f.push(index));
+        }
+    });
+
     let canisters = unauth_canisters();
     let post_details_cache: PostDetailsCacheCtx = expect_context();
 
@@ -312,7 +384,11 @@ pub fn PostView() -> impl IntoView {
             let post_nsfw_prob = post_details_cache.post_details.with_untracked(|p| {
                 let item = p.get(&(params.canister_id, params.post_id));
                 if let Some(item) = item {
-                    item.nsfw_probability
+                    if item.is_nsfw {
+                        1.0
+                    } else {
+                        0.0
+                    }
                 } else {
                     1.0 // TODO: handle this for when we don't have details (when user shares video)
                 }
@@ -334,6 +410,27 @@ pub fn PostView() -> impl IntoView {
         }
     });
 
+    let (onboarding_store, set_onboarding_store, _) =
+        use_local_storage::<UserOnboardingStore, JsonSerdeCodec>(USER_ONBOARDING_STORE_KEY);
+
+    let show_onboarding_popup = RwSignal::new(false);
+
+    let close_onboarding_action = Action::new(move |_: &()| {
+        set_onboarding_store.update(|store| {
+            store.has_seen_onboarding = true;
+        });
+        show_onboarding_popup.set(false);
+        async move {}
+    });
+
+    Effect::new(move |_| {
+        if !(onboarding_store.get_untracked().has_seen_onboarding)
+            && !auth.is_logged_in_with_oauth().get_untracked()
+        {
+            show_onboarding_popup.set(true);
+        }
+    });
+
     view! {
         <Suspense fallback=FullScreenSpinner>
             {move || Suspend::new(async move {
@@ -341,6 +438,67 @@ pub fn PostView() -> impl IntoView {
                 { Some(view! { <PostViewWithUpdatesMLFeed initial_post /> }.into_any()) }
             })}
         </Suspense>
+        <NsfwUnlockPopup show=show_nsfw_popup current_post ev_ctx />
+        <OnboardingWelcomePopup show=show_onboarding_popup close_action=close_onboarding_action />
     }
     .into_any()
+}
+
+#[component]
+pub fn OnboardingWelcomePopup(show: RwSignal<bool>, close_action: Action<(), ()>) -> impl IntoView {
+    let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
+    const CREDITED_AMOUNT: u64 = global_constants::NEW_USER_SIGNUP_REWARD_SATS;
+    Effect::new(move || {
+        if show.get() {
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                MixPanelEvent::track_onboarding_popup(MixpanelOnboardingPopupViewProps {
+                    user_id: global.user_id,
+                    visitor_id: global.visitor_id,
+                    is_logged_in: global.is_logged_in,
+                    canister_id: global.canister_id,
+                    is_nsfw_enabled: global.is_nsfw_enabled,
+                    credited_amount: CREDITED_AMOUNT,
+                    popup_type: MixpanelOnboardingPopupType::SatsCreditPopup,
+                });
+            }
+        }
+    });
+    view! {
+        <ShadowOverlay show=show >
+            <div class="px-4 py-6 w-full h-full flex items-center justify-center">
+                <div class="overflow-hidden h-fit max-w-md items-center pt-16 cursor-auto bg-neutral-950 rounded-md w-full relative">
+                    <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
+                    <div
+                        style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
+                        class="absolute z-[1] -left-1/2 bottom-1/3 size-[32rem]" >
+                    </div>
+                    <button
+                        on:click=move |_| {
+                            close_action.dispatch(());
+                        }
+                        class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[2] top-4 right-4"
+                    >
+                        <Icon icon=icondata::ChCross />
+                    </button>
+                    <div class="flex z-[2] relative flex-col items-center gap-4 text-white justify-center p-12">
+                        <img src="/img/hotornot/onboarding-welcome.webp" class="h-60" />
+                        <div class="text-center text-2xl font-semibold">Bitcoin credited to<br/> your wallet!</div>
+                        <div class="text-center">
+                            "You've got free "<span class="font-semibold">{format!("Bitcoin ({CREDITED_AMOUNT} SATS)")}</span>.
+                            <br/>
+                            "Here's how to make it grow"
+                        </div>
+                        <HighlightedButton
+                            alt_style=false
+                            disabled=false
+                            on_click=move || { close_action.dispatch(()); }
+                        >
+                            "Start Playing"
+                        </HighlightedButton>
+                    </div>
+                </div>
+            </div>
+        </ShadowOverlay>
+    }
 }
