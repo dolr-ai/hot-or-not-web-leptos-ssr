@@ -58,10 +58,10 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
                     )
                 }
                 NotificationType::Liked(v) => {
-                    let user_details = cans
-                        .get_profile_details(v.by_user_principal.to_string())
-                        .await?
-                        .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
+                    let user_details =
+                        send_wrap(cans.get_profile_details(v.by_user_principal.to_string()))
+                            .await?
+                            .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
 
                     (
                         format!("/hot-or-not/{}/{}", cans.user_canister(), v.post_id),
