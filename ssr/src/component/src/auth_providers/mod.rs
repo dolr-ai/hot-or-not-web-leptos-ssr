@@ -10,7 +10,6 @@ use consts::AUTH_JOURNEY_PAGE;
 use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
-use leptos::logging;
 use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
 use leptos_icons::Icon;
@@ -169,7 +168,6 @@ pub fn LoginProviders(
             let path = loc.pathname.get();
             let category: BottomNavigationCategory =
                 BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
-            logging::log!("Setting auth journey page to: {}: {:?}", path, category);
             set_auth_journey_page.update(|f| *f = Some(category));
         }
     });
