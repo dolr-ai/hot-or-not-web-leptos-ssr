@@ -326,13 +326,7 @@ pub fn PostView() -> impl IntoView {
             auth.event_ctx(),
             nsfw_enabled.get_untracked(),
         ) {
-            MixPanelEvent::track_home_page_viewed(MixpanelBottomBarPageViewedProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-            });
+            MixPanelEvent::track_home_page_viewed(global);
             home_page_viewed_sent.set(true);
         }
     });
@@ -452,15 +446,11 @@ pub fn OnboardingWelcomePopup(show: RwSignal<bool>, close_action: Action<(), ()>
     Effect::new(move || {
         if show.get() {
             if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                MixPanelEvent::track_onboarding_popup(MixpanelOnboardingPopupViewProps {
-                    user_id: global.user_id,
-                    visitor_id: global.visitor_id,
-                    is_logged_in: global.is_logged_in,
-                    canister_id: global.canister_id,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                    credited_amount: CREDITED_AMOUNT,
-                    popup_type: MixpanelOnboardingPopupType::SatsCreditPopup,
-                });
+                MixPanelEvent::track_onboarding_popup_shown(
+                    global,
+                    CREDITED_AMOUNT,
+                    MixpanelOnboardingPopupType::SatsCreditPopup,
+                );
             }
         }
     });

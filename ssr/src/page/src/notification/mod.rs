@@ -67,8 +67,7 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
                             }
                             Err(e) => {
                                 return Err(ServerFnError::new(format!(
-                                    "Failed to get profile details: {}",
-                                    e
+                                    "Failed to get profile details: {e}"
                                 )));
                             }
                         };

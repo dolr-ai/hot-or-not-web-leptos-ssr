@@ -70,21 +70,17 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
                 let is_logged_in = is_logged_in.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
                 let is_hot_or_not = true;
-                MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-                    user_id: global.user_id,
-                    visitor_id: global.visitor_id,
-                    is_logged_in: global.is_logged_in,
-                    canister_id: global.canister_id,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                    is_nsfw: post.is_nsfw,
-                    is_game_enabled: is_hot_or_not,
-                    publisher_user_id: post.poster_principal.to_text(),
-                    game_type: MixpanelPostGameType::HotOrNot,
-                    cta_type: MixpanelVideoClickedCTAType::Like,
+                MixPanelEvent::track_video_clicked(
+                    global,
+                    post.poster_principal.to_text(),
+                    post.likes,
+                    post.views,
+                    is_hot_or_not,
                     video_id,
-                    view_count: post.views,
-                    like_count: post.likes,
-                });
+                    MixpanelPostGameType::HotOrNot,
+                    MixpanelVideoClickedCTAType::Like,
+                    post.is_nsfw,
+                );
             } else {
                 likes.update(|l| *l -= 1);
             }
@@ -182,20 +178,16 @@ pub fn VideoDetailsOverlay(
         let track_video_id_for_impressions = track_video_id_for_impressions.clone();
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
             if Some(video_url()) == window().location().href().ok() {
-                MixPanelEvent::track_video_impression(MixpanelVideoViewedProps {
-                    user_id: global.user_id,
-                    visitor_id: global.visitor_id,
-                    is_logged_in: global.is_logged_in,
-                    canister_id: global.canister_id,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                    publisher_user_id: post.poster_principal.to_text(),
-                    video_id: track_video_id_for_impressions,
-                    is_nsfw: post.is_nsfw,
-                    game_type: MixpanelPostGameType::HotOrNot,
-                    like_count: post.likes,
-                    view_count: post.views,
-                    is_game_enabled: true,
-                });
+                MixPanelEvent::track_video_impression(
+                    global,
+                    track_video_id_for_impressions,
+                    post.poster_principal.to_text(),
+                    MixpanelPostGameType::HotOrNot,
+                    post.likes,
+                    post.views,
+                    post.is_nsfw,
+                    true,
+                );
             }
         }
     });
@@ -206,21 +198,17 @@ pub fn VideoDetailsOverlay(
             return;
         };
         let is_hot_or_not = true;
-        MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-            user_id: global.user_id,
-            visitor_id: global.visitor_id,
-            is_logged_in: global.is_logged_in,
-            is_nsfw: post.is_nsfw,
-            canister_id: global.canister_id,
-            is_nsfw_enabled: global.is_nsfw_enabled,
-            is_game_enabled: is_hot_or_not,
-            publisher_user_id: post.poster_principal.to_text(),
-            game_type: MixpanelPostGameType::HotOrNot,
-            cta_type,
+        MixPanelEvent::track_video_clicked(
+            global,
+            post.poster_principal.to_text(),
+            post.likes,
+            post.views,
+            is_hot_or_not,
             video_id,
-            view_count: post.views,
-            like_count: post.likes,
-        });
+            MixpanelPostGameType::HotOrNot,
+            cta_type,
+            post.is_nsfw,
+        );
     };
     let track_video_share = track_video_clicked.clone();
     let track_video_share = move || track_video_share(MixpanelVideoClickedCTAType::Share);
@@ -254,19 +242,15 @@ pub fn VideoDetailsOverlay(
     let report_video_click_id = post.uid.clone();
     let click_report = Action::new(move |()| {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_video_reported(MixpanelVideoReportedProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                publisher_user_id: post.poster_principal.to_text(),
-                video_id: report_video_click_id.clone(),
-                is_nsfw: post.is_nsfw,
-                is_game_enabled: true,
-                game_type: MixpanelPostGameType::HotOrNot,
-                report_reason: report_option.get_untracked(),
-            });
+            MixPanelEvent::track_video_reported(
+                global,
+                post.poster_principal.to_text(),
+                true,
+                report_video_click_id.clone(),
+                MixpanelPostGameType::HotOrNot,
+                post.is_nsfw,
+                report_option.get_untracked(),
+            );
         }
         #[cfg(feature = "ga4")]
         {
@@ -317,21 +301,17 @@ pub fn VideoDetailsOverlay(
                 if let Some(global) = MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(ev_ctx, false)
                 {
                     let is_hot_or_not = true;
-                    MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-                        user_id: global.user_id,
-                        visitor_id: global.visitor_id,
-                        is_logged_in: global.is_logged_in,
-                        is_nsfw: post.is_nsfw,
-                        canister_id: global.canister_id,
-                        is_nsfw_enabled: global.is_nsfw_enabled,
-                        is_game_enabled: is_hot_or_not,
-                        publisher_user_id: post.poster_principal.to_text(),
-                        game_type: MixpanelPostGameType::HotOrNot,
-                        cta_type: MixpanelVideoClickedCTAType::NsfwToggle,
+                    MixPanelEvent::track_video_clicked(
+                        global,
+                        post.poster_principal.to_text(),
+                        post.likes,
+                        post.views,
+                        is_hot_or_not,
                         video_id,
-                        view_count: post.views,
-                        like_count: post.likes,
-                    });
+                        MixpanelPostGameType::HotOrNot,
+                        MixpanelVideoClickedCTAType::NsfwToggle,
+                        post.is_nsfw,
+                    );
                 }
             } else {
                 if !nsfw_enabled() && show_nsfw_permission() {
@@ -339,18 +319,14 @@ pub fn VideoDetailsOverlay(
                     if let Some(global) =
                         MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(ev_ctx, false)
                     {
-                        MixPanelEvent::track_nsfw_true(MixpanelNsfwToggleProps {
-                            user_id: global.user_id,
-                            visitor_id: global.visitor_id,
-                            is_logged_in: global.is_logged_in,
-                            canister_id: global.canister_id,
-                            is_nsfw_enabled: global.is_nsfw_enabled,
-                            publisher_user_id: post.poster_principal.to_text(),
+                        MixPanelEvent::track_nsfw_enabled(
+                            global,
+                            post.poster_principal.to_text(),
                             video_id,
-                            is_nsfw: post.is_nsfw,
-                            page_name: "home".to_string(),
-                            cta_type: None,
-                        });
+                            post.is_nsfw,
+                            "home".to_string(),
+                            None,
+                        );
                     }
                     set_nsfw_enabled(true);
                 } else {
@@ -359,21 +335,17 @@ pub fn VideoDetailsOverlay(
                         MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(ev_ctx, false)
                     {
                         let is_hot_or_not = true;
-                        MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-                            user_id: global.user_id,
-                            visitor_id: global.visitor_id,
-                            is_logged_in: global.is_logged_in,
-                            is_nsfw: post.is_nsfw,
-                            canister_id: global.canister_id,
-                            is_nsfw_enabled: global.is_nsfw_enabled,
-                            is_game_enabled: is_hot_or_not,
-                            publisher_user_id: post.poster_principal.to_text(),
-                            game_type: MixpanelPostGameType::HotOrNot,
-                            cta_type: MixpanelVideoClickedCTAType::NsfwToggle,
+                        MixPanelEvent::track_video_clicked(
+                            global,
+                            post.poster_principal.to_text(),
+                            post.likes,
+                            post.views,
+                            is_hot_or_not,
                             video_id,
-                            view_count: post.views,
-                            like_count: post.likes,
-                        });
+                            MixpanelPostGameType::HotOrNot,
+                            MixpanelVideoClickedCTAType::NsfwToggle,
+                            post.is_nsfw,
+                        );
                     }
                 }
                 // using set_href to hard reload the page
@@ -391,21 +363,17 @@ pub fn VideoDetailsOverlay(
             return;
         };
         let is_hot_or_not = true;
-        MixPanelEvent::track_video_clicked(MixpanelVideoClickedProps {
-            user_id: global.user_id,
-            visitor_id: global.visitor_id,
-            is_logged_in: global.is_logged_in,
-            is_nsfw: post.is_nsfw,
-            canister_id: global.canister_id,
-            is_nsfw_enabled: global.is_nsfw_enabled,
-            is_game_enabled: is_hot_or_not,
-            publisher_user_id: post.poster_principal.to_text(),
-            game_type: MixpanelPostGameType::HotOrNot,
-            cta_type: MixpanelVideoClickedCTAType::CreatorProfile,
+        MixPanelEvent::track_video_clicked(
+            global,
+            post.poster_principal.to_string(),
+            post.likes,
+            post.views,
+            is_hot_or_not,
             video_id,
-            view_count: post.views,
-            like_count: post.likes,
-        });
+            MixpanelPostGameType::HotOrNot,
+            MixpanelVideoClickedCTAType::CreatorProfile,
+            post.is_nsfw,
+        );
     };
 
     let show_tutorial: RwSignal<bool> = RwSignal::new(false);

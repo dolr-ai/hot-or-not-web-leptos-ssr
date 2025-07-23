@@ -12,9 +12,7 @@ use leptos_use::{
     storage::use_local_storage, use_cookie, use_cookie_with_options, UseCookieOptions,
 };
 use utils::{
-    mixpanel::mixpanel_events::{
-        BottomNavigationCategory, MixPanelEvent, MixpanelBottomNavigationProps, MixpanelGlobalProps,
-    },
+    mixpanel::mixpanel_events::{BottomNavigationCategory, MixPanelEvent, MixpanelGlobalProps},
     types::PostParams,
 };
 
@@ -163,15 +161,9 @@ fn NavIcon(
                     canister,
                     connected,
                     is_nsfw_enabled.get_untracked(),
+                    None,
                 );
-                MixPanelEvent::track_bottom_navigation_clicked(MixpanelBottomNavigationProps {
-                    category_name,
-                    user_id: global.user_id,
-                    visitor_id: global.visitor_id,
-                    canister_id: global.canister_id,
-                    is_logged_in: global.is_logged_in,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                });
+                MixPanelEvent::track_bottom_navigation_clicked(global, category_name);
             }
         }
     };
@@ -218,15 +210,12 @@ fn UploadIcon(#[prop(into)] cur_selected: Signal<bool>) -> impl IntoView {
                 canister,
                 connected,
                 is_nsfw_enabled.get_untracked(),
+                None,
             );
-            MixPanelEvent::track_bottom_navigation_clicked(MixpanelBottomNavigationProps {
-                category_name: BottomNavigationCategory::UploadVideo,
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                canister_id: global.canister_id,
-                is_logged_in: global.is_logged_in,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-            });
+            MixPanelEvent::track_bottom_navigation_clicked(
+                global,
+                BottomNavigationCategory::UploadVideo,
+            );
         }
     };
     view! {
