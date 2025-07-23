@@ -28,6 +28,7 @@ pub const ACCOUNT_CONNECTED_STORE: &str = "account-connected-1";
 pub const DEVICE_ID: &str = "device_id";
 pub const CUSTOM_DEVICE_ID: &str = "custom_device_id";
 pub const AUTH_JOURNET: &str = "auth_journey";
+pub const AUTH_JOURNEY_PAGE: &str = "auth_journey_page";
 pub static CF_BASE_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://api.cloudflare.com/client/v4/").unwrap());
 pub const NOTIFICATIONS_ENABLED_STORE: &str = "yral-notifications-enabled";

@@ -8,6 +8,7 @@ use leptos::task::spawn_local;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_timeout_fn;
 use leptos_use::UseTimeoutFnReturn;
+use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
 use yral_canisters_common::utils::vote::VoteKind;
@@ -329,6 +330,8 @@ impl TryFrom<String> for BottomNavigationCategory {
             return Ok(BottomNavigationCategory::Profile);
         } else if value.contains("/wallet/") {
             return Ok(BottomNavigationCategory::Wallet);
+        } else if value.contains("/hot-or-not/") {
+            return Ok(BottomNavigationCategory::Home);
         }
 
         match value.as_str() {
@@ -420,11 +423,12 @@ pub enum StakeType {
     Usdc,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum BottomNavigationCategory {
     UploadVideo,
     Profile,
+    #[default]
     Menu,
     Home,
     Wallet,

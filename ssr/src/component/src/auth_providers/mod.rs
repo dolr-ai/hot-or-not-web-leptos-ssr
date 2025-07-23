@@ -4,18 +4,24 @@ mod server_impl;
 pub mod yral;
 
 use candid::Principal;
+use codee::string::FromToStringCodec;
+use consts::AUTH_JOURNEY_PAGE;
 use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
+use leptos::logging;
 use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
 use leptos_icons::Icon;
+use leptos_router::hooks::use_location;
 use leptos_router::hooks::use_navigate;
+use leptos_use::use_cookie;
 use state::canisters::auth_state;
 use state::canisters::unauth_canisters;
 use utils::event_streaming::events::CentsAdded;
 use utils::event_streaming::events::EventCtx;
 use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, ProviderKind};
+use utils::mixpanel::mixpanel_events::BottomNavigationCategory;
 use utils::mixpanel::mixpanel_events::MixPanelEvent;
 use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
 use utils::send_wrap;
@@ -132,9 +138,23 @@ pub fn LoginProviders(
 
     let event_ctx = auth.event_ctx();
 
+    let loc = use_location();
+
     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
         MixPanelEvent::track_auth_screen_viewed(global);
     }
+
+    let (_, set_auth_journey_page) = use_cookie::<String, FromToStringCodec>(AUTH_JOURNEY_PAGE);
+
+    Effect::new(move || {
+        if show_modal.get() {
+            let path = loc.pathname.get();
+            let category: BottomNavigationCategory =
+                BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
+            logging::log!("Setting auth journey page to: {}: {:?}", path, category);
+            set_auth_journey_page.update(|f| *f = Some(format!("{category:?}")));
+        }
+    });
 
     let base_cans = unauth_canisters();
     let login_action = Action::new(move |new_id: &NewIdentity| {
