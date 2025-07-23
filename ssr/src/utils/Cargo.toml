@@ -85,6 +85,9 @@ anyhow = { workspace = true }
 send_wrapper = { workspace = true }
 indexmap = { workspace = true }
 chrono = "0.4"
+num-bigint = { workspace = true }
+hon-worker-common = { workspace = true }
+videogen-common = { workspace = true }
 
 # workspace specific deps
 consts = { workspace = true }
