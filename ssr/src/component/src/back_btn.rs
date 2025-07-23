@@ -4,7 +4,6 @@ use leptos_icons::Icon;
 use leptos_router::hooks::use_navigate;
 use reqwest::Url;
 
-use utils::event_streaming::events::HistoryCtx;
 
 /// Go back or navigate to a fallback route
 /// does nothing in ssr mode
@@ -17,6 +16,7 @@ pub fn go_back_or_fallback(fallback: &str) {
     }
     #[cfg(feature = "hydrate")]
     {
+        use utils::event_streaming::events::HistoryCtx;
         let history_ctx = expect_context::<HistoryCtx>();
         let win = window();
         let referrer = win

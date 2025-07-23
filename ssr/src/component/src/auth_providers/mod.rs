@@ -91,30 +91,30 @@ pub struct LoginProvCtx {
 /// automatically sets the processing state to true
 #[component]
 fn LoginProvButton<Cb: Fn(ev::MouseEvent) + 'static>(
-    prov: ProviderKind,
-    #[prop(into)] class: Oco<'static, str>,
-    on_click: Cb,
-    #[prop(optional, into)] disabled: Signal<bool>,
-    children: Children,
+    _prov: ProviderKind,
+    #[prop(into)] _class: Oco<'static, str>,
+    _on_click: Cb,
+    #[prop(optional, into)] _disabled: Signal<bool>,
+    _children: Children,
 ) -> impl IntoView {
     let ctx: LoginProvCtx = expect_context();
 
     let click_action = Action::new(move |()| async move {
-        LoginMethodSelected.send_event(prov);
+        LoginMethodSelected.send_event(_prov);
     });
 
     view! {
         <button
-            disabled=move || ctx.processing.get().is_some() || disabled()
-            class=class
+            disabled=move || ctx.processing.get().is_some() || _disabled()
+            class=_class
             on:click=move |ev| {
-                ctx.set_processing.set(Some(prov));
-                on_click(ev);
+                ctx.set_processing.set(Some(_prov));
+                _on_click(ev);
                 click_action.dispatch(());
             }
         >
 
-            {children()}
+            {_children()}
         </button>
     }
 }

@@ -105,6 +105,7 @@ fn HNButtonOverlay(
         #[cfg(not(feature = "hydrate"))]
         {
             _ = audio_ref;
+            _ = won;
         }
         #[cfg(feature = "hydrate")]
         {

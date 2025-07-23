@@ -7,7 +7,6 @@ use leptos_router::components::Redirect;
 use leptos_use::storage::use_local_storage;
 use state::canisters::auth_state;
 use utils::event_streaming::events::{LogoutClicked, LogoutConfirmation};
-use utils::mixpanel::state::MixpanelState;
 use utils::types::NewIdentity;
 
 #[component]
@@ -36,6 +35,7 @@ pub fn Logout() -> impl IntoView {
                             LogoutConfirmation.send_event(ev_ctx);
                             #[cfg(feature = "hydrate")]
                             {
+                                use utils::mixpanel::state::MixpanelState;
                                 let device_id = uuid::Uuid::new_v4().to_string();
                                 set_device_id(device_id.clone());
                                 MixpanelState::reset_device_id(device_id);

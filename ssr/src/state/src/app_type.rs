@@ -1,4 +1,3 @@
-use leptos::prelude::window;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AppType {
@@ -18,7 +17,7 @@ impl AppType {
     pub fn select() -> Self {
         #[cfg(feature = "hydrate")]
         {
-            let hostname = window().location().hostname().unwrap_or_default();
+            let hostname = leptos::prelude::window().location().hostname().unwrap_or_default();
             AppType::from_host(&hostname)
         }
 

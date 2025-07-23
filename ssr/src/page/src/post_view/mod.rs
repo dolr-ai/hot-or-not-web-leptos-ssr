@@ -36,7 +36,7 @@ use utils::{
 };
 
 use video_iter::{new_video_fetch_stream, new_video_fetch_stream_auth, FeedResultType};
-use yral_canisters_common::{utils::posts::PostDetails, Canisters};
+use yral_canisters_common::utils::posts::PostDetails;
 
 #[derive(Params, PartialEq, Clone, Copy)]
 struct PostParams {

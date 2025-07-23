@@ -4,9 +4,6 @@ use component::buttons::HighlightedLinkButton;
 use component::modal::Modal;
 use component::notification_nudge::NotificationNudge;
 use consts::UPLOAD_URL;
-use futures::channel::oneshot;
-use gloo::net::http::Request;
-use leptos::web_sys::{Blob, FormData, ProgressEvent};
 use leptos::{
     ev::durationchange,
     html::{Input, Video},
@@ -17,8 +14,6 @@ use leptos_use::use_event_listener;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use state::canisters::{auth_state, unauth_canisters};
-use std::cell::RefCell;
-use std::rc::Rc;
 use utils::mixpanel::mixpanel_events::*;
 use utils::{
     event_streaming::events::{
@@ -27,7 +22,6 @@ use utils::{
     try_or_redirect_opt,
     web::FileWithUrl,
 };
-use wasm_bindgen::{closure::Closure, JsCast};
 
 #[component]
 pub fn DropBox() -> impl IntoView {
