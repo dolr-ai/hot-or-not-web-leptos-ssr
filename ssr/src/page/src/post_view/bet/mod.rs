@@ -526,7 +526,7 @@ fn TotalBalance(won: bool) -> impl IntoView {
     view! {
         <Show when=move|| HnBetState::get_balance().is_some()>
             <div class=format!("flex items-center text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-[#158F5C]" } else { "bg-[#F14331]" })>
-                {move || total_balance_text()}
+                {total_balance_text}
             </div>
         </Show>
     }
