@@ -4,6 +4,7 @@ use component::{base_route::BaseRoute, nav::NavBar};
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::{components::*, path};
+use leptos_router::hooks::use_location;
 use page::about_us::AboutUs;
 use page::internal::clear_sats::ClearSats;
 use page::leaderboard::Leaderboard;

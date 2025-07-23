@@ -1,5 +1,3 @@
-use std::sync::LazyLock;
-
 pub fn get_host() -> String {
     #[cfg(feature = "hydrate")]
     {
@@ -34,6 +32,7 @@ pub fn get_host() -> String {
 #[cfg(feature = "ssr")]
 pub fn is_host_or_origin_from_preview_domain(uri: &str) -> bool {
     use regex::Regex;
+    use std::sync::LazyLock;
 
     static PR_PREVIEW_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
         Regex::new(r"^(https:\/\/)?pr-\d*-dolr-ai-hot-or-not-web-leptos-ssr\.fly\.dev$").unwrap()

@@ -237,7 +237,7 @@ pub fn VideoDetailsOverlay(
         Timeout::new(1200, move || show_copied_popup.set(false)).forget();
     };
 
-    let post_details_report = post.clone();
+    let _post_details_report = post.clone();
     let profile_click_video_id = post.uid.clone();
     let report_video_click_id = post.uid.clone();
     let click_report = Action::new(move |()| {
