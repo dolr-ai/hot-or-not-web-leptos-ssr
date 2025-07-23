@@ -4980,6 +4980,7 @@ version = "0.9.0"
 source = "git+https://github.com/dfinity/ic.git?rev=b2a4053f1dca2455511f2c6c0dc12cb65f93b4b1#b2a4053f1dca2455511f2c6c0dc12cb65f93b4b1"
 dependencies = [
  "base64 0.13.1",
+ "getrandom 0.2.16",
  "hex",
  "ic-crypto-interfaces-sig-verification",
  "ic-crypto-standalone-sig-verifier",
@@ -10350,6 +10351,7 @@ dependencies = [
  "web-time",
  "yral-canisters-client",
  "yral-canisters-common",
+ "yral-identity 0.1.0",
  "yral-metadata-client",
  "yral-metadata-types",
  "yral-testcontainers",
@@ -10453,14 +10455,11 @@ name = "videogen-common"
 version = "0.1.0"
 dependencies = [
  "candid",
- "hon-worker-common",
- "ic-agent",
  "reqwest 0.12.22",
  "serde",
  "serde_json",
  "thiserror 1.0.69",
  "utoipa",
- "yral-identity 0.1.0",
 ]
 
 [[package]]
@@ -11121,6 +11120,7 @@ name = "yral-identity"
 version = "0.1.0"
 dependencies = [
  "candid",
+ "getrandom 0.2.16",
  "ic-agent",
  "ic-types",
  "ic-validator-ingress-message",

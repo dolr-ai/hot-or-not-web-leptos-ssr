@@ -190,8 +190,13 @@ yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features
     "client",
 ], version = "0.1.0" }
 global-constants = { path = "../yral-common/global-constants" }
-yral-identity = { path = "../yral-common/identity", default-features = false }
-videogen-common = { path = "../yral-common/videogen-common", features = ["client"] }
+yral-identity = { path = "../yral-common/identity", default-features = false, features = [
+    "ic-git",
+    "wasm-bindgen",
+] } # TODO: make this optional and use the features only for ssr
+videogen-common = { path = "../yral-common/videogen-common", features = [
+    "client",
+] }
 # ===
 
 # yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
