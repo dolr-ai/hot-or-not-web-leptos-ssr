@@ -88,7 +88,7 @@ pub fn PreVideoUpload(
     }
 
     let upload_action: Action<(), _> = Action::new_local(move |_| {
-        let captured_progress_signal = upload_file_actual_progress;
+        let _captured_progress_signal = upload_file_actual_progress;
         async move {
             #[cfg(feature = "hydrate")]
             {

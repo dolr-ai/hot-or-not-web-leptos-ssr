@@ -196,18 +196,18 @@ impl VideoWatched {
 pub struct LikeVideo;
 
 impl LikeVideo {
-    pub fn send_event(&self, _ctx: EventCtx, post_details: PostDetails, likes: RwSignal<u64>) {
+    pub fn send_event(&self, _ctx: EventCtx, _post_details: PostDetails, _likes: RwSignal<u64>) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let publisher_user_id = post_details.poster_principal;
-            let video_id = post_details.uid.clone();
-            let hastag_count = post_details.hastags.len();
-            let is_nsfw = post_details.is_nsfw;
-            let is_hotornot = post_details.hot_or_not_feed_ranking_score.is_some();
-            let view_count = post_details.views;
-            let post_id = post_details.post_id;
-            let publisher_canister_id = post_details.canister_id;
-            let nsfw_probability = post_details.nsfw_probability;
+            let publisher_user_id = _post_details.poster_principal;
+            let video_id = _post_details.uid.clone();
+            let hastag_count = _post_details.hastags.len();
+            let is_nsfw = _post_details.is_nsfw;
+            let is_hotornot = _post_details.hot_or_not_feed_ranking_score.is_some();
+            let view_count = _post_details.views;
+            let post_id = _post_details.post_id;
+            let publisher_canister_id = _post_details.canister_id;
+            let nsfw_probability = _post_details.nsfw_probability;
 
             // like_video - analytics
 
@@ -231,7 +231,7 @@ impl LikeVideo {
                     "is_hotorNot": is_hotornot,
                     "feed_type": "NA",
                     "view_count": view_count,
-                    "like_count": likes.get(),
+                    "like_count": _likes.get(),
                     "share_count": 0,
                     "post_id": post_id,
                     "publisher_canister_id": publisher_canister_id,
@@ -247,17 +247,17 @@ impl LikeVideo {
 pub struct ShareVideo;
 
 impl ShareVideo {
-    pub fn send_event(&self, _ctx: EventCtx, post_details: PostDetails) {
+    pub fn send_event(&self, _ctx: EventCtx, _post_details: PostDetails) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let publisher_user_id = post_details.poster_principal;
-            let video_id = post_details.uid.clone();
-            let hastag_count = post_details.hastags.len();
-            let is_nsfw = post_details.is_nsfw;
-            let is_hotornot = post_details.hot_or_not_feed_ranking_score.is_some();
-            let view_count = post_details.views;
-            let like_count = post_details.likes;
-            let nsfw_probability = post_details.nsfw_probability;
+            let publisher_user_id = _post_details.poster_principal;
+            let video_id = _post_details.uid.clone();
+            let hastag_count = _post_details.hastags.len();
+            let is_nsfw = _post_details.is_nsfw;
+            let is_hotornot = _post_details.hot_or_not_feed_ranking_score.is_some();
+            let view_count = _post_details.views;
+            let like_count = _post_details.likes;
+            let nsfw_probability = _post_details.nsfw_probability;
 
             let Some(user) = _ctx.user_details() else {
                 return;
@@ -322,9 +322,9 @@ impl VideoUploadUploadButtonClicked {
     pub fn send_event(
         &self,
         _ctx: EventCtx,
-        hashtag_inp: NodeRef<Input>,
-        is_nsfw: NodeRef<Input>,
-        enable_hot_or_not: NodeRef<Input>,
+        _hashtag_inp: NodeRef<Input>,
+        _is_nsfw: NodeRef<Input>,
+        _enable_hot_or_not: NodeRef<Input>,
     ) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
@@ -333,14 +333,14 @@ impl VideoUploadUploadButtonClicked {
                 return;
             };
 
-            let hashtag_count = hashtag_inp
+            let hashtag_count = _hashtag_inp
                 .get_untracked()
                 .map_or_else(|| 0, |input| input.value().len());
-            let is_nsfw_val = is_nsfw
+            let is_nsfw_val = _is_nsfw
                 .get_untracked()
                 .map(|v| v.checked())
                 .unwrap_or_default();
-            let is_hotornot_val = enable_hot_or_not
+            let is_hotornot_val = _enable_hot_or_not
                 .get_untracked()
                 .map(|v| v.checked())
                 .unwrap_or_default();
@@ -398,10 +398,10 @@ impl VideoUploadUnsuccessful {
     pub fn send_event(
         &self,
         _ctx: EventCtx,
-        error: String,
-        hashtags_len: usize,
-        is_nsfw: bool,
-        enable_hot_or_not: bool,
+        _error: String,
+        _hashtags_len: usize,
+        _is_nsfw: bool,
+        _enable_hot_or_not: bool,
     ) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
@@ -417,10 +417,10 @@ impl VideoUploadUnsuccessful {
                     "display_name": user.details.display_name.unwrap_or_default(),
                     "canister_id": user.canister_id,
                     "creator_category": "NA",
-                    "hashtag_count": hashtags_len,
-                    "is_NSFW": is_nsfw,
-                    "is_hotorNot": enable_hot_or_not,
-                    "fail_reason": error,
+                    "hashtag_count": _hashtags_len,
+                    "is_NSFW": _is_nsfw,
+                    "is_hotorNot": _enable_hot_or_not,
+                    "fail_reason": _error,
                 })
                 .to_string(),
             );
@@ -435,11 +435,11 @@ impl VideoUploadSuccessful {
     pub fn send_event(
         &self,
         _ctx: EventCtx,
-        video_id: String,
-        hashtags_len: usize,
-        is_nsfw: bool,
-        enable_hot_or_not: bool,
-        post_id: u64,
+        _video_id: String,
+        _hashtags_len: usize,
+        _is_nsfw: bool,
+        _enable_hot_or_not: bool,
+        _post_id: u64,
     ) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
@@ -455,12 +455,12 @@ impl VideoUploadSuccessful {
                     "display_name": user.details.display_name,
                     "canister_id": user.canister_id,
                     "creator_category": "NA",
-                    "hashtag_count": hashtags_len,
-                    "is_NSFW": is_nsfw,
-                    "is_hotorNot": enable_hot_or_not,
+                    "hashtag_count": _hashtags_len,
+                    "is_NSFW": _is_nsfw,
+                    "is_hotorNot": _enable_hot_or_not,
                     "is_filter_used": false,
-                    "video_id": video_id,
-                    "post_id": post_id,
+                    "video_id": _video_id,
+                    "post_id": _post_id,
                 })
                 .to_string(),
             );
@@ -544,16 +544,16 @@ impl ReferShareLink {
 pub struct LoginSuccessful;
 
 impl LoginSuccessful {
-    pub fn send_event(&self, canisters: Canisters<true>) -> Result<(), anyhow::Error> {
+    pub fn send_event(&self, _canisters: Canisters<true>) -> Result<(), anyhow::Error> {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // login_successful - analytics
 
-            let user_id = canisters.identity().sender().map_err(|_| {
+            let user_id = _canisters.identity().sender().map_err(|_| {
                 leptos::logging::error!("No sender found for login successful event");
                 anyhow::anyhow!("No sender found for login successful event")
             })?;
-            let canister_id = canisters.user_canister();
+            let canister_id = _canisters.user_canister();
 
             // login_successful - analytics
             let _ = send_event_ssr_spawn(
@@ -576,14 +576,14 @@ impl LoginSuccessful {
 pub struct LoginMethodSelected;
 
 impl LoginMethodSelected {
-    pub fn send_event(&self, prov: ProviderKind) {
+    pub fn send_event(&self, _prov: ProviderKind) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // login_method_selected - analytics
             let _ = send_event_ssr_spawn(
                 "login_method_selected".to_string(),
                 json!({
-                    "login_method": match prov {
+                    "login_method": match _prov {
                         #[cfg(any(feature = "oauth-ssr", feature = "oauth-hydrate"))]
                         ProviderKind::YralAuth => "yral",
                         #[cfg(not(any(feature = "oauth-ssr", feature = "oauth-hydrate")))]
@@ -628,7 +628,7 @@ impl LoginJoinOverlayViewed {
 pub struct LoginCta;
 
 impl LoginCta {
-    pub fn send_event(&self, cta_location: String) {
+    pub fn send_event(&self, _cta_location: String) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // login_cta - analytics
@@ -639,7 +639,7 @@ impl LoginCta {
                 "login_cta".to_string(),
                 json!({
                     "previous_event": event_history.event_name.get_untracked(),
-                    "cta_location": cta_location,
+                    "cta_location": _cta_location,
                 })
                 .to_string(),
             );
@@ -711,7 +711,7 @@ impl LogoutConfirmation {
 pub struct ErrorEvent;
 
 impl ErrorEvent {
-    pub fn send_event(&self, _ctx: EventCtx, error_str: String) {
+    pub fn send_event(&self, _ctx: EventCtx, _error_str: String) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             let event_history: EventHistory = expect_context();
@@ -729,7 +729,7 @@ impl ErrorEvent {
                 json!({
                     "user_id": user_id,
                     "canister_id": canister_id,
-                    "description": error_str,
+                    "description": _error_str,
                     "previous_event": event_history.event_name.get_untracked(),
                 })
                 .to_string(),
@@ -742,11 +742,11 @@ impl ErrorEvent {
 pub struct ProfileViewVideo;
 
 impl ProfileViewVideo {
-    pub fn send_event(&self, _ctx: EventCtx, post_details: PostDetails) {
+    pub fn send_event(&self, _ctx: EventCtx, _post_details: PostDetails) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let publisher_user_id = post_details.poster_principal;
-            let video_id = post_details.uid.clone();
+            let publisher_user_id = _post_details.poster_principal;
+            let video_id = _post_details.uid.clone();
 
             let Some(user) = _ctx.user_details() else {
                 return;
@@ -773,7 +773,7 @@ impl ProfileViewVideo {
 pub struct TokenCreationStarted;
 
 impl TokenCreationStarted {
-    pub fn send_event(&self, _ctx: EventCtx, sns_init_payload: SnsInitPayload) {
+    pub fn send_event(&self, _ctx: EventCtx, _sns_init_payload: SnsInitPayload) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             let Some(user) = _ctx.user_details() else {
@@ -790,9 +790,9 @@ impl TokenCreationStarted {
                 json!({
                     "user_id": user_id,
                     "canister_id": canister_id,
-                    "token_name": sns_init_payload.token_name,
-                    "token_symbol": sns_init_payload.token_symbol,
-                    "name": sns_init_payload.name
+                    "token_name": _sns_init_payload.token_name,
+                    "token_symbol": _sns_init_payload.token_symbol,
+                    "name": _sns_init_payload.name
                 })
                 .to_string(),
             );
@@ -804,13 +804,13 @@ impl TokenCreationStarted {
 pub struct TokensTransferred;
 
 impl TokensTransferred {
-    pub fn send_event(&self, amount: String, to: Principal, cans_store: Canisters<true>) {
+    pub fn send_event(&self, _amount: String, _to: Principal, _cans_store: Canisters<true>) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let details = cans_store.profile_details();
+            let details = _cans_store.profile_details();
 
             let user_id = details.principal;
-            let canister_id = cans_store.user_canister();
+            let canister_id = _cans_store.user_canister();
 
             // tokens_transferred - analytics
             let _ = send_event_ssr_spawn(
@@ -818,8 +818,8 @@ impl TokensTransferred {
                 json!({
                     "user_id": user_id,
                     "canister_id": canister_id,
-                    "amount": amount,
-                    "to": to
+                    "amount": _amount,
+                    "to": _to
                 })
                 .to_string(),
             );
@@ -831,7 +831,7 @@ impl TokensTransferred {
 pub struct PageVisit;
 
 impl PageVisit {
-    pub fn send_event(&self, user_id: Principal, is_connected: bool, pathname: String) {
+    pub fn send_event(&self, _user_id: Principal, _is_connected: bool, _pathname: String) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
@@ -839,9 +839,9 @@ impl PageVisit {
                     let _ = send_event_ssr_spawn(
                         "yral_page_visit".to_string(),
                         json!({
-                            "user_id": user_id,
-                            "is_loggedIn": is_connected,
-                            "pathname": pathname,
+                            "user_id": _user_id,
+                            "is_loggedIn": _is_connected,
+                            "pathname": _pathname,
                         })
                         .to_string(),
                     );
@@ -858,7 +858,7 @@ impl PageVisit {
 pub struct CentsAdded;
 
 impl CentsAdded {
-    pub fn send_event(&self, _ctx: EventCtx, payment_source: String, amount: u64) {
+    pub fn send_event(&self, _ctx: EventCtx, _payment_source: String, _amount: u64) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             let Some(user) = _ctx.user_details() else {
@@ -871,8 +871,8 @@ impl CentsAdded {
                     "user_id": user.details.principal,
                     "canister_id": user.canister_id,
                     "is_loggedin": _ctx.is_connected(),
-                    "amount_added": amount,
-                    "payment_source": payment_source,
+                    "amount_added": _amount,
+                    "payment_source": _payment_source,
                 })
                 .to_string(),
             );
@@ -884,7 +884,7 @@ impl CentsAdded {
 pub struct CentsWithdrawn;
 
 impl CentsWithdrawn {
-    pub fn send_event(&self, _ctx: EventCtx, amount_withdrawn: f64) {
+    pub fn send_event(&self, _ctx: EventCtx, _amount_withdrawn: f64) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             let Some(user) = _ctx.user_details() else {
@@ -896,7 +896,7 @@ impl CentsWithdrawn {
                     "user_id": user.details.principal,
                     "canister_id": user.canister_id,
                     "is_loggedin": _ctx.is_connected(),
-                    "amount_withdrawn": amount_withdrawn,
+                    "amount_withdrawn": _amount_withdrawn,
                 })
                 .to_string(),
             );
@@ -908,7 +908,7 @@ impl CentsWithdrawn {
 pub struct SatsWithdrawn;
 
 impl SatsWithdrawn {
-    pub fn send_event(&self, _ctx: EventCtx, amount_withdrawn: f64) {
+    pub fn send_event(&self, _ctx: EventCtx, _amount_withdrawn: f64) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             let Some(user) = _ctx.user_details() else {
@@ -920,7 +920,7 @@ impl SatsWithdrawn {
                     "user_id": user.details.principal,
                     "canister_id": user.canister_id,
                     "is_loggedin": _ctx.is_connected(),
-                    "amount_withdrawn": amount_withdrawn,
+                    "amount_withdrawn": _amount_withdrawn,
                 })
                 .to_string(),
             );

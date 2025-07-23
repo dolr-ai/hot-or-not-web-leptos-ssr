@@ -30,6 +30,7 @@ fn share(url: &str, text: &str) -> Option<()> {
     #[cfg(not(feature = "hydrate"))]
     {
         _ = url;
+        _ = text;
         None
     }
     #[cfg(feature = "hydrate")]

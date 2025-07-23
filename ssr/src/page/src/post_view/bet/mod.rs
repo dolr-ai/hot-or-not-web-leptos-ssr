@@ -101,7 +101,7 @@ fn HNButtonOverlay(
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
 
-    fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
+    fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, _won: bool) {
         #[cfg(not(feature = "hydrate"))]
         {
             _ = audio_ref;

@@ -12,6 +12,7 @@ use utils::event_streaming::events::HistoryCtx;
 pub fn go_back_or_fallback(fallback: &str) {
     #[cfg(not(feature = "hydrate"))]
     {
+        let _ = fallback;
         return;
     }
     #[cfg(feature = "hydrate")]

@@ -13,6 +13,7 @@ use crate::event_streaming::{send_event_ssr_spawn, send_event_warehouse_ssr_spaw
 use super::analytics_provider::MixpanelProvider;
 
 pub struct VideoWatchedHandler {
+    #[allow(dead_code)]
     progress_tracker: VideoProgressTracker,
 }
 

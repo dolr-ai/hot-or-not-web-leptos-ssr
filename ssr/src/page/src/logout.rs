@@ -21,6 +21,8 @@ pub fn Logout() -> impl IntoView {
         use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
 
     let (_, set_device_id, _) = use_local_storage::<String, FromToStringCodec>(DEVICE_ID);
+    #[cfg(not(feature = "hydrate"))]
+    let _ = set_device_id;
 
     view! {
         <Loading text="Logging out...".to_string()>

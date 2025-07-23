@@ -243,6 +243,7 @@ impl MixpanelGlobalProps {
     pub fn from_ev_ctx(ev_ctx: EventCtx) -> Option<Self> {
         #[cfg(not(feature = "hydrate"))]
         {
+            let _ = ev_ctx;
             return None;
         }
         #[cfg(feature = "hydrate")]
@@ -258,6 +259,8 @@ impl MixpanelGlobalProps {
     pub fn from_ev_ctx_with_nsfw_info(ev_ctx: EventCtx, is_nsfw_enabled: bool) -> Option<Self> {
         #[cfg(not(feature = "hydrate"))]
         {
+            let _ = ev_ctx;
+            let _ = is_nsfw_enabled;
             return None;
         }
         #[cfg(feature = "hydrate")]
