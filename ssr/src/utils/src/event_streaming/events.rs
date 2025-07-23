@@ -196,7 +196,7 @@ impl VideoWatched {
 pub struct LikeVideo;
 
 impl LikeVideo {
-    pub fn send_event(&self, ctx: EventCtx, post_details: PostDetails, likes: RwSignal<u64>) {
+    pub fn send_event(&self, _ctx: EventCtx, post_details: PostDetails, likes: RwSignal<u64>) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             let publisher_user_id = post_details.poster_principal;
@@ -211,7 +211,7 @@ impl LikeVideo {
 
             // like_video - analytics
 
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
 
@@ -220,7 +220,7 @@ impl LikeVideo {
                 json!({
                     "publisher_user_id":publisher_user_id,
                     "user_id": user.details.principal,
-                    "is_loggedIn": ctx.is_connected(),
+                    "is_loggedIn": _ctx.is_connected(),
                     "display_name": user.details.display_name,
                     "canister_id": user.canister_id,
                     "video_id": video_id,
@@ -247,7 +247,7 @@ impl LikeVideo {
 pub struct ShareVideo;
 
 impl ShareVideo {
-    pub fn send_event(&self, ctx: EventCtx, post_details: PostDetails) {
+    pub fn send_event(&self, _ctx: EventCtx, post_details: PostDetails) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             let publisher_user_id = post_details.poster_principal;
@@ -259,7 +259,7 @@ impl ShareVideo {
             let like_count = post_details.likes;
             let nsfw_probability = post_details.nsfw_probability;
 
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
 
@@ -269,7 +269,7 @@ impl ShareVideo {
                 json!({
                     "publisher_user_id":publisher_user_id,
                     "user_id": user.details.principal,
-                    "is_loggedIn": ctx.is_connected(),
+                    "is_loggedIn": _ctx.is_connected(),
                     "display_name": user.details.display_name,
                     "canister_id": user.canister_id,
                     "video_id": video_id,
@@ -294,11 +294,11 @@ impl ShareVideo {
 pub struct VideoUploadInitiated;
 
 impl VideoUploadInitiated {
-    pub fn send_event(&self, ctx: EventCtx) {
+    pub fn send_event(&self, _ctx: EventCtx) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // video_upload_initiated - analytics
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
             let _ = send_event_ssr_spawn(
@@ -321,7 +321,7 @@ pub struct VideoUploadUploadButtonClicked;
 impl VideoUploadUploadButtonClicked {
     pub fn send_event(
         &self,
-        ctx: EventCtx,
+        _ctx: EventCtx,
         hashtag_inp: NodeRef<Input>,
         is_nsfw: NodeRef<Input>,
         enable_hot_or_not: NodeRef<Input>,
@@ -329,7 +329,7 @@ impl VideoUploadUploadButtonClicked {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // video_upload_upload_button_clicked - analytics
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
 
@@ -368,11 +368,11 @@ impl VideoUploadUploadButtonClicked {
 pub struct VideoUploadVideoSelected;
 
 impl VideoUploadVideoSelected {
-    pub fn send_event(&self, ctx: EventCtx) {
+    pub fn send_event(&self, _ctx: EventCtx) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // video_upload_video_selected - analytics
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
 
@@ -397,7 +397,7 @@ impl VideoUploadUnsuccessful {
     #[allow(clippy::too_many_arguments)]
     pub fn send_event(
         &self,
-        ctx: EventCtx,
+        _ctx: EventCtx,
         error: String,
         hashtags_len: usize,
         is_nsfw: bool,
@@ -406,7 +406,7 @@ impl VideoUploadUnsuccessful {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // video_upload_unsuccessful - analytics
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
 
@@ -434,7 +434,7 @@ pub struct VideoUploadSuccessful;
 impl VideoUploadSuccessful {
     pub fn send_event(
         &self,
-        ctx: EventCtx,
+        _ctx: EventCtx,
         video_id: String,
         hashtags_len: usize,
         is_nsfw: bool,
@@ -444,7 +444,7 @@ impl VideoUploadSuccessful {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // video_upload_successful - analytics
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
             let _ = send_event_ssr_spawn(
@@ -472,12 +472,12 @@ impl VideoUploadSuccessful {
 pub struct Refer;
 
 impl Refer {
-    pub fn send_event(&self, ctx: EventCtx) {
+    pub fn send_event(&self, _ctx: EventCtx) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // refer - analytics
 
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
             let details = user.details;
@@ -493,7 +493,7 @@ impl Refer {
                 "refer".to_string(),
                 json!({
                     "user_id":user_id,
-                    "is_loggedIn": ctx.is_connected(),
+                    "is_loggedIn": _ctx.is_connected(),
                     "display_name": display_name,
                     "canister_id": canister_id,
                     "refer_location": prev_site,
@@ -508,11 +508,11 @@ impl Refer {
 pub struct ReferShareLink;
 
 impl ReferShareLink {
-    pub fn send_event(&self, ctx: EventCtx) {
+    pub fn send_event(&self, _ctx: EventCtx) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // refer_share_link - analytics
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
             let details = user.details;
@@ -529,7 +529,7 @@ impl ReferShareLink {
                 "refer_share_link".to_string(),
                 json!({
                     "user_id":user_id,
-                    "is_loggedIn": ctx.is_connected(),
+                    "is_loggedIn": _ctx.is_connected(),
                     "display_name": display_name,
                     "canister_id": canister_id,
                     "refer_location": prev_site,
@@ -601,11 +601,11 @@ impl LoginMethodSelected {
 pub struct LoginJoinOverlayViewed;
 
 impl LoginJoinOverlayViewed {
-    pub fn send_event(&self, ctx: EventCtx) {
+    pub fn send_event(&self, _ctx: EventCtx) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // login_join_overlay_viewed - analytics
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
             let event_history: EventHistory = expect_context();
@@ -651,10 +651,10 @@ impl LoginCta {
 pub struct LogoutClicked;
 
 impl LogoutClicked {
-    pub fn send_event(&self, ctx: EventCtx) {
+    pub fn send_event(&self, _ctx: EventCtx) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
             let details = user.details;
@@ -681,10 +681,10 @@ impl LogoutClicked {
 pub struct LogoutConfirmation;
 
 impl LogoutConfirmation {
-    pub fn send_event(&self, ctx: EventCtx) {
+    pub fn send_event(&self, _ctx: EventCtx) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
             let details = user.details;
@@ -711,11 +711,11 @@ impl LogoutConfirmation {
 pub struct ErrorEvent;
 
 impl ErrorEvent {
-    pub fn send_event(&self, ctx: EventCtx, error_str: String) {
+    pub fn send_event(&self, _ctx: EventCtx, error_str: String) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             let event_history: EventHistory = expect_context();
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
             let details = user.details;
@@ -742,13 +742,13 @@ impl ErrorEvent {
 pub struct ProfileViewVideo;
 
 impl ProfileViewVideo {
-    pub fn send_event(&self, ctx: EventCtx, post_details: PostDetails) {
+    pub fn send_event(&self, _ctx: EventCtx, post_details: PostDetails) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             let publisher_user_id = post_details.poster_principal;
             let video_id = post_details.uid.clone();
 
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
 
@@ -757,7 +757,7 @@ impl ProfileViewVideo {
                 json!({
                     "publisher_user_id":publisher_user_id,
                     "user_id": user.details.principal,
-                    "is_loggedIn": ctx.is_connected(),
+                    "is_loggedIn": _ctx.is_connected(),
                     "display_name": user.details.display_name,
                     "canister_id": user.canister_id,
                     "video_id": video_id,
@@ -773,10 +773,10 @@ impl ProfileViewVideo {
 pub struct TokenCreationStarted;
 
 impl TokenCreationStarted {
-    pub fn send_event(&self, ctx: EventCtx, sns_init_payload: SnsInitPayload) {
+    pub fn send_event(&self, _ctx: EventCtx, sns_init_payload: SnsInitPayload) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
             let details = user.details;
@@ -858,10 +858,10 @@ impl PageVisit {
 pub struct CentsAdded;
 
 impl CentsAdded {
-    pub fn send_event(&self, ctx: EventCtx, payment_source: String, amount: u64) {
+    pub fn send_event(&self, _ctx: EventCtx, payment_source: String, amount: u64) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
 
@@ -870,7 +870,7 @@ impl CentsAdded {
                 json!({
                     "user_id": user.details.principal,
                     "canister_id": user.canister_id,
-                    "is_loggedin": ctx.is_connected(),
+                    "is_loggedin": _ctx.is_connected(),
                     "amount_added": amount,
                     "payment_source": payment_source,
                 })
@@ -884,10 +884,10 @@ impl CentsAdded {
 pub struct CentsWithdrawn;
 
 impl CentsWithdrawn {
-    pub fn send_event(&self, ctx: EventCtx, amount_withdrawn: f64) {
+    pub fn send_event(&self, _ctx: EventCtx, amount_withdrawn: f64) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
             let _ = send_event_ssr_spawn(
@@ -895,7 +895,7 @@ impl CentsWithdrawn {
                 json!({
                     "user_id": user.details.principal,
                     "canister_id": user.canister_id,
-                    "is_loggedin": ctx.is_connected(),
+                    "is_loggedin": _ctx.is_connected(),
                     "amount_withdrawn": amount_withdrawn,
                 })
                 .to_string(),
@@ -908,10 +908,10 @@ impl CentsWithdrawn {
 pub struct SatsWithdrawn;
 
 impl SatsWithdrawn {
-    pub fn send_event(&self, ctx: EventCtx, amount_withdrawn: f64) {
+    pub fn send_event(&self, _ctx: EventCtx, amount_withdrawn: f64) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
-            let Some(user) = ctx.user_details() else {
+            let Some(user) = _ctx.user_details() else {
                 return;
             };
             let _ = send_event_ssr_spawn(
@@ -919,7 +919,7 @@ impl SatsWithdrawn {
                 json!({
                     "user_id": user.details.principal,
                     "canister_id": user.canister_id,
-                    "is_loggedin": ctx.is_connected(),
+                    "is_loggedin": _ctx.is_connected(),
                     "amount_withdrawn": amount_withdrawn,
                 })
                 .to_string(),
