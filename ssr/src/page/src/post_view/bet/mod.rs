@@ -5,7 +5,9 @@ use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
 use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
-use global_constants::{CoinState, DEFAULT_BET_COIN_FOR_LOGGED_OUT, DEFAULT_BET_COIN_FOR_LOGGED_IN};
+use global_constants::{
+    CoinState, DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT,
+};
 use hon_worker_common::{
     sign_vote_request_v3, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV3,
     VoteResV2, WORKER_URL,
