@@ -161,7 +161,6 @@ pub fn TxnView(
 
 pub mod provider {
 
-    use candid::Principal;
     use yral_canisters_common::{
         cursored_data::{transaction::IndexOrLedger, CursoredDataProvider},
         Canisters,

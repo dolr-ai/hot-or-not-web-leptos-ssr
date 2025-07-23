@@ -1,11 +1,7 @@
-use super::EventHistory;
 use candid::Principal;
-use ic_agent::Identity;
 use leptos::html::Input;
 use leptos::prelude::Signal;
 use leptos::prelude::*;
-use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
-use serde_json::json;
 use sns_validation::pbs::sns_pb::SnsInitPayload;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

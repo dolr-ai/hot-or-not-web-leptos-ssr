@@ -1,16 +1,10 @@
 use leptos::html::Video;
 use leptos::prelude::*;
-use leptos::{ev, logging};
-use leptos_use::use_event_listener;
-use wasm_bindgen::JsCast;
 
 use crate::event_streaming::events::EventCtx;
 use yral_canisters_common::utils::posts::PostDetails;
 
-use super::{
-    constants::*, progress_tracker::ProgressLogInfo, VideoAnalyticsEvent, VideoAnalyticsProvider,
-    VideoEventDataBuilder, VideoProgressTracker,
-};
+use super::VideoProgressTracker;
 
 #[cfg(feature = "ga4")]
 use crate::event_streaming::{send_event_ssr_spawn, send_event_warehouse_ssr_spawn};

@@ -1,7 +1,4 @@
-use std::env;
-
 use leptos::prelude::*;
-use serde_json::json;
 
 #[cfg(all(feature = "ssr", feature = "ga4"))]
 use tracing::instrument;

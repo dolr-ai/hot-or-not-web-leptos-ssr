@@ -6,7 +6,7 @@ use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption}
 use consts::{UserOnboardingStore, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY};
 use gloo::timers::callback::Timeout;
 use leptos::html::Audio;
-use leptos::{prelude::*, task::spawn_local};
+use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::hooks::use_location;
 use leptos_use::storage::use_local_storage;
