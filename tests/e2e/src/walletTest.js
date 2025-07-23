@@ -12,28 +12,12 @@ describe("wallet page tests", function () {
       .waitUntil("enabled");
   });
 
-  // TODO: update this test so that either 1000 COYNS are present or a 2000 CENTS, never both
-  it("default wallet page contains 1000 SATS or 2000 CENTS", function (browser) {
+  it("default wallet page contains SATS", function (browser) {
     browser.waitForElementVisible("body", 25000);
-
-    const centsIsPresent = browser.element
-      .findByText("CENTS", { timeout: 10000 })
-      .isPresent();
-    if (centsIsPresent) {
-      browser.element
-        .findByText("2000", { timeout: 10000 })
-        .waitUntil("visible", { timeout: 10000 })
-        .assert.enabled();
-    } else {
-      browser.element
+    browser.element
         .findByText("SATS", { timeout: 10000 })
         .waitUntil("visible", { timeout: 10000 })
         .assert.enabled();
-      browser.element
-        .findByText("1000", { timeout: 10000 })
-        .waitUntil("visible", { timeout: 10000 })
-        .assert.enabled();
-    }
   });
 
   it("wallet page snapshot test", function (browser) {

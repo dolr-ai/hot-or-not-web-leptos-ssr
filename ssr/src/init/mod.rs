@@ -42,12 +42,14 @@ fn init_cookie_key() -> Key {
 fn init_yral_oauth() -> auth::server_impl::yral::YralOAuthClient {
     use auth::server_impl::yral::YralOAuthClient;
     use consts::yral_auth::{
-        YRAL_AUTH_AUTHORIZATION_URL, YRAL_AUTH_ISSUER_URL, YRAL_AUTH_TOKEN_URL,
+        YRAL_AUTH_AUTHORIZATION_URL, YRAL_AUTH_CLIENT_ID_ENV, YRAL_AUTH_ISSUER_URL,
+        YRAL_AUTH_TOKEN_URL,
     };
     use openidconnect::{AuthType, AuthUrl, TokenUrl};
     use openidconnect::{ClientId, ClientSecret, IssuerUrl, RedirectUrl};
 
-    let client_id = env::var("YRAL_AUTH_CLIENT_ID").expect("`YRAL_AUTH_CLIENT_ID` is required!");
+    let client_id = env::var(YRAL_AUTH_CLIENT_ID_ENV)
+        .unwrap_or_else(|_| panic!("`{YRAL_AUTH_CLIENT_ID_ENV}` is required!"));
     let client_secret =
         env::var("YRAL_AUTH_CLIENT_SECRET").expect("`YRAL_AUTH_CLIENT_SECRET` is required!");
     let redirect_uri =
@@ -231,21 +233,30 @@ impl AppStateBuilder {
             qstash: init_qstash_client(),
             #[cfg(feature = "alloydb")]
             alloydb: init_alloydb_client().await,
-            #[cfg(feature = "alloydb")]
+            #[cfg(any(feature = "alloydb", feature = "sats-airdrop"))]
             hon_worker_jwt: {
                 use state::server::HonWorkerJwt;
                 let jwt = env::var("HON_WORKER_JWT").expect("`HON_WORKER_JWT` is required!");
 
                 HonWorkerJwt(std::sync::Arc::new(jwt))
             },
-            #[cfg(feature = "stdb-backend")]
-            dolr_airdrop_stbd: {
-                let token = env::var("STDB_ADMIN_ACCESS_TOKEN")
-                    .expect("`STDB_ADMIN_ACCESS_TOKEN` is required!");
+            #[cfg(feature = "dolr-airdrop")]
+            dolr_airdrop_db: {
+                let url = env::var("DOLR_AIRDROP_NEON_DB_URL")
+                    .expect("`DOLR_AIRDROP_NEON_DB_URL` is required!");
 
-                state::stdb_dolr_airdrop::WrappedContext::new(Some(token))
+                dolr_airdrop::db::DolrAirdrop::connect_and_migrate(url)
                     .await
-                    .expect("connect to stdb backend module")
+                    .expect("connect to neon postgres")
+            },
+            #[cfg(feature = "sats-airdrop")]
+            sats_airdrop_db: {
+                let url = env::var("SATS_AIRDROP_NEON_DB_URL")
+                    .expect("`SATS_AIRDROP_NEON_DB_URL` is required!");
+
+                sats_airdrop::db::SatsAirdrop::connect_and_migrate(url)
+                    .await
+                    .expect("connect to neon postgres")
             },
         };
 

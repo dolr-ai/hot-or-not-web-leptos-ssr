@@ -2,7 +2,10 @@ use leptos::prelude::*;
 use state::canisters::auth_state;
 
 use crate::buttons::HighlightedButton;
-use utils::event_streaming::events::{LoginCta, LoginJoinOverlayViewed};
+use utils::{
+    event_streaming::events::{LoginCta, LoginJoinOverlayViewed},
+    mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps},
+};
 
 use super::login_modal::LoginModal;
 
@@ -18,6 +21,10 @@ pub fn ConnectLogin(
 
     let login_click_action = Action::new(move |()| async move {
         LoginCta.send_event(cta_location.to_string());
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
+            let page_name = global.page_name();
+            MixPanelEvent::track_signup_clicked(global, page_name);
+        }
     });
 
     view! {

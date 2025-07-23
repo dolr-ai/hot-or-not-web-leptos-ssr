@@ -1,3 +1,4 @@
+pub mod edit;
 mod ic;
 pub mod overlay;
 mod posts;
@@ -6,9 +7,10 @@ pub mod profile_post;
 mod speculation;
 
 use candid::Principal;
-use component::{connect::ConnectLogin, spinner::FullScreenSpinner};
+use component::{connect::ConnectLogin, icons::edit_icons::EditIcon, spinner::FullScreenSpinner};
+use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
 use indexmap::IndexSet;
-use leptos::prelude::*;
+use leptos::{html, portal::Portal, prelude::*};
 use leptos_icons::*;
 use leptos_meta::*;
 use leptos_router::{components::Redirect, hooks::use_params, params::Params};
@@ -18,15 +20,37 @@ use state::{
     app_state::AppState,
     canisters::{auth_state, unauth_canisters},
 };
-use utils::send_wrap;
+
+use utils::{mixpanel::mixpanel_events::*, posts::FeedPostCtx, send_wrap};
 use yral_canisters_common::utils::{posts::PostDetails, profile::ProfileDetails};
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct ProfilePostsContext {
     video_queue: RwSignal<IndexSet<PostDetails>>,
+    video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
     start_index: RwSignal<usize>,
     current_index: RwSignal<usize>,
     queue_end: RwSignal<bool>,
+}
+
+impl Default for ProfilePostsContext {
+    fn default() -> Self {
+        let mut video_queue_for_feed = Vec::new();
+        for i in 0..MAX_VIDEO_ELEMENTS_FOR_FEED {
+            video_queue_for_feed.push(FeedPostCtx {
+                key: i,
+                value: RwSignal::new(None),
+            });
+        }
+
+        Self {
+            video_queue: RwSignal::new(IndexSet::new()),
+            video_queue_for_feed: RwSignal::new(video_queue_for_feed),
+            start_index: RwSignal::new(0),
+            current_index: RwSignal::new(0),
+            queue_end: RwSignal::new(false),
+        }
+    }
 }
 
 #[derive(Params, PartialEq, Clone)]
@@ -49,6 +73,29 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
             .unwrap_or_else(move |_| "posts".to_string())
     });
 
+    let auth = auth_state();
+    let event_ctx = auth.event_ctx();
+    let view_profile_clicked = move |cta_type: MixpanelProfileClickedCTAType| {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
+            let logged_in_canister = global.canister_id.clone();
+            MixPanelEvent::track_profile_tab_clicked(
+                global,
+                logged_in_canister == user_canister.to_text(),
+                user_principal.to_text(),
+                cta_type,
+            );
+        }
+    };
+
+    if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
+        let logged_in_caniser = global.canister_id.clone();
+        MixPanelEvent::track_profile_page_viewed(
+            global,
+            logged_in_caniser == user_canister.to_text(),
+            user_principal.to_string(),
+        );
+    }
+
     let current_tab = Memo::new(move |_| match tab.get().as_str() {
         "posts" => 0,
         "stakes" => 1,
@@ -64,10 +111,10 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
     };
     view! {
         <div class="flex relative flex-row w-11/12 text-xl text-center md:w-9/12 md:text-2xl">
-            <a class=move || tab_class(0) href=move || format!("/profile/{user_principal}/posts")>
+            <a on:click=move |_| view_profile_clicked(MixpanelProfileClickedCTAType::Videos)  class=move || tab_class(0) href=move || format!("/profile/{user_principal}/posts")>
                 <Icon icon=icondata::FiGrid />
             </a>
-            <a class=move || tab_class(1) href=move || format!("/profile/{user_principal}/stakes")>
+            <a on:click=move |_| view_profile_clicked(MixpanelProfileClickedCTAType::GamesPlayed) class=move || tab_class(1) href=move || format!("/profile/{user_principal}/stakes")>
                 <Icon icon=icondata::BsTrophy />
             </a>
         </div>
@@ -84,56 +131,75 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
 }
 
 #[component]
-fn ProfileViewInner(user: ProfileDetails, user_canister: Principal) -> impl IntoView {
+fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     let user_principal = user.principal;
+    let user_canister = user.user_canister;
     let username_or_principal = user.username_or_principal();
     let profile_pic = user.profile_pic_or_random();
-    let display_name = user.display_name_or_fallback();
     let _earnings = user.lifetime_earnings;
 
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
+
+    let edit_icon_mount_point = NodeRef::<html::Div>::new();
 
     view! {
         <div class="overflow-y-auto pt-10 pb-12 min-h-screen text-white bg-black">
             <div class="grid grid-cols-1 gap-5 justify-items-center w-full justify-normal">
                 <div class="flex flex-row justify-center w-11/12 sm:w-7/12">
                     <div class="flex flex-col justify-center items-center">
-                        <img
-                            class="w-24 h-24 rounded-full"
-                            alt=username_or_principal.clone()
-                            src=profile_pic
-                        />
-                        <div class="flex flex-col items-center text-center">
-                            <span
-                                class="font-bold text-white text-md"
-                                class=("w-full", is_connected)
-                                class=("w-5/12", move || !is_connected())
-                                class=("truncate", move || !is_connected())
-                            >
-                                {display_name}
-                            </span>
-                            <Suspense>
-                                {move || {
-                                    auth.user_principal
-                                        .get()
-                                        .map(|v| {
-                                            view! {
-                                                <Show when=move || {
-                                                    !is_connected() && v == Ok(user_principal)
-                                                }>
-                                                    <div class="pt-5 w-6/12 md:w-4/12">
-                                                        <ConnectLogin
-                                                            cta_location="profile"
-                                                            redirect_to=format!("/profile/posts")
-                                                        />
-                                                    </div>
-                                                </Show>
-                                            }
-                                        })
-                                }}
-                            </Suspense>
+                        <div class="flex flex-row items-center justify-between w-full p-4 bg-neutral-900 rounded-lg">
+                            <div class="flex flex-row items-center gap-4">
+                                <img
+                                    class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-full"
+                                    alt=username_or_principal.clone()
+                                    src=profile_pic
+                                />
+                                <div class="flex flex-col gap-2">
+                                    <div node_ref=edit_icon_mount_point class="flex flex-row justify-between">
+                                        <span class="font-bold text-neutral-50 text-lg line-clamp-1">
+                                            @{username_or_principal.clone()}
+                                        </span>
+                                    </div>
+                                    <span class="text-neutral-400 text-sm line-clamp-1">
+                                        {user_principal.to_text()}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
+                        <Suspense>
+                            {move || {
+                                auth.user_principal
+                                    .get()
+                                    .map(|v| {
+                                        let authenticated_princ = v.unwrap_or(Principal::anonymous());
+                                        view! {
+                                            <Show when=move || {
+                                                !is_connected() && user_principal == authenticated_princ
+                                            }>
+                                                <div class="pt-5 w-6/12 md:w-4/12">
+                                                    <ConnectLogin
+                                                        cta_location="profile"
+                                                        redirect_to=format!("/profile/posts")
+                                                    />
+                                                </div>
+                                            </Show>
+                                            <Show when=move || user_principal == authenticated_princ>
+                                            {move || edit_icon_mount_point.get().map(|mount| view! {
+                                                <Portal mount>
+                                                    <a href="/profile/edit">
+                                                        <Icon
+                                                            icon=EditIcon
+                                                            attr:class="text-2xl text-neutral-300"
+                                                        />
+                                                    </a>
+                                                </Portal>
+                                            })}
+                                            </Show>
+                                        }
+                                    })
+                            }}
+                        </Suspense>
                     </div>
                 </div>
                 <ListSwitcher1 user_canister user_principal />
@@ -204,20 +270,15 @@ pub fn ProfileView() -> impl IntoView {
                 .auth_cans_if_available(cans.clone())
                 .filter(|can| can.user_principal() == profile_principal)
             {
-                return Ok::<_, ServerFnError>((
-                    user_can.profile_details(),
-                    user_can.user_canister(),
-                ));
+                return Ok::<_, ServerFnError>(user_can.profile_details());
             }
 
-            let user_canister = cans
-                .get_individual_canister_by_user_principal(profile_principal)
+            let user_details = cans
+                .get_profile_details(profile_principal.to_string())
                 .await?
                 .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
-            let user = cans.individual_user(user_canister).await;
-            let user_details = user.get_profile_details().await?;
 
-            Ok::<_, ServerFnError>((ProfileDetails::from(user_details), user_canister))
+            Ok::<_, ServerFnError>(user_details)
         })
     });
 
@@ -227,8 +288,8 @@ pub fn ProfileView() -> impl IntoView {
             {move || Suspend::new(async move {
                 let res = user_details.await;
                 match res {
-                    Ok((user, user_canister)) => {
-                        view! { <ProfileComponent user user_canister /> }.into_any()
+                    Ok(user) => {
+                        view! { <ProfileComponent user /> }.into_any()
                     }
                     _ => view! { <Redirect path="/" /> }.into_any(),
                 }
@@ -239,7 +300,7 @@ pub fn ProfileView() -> impl IntoView {
 }
 
 #[component]
-pub fn ProfileComponent(user: ProfileDetails, user_canister: Principal) -> impl IntoView {
+pub fn ProfileComponent(user: ProfileDetails) -> impl IntoView {
     let ProfilePostsContext {
         video_queue,
         start_index,
@@ -253,5 +314,5 @@ pub fn ProfileComponent(user: ProfileDetails, user_canister: Principal) -> impl 
         *idx = 0;
     });
 
-    view! { <ProfileViewInner user user_canister /> }
+    view! { <ProfileViewInner user /> }
 }

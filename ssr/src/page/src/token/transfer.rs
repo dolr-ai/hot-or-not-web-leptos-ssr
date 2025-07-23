@@ -205,17 +205,11 @@ fn TokenTransferInner(
             let fees = fees.humanize_float().parse::<f64>().unwrap_or_default();
             let amount_transferred = amt.humanize_float().parse::<f64>().unwrap_or_default();
             MixPanelEvent::track_third_party_wallet_transferred(
-                MixpanelThirdPartyWalletTransferredProps {
-                    user_id: global.user_id,
-                    visitor_id: global.visitor_id,
-                    is_logged_in: global.is_logged_in,
-                    canister_id: global.canister_id,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                    token_transferred: amount_transferred,
-                    transferred_to: destination.to_string(),
-                    gas_fee: fees,
-                    token_name,
-                },
+                global,
+                amount_transferred,
+                destination.to_string(),
+                token_name,
+                fees,
             );
 
             Ok::<_, ServerFnError>(amt)

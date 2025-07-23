@@ -7,11 +7,10 @@ use leptos_use::{use_cookie_with_options, use_event_listener, use_window, UseCoo
 use codee::string::FromToStringCodec;
 use consts::{ACCOUNT_CONNECTED_STORE, NOTIFICATIONS_ENABLED_STORE, NOTIFICATION_MIGRATED_STORE};
 use leptos_use::storage::use_local_storage;
+use state::audio_state::AudioState;
 use state::canisters::AuthState;
 use utils::event_streaming::events::PageVisit;
-use utils::mixpanel::mixpanel_events::{
-    MixPanelEvent, MixpanelGlobalProps, MixpanelPageViewedProps,
-};
+use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps};
 use utils::notifications::get_fcm_token;
 use utils::sentry::{set_sentry_user, set_sentry_user_canister};
 use yral_metadata_client::MetadataClient;
@@ -90,14 +89,20 @@ fn CtxProvider(children: Children) -> impl IntoView {
         };
         PageVisit.send_event(principal, is_logged_in.get_untracked(), pathname.clone());
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
-            MixPanelEvent::track_page_viewed(MixpanelPageViewedProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                page: pathname,
-            });
+            MixPanelEvent::track_page_viewed(pathname, global);
+        }
+    });
+
+    // Reset AudioState to muted when navigating away from video pages
+    Effect::new(move |_| {
+        let pathname = location.pathname.get();
+        // Check if we're navigating away from video pages
+        let is_video_page = pathname.contains("/hot-or-not/")
+            || pathname.contains("/post/")
+            || pathname.contains("/profile/") && pathname.contains("/post/");
+
+        if !is_video_page {
+            AudioState::reset_to_muted();
         }
     });
 

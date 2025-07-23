@@ -5,7 +5,10 @@ use candid::Principal;
 
 use component::profile_placeholders::NoMorePostsGraphic;
 use state::canisters::{auth_state, unauth_canisters};
-use utils::{bg_url, event_streaming::events::ProfileViewVideo, profile::PostsProvider};
+use utils::{
+    bg_url, event_streaming::events::ProfileViewVideo, mixpanel::mixpanel_events::*,
+    profile::PostsProvider,
+};
 
 use super::ic::ProfileStream;
 use super::ProfilePostsContext;
@@ -13,7 +16,12 @@ use leptos::html;
 use yral_canisters_common::utils::posts::PostDetails;
 
 #[component]
-fn Post(details: PostDetails, user_canister: Principal, _ref: NodeRef<html::Div>) -> impl IntoView {
+fn Post(
+    details: PostDetails,
+    user_canister: Principal,
+    _ref: NodeRef<html::Div>,
+    post_index: Option<usize>,
+) -> impl IntoView {
     let image_error = RwSignal::new(false);
 
     let profile_post_url = format!("/profile/{user_canister}/post/{}", details.post_id);
@@ -26,6 +34,23 @@ fn Post(details: PostDetails, user_canister: Principal, _ref: NodeRef<html::Div>
     let post_details = details.clone();
     let video_click = move || {
         ProfileViewVideo.send_event(ev_ctx, post_details.clone());
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            let logged_in_canister = global.canister_id.clone();
+            MixPanelEvent::track_video_clicked_profile(
+                global,
+                post_details.poster_principal.to_text(),
+                post_details.likes,
+                post_details.views,
+                true,
+                post_details.uid.clone(),
+                MixpanelPostGameType::HotOrNot,
+                MixpanelVideoClickedCTAType::VideoPlay,
+                post_index.map(|i| i as u64 + 1),
+                user_canister.to_text() == logged_in_canister,
+                post_details.is_nsfw,
+                "profile".to_string(),
+            );
+        }
     };
 
     view! {
@@ -89,6 +114,7 @@ pub fn ProfilePosts(user_canister: Principal) -> impl IntoView {
             children=move |details, _ref| {
                 view! {
                     <Post
+                        post_index=video_queue.get_untracked().get_index_of(&details)
                         details=details
                         user_canister=user_canister
                         _ref=_ref.unwrap_or_default()
