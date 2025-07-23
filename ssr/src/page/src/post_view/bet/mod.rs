@@ -100,6 +100,7 @@ fn HNButtonOverlay(
 ) -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
+    let ev_ctx = auth.event_ctx();
 
     fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
         #[cfg(not(feature = "hydrate"))]
@@ -280,7 +281,7 @@ fn HNButtonOverlay(
                 />
             </button>
         </div>
-        <LoginNudgePopup show=show_login_nudge show_login_popup />
+        <LoginNudgePopup show=show_login_nudge show_login_popup  ev_ctx coin/>
         <LoginModal show=show_login_popup redirect_to=Some(format!("/hot-or-not/{}/{}", login_post.canister_id, login_post.post_id)) />
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
