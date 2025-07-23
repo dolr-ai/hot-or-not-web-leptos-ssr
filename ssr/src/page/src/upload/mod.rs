@@ -18,7 +18,9 @@ use leptos::{
     prelude::*,
 };
 
-use component::buttons::HighlightedButton;
+use component::buttons::{GradientButton, HighlightedButton};
+use component::back_btn::BackButton;
+use leptos_router::hooks::use_navigate;
 use validators::{description_validator, hashtags_validator};
 use video_upload::{PreVideoUpload, VideoUploader};
 
@@ -211,6 +213,103 @@ pub fn UploadPostPage() -> impl IntoView {
                         upload_file_actual_progress=upload_file_actual_progress.read_only()
                     />
                 </Show>
+            </div>
+        </div>
+    }
+}
+
+#[component]
+pub fn UploadOptionsPage() -> impl IntoView {
+    let selected_option = RwSignal::new(None::<String>);
+    let navigate = use_navigate();
+
+    view! {
+        <Title text="YRAL - Upload Options" />
+        <div class="flex flex-col bg-black min-w-dvw min-h-dvh">
+            // Back button header
+            <div class="flex justify-start items-center p-4 pt-12">
+                <div class="text-white">
+                    <BackButton fallback="/".to_string() />
+                </div>
+            </div>
+            
+            // Main content area
+            <div class="flex flex-col gap-6 justify-center items-center px-4 flex-1">
+                <div class="flex flex-col gap-6 w-full max-w-[358px]">
+                
+                // Create AI video option
+                <div class="w-full">
+                    <div 
+                        on:click=move |_| selected_option.set(Some("ai".to_string()))
+                        class=move || format!(
+                            "bg-neutral-900 rounded-lg p-3 h-[150px] flex flex-col items-center justify-center gap-4 hover:bg-neutral-800 transition-colors cursor-pointer {}",
+                            if selected_option.get() == Some("ai".to_string()) {
+                                "border border-pink-500"
+                            } else {
+                                "border border-neutral-800"
+                            }
+                        )
+                    >
+                        <div class="w-6 h-6">
+                            <img src="/img/icons/magicpen.svg" alt="Magic Pen" class="w-full h-full" />
+                        </div>
+                        <div class="flex flex-col items-center gap-1 text-center">
+                            <h2 class="text-sm font-semibold text-neutral-50 font-['Kumbh_Sans']">
+                                "Create AI video"
+                            </h2>
+                            <p class="text-sm font-normal text-neutral-400 font-['Kumbh_Sans']">
+                                "Generate a video using AI"
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                // Upload video option
+                <div class="w-full">
+                    <div 
+                        on:click=move |_| selected_option.set(Some("upload".to_string()))
+                        class=move || format!(
+                            "bg-neutral-900 rounded-lg p-3 h-[150px] flex flex-col items-center justify-center gap-4 hover:bg-neutral-800 transition-colors cursor-pointer {}",
+                            if selected_option.get() == Some("upload".to_string()) {
+                                "border border-pink-500"
+                            } else {
+                                "border border-neutral-800"
+                            }
+                        )
+                    >
+                        <div class="w-6 h-6">
+                            <img src="/img/icons/directbox-send.svg" alt="Upload" class="w-full h-full" />
+                        </div>
+                        <div class="flex flex-col items-center gap-1 text-center">
+                            <h2 class="text-sm font-semibold text-neutral-50 font-['Kumbh_Sans']">
+                                "Upload a video"
+                            </h2>
+                            <p class="text-sm font-normal text-neutral-400 font-['Kumbh_Sans']">
+                                "Add a video from your device"
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                // Continue button  
+                <div class="w-full">
+                    <GradientButton
+                        on_click=move || {
+                            if let Some(option) = selected_option.get_untracked() {
+                                match option.as_str() {
+                                    "ai" => navigate("/upload-ai", Default::default()),
+                                    "upload" => navigate("/upload", Default::default()),
+                                    _ => {}
+                                }
+                            }
+                        }
+                        classes="w-full h-[45px] px-5 py-3".to_string()
+                        disabled=Signal::derive(move || selected_option.get().is_none())
+                    >
+                        "Continue"
+                    </GradientButton>
+                </div>
+                </div>
             </div>
         </div>
     }
