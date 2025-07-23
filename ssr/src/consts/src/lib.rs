@@ -112,8 +112,6 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEoqN3/0RNfrnrnYGxKBgy/qHnmITr
 
 pub const UPLOAD_URL: &str = "https://yral-upload-video.go-bazzinga.workers.dev";
 
-pub const HOT_OR_NOT_WORKER_URL: &str = "https://yral-hot-or-not.go-bazzinga.workers.dev";
-
 pub const DOLR_AI_ROOT_CANISTER: &str = "67bll-riaaa-aaaaq-aaauq-cai";
 pub const DOLR_AI_LEDGER_CANISTER: &str = "6rdgd-kyaaa-aaaaq-aaavq-cai";
 pub const CKBTC_LEDGER_CANISTER: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
