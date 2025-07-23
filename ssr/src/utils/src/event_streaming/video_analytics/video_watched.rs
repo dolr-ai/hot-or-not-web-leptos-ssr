@@ -57,6 +57,14 @@ impl VideoWatchedHandler {
         muted: RwSignal<bool>,
         is_current: Option<Signal<bool>>,
     ) {
+        #[cfg(not(all(feature = "hydrate", feature = "ga4")))]
+        {
+            let _ = ctx;
+            let _ = vid_details;
+            let _ = container_ref;
+            let _ = muted;
+            let _ = is_current;
+        }
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             let (video_watched, set_video_watched) = signal(false);

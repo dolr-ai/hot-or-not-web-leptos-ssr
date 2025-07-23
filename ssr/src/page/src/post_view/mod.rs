@@ -183,20 +183,20 @@ pub fn CommonPostViewWithUpdates(
 #[component]
 pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl IntoView {
     let PostViewCtx {
-        fetch_cursor: _,
+        fetch_cursor,
         video_queue,
-        queue_end: _,
+        queue_end,
         priority_q,
-        batch_cnt: _,
-        current_idx: _,
+        batch_cnt,
+        current_idx,
         video_queue_for_feed,
         ..
     } = expect_context();
 
-    let _auth = auth_state();
+    let auth = auth_state();
 
     let fetch_video_action = Action::new(move |_| {
-        let (_nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
+        let (nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
         #[cfg(not(feature = "hydrate"))]
         {
             return async {};
