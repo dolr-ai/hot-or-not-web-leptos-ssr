@@ -371,25 +371,37 @@ fn HNWonLost(
     let creator_reward_text = if creator_reward > 0 {
         format!(", creator gets {creator_reward} SATS")
     } else {
-        "".to_string()
+        String::new()
     };
     let (line1, line2) = match game_result.clone() {
-        GameResult::Win { win_amt } => (
-            format!("You voted \"{bet_direction_text}\" - Spot on!"),
-            format!(
-                "You won {} SATS{}",
-                TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
-                creator_reward_text
-            ),
-        ),
-        GameResult::Loss { lose_amt } => (
-            format!("You voted \"{bet_direction_text}\" - wrong vote."),
-            format!(
-                "You lost {} SATS{}",
-                TokenBalance::new(lose_amt.into(), 0).humanize(),
-                creator_reward_text
-            ),
-        ),
+        GameResult::Win { win_amt } => {
+            let total_win = TokenBalance::new((win_amt + vote_amount).into(), 0).humanize();
+            if bet_direction_text.is_empty() {
+                (
+                    format!("You won {total_win} SATS",),
+                    "Tap ? to see how it works".into(),
+                )
+            } else {
+                (
+                    format!("You voted \"{bet_direction_text}\" - Spot on!"),
+                    format!("You won {total_win} SATS{creator_reward_text}",),
+                )
+            }
+        }
+        GameResult::Loss { lose_amt } => {
+            let total_loss = TokenBalance::new(lose_amt.into(), 0).humanize();
+            if bet_direction_text.is_empty() {
+                (
+                    format!("You lost {total_loss} SATS"),
+                    "Tap ? to see how it works".into(),
+                )
+            } else {
+                (
+                    format!("You voted \"{bet_direction_text}\" - wrong vote."),
+                    format!("You lost {total_loss} SATS{creator_reward_text}"),
+                )
+            }
+        }
     };
 
     let bet_amount = vote_amount;
