@@ -262,7 +262,7 @@ fn HNButtonOverlay(
     let was_connected = RwSignal::new(is_connected.get_untracked());
 
     Effect::new(move |_| {
-        if !was_connected.get_untracked() && is_connected.get() {
+        if !show_login_popup.get() && !was_connected.get_untracked() && is_connected.get() {
             let window = window();
             let url = format!(
                 "/hot-or-not/{}/{}",
