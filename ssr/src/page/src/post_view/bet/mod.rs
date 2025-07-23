@@ -614,9 +614,9 @@ pub fn HNGameOverlay(
 
     let auth = auth_state();
     let coin = RwSignal::new(if auth.is_logged_in_with_oauth().get_untracked() {
-        DEFAULT_BET_COIN_FOR_LOGGED_OUT
-    } else {
         DEFAULT_BET_COIN_FOR_LOGGED_IN
+    } else {
+        DEFAULT_BET_COIN_FOR_LOGGED_OUT
     });
     let create_game_info = auth.derive_resource(
         move || refetch_bet.track(),
