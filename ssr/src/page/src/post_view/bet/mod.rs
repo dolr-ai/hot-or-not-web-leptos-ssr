@@ -273,7 +273,7 @@ fn HNButtonOverlay(
                 move |_: ()| {
                     let _ = window.location().set_href(&url);
                 },
-                2.0,
+                10.0,
             );
             start(());
         }
