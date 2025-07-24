@@ -5,8 +5,6 @@ COPY ./target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr .
 COPY ./target/x86_64-unknown-linux-musl/prod-release/hash.txt .
 COPY ./target/site ./site
 
-RUN chmod +x hot-or-not-web-leptos-ssr
-
 ENV LEPTOS_SITE_ROOT="site"
 
 ENV LEPTOS_ENV="production"
