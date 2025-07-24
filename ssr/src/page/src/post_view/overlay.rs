@@ -581,14 +581,7 @@ fn ExpandableText(description: String) -> impl IntoView {
 
 #[component]
 pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl IntoView {
-
-    let volume_ = Signal::derive(move || {
-        if muted.get() {
-            0.0
-        } else {
-            volume.get()
-        }
-    });
+    let volume_ = Signal::derive(move || if muted.get() { 0.0 } else { volume.get() });
     view! {
         <button
             class="z-10 rounded-r-lg bg-black/25 py-2 px-3 cursor-pointer text-sm font-medium text-white items-center gap-1
