@@ -551,7 +551,7 @@ pub fn PostUploadScreen() -> impl IntoView {
                 src="/img/airdrop/bg.webp"
                 class="object-cover absolute inset-0 w-full h-full z-25 fade-in"
             />
-            <div class="flex z-50 flex-col items-center">
+            <div class="flex z-50 flex-col items-center text-white">
                 <img src="/img/common/coins/sucess-coin.png" width=170 class="mb-6 z-300" />
 
                 <h1 class="mb-2 text-lg font-semibold">Video uploaded sucessfully</h1>

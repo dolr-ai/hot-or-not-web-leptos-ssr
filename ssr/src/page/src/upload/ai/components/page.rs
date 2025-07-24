@@ -13,6 +13,10 @@ use crate::upload::ai::helpers::{create_video_request, generate_video_signed};
 use crate::upload::ai::videogen_client::sign_videogen_request;
 use crate::upload::ai::server::upload_ai_video_from_url;
 use super::{VideoGenerationLoadingScreen, VideoResultScreen, PreUploadAiView};
+use component::notification_nudge::NotificationNudge;
+use component::spinner::SpinnerCircleStyled;
+use utils::event_streaming::events::{VideoUploadSuccessful, VideoUploadUnsuccessful};
+use crate::upload::PostUploadScreen;
 
 #[component]
 pub fn UploadAiPostPage() -> impl IntoView {
@@ -22,6 +26,10 @@ pub fn UploadAiPostPage() -> impl IntoView {
 
     // Signal to control returning to form for re-generation
     let show_form = RwSignal::new(true);
+    
+    // Notification and modal signals
+    let notification_nudge = RwSignal::new(false);
+    let show_success_modal = RwSignal::new(false);
 
     // Local storage for video generation parameters (for regeneration)
     let (stored_params, set_stored_params, _) =
@@ -101,10 +109,16 @@ pub fn UploadAiPostPage() -> impl IntoView {
     let upload_action: Action<UploadActionParams, Result<String, String>> =
         Action::new_unsync({
             let auth = auth.clone();
+            let notification_nudge = notification_nudge.clone();
+            let show_success_modal = show_success_modal.clone();
             move |params: &UploadActionParams| {
                 let params = params.clone();
                 let auth = auth.clone();
+                let notification_nudge = notification_nudge.clone();
+                let show_success_modal = show_success_modal.clone();
                 async move {
+                    // Show notification nudge when starting upload
+                    notification_nudge.set(true);
                     // Get unauth_canisters within the Action (like video_upload.rs)
                     let unauth_cans = unauth_canisters();
                     
@@ -125,10 +139,35 @@ pub fn UploadAiPostPage() -> impl IntoView {
                             ).await {
                                 Ok(video_uid) => {
                                     leptos::logging::log!("Video uploaded successfully with UID: {}", video_uid);
+                                    
+                                    // Send success event
+                                    let ev_ctx = auth.event_ctx();
+                                    VideoUploadSuccessful.send_event(
+                                        ev_ctx,
+                                        video_uid.clone(),
+                                        2, // hashtags_len (AI tags)
+                                        false, // is_nsfw
+                                        false, // enable_hot_or_not
+                                        0, // post_id (using 0 for AI generated videos)
+                                    );
+                                    
+                                    // Show success modal
+                                    show_success_modal.set(true);
                                     Ok(video_uid)
                                 }
                                 Err(e) => {
                                     leptos::logging::error!("Failed to upload video: {}", e);
+                                    
+                                    // Send unsuccessful event
+                                    let ev_ctx = auth.event_ctx();
+                                    VideoUploadUnsuccessful.send_event(
+                                        ev_ctx,
+                                        e.to_string(),
+                                        2, // hashtags_len
+                                        false, // enable_hot_or_not
+                                        false, // is_nsfw
+                                    );
+                                    
                                     Err(format!("Upload failed: {}", e))
                                 }
                             }
@@ -144,6 +183,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
 
     view! {
         <Title text="YRAL AI - Upload" />
+        <NotificationNudge pop_up=notification_nudge />
         <div class="w-full h-full">
             <Show
                 when=move || generate_action.pending().get()
@@ -223,5 +263,22 @@ pub fn UploadAiPostPage() -> impl IntoView {
                 <VideoGenerationLoadingScreen />
             </Show>
         </div>
+        
+        // Loading overlay during upload
+        <Show when=move || upload_action.pending().get()>
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="w-16 h-16">
+                        <SpinnerCircleStyled />
+                    </div>
+                    <p class="text-white text-lg">Uploading video...</p>
+                </div>
+            </div>
+        </Show>
+        
+        // Success screen
+        <Show when=move || show_success_modal.get()>
+            <PostUploadScreen />
+        </Show>
     }
 }

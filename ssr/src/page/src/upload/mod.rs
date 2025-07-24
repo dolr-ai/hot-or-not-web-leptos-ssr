@@ -3,6 +3,7 @@ mod validators;
 mod video_upload;
 
 pub use ai::UploadAiPostPage;
+pub use video_upload::PostUploadScreen;
 use leptos_meta::*;
 
 use state::canisters::auth_state;
