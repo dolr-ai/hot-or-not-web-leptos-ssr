@@ -11,7 +11,7 @@ use utils::posts::FeedPostCtx;
 use yral_canisters_common::utils::posts::PostDetails;
 
 #[component]
-pub fn MuteIconOverlay(muted: RwSignal<bool>) -> impl IntoView {
+pub fn MuteUnmuteOverlay(muted: RwSignal<bool>) -> impl IntoView {
     view! {
         <div
             class="fixed top-1/2 left-1/2 z-20 pointer-events-none transform -translate-x-1/2 -translate-y-1/2"
@@ -46,10 +46,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
     threshold_trigger_fetch: usize,
     #[prop(optional, into)] hard_refresh_target: RwSignal<String>,
 ) -> impl IntoView {
-    let AudioState {
-        muted,
-        ..
-    } = AudioState::get();
+    let AudioState { muted, .. } = AudioState::get();
 
     let scroll_root: NodeRef<html::Div> = NodeRef::new();
 
@@ -143,7 +140,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                     </div>
                 </Show>
 
-                <MuteIconOverlay muted />
+                <MuteUnmuteOverlay muted />
             </div>
         </div>
     };

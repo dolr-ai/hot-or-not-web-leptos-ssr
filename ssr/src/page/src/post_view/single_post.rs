@@ -4,7 +4,7 @@ use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use super::{overlay::VideoDetailsOverlay, video_loader::VideoView};
-use crate::scrolling_post_view::MuteIconOverlay;
+use crate::scrolling_post_view::MuteUnmuteOverlay;
 use component::{back_btn::go_back_or_fallback, spinner::FullScreenSpinner};
 use leptos_router::{components::Redirect, hooks::use_params, params::Params};
 use state::{
@@ -28,10 +28,7 @@ enum PostFetchError {
 
 #[component]
 fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
-    let AudioState {
-        muted,
-        ..
-    } = expect_context();
+    let AudioState { muted, .. } = expect_context();
     let bg_url = bg_url(&post.uid);
     let win_audio_ref = NodeRef::<Audio>::new();
     let to_load = Memo::new(|_| true);
@@ -53,7 +50,7 @@ fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
                 <VideoDetailsOverlay post=post.clone() prev_post=None win_audio_ref />
                 <VideoView post=Some(post) muted autoplay_at_render=true to_load />
             </div>
-            <MuteIconOverlay muted />
+            <MuteUnmuteOverlay muted />
         </div>
     }
     .into_any()
