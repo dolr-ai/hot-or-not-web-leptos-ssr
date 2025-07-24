@@ -630,7 +630,6 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
                         value={volume_.get()}
                         on:change=move |ev: leptos::ev::Event| {
                             let input = event_target_value(&ev);
-                            log::info!("Volume changed to: {}", input);
                             if let Ok(value) = input.parse::<f64>() {
                                 volume.set(value);
                                 if value > 0.0 {
