@@ -46,7 +46,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
     threshold_trigger_fetch: usize,
     #[prop(optional, into)] hard_refresh_target: RwSignal<String>,
 ) -> impl IntoView {
-    let AudioState { muted, .. } = AudioState::get();
+    let AudioState { muted, volume } = AudioState::get();
 
     let scroll_root: NodeRef<html::Div> = NodeRef::new();
 
@@ -125,6 +125,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                             current_idx
                                             idx=queue_idx
                                             muted
+                                            volume
                                             to_load
                                         />
                                     </BgView>

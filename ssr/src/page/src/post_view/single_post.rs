@@ -28,7 +28,7 @@ enum PostFetchError {
 
 #[component]
 fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
-    let AudioState { muted, .. } = expect_context();
+    let AudioState { muted, volume } = expect_context();
     let bg_url = bg_url(&post.uid);
     let win_audio_ref = NodeRef::<Audio>::new();
     let to_load = Memo::new(|_| true);
@@ -48,7 +48,7 @@ fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
                     src="/img/hotornot/chaching.m4a"
                 />
                 <VideoDetailsOverlay post=post.clone() prev_post=None win_audio_ref />
-                <VideoView post=Some(post) muted autoplay_at_render=true to_load />
+                <VideoView post=Some(post) muted volume autoplay_at_render=true to_load />
             </div>
             <MuteUnmuteOverlay muted />
         </div>

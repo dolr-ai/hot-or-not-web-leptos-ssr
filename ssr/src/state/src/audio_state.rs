@@ -3,6 +3,7 @@ use leptos::prelude::*;
 #[derive(Clone, Copy, Debug)]
 pub struct AudioState {
     pub muted: RwSignal<bool>,
+    pub volume: RwSignal<f64>,
 }
 
 impl Default for AudioState {
@@ -15,6 +16,7 @@ impl AudioState {
     pub fn new() -> Self {
         Self {
             muted: RwSignal::new(true),
+            volume: RwSignal::new(0.0),
         }
     }
 
@@ -26,10 +28,12 @@ impl AudioState {
     pub fn toggle_mute() {
         let this: Self = expect_context();
         this.muted.update(|m| *m = !*m);
+        this.volume.set(0.0);
     }
 
     pub fn reset_to_muted() {
         let this: Self = expect_context();
         this.muted.set(true);
+        this.volume.set(0.0);
     }
 }
