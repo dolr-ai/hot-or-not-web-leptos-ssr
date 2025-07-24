@@ -1,436 +1,737 @@
-use super::{
-    ai_server::{fetch_video_bytes, generate_video_from_prompt, GenerateVideoRequest},
-    validators::{description_validator, hashtags_validator},
-    UploadParams,
-};
-// Remove the import of MuteIconOverlay from scrolling_post_view
-use crate::upload::video_upload::{
-    PostUploadScreen, SerializablePostDetailsFromFrontend, VideoMetadata,
-};
+use super::UploadParams;
 use auth::delegate_short_lived_identity;
-use component::{buttons::HighlightedButton, notification_nudge::NotificationNudge};
+use candid::Principal;
+use codee::string::JsonSerdeCodec;
+use component::{back_btn::BackButton, buttons::GradientButton};
 use consts::UPLOAD_URL;
 use leptos::reactive::send_wrapper_ext::SendOption;
-use leptos::{
-    ev::durationchange,
-    html::{Input, Textarea, Video},
-    prelude::*,
-};
+use leptos::{html::Input, prelude::*};
 use leptos_icons::*;
 use leptos_meta::Title;
-use leptos_use::use_event_listener;
+use leptos_use::storage::use_local_storage;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use state::canisters::{auth_state, unauth_canisters};
-use utils::{
-    event_streaming::events::{
-        VideoUploadInitiated, VideoUploadSuccessful, VideoUploadUnsuccessful,
-        VideoUploadUploadButtonClicked,
-    },
-    mixpanel::mixpanel_events::*,
-    try_or_redirect_opt,
-    web::FileWithUrl,
-};
+use utils::event_streaming::events::VideoUploadInitiated;
 
-#[component]
-fn AiMuteIconOverlay(show_mute_icon: RwSignal<bool>) -> impl IntoView {
-    view! {
-        <Show when=show_mute_icon>
-            <button
-                class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20 cursor-pointer pointer-events-none"
-                on:click=move |_| {
-                    show_mute_icon.set(false);
-                }
-            >
-                <Icon
-                    attr:class="text-white/80 animate-ping text-4xl"
-                    icon=icondata::BiVolumeMuteSolid
-                />
-            </button>
-        </Show>
+// Local storage key for video generation parameters
+const AI_VIDEO_PARAMS_STORE: &str = "ai_video_generation_params";
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
+pub struct VideoModel {
+    pub id: String,
+    pub name: String,
+    pub description: String,
+    pub duration: String,
+    pub cost_sats: u64,
+}
+
+impl VideoModel {
+    pub fn get_models() -> Vec<Self> {
+        vec![
+            VideoModel {
+                id: "pollo_1_6".to_string(),
+                name: "Pollo 1.6".to_string(),
+                description: "Better, faster and cheaper".to_string(),
+                duration: "60 Sec".to_string(),
+                cost_sats: 5,
+            },
+            VideoModel {
+                id: "cling_2_1_master".to_string(),
+                name: "Cling 2.1 Master".to_string(),
+                description: "Enhanced visual realism and motion".to_string(),
+                duration: "60 Mins".to_string(),
+                cost_sats: 25,
+            },
+            VideoModel {
+                id: "cling_2_1".to_string(),
+                name: "Cling 2.1".to_string(),
+                description: "Enhanced visual realism and motion".to_string(),
+                duration: "2 Mins".to_string(),
+                cost_sats: 15,
+            },
+        ]
     }
 }
 
 #[component]
-fn PreUploadAiView(
-    trigger_upload: WriteSignal<SendOption<UploadParams>>,
-    uid: RwSignal<Option<String>>,
-    upload_file_actual_progress: WriteSignal<f64>,
+fn ModelDropdown(
+    selected_model: RwSignal<VideoModel>,
+    show_dropdown: RwSignal<bool>,
 ) -> impl IntoView {
-    let description_err = RwSignal::new(String::new());
-    let desc_err_memo = Memo::new(move |_| description_err());
-    let hashtags = RwSignal::new(Vec::new());
-    let hashtags_err = RwSignal::new(String::new());
-    let hashtags_err_memo = Memo::new(move |_| hashtags_err());
-    let file_blob = RwSignal::new(SendOption::<FileWithUrl>::new_local(None));
-    let desc = NodeRef::<Textarea>::new();
-    let prompt_input = NodeRef::<Textarea>::new();
-    let video_ref = NodeRef::<Video>::new();
-
-    let generation_error = RwSignal::new(None::<String>);
-    let polling_status = RwSignal::new(String::new());
-    let show_mute_icon = RwSignal::new(false);
-
-    let invalid_form = Memo::new(move |_| {
-        !desc_err_memo.with(|desc_err_memo| desc_err_memo.is_empty())
-            || !hashtags_err_memo.with(|hashtags_err_memo| hashtags_err_memo.is_empty())
-            || hashtags.with(|hashtags| hashtags.is_empty())
-            || desc.get().map(|d| d.value().is_empty()).unwrap_or(true)
-    });
-
-    let hashtag_inp = NodeRef::<Input>::new();
-    let is_nsfw = NodeRef::<Input>::new();
-
-    let auth = auth_state();
-    let ev_ctx = auth.event_ctx();
-    VideoUploadInitiated.send_event(ev_ctx);
-
-    let upload_action: Action<(), _> = Action::new_unsync(move |_| {
-        async move {
-            #[cfg(feature = "hydrate")]
-            {
-                use crate::upload::video_upload::upload_video_part;
-
-                // Clone signals for use in spawn_local
-                let uid_signal = uid;
-                let file_blob_signal = file_blob;
-                let captured_progress_signal = upload_file_actual_progress;
-
-                let file_data = file_blob_signal.get_untracked();
-                if let Some(file_with_url) = file_data.take() {
-                    let message = upload_video_part(
-                        UPLOAD_URL,
-                        "file",
-                        file_with_url.file.as_ref(),
-                        captured_progress_signal,
-                    )
-                    .await
-                    .unwrap();
-
-                    uid_signal.set(message.data.and_then(|m| m.uid));
-                };
-            }
-
-            Some(())
-        }
-    });
-
-    let generate_action: Action<(), _> = Action::new_unsync(move |_| async move {
-        #[cfg(feature = "hydrate")]
-        {
-            leptos::logging::log!("Generating video from prompt...");
-
-            let Some(prompt_elem) = prompt_input.get() else {
-                return;
-            };
-
-            let prompt = prompt_elem.value();
-            if prompt.is_empty() {
-                generation_error.set(Some("Please enter a prompt".to_string()));
-                return;
-            }
-
-            generation_error.set(None);
-            polling_status.set("Generating video... This may take a few minutes.".to_string());
-
-            let request_body = GenerateVideoRequest {
-                prompt,
-                user_id: uuid::Uuid::new_v4().to_string(),
-                generate_audio: true,
-                negative_prompt: String::new(),
-            };
-
-            match generate_video_from_prompt(request_body).await {
-                Ok(result) => {
-                    polling_status.set("Video generated! Loading...".to_string());
-                    load_video_from_url(result.video_url, file_blob, generation_error, video_ref)
-                        .await;
-                }
-                Err(e) => {
-                    generation_error.set(Some(format!("Video generation failed: {}", e)));
-                }
-            }
-        }
-
-        #[cfg(not(feature = "hydrate"))]
-        {
-            use leptos::task::spawn_local;
-
-            spawn_local(async move {
-                generation_error.set(Some(
-                    "Video generation is only supported in the browser".to_string(),
-                ));
-            });
-        }
-    });
-
-    let on_submit = move || {
-        VideoUploadUploadButtonClicked.send_event(ev_ctx, hashtag_inp, is_nsfw, NodeRef::new());
-
-        let description = desc.get_untracked().unwrap().value();
-        let hashtags = hashtags.get_untracked();
-        let Some(file_blob) = file_blob.get_untracked().as_ref().cloned() else {
-            return;
-        };
-        trigger_upload.set(SendOption::new_local(Some(UploadParams {
-            file_blob,
-            hashtags,
-            description,
-            enable_hot_or_not: false,
-            is_nsfw: is_nsfw
-                .get_untracked()
-                .map(|v| v.checked())
-                .unwrap_or_default(),
-        })));
-    };
-
-    let hashtag_on_input = move |hts| match hashtags_validator(hts) {
-        Ok(hts) => {
-            hashtags.set(hts);
-            hashtags_err.set(String::new());
-        }
-        Err(e) => hashtags_err.set(e),
-    };
-
-    Effect::new(move |_| {
-        let Some(hashtag_inp) = hashtag_inp.get() else {
-            return;
-        };
-
-        let val = hashtag_inp.value();
-        if !val.is_empty() {
-            hashtag_on_input(val);
-        }
-    });
-
-    _ = use_event_listener(video_ref, durationchange, move |_| {
-        let duration = video_ref
-            .get_untracked()
-            .map(|v| v.duration())
-            .unwrap_or_default();
-        let Some(_vid_file) = file_blob.get_untracked().as_ref() else {
-            return;
-        };
-        if duration <= 60.0 || duration.is_nan() {
-            upload_action.dispatch(());
-            return;
-        }
-        // Video is too long, handle error
-        generation_error.set(Some(
-            "Generated video is longer than 60 seconds".to_string(),
-        ));
-        file_blob.set(SendOption::new_local(None));
-        uid.set(None);
-    });
+    // Store models in a StoredValue to avoid the closure trait bounds issue
+    let models = StoredValue::new(VideoModel::get_models());
 
     view! {
-        <div class="flex flex-col gap-4 justify-center items-center p-0 mx-auto w-full min-h-screen bg-transparent lg:flex-row lg:gap-20">
-            <div class="flex flex-col justify-center items-center px-2 mx-4 mt-4 mb-4 text-center rounded-2xl sm:px-4 sm:mx-6 sm:w-full sm:h-auto lg:overflow-y-auto lg:px-0 lg:mx-0 w-[358px] h-[300px] sm:min-h-[380px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px]">
-                <Show
-                    when=move || file_blob.with(|f| (**f).is_some())
-                    fallback=move || view! {
-                        <div class="flex flex-col gap-4 w-full">
-                            <h3 class="text-2xl font-light text-white">AI Video Generator</h3>
-                            <div class="flex flex-col gap-2">
-                                <label for="prompt-input" class="text-neutral-300 font-light text-lg">
-                                    Enter your prompt
-                                </label>
-                                <textarea
-                                    id="prompt-input"
-                                    node_ref=prompt_input
-                                    class="p-3 min-w-full rounded-lg border transition outline-none focus:border-pink-400 focus:ring-pink-400 bg-neutral-900 border-neutral-800 text-[15px] placeholder:text-neutral-500 placeholder:font-light"
-                                    rows=4
-                                    placeholder="a beautiful scenery"
-                                    // disabled=is_generating.get()
-                                ></textarea>
-                            </div>
-                            <Show when=move || generation_error.with(|e| e.is_some())>
-                                <div class="text-red-500 text-sm">{move || generation_error.get()}</div>
-                            </Show>
-                            <Show when=move || generate_action.pending().get()>
-                                <div class="text-white text-sm animate-pulse">{move || polling_status.get()}</div>
-                            </Show>
-                            <HighlightedButton
-                                on_click=move || { generate_action.dispatch(()); }
-                                disabled=false
-                                classes="w-full mx-auto py-[12px] px-[20px] rounded-xl bg-linear-to-r from-pink-300 to-pink-500 text-white font-light text-[17px] transition disabled:opacity-60 disabled:cursor-not-allowed".to_string()
-                            >
-                                {move || if generate_action.pending().get() { "Generating..." } else { "Generate Video" }}
-                            </HighlightedButton>
-                        </div>
-                    }
-                >
-                    <div class="relative w-full h-full">
-                        <video
-                            node_ref=video_ref
-                            class="w-full h-full object-contain rounded-lg cursor-pointer"
-                            playsinline
-                            muted=true
-                            autoplay
-                            loop
-                            on:click=move |_| {
-                                if let Some(video) = video_ref.get() {
-                                    let new_muted = !video.muted();
-                                    video.set_muted(new_muted);
-                                    if new_muted {
-                                        show_mute_icon.set(true);
-                                    }
-                                }
-                            }
-                            src=move || file_blob.with(|file| (**file).as_ref().map(|f| f.url.to_string()))
-                        ></video>
-                        <AiMuteIconOverlay show_mute_icon=show_mute_icon />
-                        <button
-                            on:click=move |_| {
-                                file_blob.set(SendOption::new_local(None));
-                                generation_error.set(None);
-                                if let Some(video) = video_ref.get() {
-                                    video.set_src("");
-                                }
-                            }
-                            class="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
-                        >
-                            "X"
-                        </button>
+        <div class="relative w-full">
+            <label class="block text-sm font-medium text-white mb-2">Model</label>
+
+            // Selected model display
+            <div
+                class="flex items-center justify-between p-4 bg-neutral-900 border border-neutral-800 rounded-lg cursor-pointer hover:bg-neutral-800"
+                on:click=move |_| show_dropdown.update(|show| *show = !*show)
+            >
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">"P"</span>
                     </div>
-                </Show>
+                    <div>
+                        <div class="text-white font-medium">{selected_model.get().name}</div>
+                        <div class="text-neutral-400 text-sm">{selected_model.get().description}</div>
+                    </div>
+                </div>
+                <Icon
+                    icon=icondata::AiDownOutlined
+                    attr:class=move || format!("text-white transition-transform {}",
+                        if show_dropdown.get() { "rotate-180" } else { "" }
+                    )
+                />
             </div>
-            <div class="flex overflow-y-auto flex-col gap-4 justify-between p-2 w-full h-auto rounded-2xl max-w-[627px] min-h-[400px] max-h-[90vh] lg:w-[627px] lg:h-[600px]">
-                <h2 class="mb-2 font-light text-white text-[32px]">Upload AI Video</h2>
-                <div class="flex flex-col gap-y-1">
-                    <label for="caption-input" class="mb-1 font-light text-[20px] text-neutral-300">
-                        Caption
-                    </label>
-                    <Show when=move || {
-                        description_err.with(|description_err| !description_err.is_empty())
-                    }>
-                        <span class="text-sm text-red-500">{desc_err_memo()}</span>
-                    </Show>
-                    <textarea
-                        id="caption-input"
-                        node_ref=desc
-                        on:input=move |ev| {
-                            let desc = event_target_value(&ev);
-                            description_err
-                                .set(description_validator(desc).err().unwrap_or_default());
+
+            // Dropdown menu
+            <Show when=show_dropdown>
+                <div class="absolute top-full left-0 right-0 mt-1 bg-neutral-900 border border-neutral-800 rounded-lg shadow-lg z-10">
+                    <For
+                        each=move || models.get_value()
+                        key=|model| model.id.clone()
+                        children=move |model| {
+                            let model_id = model.id.clone();
+                            let model_name = model.name.clone();
+                            let model_description = model.description.clone();
+                            let model_duration = model.duration.clone();
+                            let model_cost_sats = model.cost_sats;
+                            let model_clone = model.clone();
+
+                            let is_selected = Signal::derive(move || selected_model.get().id == model_id);
+                            view! {
+                                <div
+                                    class="flex items-center justify-between p-4 hover:bg-neutral-800 cursor-pointer border-b border-neutral-800 last:border-b-0"
+                                    on:click=move |_| {
+                                        selected_model.set(model_clone.clone());
+                                        show_dropdown.set(false);
+                                    }
+                                >
+                                    <div class="flex items-center gap-3">
+                                        <div class=move || format!("w-6 h-6 rounded-full border-2 flex items-center justify-center {}",
+                                            if is_selected.get() { "border-pink-500 bg-pink-500" } else { "border-neutral-600" }
+                                        )>
+                                            <Show when=is_selected>
+                                                <div class="w-2 h-2 bg-white rounded-full"></div>
+                                            </Show>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <div class="w-6 h-6 bg-pink-500 rounded flex items-center justify-center">
+                                                <span class="text-white font-bold text-xs">"P"</span>
+                                            </div>
+                                            <div>
+                                                <div class="text-white font-medium text-sm">{model_name}</div>
+                                                <div class="text-neutral-400 text-xs">{model_description}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-4 text-xs">
+                                        <div class="flex items-center gap-1">
+                                            <Icon icon=icondata::AiClockCircleOutlined attr:class="text-neutral-400" />
+                                            <span class="text-neutral-400">{model_duration}</span>
+                                        </div>
+                                        <div class="flex items-center gap-1">
+                                            <span class="text-orange-400">"🪙"</span>
+                                            <span class="text-orange-400">{format!("{} SATS", model_cost_sats)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
                         }
-                        class="p-3 min-w-full rounded-lg border transition outline-none focus:border-pink-400 focus:ring-pink-400 bg-neutral-900 border-neutral-800 text-[15px] placeholder:text-neutral-500 placeholder:font-light"
-                        rows=12
-                        placeholder="Enter the caption here"
-                        disabled=move || file_blob.with(|f| (**f).is_none())
-                    ></textarea>
-                </div>
-                <div class="flex flex-col gap-y-1 mt-2">
-                    <label for="hashtag-input" class="mb-1 font-light text-[20px] text-neutral-300">
-                        Add Hashtag
-                    </label>
-                    <Show when=move || {
-                        hashtags_err.with(|hashtags_err| !hashtags_err.is_empty())
-                    }>
-                        <span class="text-sm font-semibold text-red-500">
-                            {hashtags_err_memo()}
-                        </span>
-                    </Show>
-                    <input
-                        id="hashtag-input"
-                        node_ref=hashtag_inp
-                        on:input=move |ev| {
-                            let hts = event_target_value(&ev);
-                            hashtag_on_input(hts);
-                        }
-                        class="p-3 rounded-lg border transition outline-none focus:border-pink-400 focus:ring-pink-400 bg-neutral-900 border-neutral-800 text-[15px] placeholder:text-neutral-500 placeholder:font-light"
-                        type="text"
-                        placeholder="Hit enter to add #hashtags"
-                        disabled=move || file_blob.with(|f| (**f).is_none())
                     />
                 </div>
-                <div class="flex items-center gap-2">
-                    <input
-                        id="nsfw-checkbox"
-                        node_ref=is_nsfw
-                        type="checkbox"
-                        class="w-4 h-4 text-pink-500 bg-gray-100 border-gray-300 rounded focus:ring-pink-400"
-                        disabled=move || file_blob.with(|f| (**f).is_none())
-                    />
-                    <label for="nsfw-checkbox" class="text-neutral-300 text-sm">
-                        This content is NSFW
-                    </label>
+            </Show>
+        </div>
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
+struct VideoGenerationParams {
+    user_principal: Principal,
+    prompt: String,
+    model: VideoModel,
+    image_data: Option<String>,
+}
+
+impl Default for VideoGenerationParams {
+    fn default() -> Self {
+        Self {
+            user_principal: Principal::anonymous(),
+            prompt: String::new(),
+            model: VideoModel::default(),
+            image_data: None,
+        }
+    }
+}
+
+
+use yral_types::delegated_identity::DelegatedIdentityWire;
+
+// Server function to download AI video and upload using existing worker flow
+#[server]
+pub async fn upload_ai_video_from_url(
+    video_url: String,
+    hashtags: Vec<String>,
+    description: String,
+    delegated_identity_wire: DelegatedIdentityWire,
+    is_nsfw: bool,
+    enable_hot_or_not: bool,
+) -> Result<String, ServerFnError> {
+    leptos::logging::log!("Starting AI video upload from URL: {}", video_url);
+
+    // Step 1: Download video using reqwest
+    let client = reqwest::Client::new();
+    let response = client
+        .get(&video_url)
+        .send()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to download video: {}", e)))?;
+
+    if !response.status().is_success() {
+        return Err(ServerFnError::new(format!(
+            "Failed to download video: HTTP {}",
+            response.status()
+        )));
+    }
+
+    let video_bytes = response
+        .bytes()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to read video bytes: {}", e)))?;
+
+    leptos::logging::log!("Downloaded video, size: {} bytes", video_bytes.len());
+
+    // Step 2: Get upload URL from worker
+    let upload_response = client
+        .get(&format!("{}/get_upload_url_v2", UPLOAD_URL))
+        .send()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to get upload URL: {}", e)))?;
+
+    if !upload_response.status().is_success() {
+        return Err(ServerFnError::new(format!(
+            "Failed to get upload URL: HTTP {}",
+            upload_response.status()
+        )));
+    }
+
+    let upload_response_text = upload_response
+        .text()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to read upload URL response: {}", e)))?;
+
+    #[derive(Deserialize)]
+    struct UploadUrlResponse {
+        data: Option<UploadUrlData>,
+        success: bool,
+        message: Option<String>,
+    }
+
+    #[derive(Deserialize)]
+    struct UploadUrlData {
+        uid: Option<String>,
+        #[serde(rename = "uploadURL")]
+        upload_url: Option<String>,
+    }
+
+    let upload_message: UploadUrlResponse = serde_json::from_str(&upload_response_text)
+        .map_err(|e| ServerFnError::new(format!("Failed to parse upload URL response: {}", e)))?;
+
+    if !upload_message.success {
+        return Err(ServerFnError::new(format!(
+            "Upload URL request failed: {}",
+            upload_message.message.unwrap_or_default()
+        )));
+    }
+
+    let upload_data = upload_message
+        .data
+        .ok_or_else(|| ServerFnError::new("Upload URL data not found in response".to_string()))?;
+
+    let upload_url = upload_data
+        .upload_url
+        .ok_or_else(|| ServerFnError::new("Upload URL not found in response".to_string()))?;
+
+    let video_uid = upload_data
+        .uid
+        .ok_or_else(|| ServerFnError::new("Video UID not found in response".to_string()))?;
+
+    leptos::logging::log!("Got upload URL and video UID: {}", video_uid);
+
+    // Step 3: Upload to Cloudflare Stream
+    let form = reqwest::multipart::Form::new().part(
+        "file",
+        reqwest::multipart::Part::bytes(video_bytes.to_vec())
+            .file_name("ai_generated_video.mp4")
+            .mime_str("video/mp4")
+            .map_err(|e| ServerFnError::new(format!("Failed to set MIME type: {}", e)))?,
+    );
+
+    let upload_result = client
+        .post(&upload_url)
+        .multipart(form)
+        .send()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to upload to Cloudflare: {}", e)))?;
+
+    if !upload_result.status().is_success() {
+        return Err(ServerFnError::new(format!(
+            "Cloudflare upload failed: HTTP {}",
+            upload_result.status()
+        )));
+    }
+
+    leptos::logging::log!("Successfully uploaded to Cloudflare Stream");
+
+    // Step 4: Update metadata using types from video_upload.rs
+    #[derive(Serialize)]
+    struct VideoMetadata {
+        title: String,
+        description: String,
+        tags: String,
+    }
+
+    #[derive(Serialize)]
+    struct SerializablePostDetailsFromFrontend {
+        is_nsfw: bool,
+        hashtags: Vec<String>,
+        description: String,
+        video_uid: String,
+        creator_consent_for_inclusion_in_hot_or_not: bool,
+    }
+
+    let metadata_request = json!({
+        "video_uid": video_uid,
+        "delegated_identity_wire": delegated_identity_wire,
+        "meta": VideoMetadata{
+            title: description.clone(),
+            description: description.clone(),
+            tags: hashtags.join(",")
+        },
+        "post_details": SerializablePostDetailsFromFrontend{
+            is_nsfw,
+            hashtags,
+            description,
+            video_uid: video_uid.clone(),
+            creator_consent_for_inclusion_in_hot_or_not: enable_hot_or_not,
+        }
+    });
+
+    let metadata_result = client
+        .post(&format!("{}/update_metadata", UPLOAD_URL))
+        .json(&metadata_request)
+        .send()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to update metadata: {}", e)))?;
+
+    if !metadata_result.status().is_success() {
+        return Err(ServerFnError::new(format!(
+            "Metadata update failed: HTTP {}",
+            metadata_result.status()
+        )));
+    }
+
+    leptos::logging::log!("Successfully updated metadata for video: {}", video_uid);
+
+    Ok(video_uid)
+}
+
+// Helper function to generate video using videogen.rs
+async fn generate_video(
+    _user_principal: Principal,
+    prompt: String,
+    _model: VideoModel,
+    _image_data: Option<String>,
+) -> Result<String, Box<dyn std::error::Error>> {
+    // For now, simulate video generation with a delay
+    // TODO: Implement actual videogen.rs integration
+    leptos::logging::log!("Starting video generation with prompt: {}", prompt);
+
+    // Simulate some processing time
+    #[cfg(feature = "hydrate")]
+    {
+        gloo::timers::future::TimeoutFuture::new(2000).await;
+    }
+
+    // Mock successful response
+    let mock_video_url = "https://storage.googleapis.com/yral_ai_generated_videos/veo-output/5790230970440583959/sample_0.mp4";
+
+    leptos::logging::log!("Video generation completed with URL: {}", mock_video_url);
+    Ok(mock_video_url.to_string())
+}
+
+#[component]
+fn VideoGenerationLoadingScreen() -> impl IntoView {
+    view! {
+        <div class="flex flex-col bg-black min-w-dvw min-h-dvh">
+            // Header with back button and title
+            <div class="flex items-center justify-between p-4 pt-12">
+                <div class="text-white">
+                    <BackButton fallback="/upload-options".to_string() />
                 </div>
-                {move || {
-                    let disa = invalid_form.get() || file_blob.with(|f| (**f).is_none());
-                    view! {
-                        <HighlightedButton
-                            on_click=move || on_submit()
-                            disabled=disa
-                            classes="w-full mx-auto py-[12px] px-[20px] rounded-xl bg-linear-to-r from-pink-300 to-pink-500 text-white font-light text-[17px] transition disabled:opacity-60 disabled:cursor-not-allowed"
-                                .to_string()
-                        >
-                            "Upload"
-                        </HighlightedButton>
-                    }
-                }}
+                <h1 class="text-lg font-bold text-white">"Generate Video"</h1>
+                <div class="w-6"></div> // Spacer for centering
+            </div>
+
+            // Main loading content
+            <div class="flex-1 flex flex-col items-center justify-center px-4">
+                <div class="flex flex-col items-center gap-8 max-w-md w-full">
+
+                    // Progress animation circle
+                    <div class="relative w-32 h-32">
+                        // Outer circle (background)
+                        <div class="absolute inset-0 rounded-full border-4 border-neutral-800"></div>
+
+                        // Progress circle with gradient
+                        <svg class="absolute inset-0 w-full h-full -rotate-90 animate-spin" viewBox="0 0 128 128">
+                            <circle
+                                cx="64"
+                                cy="64"
+                                r="60"
+                                fill="none"
+                                stroke="url(#gradient)"
+                                stroke-width="4"
+                                stroke-linecap="round"
+                                stroke-dasharray="377"
+                                stroke-dashoffset="94.25"
+                                class="animate-pulse"
+                            />
+                            <defs>
+                                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#FF6DC4" />
+                                    <stop offset="50%" stop-color="#F7007C" />
+                                    <stop offset="100%" stop-color="#690039" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
+
+                        // Center icon
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <Icon
+                                icon=icondata::AiPlayCircleOutlined
+                                attr:class="text-white text-4xl"
+                            />
+                        </div>
+                    </div>
+
+                    // Status text
+                    <div class="text-center">
+                        <h2 class="text-xl font-bold text-white mb-2">"Generating video"</h2>
+                        <p class="text-sm text-neutral-400">"This may take a few minutes..."</p>
+                    </div>
+
+                    // Progress dots animation
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                        <div class="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                        <div class="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                    </div>
+                </div>
             </div>
         </div>
     }
 }
 
-#[cfg(feature = "hydrate")]
-async fn load_video_from_url(
+#[component]
+fn VideoResultScreen(
     video_url: String,
-    file_blob: RwSignal<SendOption<FileWithUrl>>,
-    generation_error: RwSignal<Option<String>>,
-    _video_ref: NodeRef<Video>,
-) {
-    leptos::logging::log!("Attempting to load video from URL: {}", video_url);
+    _generate_action: Action<VideoGenerationParams, Result<String, String>>,
+    on_upload: impl Fn() + 'static,
+    on_regenerate: impl Fn() + 'static,
+) -> impl IntoView {
+    view! {
+        <div class="flex flex-col bg-black min-w-dvw min-h-dvh">
+            // Header with back button and title
+            <div class="flex items-center justify-between p-4 pt-12">
+                <div class="text-white">
+                    <BackButton fallback="/upload-options".to_string() />
+                </div>
+                <h1 class="text-lg font-bold text-white">"Generate Video"</h1>
+                <div class="w-6"></div> // Spacer for centering
+            </div>
 
-    // Use server function to fetch video to avoid CORS issues
-    match fetch_video_bytes(video_url).await {
-        Ok(bytes) => {
-            leptos::logging::log!("Received {} bytes from server", bytes.len());
+            // Main video content
+            <div class="flex-1 flex flex-col px-4 py-6 max-w-md mx-auto w-full">
+                <div class="flex flex-col gap-6">
 
-            // Create a Uint8Array from the bytes
-            let uint8_array = js_sys::Uint8Array::new_with_length(bytes.len() as u32);
-            uint8_array.copy_from(&bytes[..]);
+                    // Video preview section
+                    <div class="w-full">
+                        <video
+                            class="w-full rounded-lg bg-neutral-900 aspect-video"
+                            controls=true
+                            preload="metadata"
+                            src=video_url.clone()
+                        >
+                            <p class="text-white p-4">"Your browser doesn't support video playback."</p>
+                        </video>
+                    </div>
 
-            // Create blob with proper options
-            let blob_parts = js_sys::Array::new();
-            blob_parts.push(&uint8_array.into());
+                    // Status text
+                    <div class="text-center">
+                        <h2 class="text-xl font-bold text-white mb-2">"Video generated successfully!"</h2>
+                        <p class="text-sm text-neutral-400">"Your AI video is ready. You can re-generate or upload it."</p>
+                    </div>
 
-            let mut blob_options = web_sys::BlobPropertyBag::new();
-            blob_options.type_("video/mp4");
+                    // Action buttons
+                    <div class="flex flex-col gap-3 mt-4">
 
-            let blob =
-                web_sys::Blob::new_with_u8_array_sequence_and_options(&blob_parts, &blob_options)
-                    .expect("Failed to create blob");
+                        // Re-generate button
+                        <button
+                            class="w-full h-12 px-5 py-3 rounded-lg border-2 border-neutral-600 bg-transparent text-white font-bold hover:border-neutral-500 transition-colors flex items-center justify-center gap-2"
+                            on:click=move |_| {
+                                on_regenerate();
+                            }
+                        >
+                            <Icon icon=icondata::AiReloadOutlined attr:class="text-lg" />
+                            "Re-generate"
+                        </button>
 
-            leptos::logging::log!("Created blob with size: {}", blob.size());
+                        // Upload button (primary action)
+                        <GradientButton
+                            on_click=move || {
+                                on_upload();
+                            }
+                            classes="w-full h-12 rounded-lg font-bold".to_string()
+                            disabled=Signal::derive(|| false)
+                        >
+                            <div class="flex items-center justify-center gap-2">
+                                <Icon icon=icondata::AiUploadOutlined attr:class="text-lg" />
+                                "Upload"
+                            </div>
+                        </GradientButton>
+                    </div>
 
-            // Create a File from the Blob
-            let file_options = web_sys::FilePropertyBag::new();
-            file_options.set_type("video/mp4");
-            let file = web_sys::File::new_with_blob_sequence_and_options(
-                &js_sys::Array::of1(&blob),
-                "generated_video.mp4",
-                &file_options,
-            )
-            .expect("Failed to create file");
+                    // Video info (optional)
+                    <div class="mt-6 p-4 bg-neutral-900 rounded-lg">
+                        <div class="flex items-center justify-between text-sm">
+                            <span class="text-neutral-400">"Duration:"</span>
+                            <span class="text-white">"Auto-detected"</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm mt-2">
+                            <span class="text-neutral-400">"Format:"</span>
+                            <span class="text-white">"MP4"</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm mt-2">
+                            <span class="text-neutral-400">"Quality:"</span>
+                            <span class="text-white">"HD"</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
 
-            let file_with_url = FileWithUrl::new(file.into());
+#[component]
+fn PreUploadAiView(
+    _trigger_upload: WriteSignal<SendOption<UploadParams>>,
+    _uid: RwSignal<Option<String>>,
+    _upload_file_actual_progress: WriteSignal<f64>,
+    generate_action: Action<VideoGenerationParams, Result<String, String>>,
+) -> impl IntoView {
+    // Form state
+    let selected_model = RwSignal::new(VideoModel::get_models().into_iter().next().unwrap());
+    let show_dropdown = RwSignal::new(false);
+    let prompt_text = RwSignal::new(String::new());
+    let character_count = Signal::derive(move || prompt_text.get().len());
+    let uploaded_image = RwSignal::new(None::<String>);
 
-            file_blob.set(SendOption::new_local(Some(file_with_url)));
+    // Balance state (mock for now - will integrate with real balance later)
+    let user_balance = RwSignal::new(100u64); // Current balance in SATS
 
-            // if let Some(video) = video_ref.get() {
-            //     video.set_src(&video_url);
-            //     // Force a load to ensure video starts properly
-            //     let _ = video.load();
-            //     leptos::logging::log!("Set video src and called load()");
-            // }
+    // Get auth state and user principal
+    let auth = auth_state();
+    let user_principal_opt = auth.user_principal_if_available();
 
-            generation_error.set(None);
+    // Form validation
+    let form_valid = Signal::derive(move || !prompt_text.get().trim().is_empty());
+    let sufficient_balance =
+        Signal::derive(move || user_balance.get() >= selected_model.get().cost_sats);
+    let can_generate = Signal::derive(move || {
+        form_valid.get() && sufficient_balance.get() && !generate_action.pending().get()
+    });
+
+    // Error handling from action
+    let generation_error = Signal::derive(move || {
+        if let Some(result) = generate_action.value().get() {
+            match result {
+                Err(err) => Some(err),
+                Ok(_) => None,
+            }
+        } else {
+            None
         }
-        Err(e) => {
-            leptos::logging::log!("Error fetching video: {}", e);
-            generation_error.set(Some(format!("Failed to fetch video: {}", e)));
+    });
+
+    // File input for image upload
+    let image_input = NodeRef::<Input>::new();
+
+    let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
+    VideoUploadInitiated.send_event(ev_ctx);
+
+    // Handle image upload
+    let handle_image_upload = move |_| {
+        #[cfg(feature = "hydrate")]
+        {
+            if let Some(input) = image_input.get() {
+                if let Some(files) = input.files() {
+                    if let Some(file) = files.get(0) {
+                        // Create object URL for preview
+                        let url =
+                            web_sys::Url::create_object_url_with_blob(&file).unwrap_or_default();
+                        uploaded_image.set(Some(url));
+                    }
+                }
+            }
         }
+    };
+
+    view! {
+        <div class="flex flex-col bg-black min-w-dvw min-h-dvh">
+            // Header with back button and title
+            <div class="flex items-center justify-between p-4 pt-12">
+                <div class="text-white">
+                    <BackButton fallback="/upload-options".to_string() />
+                </div>
+                <h1 class="text-lg font-bold text-white">"Create AI Video"</h1>
+                <div class="w-6"></div> // Spacer for centering
+            </div>
+
+            // Main form content
+            <div class="flex-1 px-4 py-6 pb-24 max-w-md mx-auto w-full">
+                <div class="flex flex-col gap-6">
+
+                    // Model Selection Dropdown
+                    <ModelDropdown selected_model=selected_model show_dropdown=show_dropdown />
+
+                    // Image Upload Section (Optional)
+                    <div class="w-full">
+                        <div class="flex items-center gap-2 mb-2">
+                            <label class="block text-sm font-medium text-white">Image</label>
+                            <span class="text-xs text-neutral-400">(Optional)</span>
+                            <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
+                        </div>
+
+                        <div class="relative">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                node_ref=image_input
+                                on:change=handle_image_upload
+                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            />
+                            <div class="flex flex-col items-center justify-center p-12 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer">
+                                <Show
+                                    when=move || uploaded_image.get().is_some()
+                                    fallback=move || view! {
+                                        <div class="flex flex-col items-center gap-3">
+                                            <Icon icon=icondata::AiPictureOutlined attr:class="text-neutral-500 text-3xl" />
+                                            <span class="text-neutral-500 text-sm">"Click to upload an image"</span>
+                                        </div>
+                                    }
+                                >
+                                    <img
+                                        src=move || uploaded_image.get().unwrap_or_default()
+                                        class="max-w-full max-h-32 object-contain rounded"
+                                        alt="Uploaded preview"
+                                    />
+                                </Show>
+                            </div>
+                        </div>
+                    </div>
+
+                    // Prompt Section
+                    <div class="w-full">
+                        <label class="block text-sm font-medium text-white mb-2">Prompt</label>
+                        <div class="relative">
+                            <textarea
+                                class="w-full p-4 bg-neutral-900 border border-neutral-800 rounded-lg text-white placeholder:text-neutral-500 resize-none focus:outline-none focus:border-pink-400 transition-colors"
+                                rows=6
+                                placeholder="Enter the Prompt here..."
+                                on:input=move |ev| {
+                                    let value = event_target_value(&ev);
+                                    if value.len() <= 500 {
+                                        prompt_text.set(value);
+                                    }
+                                }
+                                prop:value=move || prompt_text.get()
+                            ></textarea>
+
+                            // Generate with AI button inside textarea
+                            <button class="absolute bottom-3 left-3 flex items-center gap-1 px-2 py-1 bg-neutral-800 rounded text-xs text-neutral-300 hover:text-white transition-colors">
+                                <Icon icon=icondata::AiStarOutlined attr:class="text-sm" />
+                                "Generate with AI"
+                            </button>
+
+                            // Character counter
+                            <div class="absolute bottom-3 right-3 text-xs text-neutral-400">
+                                {move || format!("{}/500", character_count.get())}
+                            </div>
+                        </div>
+                    </div>
+
+                    // SATS Required Section
+                    <div class="flex items-center justify-between p-4 bg-neutral-900 rounded-lg">
+                        <div class="flex items-center gap-2">
+                            <span class="text-white font-medium">"SATS Required:"</span>
+                            <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-orange-400">"🪙"</span>
+                            <span class="text-orange-400 font-bold">{move || format!("{} SATS", selected_model.get().cost_sats)}</span>
+                        </div>
+                    </div>
+
+                    // Current Balance
+                    <div class="text-center text-sm text-neutral-400">
+                        {move || format!("(Current balance: {}SATS)", user_balance.get())}
+                    </div>
+
+                    // Error display
+                    <Show when=move || generation_error.get().is_some()>
+                        <div class="p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
+                            <div class="text-red-400 text-sm">
+                                {move || generation_error.get().unwrap_or_default()}
+                            </div>
+                        </div>
+                    </Show>
+
+                    // Create AI Video Button
+                    <div class="mt-4">
+                        <GradientButton
+                            on_click=move || {
+                                if let Some(user_principal) = user_principal_opt {
+                                    // Get current form values
+                                    let prompt = prompt_text.get_untracked();
+                                    let model = selected_model.get_untracked();
+                                    let image_data = uploaded_image.get_untracked();
+
+                                    // Create params struct and dispatch the action - this is the clean way!
+                                    let params = VideoGenerationParams {
+                                        user_principal,
+                                        prompt,
+                                        model,
+                                        image_data,
+                                    };
+                                    generate_action.dispatch(params);
+                                } else {
+                                    leptos::logging::warn!("User not logged in");
+                                }
+                            }
+                            classes="w-full h-12 rounded-lg font-bold".to_string()
+                            disabled=Signal::derive(move || !can_generate.get())
+                        >
+                            "Create AI Video"
+                        </GradientButton>
+                    </div>
+                </div>
+            </div>
+        </div>
     }
 }
 
@@ -440,207 +741,183 @@ pub fn UploadAiPostPage() -> impl IntoView {
     let uid = RwSignal::new(None);
     let upload_file_actual_progress = RwSignal::new(0.0f64);
 
-    view! {
-        <Title text="YRAL AI - Upload" />
-        <div class="flex overflow-y-scroll flex-col gap-6 justify-center items-center px-5 pt-4 pb-12 text-white bg-black md:gap-8 md:px-8 md:pt-6 lg:gap-16 lg:px-12 min-h-dvh w-dvw">
-            <div class="flex flex-col place-content-center w-full min-h-full lg:flex-row">
-                <Show
-                    when=move || { trigger_upload.with(|trigger_upload| (**trigger_upload).is_some()) }
-                    fallback=move || {
-                        view! {
-                            <PreUploadAiView
-                                trigger_upload=trigger_upload.write_only()
-                                uid=uid
-                                upload_file_actual_progress=upload_file_actual_progress.write_only()
-                            />
+    // Signal to control returning to form for re-generation
+    let show_form = RwSignal::new(true);
+
+    // Local storage for video generation parameters (for regeneration)
+    let (stored_params, set_stored_params, _) =
+        use_local_storage::<VideoGenerationParams, JsonSerdeCodec>(AI_VIDEO_PARAMS_STORE);
+
+    // Get auth state outside actions for reuse
+    let auth = auth_state();
+
+    // Video generation action - this is the proper way to handle async operations
+    let generate_action: Action<VideoGenerationParams, Result<String, String>> =
+        Action::new_unsync({
+            let show_form = show_form;
+            let set_stored_params = set_stored_params;
+            move |params: &VideoGenerationParams| {
+                let params = params.clone();
+                let show_form = show_form;
+                let set_stored_params = set_stored_params;
+
+                // Store parameters for regeneration
+                set_stored_params.set(params.clone());
+
+                async move {
+                    match generate_video(
+                        params.user_principal,
+                        params.prompt,
+                        params.model,
+                        params.image_data,
+                    )
+                    .await
+                    {
+                        Ok(video_url) => {
+                            // Set show_form to false to show result screen
+                            show_form.set(false);
+                            Ok(video_url)
+                        }
+                        Err(err) => {
+                            leptos::logging::error!("Video generation failed: {}", err);
+                            Err(format!("Failed to generate video: {}", err))
                         }
                     }
-                >
-                    <VideoAiUploader
-                        params=trigger_upload.get_untracked().as_ref().unwrap().clone()
-                        uid=uid
-                        upload_file_actual_progress=upload_file_actual_progress.read_only()
-                    />
-                </Show>
-            </div>
-        </div>
-    }
-}
-
-#[component]
-pub fn VideoAiUploader(
-    params: UploadParams,
-    uid: RwSignal<Option<String>>,
-    upload_file_actual_progress: ReadSignal<f64>,
-) -> impl IntoView {
-    let file_blob = params.file_blob;
-    let hashtags = params.hashtags;
-    let description = params.description;
-
-    let published = RwSignal::new(false);
-    let video_url = StoredValue::new_local(file_blob.url);
-
-    let is_nsfw = params.is_nsfw;
-    let enable_hot_or_not = params.enable_hot_or_not;
-
-    let auth = auth_state();
-    let is_connected = auth.is_logged_in_with_oauth();
-    let ev_ctx = auth.event_ctx();
-
-    let notification_nudge = RwSignal::new(false);
-
-    let publish_action: Action<_, _> = Action::new_unsync(move |&()| {
-        leptos::logging::log!("Publish action triggered");
-        let unauth_cans = unauth_canisters();
-        let hashtags = hashtags.clone();
-        let hashtags_len = hashtags.len();
-        let description = description.clone();
-        leptos::logging::log!("Publish action called");
-
-        async move {
-            let uid_value = uid.get_untracked()?;
-
-            let canisters = auth.auth_cans(unauth_cans).await.ok()?;
-            let id = canisters.identity();
-            let delegated_identity = delegate_short_lived_identity(id);
-            let res: std::result::Result<reqwest::Response, ServerFnError> = {
-                let client = reqwest::Client::new();
-                notification_nudge.set(true);
-                let req = client
-                    .post(format!("{UPLOAD_URL}/update_metadata"))
-                    .json(&json!({
-                        "video_uid": uid,
-                        "delegated_identity_wire": delegated_identity,
-                        "meta": VideoMetadata{
-                            title: description.clone(),
-                            description: description.clone(),
-                            tags: hashtags.join(",")
-                        },
-                        "post_details": SerializablePostDetailsFromFrontend{
-                            is_nsfw,
-                            hashtags,
-                            description,
-                            video_uid: uid_value.clone(),
-                            creator_consent_for_inclusion_in_hot_or_not: enable_hot_or_not,
-                        }
-                    }));
-
-                req.send()
-                    .await
-                    .map_err(|e| ServerFnError::new(e.to_string()))
-            };
-
-            match res {
-                Ok(_) => {
-                    let is_logged_in = is_connected.get_untracked();
-                    published.set(true)
-                }
-                Err(_) => {
-                    let e = res.as_ref().err().unwrap().to_string();
-                    VideoUploadUnsuccessful.send_event(
-                        ev_ctx,
-                        e,
-                        hashtags_len,
-                        is_nsfw,
-                        enable_hot_or_not,
-                    );
                 }
             }
-            try_or_redirect_opt!(res);
+        });
 
-            VideoUploadSuccessful.send_event(
-                ev_ctx,
-                uid_value.clone(),
-                hashtags_len,
-                is_nsfw,
-                enable_hot_or_not,
-                0,
-            );
+    // Upload action parameters struct
+    #[derive(Clone)]
+    struct UploadActionParams {
+        video_url: String,
+    }
 
-            Some(())
-        }
-    });
-
-    Effect::new(move |prev_tracked_uid_val: Option<Option<String>>| {
-        let current_uid_val = uid.get();
-        let prev_uid_from_last_run: Option<String> = prev_tracked_uid_val.flatten();
-        if current_uid_val.is_some()
-            && (prev_uid_from_last_run.is_none() || prev_uid_from_last_run != current_uid_val)
-            && !publish_action.pending().get()
-            && !published.get()
-        {
-            publish_action.dispatch(());
-        }
-        current_uid_val
-    });
-
-    let video_uploaded_base_width = 200.0 / 3.0;
-    let metadata_publish_total_width = 100.0 / 3.0;
-
-    view! {
-        <div class="flex flex-col-reverse gap-4 justify-center items-center p-0 mx-auto w-full min-h-screen bg-transparent lg:flex-row lg:gap-20">
-            <NotificationNudge pop_up=notification_nudge />
-            <div class="flex flex-col justify-center items-center px-4 mt-0 mb-0 w-full h-auto text-center rounded-2xl sm:px-6 sm:mt-0 sm:mb-0 lg:overflow-y-auto lg:px-0 min-h-[200px] max-h-[60vh] sm:min-h-[300px] sm:max-h-[70vh] lg:w-[627px] lg:h-[600px] lg:min-h-[600px] lg:max-h-[600px]">
-                <video
-                    class="object-contain p-2 w-full h-full bg-black rounded-xl"
-                    playsinline
-                    muted
-                    autoplay
-                    loop
-                    oncanplay="this.muted=true"
-                    src=move || video_url.get_value().to_string()
-                ></video>
-            </div>
-            <div class="flex overflow-y-auto flex-col gap-4 justify-center p-2 w-full h-auto rounded-2xl max-w-[627px] min-h-[400px] max-h-[90vh] lg:w-[627px] lg:h-[600px]">
-                <h2 class="mb-2 font-light text-white text-[32px]">Uploading Video</h2>
-                <div class="flex flex-col gap-y-1">
-                    <p>
-                        This may take a moment. Feel free to explore more videos on the home page while you wait!
-                    </p>
-                </div>
-                <div class="mt-2 w-full h-2.5 rounded-full bg-neutral-800">
-                    <div
-                        class="h-2.5 rounded-full duration-500 ease-in-out bg-linear-to-r from-[#EC55A7] to-[#E2017B] transition-width"
-                        style:width=move || {
-                            if published.get() {
-                                "100%".to_string()
-                            } else if publish_action.pending().get() {
-                                format!(
-                                    "{:.2}%",
-                                    video_uploaded_base_width + metadata_publish_total_width * 0.7,
-                                )
-                            } else if uid.with(|u| u.is_some()) {
-                                format!("{video_uploaded_base_width:.2}%")
-                            } else {
-                                format!(
-                                    "{:.2}%",
-                                    upload_file_actual_progress.get() * video_uploaded_base_width,
-                                )
+    // Upload action - handles server-side video download and upload
+    let upload_action: Action<UploadActionParams, Result<String, String>> =
+        Action::new_unsync({
+            let auth = auth.clone();
+            move |params: &UploadActionParams| {
+                let params = params.clone();
+                let auth = auth.clone();
+                async move {
+                    // Get unauth_canisters within the Action (like video_upload.rs)
+                    let unauth_cans = unauth_canisters();
+                    
+                    // Get delegated identity within the Action
+                    match auth.auth_cans(unauth_cans).await {
+                        Ok(canisters) => {
+                            let id = canisters.identity();
+                            let delegated_identity = delegate_short_lived_identity(id);
+                            
+                            // Call server function with delegated identity
+                            match upload_ai_video_from_url(
+                                params.video_url,
+                                vec!["AI".to_string(), "Generated".to_string()],
+                                "AI Generated Video".to_string(),
+                                delegated_identity,
+                                false, // is_nsfw
+                                false, // enable_hot_or_not
+                            ).await {
+                                Ok(video_uid) => {
+                                    leptos::logging::log!("Video uploaded successfully with UID: {}", video_uid);
+                                    Ok(video_uid)
+                                }
+                                Err(e) => {
+                                    leptos::logging::error!("Failed to upload video: {}", e);
+                                    Err(format!("Upload failed: {}", e))
+                                }
                             }
                         }
-                    ></div>
-                </div>
-                <p class="mt-1 text-sm text-center text-gray-400">
-                    {move || {
-                        if published.get() {
-                            "Upload complete!".to_string()
-                        } else if publish_action.pending().get() {
-                            "Processing video metadata...".to_string()
-                        } else if uid.with(|u| u.is_none()) {
-                            "Uploading video file...".to_string()
-                        } else if uid.with(|u| u.is_some()) && !publish_action.pending().get()
-                            && !published.get()
-                        {
-                            "Video file uploaded. Waiting to publish metadata...".to_string()
-                        } else {
-                            "Waiting to upload...".to_string()
+                        Err(e) => {
+                            leptos::logging::error!("Failed to get auth canisters: {:?}", e);
+                            Err(format!("Auth failed: {:?}", e))
                         }
-                    }}
-                </p>
-            </div>
+                    }
+                }
+            }
+        });
+
+    view! {
+        <Title text="YRAL AI - Upload" />
+        <div class="w-full h-full">
+            <Show
+                when=move || generate_action.pending().get()
+                fallback=move || {
+                    view! {
+                        <Show
+                            when=move || {
+                                // Show result screen if video generation was successful AND we're not in form mode
+                                if let Some(result) = generate_action.value().get() {
+                                    result.is_ok() && !show_form.get()
+                                } else {
+                                    false
+                                }
+                            }
+                            fallback=move || {
+                                view! {
+                                    <Show
+                                        when=move || { trigger_upload.with(|trigger_upload| (**trigger_upload).is_some()) }
+                                        fallback=move || {
+                                            view! {
+                                                <PreUploadAiView
+                                                    _trigger_upload=trigger_upload.write_only()
+                                                    _uid=uid
+                                                    _upload_file_actual_progress=upload_file_actual_progress.write_only()
+                                                    generate_action=generate_action
+                                                />
+                                            }
+                                        }
+                                    >
+                                        // TODO: Implement video upload flow after generation
+                                        <div class="flex items-center justify-center min-h-screen bg-black text-white">
+                                            "Video upload flow coming soon..."
+                                        </div>
+                                    </Show>
+                                }
+                            }
+                        >
+                            <VideoResultScreen
+                                video_url={
+                                    generate_action.value().get()
+                                        .and_then(|result| result.ok())
+                                        .unwrap_or_default()
+                                }
+                                _generate_action=generate_action
+                                on_upload=move || {
+                                    // Get the generated video URL and upload using Action
+                                    if let Some(result) = generate_action.value().get() {
+                                        if let Ok(video_url) = result {
+                                            leptos::logging::log!("Starting upload Action for video: {}", video_url);
+                                            
+                                            // Dispatch the upload action - it handles auth internally
+                                            upload_action.dispatch(UploadActionParams {
+                                                video_url,
+                                            });
+                                        }
+                                    }
+                                }
+                                on_regenerate=move || {
+                                    // Get the stored parameters and regenerate
+                                    let params = stored_params.get_untracked();
+                                    // Check if we have valid parameters (not default/empty)
+                                    if !params.prompt.is_empty() && params.user_principal != Principal::anonymous() {
+                                        leptos::logging::log!("Re-generating video with stored parameters");
+                                        // Dispatch the action again with the stored parameters
+                                        generate_action.dispatch(params);
+                                    } else {
+                                        leptos::logging::warn!("No valid stored parameters found for regeneration");
+                                        // Fallback to showing form
+                                        show_form.set(true);
+                                    }
+                                }
+                            />
+                        </Show>
+                    }
+                }
+            >
+                <VideoGenerationLoadingScreen />
+            </Show>
         </div>
-        <Show when=published>
-            <PostUploadScreen />
-        </Show>
-    }.into_any()
+    }
 }

@@ -61,6 +61,7 @@ codee = { version = "0.3.0", features = ["json_serde"] }
 reqwest = { version = "0.12", default-features = false, features = [
     "json",
     "http2",
+    "multipart",
 ] }
 hex = "0.4.3"
 leptos_icons = "0.6.1"
