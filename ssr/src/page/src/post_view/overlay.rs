@@ -11,6 +11,7 @@ use leptos_icons::*;
 use leptos_router::hooks::use_location;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
+use state::audio_state::AudioState;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::host::show_nsfw_content;
 use utils::{
@@ -23,6 +24,8 @@ use utils::{
 use yral_canisters_common::utils::posts::PostDetails;
 
 use utils::mixpanel::mixpanel_events::*;
+
+use crate::scrolling_post_view::MuteUnmuteButton;
 
 use super::bet::HNGameOverlay;
 
@@ -388,7 +391,10 @@ pub fn VideoDetailsOverlay(
         async move {}
     });
 
+    let AudioState { muted, .. } = AudioState::get();
+
     view! {
+        <MuteUnmuteButton muted />
         <div class="flex absolute bottom-0 left-0 flex-col flex-nowrap justify-between pt-5 pb-20 w-full h-full text-white bg-transparent pointer-events-none px-[16px] z-4 md:px-[16px]">
             <div class="flex flex-row justify-between items-center w-full pointer-events-auto">
                 <div class="flex flex-row gap-2 items-center p-2 w-9/12 rounded-s-full bg-linear-to-r from-black/25 via-80% via-black/10">
