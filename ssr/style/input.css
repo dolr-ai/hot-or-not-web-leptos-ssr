@@ -288,3 +288,18 @@
     box-shadow: 0 0 0px var(--ping-strength, 6px) #0000;
   }
 }
+
+.mute-indicator {
+    animation: muteIndicator 1s ease-out forwards;
+}
+
+@keyframes muteIndicator {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0);
+    }
+}

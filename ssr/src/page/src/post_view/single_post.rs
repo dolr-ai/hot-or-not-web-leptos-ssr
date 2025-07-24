@@ -30,7 +30,6 @@ enum PostFetchError {
 fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
     let AudioState {
         muted,
-        show_mute_icon,
         ..
     } = expect_context();
     let bg_url = bg_url(&post.uid);
@@ -54,7 +53,7 @@ fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
                 <VideoDetailsOverlay post=post.clone() prev_post=None win_audio_ref />
                 <VideoView post=Some(post) muted autoplay_at_render=true to_load />
             </div>
-            <MuteIconOverlay show_mute_icon />
+            <MuteIconOverlay muted />
         </div>
     }
     .into_any()
