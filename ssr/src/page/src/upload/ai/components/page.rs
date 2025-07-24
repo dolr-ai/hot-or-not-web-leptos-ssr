@@ -1,5 +1,5 @@
 use super::{PreUploadAiView, VideoGenerationLoadingScreen, VideoResultScreen};
-use crate::upload::ai::helpers::{create_video_request, generate_video_signed};
+use crate::upload::ai::helpers::create_video_request;
 use crate::upload::ai::models::VideoGenerationParams;
 use crate::upload::ai::server::upload_ai_video_from_url;
 use crate::upload::ai::types::{UploadActionParams, AI_VIDEO_PARAMS_STORE};
@@ -215,24 +215,12 @@ pub fn UploadAiPostPage() -> impl IntoView {
                             }
                             fallback=move || {
                                 view! {
-                                    <Show
-                                        when=move || { trigger_upload.with(|trigger_upload| (**trigger_upload).is_some()) }
-                                        fallback=move || {
-                                            view! {
-                                                <PreUploadAiView
-                                                    _trigger_upload=trigger_upload.write_only()
-                                                    _uid=uid
-                                                    _upload_file_actual_progress=upload_file_actual_progress.write_only()
-                                                    generate_action=generate_action
-                                                />
-                                            }
-                                        }
-                                    >
-                                        // TODO: Implement video upload flow after generation
-                                        <div class="flex items-center justify-center min-h-screen bg-black text-white">
-                                            "Video upload flow coming soon..."
-                                        </div>
-                                    </Show>
+                                    <PreUploadAiView
+                                        _trigger_upload=trigger_upload.write_only()
+                                        _uid=uid
+                                        _upload_file_actual_progress=upload_file_actual_progress.write_only()
+                                        generate_action=generate_action
+                                    />
                                 }
                             }
                         >

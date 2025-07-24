@@ -1,9 +1,8 @@
 use super::models::VideoModel;
-use super::videogen_client::generate_video_with_signature;
 use base64::{engine::general_purpose, Engine as _};
 use candid::Principal;
 use videogen_common::{
-    ImageInput, Veo3AspectRatio, VideoGenInput, VideoGenRequest, VideoGenRequestWithSignature,
+    ImageInput, Veo3AspectRatio, VideoGenInput, VideoGenRequest,
 };
 
 // Helper function to create video request
