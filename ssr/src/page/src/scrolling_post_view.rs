@@ -20,13 +20,13 @@ pub fn MuteIconOverlay(muted: RwSignal<bool>) -> impl IntoView {
                 when=move || muted.get()
                 fallback=|| view! {
                     <Icon
-                        attr:class="text-white/80 text-4xl mute-indicator"
+                        attr:class="text-white/80 text-6xl mute-indicator"
                         icon=icondata::BiVolumeMuteSolid
                     />
                 }
             >
             <Icon
-                attr:class="text-white/80 text-4xl mute-indicator"
+                attr:class="text-white/80 text-6xl mute-indicator"
                 icon=icondata::BiVolumeFullSolid
             />
             </Show>
