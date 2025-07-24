@@ -1,5 +1,4 @@
 pub mod types;
-pub mod models;
 pub mod helpers;
 pub mod server;
 pub mod components;

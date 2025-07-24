@@ -1,6 +1,6 @@
 use super::{PreUploadAiView, VideoGenerationLoadingScreen, VideoResultScreen};
 use crate::upload::ai::helpers::create_video_request;
-use crate::upload::ai::models::VideoGenerationParams;
+use crate::upload::ai::types::VideoGenerationParams;
 use crate::upload::ai::server::upload_ai_video_from_url;
 use crate::upload::ai::types::{UploadActionParams, AI_VIDEO_PARAMS_STORE};
 use crate::upload::ai::videogen_client::{generate_video_with_signature, sign_videogen_request};

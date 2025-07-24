@@ -1,7 +1,7 @@
 use leptos::prelude::*;
 use leptos_icons::*;
 use component::{back_btn::BackButton, buttons::GradientButton};
-use crate::upload::ai::models::VideoGenerationParams;
+use crate::upload::ai::types::VideoGenerationParams;
 
 #[component]
 pub fn VideoResultScreen(

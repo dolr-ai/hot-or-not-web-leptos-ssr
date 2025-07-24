@@ -1,5 +1,5 @@
 use super::ModelDropdown;
-use crate::upload::ai::models::{VideoGenerationParams, VideoModel};
+use crate::upload::ai::types::VideoGenerationParams;
 use crate::upload::UploadParams;
 use component::{back_btn::BackButton, buttons::GradientButton, login_modal::LoginModal};
 use leptos::reactive::send_wrapper_ext::SendOption;
@@ -7,6 +7,7 @@ use leptos::{html::Input, prelude::*};
 use leptos_icons::*;
 use state::canisters::auth_state;
 use utils::event_streaming::events::VideoUploadInitiated;
+use videogen_common::VideoModel;
 
 #[component]
 pub fn PreUploadAiView(
@@ -126,41 +127,43 @@ pub fn PreUploadAiView(
                     // Model Selection Dropdown
                     <ModelDropdown selected_model=selected_model show_dropdown=show_dropdown />
 
-                    // Image Upload Section (Optional)
-                    <div class="w-full">
-                        <div class="flex items-center gap-2 mb-2">
-                            <label class="block text-sm font-medium text-white">Image</label>
-                            <span class="text-xs text-neutral-400">(Optional)</span>
-                            <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
-                        </div>
+                    // Image Upload Section (Optional) - Only show if model supports images
+                    <Show when=move || selected_model.get().supports_image>
+                        <div class="w-full">
+                            <div class="flex items-center gap-2 mb-2">
+                                <label class="block text-sm font-medium text-white">Image</label>
+                                <span class="text-xs text-neutral-400">(Optional)</span>
+                                <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
+                            </div>
 
-                        <div class="relative">
-                            <input
-                                type="file"
-                                accept="image/*"
-                                node_ref=image_input
-                                on:change=handle_image_upload
-                                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                            />
-                            <div class="flex flex-col items-center justify-center p-12 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer">
-                                <Show
-                                    when=move || uploaded_image.get().is_some()
-                                    fallback=move || view! {
-                                        <div class="flex flex-col items-center gap-3">
-                                            <Icon icon=icondata::AiPictureOutlined attr:class="text-neutral-500 text-3xl" />
-                                            <span class="text-neutral-500 text-sm">"Click to upload an image"</span>
-                                        </div>
-                                    }
-                                >
-                                    <img
-                                        src=move || uploaded_image.get().unwrap_or_default()
-                                        class="max-w-full max-h-32 object-contain rounded"
-                                        alt="Uploaded preview"
-                                    />
-                                </Show>
+                            <div class="relative">
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    node_ref=image_input
+                                    on:change=handle_image_upload
+                                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                />
+                                <div class="flex flex-col items-center justify-center p-12 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer">
+                                    <Show
+                                        when=move || uploaded_image.get().is_some()
+                                        fallback=move || view! {
+                                            <div class="flex flex-col items-center gap-3">
+                                                <Icon icon=icondata::AiPictureOutlined attr:class="text-neutral-500 text-3xl" />
+                                                <span class="text-neutral-500 text-sm">"Click to upload an image"</span>
+                                            </div>
+                                        }
+                                    >
+                                        <img
+                                            src=move || uploaded_image.get().unwrap_or_default()
+                                            class="max-w-full max-h-32 object-contain rounded"
+                                            alt="Uploaded preview"
+                                        />
+                                    </Show>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </Show>
 
                     // Prompt Section
                     <div class="w-full">

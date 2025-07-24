@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 use leptos_icons::*;
-use crate::upload::ai::models::VideoModel;
+use videogen_common::VideoModel;
 
 #[component]
 pub fn ModelDropdown(
@@ -9,6 +9,11 @@ pub fn ModelDropdown(
 ) -> impl IntoView {
     // Store models in a StoredValue to avoid the closure trait bounds issue
     let models = StoredValue::new(VideoModel::get_models());
+    
+    // Create derived signals for the selected model properties
+    let model_name = Signal::derive(move || selected_model.get().name.clone());
+    let model_description = Signal::derive(move || selected_model.get().description.clone());
+    let model_icon = Signal::derive(move || selected_model.get().model_icon.clone());
 
     view! {
         <div class="relative w-full">
@@ -20,12 +25,23 @@ pub fn ModelDropdown(
                 on:click=move |_| show_dropdown.update(|show| *show = !*show)
             >
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center">
-                        <span class="text-white font-bold text-sm">"P"</span>
-                    </div>
+                    <Show
+                        when=move || model_icon.get().is_some()
+                        fallback=move || view! {
+                            <div class="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center">
+                                <span class="text-white font-bold text-sm">"AI"</span>
+                            </div>
+                        }
+                    >
+                        <img
+                            src=move || model_icon.get().unwrap_or_default()
+                            alt="Model icon"
+                            class="w-8 h-8"
+                        />
+                    </Show>
                     <div>
-                        <div class="text-white font-medium">{selected_model.get().name}</div>
-                        <div class="text-neutral-400 text-sm">{selected_model.get().description}</div>
+                        <div class="text-white font-medium">{model_name}</div>
+                        <div class="text-neutral-400 text-sm">{model_description}</div>
                     </div>
                 </div>
                 <Icon
@@ -38,7 +54,7 @@ pub fn ModelDropdown(
 
             // Dropdown menu
             <Show when=show_dropdown>
-                <div class="absolute top-full left-0 right-0 mt-1 bg-neutral-900 border border-neutral-800 rounded-lg shadow-lg z-10">
+                <div class="absolute top-full left-0 right-0 mt-1 bg-neutral-900 border border-neutral-800 rounded-lg shadow-lg z-50">
                     <For
                         each=move || models.get_value()
                         key=|model| model.id.clone()
@@ -46,8 +62,9 @@ pub fn ModelDropdown(
                             let model_id = model.id.clone();
                             let model_name = model.name.clone();
                             let model_description = model.description.clone();
-                            let model_duration = model.duration.clone();
+                            let model_duration = format!("{} seconds", model.max_duration_seconds);
                             let model_cost_sats = model.cost_sats;
+                            let model_icon = model.model_icon.clone();
                             let model_clone = model.clone();
 
                             let is_selected = Signal::derive(move || selected_model.get().id == model_id);
@@ -68,9 +85,22 @@ pub fn ModelDropdown(
                                             </Show>
                                         </div>
                                         <div class="flex items-center gap-2">
-                                            <div class="w-6 h-6 bg-pink-500 rounded flex items-center justify-center">
-                                                <span class="text-white font-bold text-xs">"P"</span>
-                                            </div>
+                                            {
+                                                match model_icon.clone() {
+                                                    Some(icon_path) => view! {
+                                                        <img
+                                                            src=icon_path
+                                                            alt="Model icon"
+                                                            class="w-6 h-6"
+                                                        />
+                                                    }.into_any(),
+                                                    None => view! {
+                                                        <div class="w-6 h-6 bg-pink-500 rounded flex items-center justify-center">
+                                                            <span class="text-white font-bold text-xs">"AI"</span>
+                                                        </div>
+                                                    }.into_any()
+                                                }
+                                            }
                                             <div>
                                                 <div class="text-white font-medium text-sm">{model_name}</div>
                                                 <div class="text-neutral-400 text-xs">{model_description}</div>

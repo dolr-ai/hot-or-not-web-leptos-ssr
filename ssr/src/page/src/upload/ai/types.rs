@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+use candid::Principal;
+use videogen_common::VideoModel;
 
 // Local storage key for video generation parameters
 pub const AI_VIDEO_PARAMS_STORE: &str = "ai_video_generation_params";
@@ -38,4 +40,24 @@ pub struct SerializablePostDetailsFromFrontend {
 #[derive(Clone)]
 pub struct UploadActionParams {
     pub video_url: String,
+}
+
+// Video generation parameters
+#[derive(Clone, Serialize, Deserialize, PartialEq)]
+pub struct VideoGenerationParams {
+    pub user_principal: Principal,
+    pub prompt: String,
+    pub model: VideoModel,
+    pub image_data: Option<String>,
+}
+
+impl Default for VideoGenerationParams {
+    fn default() -> Self {
+        Self {
+            user_principal: Principal::anonymous(),
+            prompt: String::new(),
+            model: VideoModel::get_models().into_iter().next().unwrap_or_default(),
+            image_data: None,
+        }
+    }
 }

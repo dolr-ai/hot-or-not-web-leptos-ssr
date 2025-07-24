@@ -1,6 +1,5 @@
-use super::models::VideoModel;
 use candid::Principal;
-use videogen_common::{ImageInput, Veo3AspectRatio, VideoGenInput, VideoGenRequest};
+use videogen_common::{ImageInput, VideoGenRequest, VideoModel};
 
 // Helper function to create video request
 pub fn create_video_request(
@@ -55,26 +54,7 @@ pub fn create_video_request(
     };
 
     // Create video generation input based on model
-    let input = match model.id.as_str() {
-        "pollo_1_6" | "cling_2_1" | "cling_2_1_master" => {
-            VideoGenInput::Veo3 {
-                prompt,
-                negative_prompt: None,
-                image: image_input,
-                aspect_ratio: Veo3AspectRatio::Ratio16x9, // Default to 16:9
-                duration_seconds: match model.id.as_str() {
-                    "pollo_1_6" => 8,
-                    "cling_2_1" => 8,
-                    "cling_2_1_master" => 8, // Max duration for u8
-                    _ => 8,
-                },
-                generate_audio: true,
-            }
-        }
-        _ => {
-            return Err("Unsupported model".into());
-        }
-    };
+    let input = model.to_video_gen_input(prompt, image_input)?;
 
     // Create the request
     let request = VideoGenRequest {
