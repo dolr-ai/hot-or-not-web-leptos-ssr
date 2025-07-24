@@ -71,10 +71,37 @@ pub fn PreUploadAiView(
             if let Some(input) = image_input.get() {
                 if let Some(files) = input.files() {
                     if let Some(file) = files.get(0) {
-                        // Create object URL for preview
-                        let url =
-                            web_sys::Url::create_object_url_with_blob(&file).unwrap_or_default();
-                        uploaded_image.set(Some(url));
+                        use wasm_bindgen::prelude::*;
+                        use wasm_bindgen::JsCast;
+                        use web_sys::FileReader;
+                        
+                        // Log the file's mime type
+                        leptos::logging::log!("File type from browser: {}", file.type_());
+                        
+                        let file_reader = FileReader::new().unwrap();
+                        let file_clone = file.clone();
+                        
+                        // Set up callback for when file is loaded
+                        let uploaded_image_clone = uploaded_image.clone();
+                        let onload = Closure::wrap(Box::new(move |event: web_sys::Event| {
+                            if let Some(target) = event.target() {
+                                if let Ok(reader) = target.dyn_into::<FileReader>() {
+                                    if let Ok(result) = reader.result() {
+                                        if let Some(data_url) = result.as_string() {
+                                            // Set the data URL which includes the base64 data
+                                            leptos::logging::log!("Image uploaded as data URL: {}", &data_url[..50.min(data_url.len())]);
+                                            uploaded_image_clone.set(Some(data_url));
+                                        }
+                                    }
+                                }
+                            }
+                        }) as Box<dyn FnMut(_)>);
+                        
+                        file_reader.set_onload(Some(onload.as_ref().unchecked_ref()));
+                        onload.forget();
+                        
+                        // Read file as data URL (includes mime type and base64 data)
+                        let _ = file_reader.read_as_data_url(&file_clone);
                     }
                 }
             }
@@ -204,6 +231,9 @@ pub fn PreUploadAiView(
                                     let prompt = prompt_text.get_untracked();
                                     let model = selected_model.get_untracked();
                                     let image_data = uploaded_image.get_untracked();
+                                    
+                                    leptos::logging::log!("Dispatching video generation with image_data: {:?}", 
+                                        image_data.as_ref().map(|d| &d[..50.min(d.len())]));
 
                                     // Create params struct and dispatch the action - this is the clean way!
                                     let params = VideoGenerationParams {
