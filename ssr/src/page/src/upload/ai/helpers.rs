@@ -1,26 +1,77 @@
 use candid::Principal;
 use super::models::VideoModel;
+use videogen_common::{VideoGenInput, VideoGenRequest, Veo3AspectRatio, ImageInput, VideoGenRequestWithSignature};
+use base64::{Engine as _, engine::general_purpose};
+use super::videogen_client::generate_video_with_signature;
 
-// Helper function to generate video using videogen.rs
-pub async fn generate_video(
-    _user_principal: Principal,
+// Helper function to create video request
+pub fn create_video_request(
+    user_principal: Principal,
     prompt: String,
-    _model: VideoModel,
-    _image_data: Option<String>,
-) -> Result<String, Box<dyn std::error::Error>> {
-    // For now, simulate video generation with a delay
-    // TODO: Implement actual videogen.rs integration
+    model: VideoModel,
+    image_data: Option<String>,
+) -> Result<VideoGenRequest, Box<dyn std::error::Error>> {
     leptos::logging::log!("Starting video generation with prompt: {}", prompt);
 
-    // Simulate some processing time
-    #[cfg(feature = "hydrate")]
-    {
-        gloo::timers::future::TimeoutFuture::new(2000).await;
-    }
+    // Convert image data if provided
+    let image_input = if let Some(data) = image_data {
+        // Assuming the image_data is a base64 encoded string or data URL
+        let image_bytes = if data.starts_with("data:") {
+            // Parse data URL
+            let parts: Vec<&str> = data.split(',').collect();
+            if parts.len() == 2 {
+                general_purpose::STANDARD.decode(parts[1]).ok()
+            } else {
+                None
+            }
+        } else {
+            // Direct base64
+            general_purpose::STANDARD.decode(&data).ok()
+        };
 
-    // Mock successful response
-    let mock_video_url = "https://storage.googleapis.com/yral_ai_generated_videos/veo-output/5790230970440583959/sample_0.mp4";
+        image_bytes.map(|bytes| ImageInput {
+            data: bytes,
+            mime_type: "image/png".to_string(), // Default to PNG, could be extracted from data URL
+        })
+    } else {
+        None
+    };
 
-    leptos::logging::log!("Video generation completed with URL: {}", mock_video_url);
-    Ok(mock_video_url.to_string())
+    // Create video generation input based on model
+    let input = match model.id.as_str() {
+        "pollo_1_6" | "cling_2_1" | "cling_2_1_master" => {
+            VideoGenInput::Veo3 {
+                prompt,
+                negative_prompt: None,
+                image: image_input,
+                aspect_ratio: Veo3AspectRatio::Ratio16x9, // Default to 16:9
+                duration_seconds: match model.id.as_str() {
+                    "pollo_1_6" => 60,
+                    "cling_2_1" => 120,
+                    "cling_2_1_master" => 255, // Max duration for u8
+                    _ => 60,
+                },
+                generate_audio: false,
+            }
+        }
+        _ => {
+            return Err("Unsupported model".into());
+        }
+    };
+
+    // Create the request
+    let request = VideoGenRequest {
+        principal: user_principal,
+        input,
+    };
+
+    Ok(request)
+}
+
+// Helper function to sign and generate video  
+pub async fn generate_video_signed(
+    signed_request: VideoGenRequestWithSignature,
+) -> Result<String, Box<dyn std::error::Error>> {
+    let response = generate_video_with_signature(signed_request).await?;
+    Ok(response.video_url)
 }

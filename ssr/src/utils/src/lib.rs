@@ -18,7 +18,6 @@ pub mod route;
 pub mod sentry;
 pub mod time;
 pub mod types;
-pub mod videogen;
 pub mod web;
 /// Wrapper for PartialEq that always returns false
 /// this is currently only used for resources

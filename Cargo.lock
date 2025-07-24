@@ -6560,6 +6560,7 @@ dependencies = [
  "auth",
  "axum 0.8.4",
  "axum-extra",
+ "base64 0.22.1",
  "bb8",
  "bb8-redis",
  "candid",
@@ -6634,6 +6635,7 @@ dependencies = [
  "utils 0.1.0",
  "uts2ts",
  "uuid",
+ "videogen-common",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -10460,6 +10462,7 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.69",
  "utoipa",
+ "yral-identity 0.1.0",
 ]
 
 [[package]]

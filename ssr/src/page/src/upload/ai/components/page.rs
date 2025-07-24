@@ -9,7 +9,8 @@ use leptos_use::storage::use_local_storage;
 use state::canisters::{auth_state, unauth_canisters};
 use crate::upload::ai::types::{AI_VIDEO_PARAMS_STORE, UploadActionParams};
 use crate::upload::ai::models::VideoGenerationParams;
-use crate::upload::ai::helpers::generate_video;
+use crate::upload::ai::helpers::{create_video_request, generate_video_signed};
+use crate::upload::ai::videogen_client::sign_videogen_request;
 use crate::upload::ai::server::upload_ai_video_from_url;
 use super::{VideoGenerationLoadingScreen, VideoResultScreen, PreUploadAiView};
 
@@ -34,31 +35,62 @@ pub fn UploadAiPostPage() -> impl IntoView {
         Action::new_unsync({
             let show_form = show_form;
             let set_stored_params = set_stored_params;
+            let auth = auth.clone();
             move |params: &VideoGenerationParams| {
                 let params = params.clone();
                 let show_form = show_form;
                 let set_stored_params = set_stored_params;
+                let auth = auth.clone();
 
                 // Store parameters for regeneration
                 set_stored_params.set(params.clone());
 
                 async move {
-                    match generate_video(
-                        params.user_principal,
-                        params.prompt,
-                        params.model,
-                        params.image_data,
-                    )
-                    .await
-                    {
-                        Ok(video_url) => {
-                            // Set show_form to false to show result screen
-                            show_form.set(false);
-                            Ok(video_url)
+                    // Get auth canisters and identity for signing
+                    let unauth_cans = unauth_canisters();
+                    match auth.auth_cans(unauth_cans).await {
+                        Ok(canisters) => {
+                            let identity = canisters.identity();
+                            
+                            // Create the video request
+                            match create_video_request(
+                                params.user_principal,
+                                params.prompt,
+                                params.model,
+                                params.image_data,
+                            ) {
+                                Ok(request) => {
+                                    // Sign the request on client side
+                                    match sign_videogen_request(identity, request) {
+                                        Ok(signed_request) => {
+                                            // Generate video with signed request
+                                            match generate_video_signed(signed_request).await {
+                                                Ok(video_url) => {
+                                                    // Set show_form to false to show result screen
+                                                    show_form.set(false);
+                                                    Ok(video_url)
+                                                }
+                                                Err(err) => {
+                                                    leptos::logging::error!("Video generation failed: {}", err);
+                                                    Err(format!("Failed to generate video: {}", err))
+                                                }
+                                            }
+                                        }
+                                        Err(err) => {
+                                            leptos::logging::error!("Failed to sign request: {:?}", err);
+                                            Err(format!("Failed to sign request: {:?}", err))
+                                        }
+                                    }
+                                }
+                                Err(err) => {
+                                    leptos::logging::error!("Failed to create request: {}", err);
+                                    Err(format!("Failed to create request: {}", err))
+                                }
+                            }
                         }
                         Err(err) => {
-                            leptos::logging::error!("Video generation failed: {}", err);
-                            Err(format!("Failed to generate video: {}", err))
+                            leptos::logging::error!("Failed to get auth canisters: {:?}", err);
+                            Err(format!("Failed to get auth canisters: {:?}", err))
                         }
                     }
                 }
