@@ -9,3 +9,5 @@ pub mod notification_nudge;
 pub mod padlock_icon;
 pub mod send_icon;
 pub mod share_icon;
+pub mod sound_off_icon;
+pub mod sound_on_icon;
