@@ -31,14 +31,12 @@ pub fn MuteIconOverlay(show_mute_icon: RwSignal<bool>) -> impl IntoView {
 
 #[component]
 pub fn MuteUnmuteButton(muted: RwSignal<bool>) -> impl IntoView {
-    let text = if muted.get() { "Unmute" } else { "Mute" };
-
     view! {
         <button
             class="absolute z-10 rounded-r-lg bg-black/25 py-2 px-3 cursor-pointer text-sm font-medium gap-1 text-white top-[7rem] flex items-center left-0 hover:translate-x-0 -translate-x-2/3 transition-all focus:delay-1000"
             on:click=move |_| muted.set(!muted.get_untracked())
         >
-            <div class="w-[6ch] text-center">{text}</div>
+            <div class="w-[8ch] text-center">{move || if muted.get() { "Unmute" } else { "Mute" }}</div>
             <Show
                 when=move || muted.get()
                 fallback=|| view! { <SoundOnIcon classes="w-4 h-4".to_string() /> }
