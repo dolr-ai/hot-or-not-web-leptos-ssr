@@ -627,7 +627,7 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
                         max="1"
                         step="0.05"
                         class="z-[2] appearance-none bg-zinc-500 h-1.5 rounded-full accent-white"
-                        value={volume_.get()}
+                        prop:value={volume_.get()}
                         on:change=move |ev: leptos::ev::Event| {
                             let input = event_target_value(&ev);
                             if let Ok(value) = input.parse::<f64>() {
