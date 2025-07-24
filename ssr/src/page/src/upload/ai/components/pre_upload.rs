@@ -31,7 +31,7 @@ pub fn PreUploadAiView(
     // Get auth state and user principal
     let auth = auth_state();
     let user_principal_opt = auth.user_principal_if_available();
-    let is_logged_in = auth.is_logged_in_with_oauth();
+    let is_logged_in = Signal::stored(true); // auth.is_logged_in_with_oauth();
 
     // Form validation
     let form_valid = Signal::derive(move || !prompt_text.get().trim().is_empty());
@@ -42,7 +42,7 @@ pub fn PreUploadAiView(
         // For logged-in users, check form validity and balance
         // !is_logged_in.get() ||
         // (form_valid.get() && sufficient_balance.get() && !generate_action.pending().get())
-        (form_valid.get() && !generate_action.pending().get())
+        form_valid.get() && !generate_action.pending().get()
     });
 
     // Error handling from action

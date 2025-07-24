@@ -1,9 +1,6 @@
-// use consts::OFF_CHAIN_AGENT_URL; // Uncomment when using real implementation
+use consts::OFF_CHAIN_AGENT_URL;
 use videogen_common::{
-    // VideoGenClient, // Uncomment when using real implementation
-    VideoGenRequest,
-    VideoGenRequestWithSignature,
-    VideoGenResponse,
+    VideoGenClient, VideoGenError, VideoGenRequest, VideoGenRequestWithSignature, VideoGenResponse,
 };
 
 /// Create a message for videogen request signing
@@ -31,60 +28,31 @@ pub fn sign_videogen_request(
 /// Generate video using the signature-based flow
 /// The off-chain agent will handle signature verification and balance deduction
 pub async fn generate_video_with_signature(
-    _signed_request: VideoGenRequestWithSignature,
-) -> Result<VideoGenResponse, Box<dyn std::error::Error>> {
+    signed_request: VideoGenRequestWithSignature,
+) -> Result<VideoGenResponse, VideoGenError> {
     // TODO: Remove this dummy implementation when ready
     // Sleep for 2 seconds to simulate processing
-    gloo::timers::future::TimeoutFuture::new(2_000).await;
+    // gloo::timers::future::TimeoutFuture::new(2_000).await;
 
-    // Return dummy response
-    let dummy_response = VideoGenResponse {
-        operation_id: format!("dummy-op-{}", uuid::Uuid::new_v4()),
-        video_url: "https://storage.googleapis.com/yral_ai_generated_videos/veo-output/5790230970440583959/sample_0.mp4".to_string(),
-        provider: "dummy".to_string(),
-    };
+    // // Return dummy response
+    // let dummy_response = VideoGenResponse {
+    //     operation_id: format!("dummy-op-{}", uuid::Uuid::new_v4()),
+    //     video_url: "https://storage.googleapis.com/yral_ai_generated_videos/veo-output/5790230970440583959/sample_0.mp4".to_string(),
+    //     provider: "dummy".to_string(),
+    // };
 
-    Ok(dummy_response)
+    // Ok(dummy_response)
 
-    // Original implementation (commented out for now):
-    /*
     // Create client and call the signed endpoint
-    let client = VideoGenClient::new(OFF_CHAIN_AGENT_URL.as_str().to_string());
+    let client = VideoGenClient::new(OFF_CHAIN_AGENT_URL.clone());
 
-    let video_response = client.generate_with_signature(signed_request).await?;
+    let video_response = client
+        .generate_with_signature(signed_request)
+        .await
+        .map_err(|e| {
+            leptos::logging::log!("Error generating video: {}", e);
+            VideoGenError::from(e)
+        })?;
 
     Ok(video_response)
-    */
 }
-
-// Dummy testing code (commented out)
-/*
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use candid::Principal;
-    use videogen_common::{VideoGenInput, Veo3AspectRatio};
-
-    #[tokio::test]
-    async fn test_video_generation() {
-        // Example test for video generation
-        let request = VideoGenRequest {
-            principal: Principal::from_text("xkbqi-2qaaa-aaaah-qbpqq-cai").unwrap(),
-            input: VideoGenInput::Veo3 {
-                prompt: "A beautiful sunset over mountains".to_string(),
-                negative_prompt: None,
-                image: None,
-                aspect_ratio: Veo3AspectRatio::Ratio16x9,
-                duration_seconds: 5,
-                generate_audio: false,
-            },
-        };
-
-        // Mock identity for testing
-        // let identity = test_identity();
-        // let signed_request = sign_videogen_request(&identity, request).unwrap();
-        // let response = generate_video_with_signature(signed_request).await.unwrap();
-        // println!("Video generated: {}", response.video_url);
-    }
-}
-*/

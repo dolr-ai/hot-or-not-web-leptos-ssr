@@ -1,8 +1,10 @@
-use candid::Principal;
 use super::models::VideoModel;
-use videogen_common::{VideoGenInput, VideoGenRequest, Veo3AspectRatio, ImageInput, VideoGenRequestWithSignature};
-use base64::{Engine as _, engine::general_purpose};
 use super::videogen_client::generate_video_with_signature;
+use base64::{engine::general_purpose, Engine as _};
+use candid::Principal;
+use videogen_common::{
+    ImageInput, Veo3AspectRatio, VideoGenInput, VideoGenRequest, VideoGenRequestWithSignature,
+};
 
 // Helper function to create video request
 pub fn create_video_request(
@@ -66,12 +68,4 @@ pub fn create_video_request(
     };
 
     Ok(request)
-}
-
-// Helper function to sign and generate video  
-pub async fn generate_video_signed(
-    signed_request: VideoGenRequestWithSignature,
-) -> Result<String, Box<dyn std::error::Error>> {
-    let response = generate_video_with_signature(signed_request).await?;
-    Ok(response.video_url)
 }
