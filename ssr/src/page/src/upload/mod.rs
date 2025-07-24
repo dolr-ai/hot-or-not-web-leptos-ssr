@@ -1,4 +1,4 @@
-mod ai;
+pub mod ai;
 mod validators;
 mod video_upload;
 
@@ -24,7 +24,7 @@ use validators::{description_validator, hashtags_validator};
 use video_upload::{PreVideoUpload, VideoUploader};
 
 #[derive(Clone)]
-struct UploadParams {
+pub struct UploadParams {
     file_blob: FileWithUrl,
     hashtags: Vec<String>,
     description: String,
