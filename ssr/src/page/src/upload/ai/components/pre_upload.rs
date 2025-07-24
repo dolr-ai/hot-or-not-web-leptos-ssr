@@ -1,12 +1,12 @@
+use super::ModelDropdown;
+use crate::upload::ai::models::{VideoGenerationParams, VideoModel};
 use crate::upload::UploadParams;
+use component::{back_btn::BackButton, buttons::GradientButton, login_modal::LoginModal};
 use leptos::reactive::send_wrapper_ext::SendOption;
 use leptos::{html::Input, prelude::*};
 use leptos_icons::*;
-use component::{back_btn::BackButton, buttons::GradientButton};
 use state::canisters::auth_state;
 use utils::event_streaming::events::VideoUploadInitiated;
-use crate::upload::ai::models::{VideoModel, VideoGenerationParams};
-use super::ModelDropdown;
 
 #[component]
 pub fn PreUploadAiView(
@@ -22,19 +22,27 @@ pub fn PreUploadAiView(
     let character_count = Signal::derive(move || prompt_text.get().len());
     let uploaded_image = RwSignal::new(None::<String>);
 
+    // Login modal state
+    let show_login_modal = RwSignal::new(false);
+
     // Balance state (mock for now - will integrate with real balance later)
-    let user_balance = RwSignal::new(100u64); // Current balance in SATS
+    // let user_balance = RwSignal::new(100u64); // Current balance in SATS
 
     // Get auth state and user principal
     let auth = auth_state();
     let user_principal_opt = auth.user_principal_if_available();
+    let is_logged_in = auth.is_logged_in_with_oauth();
 
     // Form validation
     let form_valid = Signal::derive(move || !prompt_text.get().trim().is_empty());
-    let sufficient_balance =
-        Signal::derive(move || user_balance.get() >= selected_model.get().cost_sats);
+    // let sufficient_balance =
+    //     Signal::derive(move || user_balance.get() >= selected_model.get().cost_sats);
     let can_generate = Signal::derive(move || {
-        form_valid.get() && sufficient_balance.get() && !generate_action.pending().get()
+        // Allow button click for non-logged-in users (to show login modal)
+        // For logged-in users, check form validity and balance
+        // !is_logged_in.get() ||
+        // (form_valid.get() && sufficient_balance.get() && !generate_action.pending().get())
+        (form_valid.get() && !generate_action.pending().get())
     });
 
     // Error handling from action
@@ -145,10 +153,10 @@ pub fn PreUploadAiView(
                             ></textarea>
 
                             // Generate with AI button inside textarea
-                            <button class="absolute bottom-3 left-3 flex items-center gap-1 px-2 py-1 bg-neutral-800 rounded text-xs text-neutral-300 hover:text-white transition-colors">
-                                <Icon icon=icondata::AiStarOutlined attr:class="text-sm" />
-                                "Generate with AI"
-                            </button>
+                            // <button class="absolute bottom-3 left-3 flex items-center gap-1 px-2 py-1 bg-neutral-800 rounded text-xs text-neutral-300 hover:text-white transition-colors">
+                            //     <Icon icon=icondata::AiStarOutlined attr:class="text-sm" />
+                            //     "Generate with AI"
+                            // </button>
 
                             // Character counter
                             <div class="absolute bottom-3 right-3 text-xs text-neutral-400">
@@ -158,21 +166,21 @@ pub fn PreUploadAiView(
                     </div>
 
                     // SATS Required Section
-                    <div class="flex items-center justify-between p-4 bg-neutral-900 rounded-lg">
-                        <div class="flex items-center gap-2">
-                            <span class="text-white font-medium">"SATS Required:"</span>
-                            <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
-                        </div>
-                        <div class="flex items-center gap-1">
-                            <span class="text-orange-400">"🪙"</span>
-                            <span class="text-orange-400 font-bold">{move || format!("{} SATS", selected_model.get().cost_sats)}</span>
-                        </div>
-                    </div>
+                    // <div class="flex items-center justify-between p-4 bg-neutral-900 rounded-lg">
+                    //     <div class="flex items-center gap-2">
+                    //         <span class="text-white font-medium">"SATS Required:"</span>
+                    //         <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
+                    //     </div>
+                    //     <div class="flex items-center gap-1">
+                    //         <span class="text-orange-400">"🪙"</span>
+                    //         <span class="text-orange-400 font-bold">{move || format!("{} SATS", selected_model.get().cost_sats)}</span>
+                    //     </div>
+                    // </div>
 
                     // Current Balance
-                    <div class="text-center text-sm text-neutral-400">
-                        {move || format!("(Current balance: {}SATS)", user_balance.get())}
-                    </div>
+                    // <div class="text-center text-sm text-neutral-400">
+                    //     {move || format!("(Current balance: {}SATS)", user_balance.get())}
+                    // </div>
 
                     // Error display
                     <Show when=move || generation_error.get().is_some()>
@@ -187,7 +195,11 @@ pub fn PreUploadAiView(
                     <div class="mt-4">
                         <GradientButton
                             on_click=move || {
-                                if let Some(user_principal) = user_principal_opt {
+                                // Check if user is logged in
+                                if !is_logged_in.get_untracked() {
+                                    // Show login modal if not logged in
+                                    show_login_modal.set(true);
+                                } else if let Some(user_principal) = user_principal_opt {
                                     // Get current form values
                                     let prompt = prompt_text.get_untracked();
                                     let model = selected_model.get_untracked();
@@ -202,7 +214,7 @@ pub fn PreUploadAiView(
                                     };
                                     generate_action.dispatch(params);
                                 } else {
-                                    leptos::logging::warn!("User not logged in");
+                                    leptos::logging::warn!("User logged in but no principal found");
                                 }
                             }
                             classes="w-full h-12 rounded-lg font-bold".to_string()
@@ -214,5 +226,8 @@ pub fn PreUploadAiView(
                 </div>
             </div>
         </div>
+
+        // Login Modal
+        <LoginModal show=show_login_modal redirect_to=None />
     }
 }
