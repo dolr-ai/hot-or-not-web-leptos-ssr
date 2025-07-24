@@ -14,19 +14,19 @@ use yral_canisters_common::utils::posts::PostDetails;
 pub fn MuteUnmuteOverlay(muted: RwSignal<bool>) -> impl IntoView {
     view! {
         <div
-            class="fixed top-1/2 left-1/2 z-20 pointer-events-none transform -translate-x-1/2 -translate-y-1/2"
+            class="fixed top-1/2 left-1/2 z-20 text-[5rem] pointer-events-none transform -translate-x-1/2 -translate-y-1/2"
         >
             <Show
                 when=move || muted.get()
                 fallback=|| view! {
                     <Icon
-                        attr:class="text-white/80 text-6xl mute-indicator"
+                        attr:class="text-white/80 mute-indicator"
                         icon=icondata::BiVolumeMuteSolid
                     />
                 }
             >
             <Icon
-                attr:class="text-white/80 text-6xl mute-indicator"
+                attr:class="text-white/80 mute-indicator"
                 icon=icondata::BiVolumeFullSolid
             />
             </Show>
