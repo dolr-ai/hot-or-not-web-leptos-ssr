@@ -30,6 +30,7 @@ pub fn VideoResultScreen(
                         <video
                             class="w-full rounded-lg bg-neutral-900 aspect-video"
                             controls=true
+                            autoplay=true
                             preload="metadata"
                             src=video_url.clone()
                         >

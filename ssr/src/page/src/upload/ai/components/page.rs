@@ -263,7 +263,10 @@ pub fn UploadAiPostPage() -> impl IntoView {
                     }
                 }
             >
-                <VideoGenerationLoadingScreen />
+                <VideoGenerationLoadingScreen 
+                    prompt=stored_params.get().prompt.clone()
+                    model=stored_params.get().model.clone()
+                />
             </Show>
         </div>
 

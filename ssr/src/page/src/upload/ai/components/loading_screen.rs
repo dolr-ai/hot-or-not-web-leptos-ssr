@@ -1,9 +1,13 @@
 use leptos::prelude::*;
 use leptos_icons::*;
 use component::back_btn::BackButton;
+use videogen_common::VideoModel;
 
 #[component]
-pub fn VideoGenerationLoadingScreen() -> impl IntoView {
+pub fn VideoGenerationLoadingScreen(
+    prompt: String,
+    model: VideoModel,
+) -> impl IntoView {
     view! {
         <div class="flex flex-col bg-black min-w-dvw min-h-dvh">
             // Header with back button and title
@@ -13,6 +17,39 @@ pub fn VideoGenerationLoadingScreen() -> impl IntoView {
                 </div>
                 <h1 class="text-lg font-bold text-white">"Generate Video"</h1>
                 <div class="w-6"></div> // Spacer for centering
+            </div>
+
+            // Prompt and model info section
+            <div class="px-4 mt-4">
+                <div class="max-w-md mx-auto w-full space-y-3">
+                    // Prompt display
+                    <div class="bg-neutral-900 rounded-lg p-4">
+                        <p class="text-neutral-300 text-sm leading-relaxed">{prompt}</p>
+                    </div>
+                    
+                    // Model info
+                    <div class="flex items-center gap-2 px-4">
+                        {
+                            match model.model_icon.clone() {
+                                Some(icon_path) => view! {
+                                    <img
+                                        src=icon_path
+                                        alt="Model icon"
+                                        class="w-5 h-5"
+                                    />
+                                }.into_any(),
+                                None => view! {
+                                    <div class="w-5 h-5 bg-pink-500 rounded flex items-center justify-center">
+                                        <span class="text-white font-bold text-xs">"AI"</span>
+                                    </div>
+                                }.into_any()
+                            }
+                        }
+                        <span class="text-neutral-400 text-sm">{model.name}</span>
+                        <span class="text-neutral-500 text-sm">|</span>
+                        <span class="text-neutral-500 text-xs">{model.description}</span>
+                    </div>
+                </div>
             </div>
 
             // Main loading content

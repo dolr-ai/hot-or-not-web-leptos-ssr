@@ -54,7 +54,7 @@ pub fn ModelDropdown(
 
             // Dropdown menu
             <Show when=show_dropdown>
-                <div class="absolute top-full left-0 right-0 mt-1 bg-neutral-900 border border-neutral-800 rounded-lg shadow-lg z-50">
+                <div class="absolute top-full left-0 right-0 mt-1 bg-[#212121] border border-neutral-800 rounded-lg shadow-lg z-50 py-1">
                     <For
                         each=move || models.get_value()
                         key=|model| model.id.clone()
@@ -62,59 +62,80 @@ pub fn ModelDropdown(
                             let model_id = model.id.clone();
                             let model_name = model.name.clone();
                             let model_description = model.description.clone();
-                            let model_duration = format!("{} seconds", model.max_duration_seconds);
+                            let model_duration = model.duration_display();
                             let model_cost_sats = model.cost_sats;
                             let model_icon = model.model_icon.clone();
+                            let is_available = model.is_available;
                             let model_clone = model.clone();
 
                             let is_selected = Signal::derive(move || selected_model.get().id == model_id);
                             view! {
                                 <div
-                                    class="flex items-center justify-between p-4 hover:bg-neutral-800 cursor-pointer border-b border-neutral-800 last:border-b-0"
+                                    class=move || format!("flex items-center gap-4 px-4 py-2.5 rounded-lg {}",
+                                        if is_available { "hover:bg-neutral-800 cursor-pointer" } else { "opacity-50 cursor-not-allowed" }
+                                    )
                                     on:click=move |_| {
-                                        selected_model.set(model_clone.clone());
-                                        show_dropdown.set(false);
+                                        if is_available {
+                                            selected_model.set(model_clone.clone());
+                                            show_dropdown.set(false);
+                                        }
                                     }
                                 >
-                                    <div class="flex items-center gap-3">
-                                        <div class=move || format!("w-6 h-6 rounded-full border-2 flex items-center justify-center {}",
-                                            if is_selected.get() { "border-pink-500 bg-pink-500" } else { "border-neutral-600" }
-                                        )>
-                                            <Show when=is_selected>
-                                                <div class="w-2 h-2 bg-white rounded-full"></div>
-                                            </Show>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            {
-                                                match model_icon.clone() {
-                                                    Some(icon_path) => view! {
-                                                        <img
-                                                            src=icon_path
-                                                            alt="Model icon"
-                                                            class="w-6 h-6"
-                                                        />
-                                                    }.into_any(),
-                                                    None => view! {
-                                                        <div class="w-6 h-6 bg-pink-500 rounded flex items-center justify-center">
-                                                            <span class="text-white font-bold text-xs">"AI"</span>
-                                                        </div>
-                                                    }.into_any()
-                                                }
-                                            }
-                                            <div>
-                                                <div class="text-white font-medium text-sm">{model_name}</div>
-                                                <div class="text-neutral-400 text-xs">{model_description}</div>
-                                            </div>
-                                        </div>
+                                    // Radio button on the left
+                                    <div class=move || format!("w-[18px] h-[18px] rounded-full border-2 flex items-center justify-center shrink-0 {}",
+                                        if is_selected.get() { "border-pink-500 bg-pink-500" } else { "border-neutral-600" }
+                                    )>
+                                        <Show when=is_selected>
+                                            <div class="w-2 h-2 bg-white rounded-full"></div>
+                                        </Show>
                                     </div>
-                                    <div class="flex items-center gap-4 text-xs">
-                                        <div class="flex items-center gap-1">
-                                            <Icon icon=icondata::AiClockCircleOutlined attr:class="text-neutral-400" />
-                                            <span class="text-neutral-400">{model_duration}</span>
-                                        </div>
-                                        <div class="flex items-center gap-1">
-                                            <span class="text-orange-400">"🪙"</span>
-                                            <span class="text-orange-400">{format!("{} SATS", model_cost_sats)}</span>
+                                    
+                                    // Model info container
+                                    <div class="flex items-start gap-2.5 flex-1">
+                                        // Model icon
+                                        {
+                                            match model_icon.clone() {
+                                                Some(icon_path) => view! {
+                                                    <img
+                                                        src=icon_path
+                                                        alt="Model icon"
+                                                        class="w-[30px] h-[30px] shrink-0"
+                                                    />
+                                                }.into_any(),
+                                                None => view! {
+                                                    <div class="w-[30px] h-[30px] bg-pink-500 rounded flex items-center justify-center shrink-0">
+                                                        <span class="text-white font-bold text-sm">"AI"</span>
+                                                    </div>
+                                                }.into_any()
+                                            }
+                                        }
+                                        
+                                        // Model details
+                                        <div class="flex flex-col gap-1">
+                                            <div class="text-neutral-50 text-sm leading-tight">{model_name}</div>
+                                            <div class="text-neutral-600 text-xs leading-tight">{model_description}</div>
+                                            
+                                            // Duration and cost badges or Coming Soon
+                                            <div class="flex items-center gap-2.5 mt-1">
+                                                {
+                                                    if is_available {
+                                                        view! {
+                                                            // Duration badge
+                                                            <div class="flex items-center gap-1 px-1 py-1 rounded border border-neutral-700">
+                                                                <Icon icon=icondata::AiClockCircleOutlined attr:class="text-neutral-400 w-4 h-4" />
+                                                                <span class="text-neutral-400 text-xs">{model_duration}</span>
+                                                            </div>
+                                                        }.into_any()
+                                                    } else {
+                                                        view! {
+                                                            // Coming Soon badge
+                                                            <div class="flex items-center gap-1 px-2 py-1 rounded bg-neutral-700/50">
+                                                                <span class="text-neutral-500 text-xs font-medium">"Coming Soon"</span>
+                                                            </div>
+                                                        }.into_any()
+                                                    }
+                                                }
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
