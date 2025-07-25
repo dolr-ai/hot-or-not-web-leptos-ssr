@@ -270,15 +270,15 @@ fn HNButtonOverlay(
             );
             let _ = window().location().set_href(&url);
         },
-        2000.0,
+        3000.0,
     );
 
     Effect::new(move |_| {
         let is_now = is_connected.get();
         let was = was_connected.get();
         if !was && is_now {
-            start(());
             was_connected.set(is_now);
+            start(());
         }
     });
 
