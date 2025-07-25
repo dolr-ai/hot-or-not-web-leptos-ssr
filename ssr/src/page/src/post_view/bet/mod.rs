@@ -270,16 +270,15 @@ fn HNButtonOverlay(
             );
             let _ = window().location().set_href(&url);
         },
-        3000.0,
+        1000.0,
     );
 
     Effect::new(move |_| {
         let is_now = is_connected.get();
         let was = was_connected.get();
         if !was && is_now {
-            was_connected.set(is_now);
-            logging::log!("User logged in, scheduling reload");
             start(());
+            was_connected.set(is_now);
         }
     });
 
