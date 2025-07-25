@@ -263,14 +263,14 @@ fn HNButtonOverlay(
     let was_connected = RwSignal::new(is_connected.get_untracked());
 
     Effect::new(move |_| {
-        if !show_login_popup.get() && !was_connected.get_untracked() && is_connected.get() {
-            let window = window();
-            let url = format!(
-                "/hot-or-not/{}/{}",
-                login_post.canister_id, login_post.post_id
-            );
+        if !was_connected.get_untracked() && is_connected.get() {
             let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
                 move |_: ()| {
+                    let window = window();
+                    let url = format!(
+                        "/hot-or-not/{}/{}",
+                        login_post.canister_id, login_post.post_id
+                    );
                     let _ = window.location().set_href(&url);
                 },
                 10.0,
@@ -289,7 +289,7 @@ fn HNButtonOverlay(
             </button>
         </div>
         <LoginNudgePopup show=show_login_nudge show_login_popup  ev_ctx coin/>
-        <LoginModal show=show_login_popup redirect_to=None />
+        <LoginModal show=show_login_popup redirect_to=Some(format!("/hot-or-not/{}/{}", login_post.canister_id, login_post.post_id)) />
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
