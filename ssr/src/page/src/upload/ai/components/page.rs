@@ -37,14 +37,17 @@ pub fn UploadAiPostPage() -> impl IntoView {
     // Get auth state outside actions for reuse
     let auth = auth_state();
 
+    // Get unauth_canisters at component level to preserve reactive context
+    let unauth_cans = unauth_canisters();
+    let unauth_cans_for_upload = unauth_cans.clone();
+
     // Video generation action - this is the proper way to handle async operations
     let generate_action: Action<VideoGenerationParams, Result<String, String>> =
         Action::new_unsync({
             move |params: &VideoGenerationParams| {
                 let params = params.clone();
                 let show_form = show_form;
-                // Get unauth_canisters outside async block to preserve reactive context
-                let unauth_cans = unauth_canisters();
+                let unauth_cans = unauth_cans.clone();
 
                 async move {
                     // Get auth canisters and identity for signing
@@ -111,8 +114,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
             let params = params.clone();
             let notification_nudge = notification_nudge;
             let show_success_modal = show_success_modal;
-            // Get unauth_canisters within the Action (like video_upload.rs)
-            let unauth_cans = unauth_canisters();
+            let unauth_cans = unauth_cans_for_upload.clone();
             async move {
                 // Show notification nudge when starting upload
                 notification_nudge.set(true);
