@@ -15,7 +15,6 @@ use leptos::html::Audio;
 use leptos::{logging, prelude::*};
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
-use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -260,25 +259,20 @@ fn HNButtonOverlay(
 
     let running = place_bet_action.pending();
 
-    let was_connected = RwSignal::new(is_connected.get_untracked());
+    let redirect = RwSignal::new(false);
+
+    Effect::new(move |prev_value| {
+        if prev_value != Some(is_connected.get()) {
+            redirect.set(true);
+        }
+        is_connected.get()
+    });
 
     Effect::new(move |_| {
-        if !was_connected.get_untracked() && is_connected.get() {
-            logging::log!("User login status updated");
-            let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
-                move |_: ()| {
-                    logging::log!("User logged in, redirecting to post view");
-                    // let window = window();
-                    // let url = format!(
-                    //     "/hot-or-not/{}/{}",
-                    //     login_post.canister_id, login_post.post_id
-                    // );
-                    // let _ = window.location().set_href(&url);
-                    let _ = window().location().reload();
-                },
-                10.0,
-            );
-            start(());
+        if redirect.get() {
+            logging::log!("Reloading the page after login");
+            let _ = window().location().reload();
+            redirect.set(false);
         }
     });
 
