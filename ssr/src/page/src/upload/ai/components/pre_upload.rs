@@ -41,14 +41,10 @@ pub fn PreUploadAiView(
 
     // Error handling from action
     let generation_error = Signal::derive(move || {
-        if let Some(result) = generate_action.value().get() {
-            match result {
-                Err(err) => Some(err),
-                Ok(_) => None,
-            }
-        } else {
-            None
-        }
+        generate_action
+            .value()
+            .get()
+            .and_then(|result| result.err())
     });
 
     // File input for image upload
@@ -75,7 +71,7 @@ pub fn PreUploadAiView(
                         let file_clone = file.clone();
 
                         // Set up callback for when file is loaded
-                        let uploaded_image_clone = uploaded_image.clone();
+                        let uploaded_image_clone = uploaded_image;
                         let onload = Closure::wrap(Box::new(move |event: web_sys::Event| {
                             if let Some(target) = event.target() {
                                 if let Ok(reader) = target.dyn_into::<FileReader>() {

@@ -9,7 +9,7 @@ pub fn ModelDropdown(
 ) -> impl IntoView {
     // Store models in a StoredValue to avoid the closure trait bounds issue
     let models = StoredValue::new(VideoModel::get_models());
-    
+
     // Create derived signals for the selected model properties
     let model_name = Signal::derive(move || selected_model.get().name.clone());
     let model_description = Signal::derive(move || selected_model.get().description.clone());
@@ -63,7 +63,7 @@ pub fn ModelDropdown(
                             let model_name = model.name.clone();
                             let model_description = model.description.clone();
                             let model_duration = model.duration_display();
-                            let model_cost_sats = model.cost_sats;
+                            let _model_cost_sats = model.cost_sats;
                             let model_icon = model.model_icon.clone();
                             let is_available = model.is_available;
                             let model_clone = model.clone();
@@ -89,7 +89,7 @@ pub fn ModelDropdown(
                                             <div class="w-2 h-2 bg-white rounded-full"></div>
                                         </Show>
                                     </div>
-                                    
+
                                     // Model info container
                                     <div class="flex items-start gap-2.5 flex-1">
                                         // Model icon
@@ -109,12 +109,12 @@ pub fn ModelDropdown(
                                                 }.into_any()
                                             }
                                         }
-                                        
+
                                         // Model details
                                         <div class="flex flex-col gap-1">
                                             <div class="text-neutral-50 text-sm leading-tight">{model_name}</div>
                                             <div class="text-neutral-600 text-xs leading-tight">{model_description}</div>
-                                            
+
                                             // Duration and cost badges or Coming Soon
                                             <div class="flex items-center gap-2.5 mt-1">
                                                 {

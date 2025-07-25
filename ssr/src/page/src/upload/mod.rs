@@ -3,8 +3,8 @@ mod validators;
 mod video_upload;
 
 pub use ai::UploadAiPostPage;
-pub use video_upload::PostUploadScreen;
 use leptos_meta::*;
+pub use video_upload::PostUploadScreen;
 
 use state::canisters::auth_state;
 use utils::{
@@ -18,8 +18,8 @@ use leptos::{
     prelude::*,
 };
 
-use component::buttons::{GradientButton, HighlightedButton};
 use component::back_btn::BackButton;
+use component::buttons::{GradientButton, HighlightedButton};
 use leptos_router::hooks::use_navigate;
 use validators::{description_validator, hashtags_validator};
 use video_upload::{PreVideoUpload, VideoUploader};
@@ -232,14 +232,14 @@ pub fn UploadOptionsPage() -> impl IntoView {
                     <BackButton fallback="/".to_string() />
                 </div>
             </div>
-            
+
             // Main content area
             <div class="flex flex-col gap-6 justify-center items-center px-4 flex-1">
                 <div class="flex flex-col gap-6 w-full max-w-[358px]">
-                
+
                 // Create AI video option
                 <div class="w-full">
-                    <div 
+                    <div
                         on:click=move |_| selected_option.set(Some("ai".to_string()))
                         class=move || format!(
                             "bg-neutral-900 rounded-lg p-3 h-[150px] flex flex-col items-center justify-center gap-4 hover:bg-neutral-800 transition-colors cursor-pointer {}",
@@ -266,7 +266,7 @@ pub fn UploadOptionsPage() -> impl IntoView {
 
                 // Upload video option
                 <div class="w-full">
-                    <div 
+                    <div
                         on:click=move |_| selected_option.set(Some("upload".to_string()))
                         class=move || format!(
                             "bg-neutral-900 rounded-lg p-3 h-[150px] flex flex-col items-center justify-center gap-4 hover:bg-neutral-800 transition-colors cursor-pointer {}",
@@ -291,7 +291,7 @@ pub fn UploadOptionsPage() -> impl IntoView {
                     </div>
                 </div>
 
-                // Continue button  
+                // Continue button
                 <div class="w-full">
                     <GradientButton
                         on_click=move || {

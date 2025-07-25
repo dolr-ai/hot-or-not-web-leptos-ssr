@@ -1,8 +1,8 @@
-use leptos::prelude::*;
+use super::types::{SerializablePostDetailsFromFrontend, UploadUrlResponse, VideoMetadata};
 use consts::UPLOAD_URL;
+use leptos::prelude::*;
 use serde_json::json;
 use yral_types::delegated_identity::DelegatedIdentityWire;
-use super::types::{UploadUrlResponse, VideoMetadata, SerializablePostDetailsFromFrontend};
 
 // Server function to download AI video and upload using existing worker flow
 #[server]
@@ -22,7 +22,7 @@ pub async fn upload_ai_video_from_url(
         .get(&video_url)
         .send()
         .await
-        .map_err(|e| ServerFnError::new(format!("Failed to download video: {}", e)))?;
+        .map_err(|e| ServerFnError::new(format!("Failed to download video: {e}")))?;
 
     if !response.status().is_success() {
         return Err(ServerFnError::new(format!(
@@ -34,16 +34,16 @@ pub async fn upload_ai_video_from_url(
     let video_bytes = response
         .bytes()
         .await
-        .map_err(|e| ServerFnError::new(format!("Failed to read video bytes: {}", e)))?;
+        .map_err(|e| ServerFnError::new(format!("Failed to read video bytes: {e}")))?;
 
     leptos::logging::log!("Downloaded video, size: {} bytes", video_bytes.len());
 
     // Step 2: Get upload URL from worker
     let upload_response = client
-        .get(&format!("{}/get_upload_url_v2", UPLOAD_URL))
+        .get(format!("{UPLOAD_URL}/get_upload_url_v2"))
         .send()
         .await
-        .map_err(|e| ServerFnError::new(format!("Failed to get upload URL: {}", e)))?;
+        .map_err(|e| ServerFnError::new(format!("Failed to get upload URL: {e}")))?;
 
     if !upload_response.status().is_success() {
         return Err(ServerFnError::new(format!(
@@ -55,10 +55,10 @@ pub async fn upload_ai_video_from_url(
     let upload_response_text = upload_response
         .text()
         .await
-        .map_err(|e| ServerFnError::new(format!("Failed to read upload URL response: {}", e)))?;
+        .map_err(|e| ServerFnError::new(format!("Failed to read upload URL response: {e}")))?;
 
     let upload_message: UploadUrlResponse = serde_json::from_str(&upload_response_text)
-        .map_err(|e| ServerFnError::new(format!("Failed to parse upload URL response: {}", e)))?;
+        .map_err(|e| ServerFnError::new(format!("Failed to parse upload URL response: {e}")))?;
 
     if !upload_message.success {
         return Err(ServerFnError::new(format!(
@@ -87,7 +87,7 @@ pub async fn upload_ai_video_from_url(
         reqwest::multipart::Part::bytes(video_bytes.to_vec())
             .file_name("ai_generated_video.mp4")
             .mime_str("video/mp4")
-            .map_err(|e| ServerFnError::new(format!("Failed to set MIME type: {}", e)))?,
+            .map_err(|e| ServerFnError::new(format!("Failed to set MIME type: {e}")))?,
     );
 
     let upload_result = client
@@ -95,7 +95,7 @@ pub async fn upload_ai_video_from_url(
         .multipart(form)
         .send()
         .await
-        .map_err(|e| ServerFnError::new(format!("Failed to upload to Cloudflare: {}", e)))?;
+        .map_err(|e| ServerFnError::new(format!("Failed to upload to Cloudflare: {e}")))?;
 
     if !upload_result.status().is_success() {
         return Err(ServerFnError::new(format!(
@@ -125,11 +125,11 @@ pub async fn upload_ai_video_from_url(
     });
 
     let metadata_result = client
-        .post(&format!("{}/update_metadata", UPLOAD_URL))
+        .post(format!("{UPLOAD_URL}/update_metadata"))
         .json(&metadata_request)
         .send()
         .await
-        .map_err(|e| ServerFnError::new(format!("Failed to update metadata: {}", e)))?;
+        .map_err(|e| ServerFnError::new(format!("Failed to update metadata: {e}")))?;
 
     if !metadata_result.status().is_success() {
         return Err(ServerFnError::new(format!(

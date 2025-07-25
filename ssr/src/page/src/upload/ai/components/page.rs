@@ -1,7 +1,7 @@
 use super::{PreUploadAiView, VideoGenerationLoadingScreen, VideoResultScreen};
 use crate::upload::ai::helpers::create_video_request;
-use crate::upload::ai::types::VideoGenerationParams;
 use crate::upload::ai::server::upload_ai_video_from_url;
+use crate::upload::ai::types::VideoGenerationParams;
 use crate::upload::ai::types::{UploadActionParams, AI_VIDEO_PARAMS_STORE};
 use crate::upload::ai::videogen_client::{generate_video_with_signature, sign_videogen_request};
 use crate::upload::PostUploadScreen;
@@ -41,12 +41,10 @@ pub fn UploadAiPostPage() -> impl IntoView {
     // Video generation action - this is the proper way to handle async operations
     let generate_action: Action<VideoGenerationParams, Result<String, String>> =
         Action::new_unsync({
-            let show_form = show_form;
-            let auth = auth.clone();
             move |params: &VideoGenerationParams| {
                 let params = params.clone();
                 let show_form = show_form;
-                let auth = auth.clone();
+                let auth = auth;
 
                 async move {
                     // Get auth canisters and identity for signing
@@ -80,10 +78,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                                         "Video generation failed: {}",
                                                         err
                                                     );
-                                                    Err(format!(
-                                                        "Failed to generate video: {}",
-                                                        err
-                                                    ))
+                                                    Err(format!("Failed to generate video: {err}"))
                                                 }
                                             }
                                         }
@@ -92,19 +87,19 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                                 "Failed to sign request: {:?}",
                                                 err
                                             );
-                                            Err(format!("Failed to sign request: {:?}", err))
+                                            Err(format!("Failed to sign request: {err:?}"))
                                         }
                                     }
                                 }
                                 Err(err) => {
                                     leptos::logging::error!("Failed to create request: {}", err);
-                                    Err(format!("Failed to create request: {}", err))
+                                    Err(format!("Failed to create request: {err}"))
                                 }
                             }
                         }
                         Err(err) => {
                             leptos::logging::error!("Failed to get auth canisters: {:?}", err);
-                            Err(format!("Failed to get auth canisters: {:?}", err))
+                            Err(format!("Failed to get auth canisters: {err:?}"))
                         }
                     }
                 }
@@ -113,14 +108,11 @@ pub fn UploadAiPostPage() -> impl IntoView {
 
     // Upload action - handles server-side video download and upload
     let upload_action: Action<UploadActionParams, Result<String, String>> = Action::new_unsync({
-        let auth = auth.clone();
-        let notification_nudge = notification_nudge.clone();
-        let show_success_modal = show_success_modal.clone();
         move |params: &UploadActionParams| {
             let params = params.clone();
-            let auth = auth.clone();
-            let notification_nudge = notification_nudge.clone();
-            let show_success_modal = show_success_modal.clone();
+            let auth = auth;
+            let notification_nudge = notification_nudge;
+            let show_success_modal = show_success_modal;
             async move {
                 // Show notification nudge when starting upload
                 notification_nudge.set(true);
@@ -178,13 +170,13 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                     false, // is_nsfw
                                 );
 
-                                Err(format!("Upload failed: {}", e))
+                                Err(format!("Upload failed: {e}"))
                             }
                         }
                     }
                     Err(e) => {
                         leptos::logging::error!("Failed to get auth canisters: {:?}", e);
-                        Err(format!("Auth failed: {:?}", e))
+                        Err(format!("Auth failed: {e:?}"))
                     }
                 }
             }
@@ -229,15 +221,13 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                 _generate_action=generate_action
                                 on_upload=move || {
                                     // Get the generated video URL and upload using Action
-                                    if let Some(result) = generate_action.value().get() {
-                                        if let Ok(video_url) = result {
-                                            leptos::logging::log!("Starting upload Action for video: {}", video_url);
+                                    if let Some(Ok(video_url)) = generate_action.value().get() {
+                                        leptos::logging::log!("Starting upload Action for video: {}", video_url);
 
-                                            // Dispatch the upload action - it handles auth internally
-                                            upload_action.dispatch(UploadActionParams {
-                                                video_url,
-                                            });
-                                        }
+                                        // Dispatch the upload action - it handles auth internally
+                                        upload_action.dispatch(UploadActionParams {
+                                            video_url,
+                                        });
                                     }
                                 }
                                 on_regenerate=move || {
@@ -259,7 +249,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                     }
                 }
             >
-                <VideoGenerationLoadingScreen 
+                <VideoGenerationLoadingScreen
                     prompt=stored_params.get().prompt.clone()
                     model=stored_params.get().model.clone()
                 />

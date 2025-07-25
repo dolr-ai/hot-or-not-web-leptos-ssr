@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use candid::Principal;
+use serde::{Deserialize, Serialize};
 use videogen_common::VideoModel;
 
 // Local storage key for video generation parameters
@@ -56,7 +56,10 @@ impl Default for VideoGenerationParams {
         Self {
             user_principal: Principal::anonymous(),
             prompt: String::new(),
-            model: VideoModel::get_models().into_iter().next().unwrap_or_default(),
+            model: VideoModel::get_models()
+                .into_iter()
+                .next()
+                .unwrap_or_default(),
             image_data: None,
         }
     }

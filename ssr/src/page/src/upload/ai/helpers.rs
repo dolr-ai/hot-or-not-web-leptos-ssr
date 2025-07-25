@@ -9,7 +9,10 @@ pub fn create_video_request(
     image_data: Option<String>,
 ) -> Result<VideoGenRequest, Box<dyn std::error::Error>> {
     leptos::logging::log!("Starting video generation with prompt: {}", prompt);
-    leptos::logging::log!("Image data received: {:?}", image_data.as_ref().map(|d| &d[..50.min(d.len())]));
+    leptos::logging::log!(
+        "Image data received: {:?}",
+        image_data.as_ref().map(|d| &d[..50.min(d.len())])
+    );
 
     // Convert image data if provided
     let image_input = if let Some(data) = image_data {
@@ -45,7 +48,7 @@ pub fn create_video_request(
             // If not a data URL, assume it's raw base64 with unknown type
             leptos::logging::warn!("Image data is not a data URL, defaulting to image/png");
             Some(ImageInput {
-                data: data,
+                data,
                 mime_type: "image/png".to_string(),
             })
         }

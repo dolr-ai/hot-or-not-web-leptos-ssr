@@ -1,13 +1,10 @@
+use component::back_btn::BackButton;
 use leptos::prelude::*;
 use leptos_icons::*;
-use component::back_btn::BackButton;
 use videogen_common::VideoModel;
 
 #[component]
-pub fn VideoGenerationLoadingScreen(
-    prompt: String,
-    model: VideoModel,
-) -> impl IntoView {
+pub fn VideoGenerationLoadingScreen(prompt: String, model: VideoModel) -> impl IntoView {
     view! {
         <div class="flex flex-col bg-black min-w-dvw min-h-dvh">
             // Header with back button and title
@@ -26,7 +23,7 @@ pub fn VideoGenerationLoadingScreen(
                     <div class="bg-neutral-900 rounded-lg p-4">
                         <p class="text-neutral-300 text-sm leading-relaxed">{prompt}</p>
                     </div>
-                    
+
                     // Model info
                     <div class="flex items-center gap-2 px-4">
                         {

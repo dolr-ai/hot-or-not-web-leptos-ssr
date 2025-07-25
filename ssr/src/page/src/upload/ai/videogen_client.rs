@@ -51,7 +51,7 @@ pub async fn generate_video_with_signature(
         .await
         .map_err(|e| {
             leptos::logging::log!("Error generating video: {}", e);
-            VideoGenError::from(e)
+            e
         })?;
 
     Ok(video_response)
