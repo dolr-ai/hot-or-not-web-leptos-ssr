@@ -27,8 +27,9 @@ impl AudioState {
 
     pub fn toggle_mute() {
         let this: Self = expect_context();
+        let is_muted = this.muted.get_untracked();
         this.muted.update(|m| *m = !*m);
-        this.volume.set(0.0);
+        this.volume.set(if is_muted { 1.0 } else { 0.0 });
     }
 
     pub fn reset_to_muted() {

@@ -590,7 +590,7 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
             on:click=move |_| {
                 let is_muted = muted.get_untracked();
                 muted.set(!is_muted);
-                volume.set(if is_muted { 0.0 } else { 1.0 });
+                volume.set(if is_muted { 1.0 } else { 0.0 });
             }
         >
             <div class="w-[8ch] text-center">{move || if muted.get() { "Unmute" } else { "Mute" }}</div>
@@ -609,7 +609,7 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
                 on:click=move |_| {
                     let is_muted = muted.get_untracked();
                     muted.set(!is_muted);
-                    volume.set(if is_muted { 0.0 } else { 1.0 });
+                    volume.set(if is_muted { 1.0 } else { 0.0 });
                 }
                 >
                 <Show
@@ -635,7 +635,7 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
                         max="1"
                         step="0.05"
                         class="z-[2] appearance-none bg-zinc-500 h-1.5 rounded-full accent-white"
-                        prop:value={volume_.get()}
+                        prop:value={move || volume_.get()}
                         on:change=move |ev: leptos::ev::Event| {
                             let input = event_target_value(&ev);
                             if let Ok(value) = input.parse::<f64>() {

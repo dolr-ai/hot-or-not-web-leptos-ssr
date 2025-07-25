@@ -21,13 +21,13 @@ pub fn MuteUnmuteOverlay(muted: RwSignal<bool>) -> impl IntoView {
                 fallback=|| view! {
                     <Icon
                         attr:class="text-white/80 mute-indicator"
-                        icon=icondata::BiVolumeMuteSolid
+                        icon=icondata::BiVolumeFullSolid
                     />
                 }
             >
             <Icon
                 attr:class="text-white/80 mute-indicator"
-                icon=icondata::BiVolumeFullSolid
+                icon=icondata::BiVolumeMuteSolid
             />
             </Show>
         </div>
