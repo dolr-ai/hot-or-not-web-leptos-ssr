@@ -54,7 +54,8 @@ pub fn ModelDropdown(
 
             // Dropdown menu
             <Show when=show_dropdown>
-                <div class="absolute top-full left-0 right-0 mt-1 bg-[#212121] border border-neutral-800 rounded-lg shadow-lg z-50 py-1">
+                // max-h-[264px] is calculated for ~3 items (each item ~84px + padding)
+                <div class="absolute top-full left-0 right-0 mt-1 bg-[#212121] border border-neutral-800 rounded-lg shadow-lg z-50 py-1 max-h-[264px] overflow-y-auto scrollbar-thin scrollbar-thumb-neutral-600 scrollbar-track-transparent">
                     <For
                         each=move || models.get_value()
                         key=|model| model.id.clone()

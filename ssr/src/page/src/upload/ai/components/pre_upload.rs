@@ -36,8 +36,7 @@ pub fn PreUploadAiView(
     let can_generate = Signal::derive(move || {
         // Allow button click for non-logged-in users (to show login modal)
         // For logged-in users, check form validity and balance
-        // !is_logged_in.get() ||
-        form_valid.get() && !generate_action.pending().get()
+        !is_logged_in.get() || form_valid.get() && !generate_action.pending().get()
     });
 
     // Error handling from action
