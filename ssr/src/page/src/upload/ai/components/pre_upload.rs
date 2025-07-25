@@ -29,9 +29,8 @@ pub fn PreUploadAiView(
     // Balance state (mock for now - will integrate with real balance later)
     // let user_balance = RwSignal::new(100u64); // Current balance in SATS
 
-    // Get auth state and user principal
+    // Get auth state
     let auth = auth_state();
-    let user_principal_opt = auth.user_principal_if_available();
     let is_logged_in = Signal::stored(true); // auth.is_logged_in_with_oauth();
 
     // Form validation
@@ -61,7 +60,6 @@ pub fn PreUploadAiView(
     // File input for image upload
     let image_input = NodeRef::<Input>::new();
 
-    let auth = auth_state();
     let ev_ctx = auth.event_ctx();
     VideoUploadInitiated.send_event(ev_ctx);
 
@@ -223,38 +221,64 @@ pub fn PreUploadAiView(
 
                     // Create AI Video Button
                     <div class="mt-4">
-                        <GradientButton
-                            on_click=move || {
-                                // Check if user is logged in
-                                if !is_logged_in.get_untracked() {
-                                    // Show login modal if not logged in
-                                    show_login_modal.set(true);
-                                } else if let Some(user_principal) = user_principal_opt {
-                                    // Get current form values
-                                    let prompt = prompt_text.get_untracked();
-                                    let model = selected_model.get_untracked();
-                                    let image_data = uploaded_image.get_untracked();
-                                    
-                                    leptos::logging::log!("Dispatching video generation with image_data: {:?}", 
-                                        image_data.as_ref().map(|d| &d[..50.min(d.len())]));
-
-                                    // Create params struct and dispatch the action - this is the clean way!
-                                    let params = VideoGenerationParams {
-                                        user_principal,
-                                        prompt,
-                                        model,
-                                        image_data,
-                                    };
-                                    generate_action.dispatch(params);
-                                } else {
-                                    leptos::logging::warn!("User logged in but no principal found");
-                                }
+                        <Suspense
+                            fallback=move || view! {
+                                <div class="w-full h-12 rounded-lg font-bold bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center text-white opacity-50">
+                                    "Loading..."
+                                </div>
                             }
-                            classes="w-full h-12 rounded-lg font-bold".to_string()
-                            disabled=Signal::derive(move || !can_generate.get())
                         >
-                            "Create AI Video"
-                        </GradientButton>
+                            {move || {
+                                auth.user_principal.get().map(|principal_result| {
+                                    view! {
+                                        <GradientButton
+                                            on_click=move || {
+                                                // Check if user is logged in
+                                                if !is_logged_in.get_untracked() {
+                                                    // Show login modal if not logged in
+                                                    show_login_modal.set(true);
+                                                } else {
+                                                    match &principal_result {
+                                                        Ok(user_principal) => {
+                                                            // Get current form values
+                                                            let prompt = prompt_text.get_untracked();
+                                                            let model = selected_model.get_untracked();
+                                                            let image_data = uploaded_image.get_untracked();
+                                                            
+                                                            leptos::logging::log!("Dispatching video generation with image_data: {:?}", 
+                                                                image_data.as_ref().map(|d| &d[..50.min(d.len())]));
+
+                                                            // Create params struct and dispatch the action
+                                                            let params = VideoGenerationParams {
+                                                                user_principal: *user_principal,
+                                                                prompt,
+                                                                model,
+                                                                image_data,
+                                                            };
+                                                            generate_action.dispatch(params);
+                                                        }
+                                                        Err(e) => {
+                                                            leptos::logging::error!("Failed to get user principal: {:?}", e);
+                                                            // You might want to show an error message to the user here
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            classes="w-full h-12 rounded-lg font-bold".to_string()
+                                            disabled=Signal::derive(move || !can_generate.get())
+                                        >
+                                            {move || {
+                                                if generate_action.pending().get() {
+                                                    "Generating..."
+                                                } else {
+                                                    "Create AI Video"
+                                                }
+                                            }}
+                                        </GradientButton>
+                                    }
+                                })
+                            }}
+                        </Suspense>
                     </div>
                 </div>
             </div>
@@ -262,5 +286,6 @@ pub fn PreUploadAiView(
 
         // Login Modal
         <LoginModal show=show_login_modal redirect_to=None />
+        
     }
 }

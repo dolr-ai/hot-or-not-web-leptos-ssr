@@ -5,7 +5,7 @@ use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
 use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
-use global_constants::{CoinState, DEFAULT_BET_COIN_STATE};
+use global_constants::{CoinState, DEFAULT_BET_COIN_FOR_LOGGED_IN};
 use hon_worker_common::{
     sign_vote_request_v3, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV3,
     VoteResV2, WORKER_URL,
@@ -134,7 +134,7 @@ fn HNButtonOverlay(
     let login_post = post.clone();
 
     let check_show_login_nudge = move || {
-        if !is_connected.get_untracked() && coin.get_untracked() != DEFAULT_BET_COIN_STATE {
+        if !is_connected.get_untracked() && coin.get_untracked() != DEFAULT_BET_COIN_FOR_LOGGED_IN {
             show_login_nudge.set(true);
             Err(())
         } else {
@@ -591,7 +591,7 @@ pub fn HNGameOverlay(
     show_tutorial: RwSignal<bool>,
 ) -> impl IntoView {
     let bet_direction = RwSignal::new(None::<VoteKind>);
-    let coin = RwSignal::new(DEFAULT_BET_COIN_STATE);
+    let coin = RwSignal::new(DEFAULT_BET_COIN_FOR_LOGGED_IN);
 
     let refetch_bet = Trigger::new();
     let post = StoredValue::new(post);
