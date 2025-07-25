@@ -606,7 +606,11 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
             size-11 hover:size-auto group">
             <button
                 class="shrink-0"
-                on:click=move |_| muted.set(!muted.get_untracked())
+                on:click=move |_| {
+                    let is_muted = muted.get_untracked();
+                    muted.set(!is_muted);
+                    volume.set(if is_muted { 0.0 } else { 1.0 });
+                }
                 >
                 <Show
                     when=move || muted.get() || volume.get() == 0.0
