@@ -43,10 +43,11 @@ pub fn UploadAiPostPage() -> impl IntoView {
             move |params: &VideoGenerationParams| {
                 let params = params.clone();
                 let show_form = show_form;
+                // Get unauth_canisters outside async block to preserve reactive context
+                let unauth_cans = unauth_canisters();
 
                 async move {
                     // Get auth canisters and identity for signing
-                    let unauth_cans = unauth_canisters();
                     match auth.auth_cans(unauth_cans).await {
                         Ok(canisters) => {
                             let identity = canisters.identity();
