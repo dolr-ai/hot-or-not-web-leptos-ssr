@@ -1,7 +1,6 @@
 use leptos::prelude::*;
-use std::collections::BTreeMap;
-
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct VideoComparisonResult {
@@ -13,12 +12,13 @@ pub struct VideoComparisonResult {
 #[derive(Default, Clone)]
 pub struct HnBetState {
     state: RwSignal<BTreeMap<String, VideoComparisonResult>>,
+    balance: RwSignal<Option<u64>>,
 }
 
 impl HnBetState {
     pub fn init() -> Self {
         let this = Self {
-            state: RwSignal::new(BTreeMap::new()),
+            ..Default::default()
         };
         provide_context(this.clone());
         this
@@ -34,6 +34,16 @@ impl HnBetState {
         this.state.update(|state| {
             state.insert(video_uid, result);
         });
+    }
+
+    pub fn get_balance() -> Option<u64> {
+        let this = use_context::<Self>().unwrap_or_else(HnBetState::init);
+        this.balance.get()
+    }
+
+    pub fn set_balance(balance: u64) {
+        let this = use_context::<Self>().unwrap_or_else(HnBetState::init);
+        this.balance.set(Some(balance));
     }
 }
 

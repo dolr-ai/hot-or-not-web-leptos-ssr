@@ -42,16 +42,11 @@ pub fn UploadAiPostPage() -> impl IntoView {
     let generate_action: Action<VideoGenerationParams, Result<String, String>> =
         Action::new_unsync({
             let show_form = show_form;
-            let set_stored_params = set_stored_params;
             let auth = auth.clone();
             move |params: &VideoGenerationParams| {
                 let params = params.clone();
                 let show_form = show_form;
-                let set_stored_params = set_stored_params;
                 let auth = auth.clone();
-
-                // Store parameters for regeneration
-                set_stored_params.set(params.clone());
 
                 async move {
                     // Get auth canisters and identity for signing
@@ -220,6 +215,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                         _uid=uid
                                         _upload_file_actual_progress=upload_file_actual_progress.write_only()
                                         generate_action=generate_action
+                                        set_stored_params=set_stored_params
                                     />
                                 }
                             }

@@ -15,6 +15,7 @@ pub fn PreUploadAiView(
     _uid: RwSignal<Option<String>>,
     _upload_file_actual_progress: WriteSignal<f64>,
     generate_action: Action<VideoGenerationParams, Result<String, String>>,
+    set_stored_params: WriteSignal<VideoGenerationParams>,
 ) -> impl IntoView {
     // Form state
     let selected_model = RwSignal::new(VideoModel::get_models().into_iter().next().unwrap());
@@ -26,23 +27,16 @@ pub fn PreUploadAiView(
     // Login modal state
     let show_login_modal = RwSignal::new(false);
 
-    // Balance state (mock for now - will integrate with real balance later)
-    // let user_balance = RwSignal::new(100u64); // Current balance in SATS
-
     // Get auth state
     let auth = auth_state();
-    let is_logged_in = Signal::stored(true); // auth.is_logged_in_with_oauth();
+    let is_logged_in = auth.is_logged_in_with_oauth(); // Signal::stored(true);
 
     // Form validation
     let form_valid = Signal::derive(move || !prompt_text.get().trim().is_empty());
-    // let sufficient_balance =
-    //     Signal::derive(move || user_balance.get() >= selected_model.get().cost_sats);
     let can_generate = Signal::derive(move || {
         // Allow button click for non-logged-in users (to show login modal)
         // For logged-in users, check form validity and balance
-        // !is_logged_in.get() ||
-        // (form_valid.get() && sufficient_balance.get() && !generate_action.pending().get())
-        form_valid.get() && !generate_action.pending().get()
+        !is_logged_in.get() || form_valid.get() && !generate_action.pending().get()
     });
 
     // Error handling from action
@@ -73,13 +67,13 @@ pub fn PreUploadAiView(
                         use wasm_bindgen::prelude::*;
                         use wasm_bindgen::JsCast;
                         use web_sys::FileReader;
-                        
+
                         // Log the file's mime type
                         leptos::logging::log!("File type from browser: {}", file.type_());
-                        
+
                         let file_reader = FileReader::new().unwrap();
                         let file_clone = file.clone();
-                        
+
                         // Set up callback for when file is loaded
                         let uploaded_image_clone = uploaded_image.clone();
                         let onload = Closure::wrap(Box::new(move |event: web_sys::Event| {
@@ -88,17 +82,20 @@ pub fn PreUploadAiView(
                                     if let Ok(result) = reader.result() {
                                         if let Some(data_url) = result.as_string() {
                                             // Set the data URL which includes the base64 data
-                                            leptos::logging::log!("Image uploaded as data URL: {}", &data_url[..50.min(data_url.len())]);
+                                            leptos::logging::log!(
+                                                "Image uploaded as data URL: {}",
+                                                &data_url[..50.min(data_url.len())]
+                                            );
                                             uploaded_image_clone.set(Some(data_url));
                                         }
                                     }
                                 }
                             }
                         }) as Box<dyn FnMut(_)>);
-                        
+
                         file_reader.set_onload(Some(onload.as_ref().unchecked_ref()));
                         onload.forget();
-                        
+
                         // Read file as data URL (includes mime type and base64 data)
                         let _ = file_reader.read_as_data_url(&file_clone);
                     }
@@ -244,8 +241,8 @@ pub fn PreUploadAiView(
                                                             let prompt = prompt_text.get_untracked();
                                                             let model = selected_model.get_untracked();
                                                             let image_data = uploaded_image.get_untracked();
-                                                            
-                                                            leptos::logging::log!("Dispatching video generation with image_data: {:?}", 
+
+                                                            leptos::logging::log!("Dispatching video generation with image_data: {:?}",
                                                                 image_data.as_ref().map(|d| &d[..50.min(d.len())]));
 
                                                             // Create params struct and dispatch the action
@@ -255,6 +252,8 @@ pub fn PreUploadAiView(
                                                                 model,
                                                                 image_data,
                                                             };
+                                                            // Store parameters before dispatching
+                                                            set_stored_params.set(params.clone());
                                                             generate_action.dispatch(params);
                                                         }
                                                         Err(e) => {
@@ -286,6 +285,6 @@ pub fn PreUploadAiView(
 
         // Login Modal
         <LoginModal show=show_login_modal redirect_to=None />
-        
+
     }
 }

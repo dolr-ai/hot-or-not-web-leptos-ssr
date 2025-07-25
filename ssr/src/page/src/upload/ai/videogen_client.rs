@@ -32,27 +32,27 @@ pub async fn generate_video_with_signature(
 ) -> Result<VideoGenResponse, VideoGenError> {
     // TODO: Remove this dummy implementation when ready
     // Sleep for 2 seconds to simulate processing
-    gloo::timers::future::TimeoutFuture::new(2_000).await;
+    // gloo::timers::future::TimeoutFuture::new(2_000).await;
 
-    // // Return dummy response
-    let dummy_response = VideoGenResponse {
-        operation_id: format!("dummy-op-{}", uuid::Uuid::new_v4()),
-        video_url: "https://storage.googleapis.com/yral_ai_generated_videos/veo-output/5790230970440583959/sample_0.mp4".to_string(),
-        provider: "dummy".to_string(),
-    };
+    // // // Return dummy response
+    // let dummy_response = VideoGenResponse {
+    //     operation_id: format!("dummy-op-{}", uuid::Uuid::new_v4()),
+    //     video_url: "https://storage.googleapis.com/yral_ai_generated_videos/veo-output/5790230970440583959/sample_0.mp4".to_string(),
+    //     provider: "dummy".to_string(),
+    // };
 
-    Ok(dummy_response)
+    // Ok(dummy_response)
 
     // Create client and call the signed endpoint
-    // let client = VideoGenClient::new(OFF_CHAIN_AGENT_URL.clone());
+    let client = VideoGenClient::new(OFF_CHAIN_AGENT_URL.clone());
 
-    // let video_response = client
-    //     .generate_with_signature(signed_request)
-    //     .await
-    //     .map_err(|e| {
-    //         leptos::logging::log!("Error generating video: {}", e);
-    //         VideoGenError::from(e)
-    //     })?;
+    let video_response = client
+        .generate_with_signature(signed_request)
+        .await
+        .map_err(|e| {
+            leptos::logging::log!("Error generating video: {}", e);
+            VideoGenError::from(e)
+        })?;
 
-    // Ok(video_response)
+    Ok(video_response)
 }
