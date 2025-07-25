@@ -12,7 +12,7 @@ use hon_worker_common::{
 };
 use ic_agent::Identity;
 use leptos::html::Audio;
-use leptos::prelude::*;
+use leptos::{logging, prelude::*};
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
 use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
@@ -264,14 +264,16 @@ fn HNButtonOverlay(
 
     Effect::new(move |_| {
         if !was_connected.get_untracked() && is_connected.get() {
+            logging::log!("User login status updated");
             let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
                 move |_: ()| {
-                    let window = window();
-                    let url = format!(
-                        "/hot-or-not/{}/{}",
-                        login_post.canister_id, login_post.post_id
-                    );
-                    let _ = window.location().set_href(&url);
+                    logging::log!("User logged in, redirecting to post view");
+                    // let window = window();
+                    // let url = format!(
+                    //     "/hot-or-not/{}/{}",
+                    //     login_post.canister_id, login_post.post_id
+                    // );
+                    // let _ = window.location().set_href(&url);
                 },
                 10.0,
             );
