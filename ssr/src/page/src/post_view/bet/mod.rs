@@ -15,6 +15,7 @@ use leptos::html::Audio;
 use leptos::{logging, prelude::*};
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
+use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -259,20 +260,26 @@ fn HNButtonOverlay(
 
     let running = place_bet_action.pending();
 
-    let redirect = RwSignal::new(false);
+    let was_connected = RwSignal::new(is_connected.get_untracked());
 
-    Effect::new(move |prev_value| {
-        if prev_value != Some(is_connected.get()) {
-            redirect.set(true);
-        }
-        is_connected.get()
-    });
+    let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
+        move |_: ()| {
+            let url = format!(
+                "/hot-or-not/{}/{}",
+                login_post.canister_id, login_post.post_id
+            );
+            let _ = window().location().set_href(&url);
+        },
+        3000.0,
+    );
 
     Effect::new(move |_| {
-        if redirect.get() {
-            logging::log!("Reloading the page after login");
-            let _ = window().location().reload();
-            redirect.set(false);
+        let is_now = is_connected.get();
+        let was = was_connected.get();
+        if !was && is_now {
+            was_connected.set(is_now);
+            logging::log!("User logged in, scheduling reload");
+            start(());
         }
     });
 
