@@ -423,12 +423,15 @@ pub fn VideoDetailsOverlay(
             if show_low_balance_popup.get_untracked() {
                 let is_airdrop_eligible = eligibility_resource.get().flatten().unwrap_or(false);
                 spawn_local(async move {
-                    MixPanelEvent::track_low_on_sats_popup_shown(
-                        MixpanelLowOnSatsPopupShownProps {
-                            is_airdrop_eligible,
-                            page_name: "home_low_sats".to_string(),
-                        },
-                    );
+                    if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                        if Some(video_url()) == window().location().href().ok() {
+                            MixPanelEvent::track_low_on_sats_popup_shown(
+                                global,
+                                is_airdrop_eligible,
+                                "home_low_sats".to_string(),
+                            );
+                        }
+                    }
                 });
             }
         });
@@ -446,34 +449,30 @@ pub fn VideoDetailsOverlay(
             sats_airdrop_error.set(false);
             let auth = auth_state();
             let cans = unauth_canisters();
+
             let Ok(auth_cans) = auth.auth_cans(cans).await else {
                 // Fallback: no canister/user info available
-                MixPanelEvent::track_claim_airdrop_clicked(MixpanelClaimAirdropClickedProps {
-                    user_id: None,
-                    visitor_id: None,
-                    is_logged_in: false,
-                    canister_id: String::new(),
-                    is_nsfw_enabled: false,
-                    token_type: StakeType::Sats,
-                    page_name: "home_low_sats".to_string(),
-                });
+                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                    if Some(video_url()) == window().location().href().ok() {
+                        MixPanelEvent::track_claim_airdrop_clicked(
+                            global,
+                            StakeType::Sats,
+                            "home_low_sats".to_string(),
+                        );
+                    }
+                }
                 sats_airdrop_error.set(true);
                 return Err(ServerFnError::new("Failed to get authenticated canisters"));
             };
-            let global = MixpanelGlobalProps::try_get(
-                &auth_cans,
-                auth.is_logged_in_with_oauth().get_untracked(),
-            );
-            // Track claim_airdrop_clicked
-            MixPanelEvent::track_claim_airdrop_clicked(MixpanelClaimAirdropClickedProps {
-                user_id: global.user_id.clone(),
-                visitor_id: global.visitor_id.clone(),
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id.clone(),
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                token_type: StakeType::Sats,
-                page_name: "home_low_sats".to_string(),
-            });
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                if Some(video_url()) == window().location().href().ok() {
+                    MixPanelEvent::track_claim_airdrop_clicked(
+                        global,
+                        StakeType::Sats,
+                        "home_low_sats".to_string(),
+                    );
+                }
+            }
             let user_canister = auth_cans.user_canister();
             let user_principal = auth_cans.user_principal();
             let request = hon_worker_common::ClaimRequest { user_principal };
@@ -485,33 +484,33 @@ pub fn VideoDetailsOverlay(
                     sats_airdrop_claimed.set(true);
                     sats_airdrop_amount.set(amount);
                     // Track airdrop_claimed (success)
-                    MixPanelEvent::track_airdrop_claimed(MixpanelAirdropClaimedProps {
-                        is_success: true,
-                        claimed_amount: amount,
-                        user_id: global.user_id,
-                        visitor_id: global.visitor_id,
-                        is_logged_in: global.is_logged_in,
-                        canister_id: global.canister_id,
-                        is_nsfw_enabled: global.is_nsfw_enabled,
-                        token_type: StakeType::Sats,
-                        page_name: "home_low_sats".to_string(),
-                    });
+                    if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                        if Some(video_url()) == window().location().href().ok() {
+                            MixPanelEvent::track_airdrop_claimed(
+                                global,
+                                StakeType::Sats,
+                                true,
+                                amount,
+                                "home_low_sats".to_string(),
+                            );
+                        }
+                    }
                     Ok(amount)
                 }
                 Err(e) => {
                     sats_airdrop_error.set(true);
                     // Track airdrop_claimed (failure)
-                    MixPanelEvent::track_airdrop_claimed(MixpanelAirdropClaimedProps {
-                        is_success: false,
-                        claimed_amount: 0,
-                        user_id: global.user_id,
-                        visitor_id: global.visitor_id,
-                        is_logged_in: global.is_logged_in,
-                        canister_id: global.canister_id,
-                        is_nsfw_enabled: global.is_nsfw_enabled,
-                        token_type: StakeType::Sats,
-                        page_name: "home_low_sats".to_string(),
-                    });
+                    if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                        if Some(video_url()) == window().location().href().ok() {
+                            MixPanelEvent::track_airdrop_claimed(
+                                global,
+                                StakeType::Sats,
+                                false,
+                                0,
+                                "home_low_sats".to_string(),
+                            );
+                        }
+                    }
                     Err(e)
                 }
             }
@@ -525,23 +524,18 @@ pub fn VideoDetailsOverlay(
             let is_airdrop_eligible = eligibility_resource.get().flatten().unwrap_or(false);
             let auth = auth_state();
             let cans = unauth_canisters();
-            let Ok(auth_cans) = auth.auth_cans(cans).await else {
+            let Ok(_) = auth.auth_cans(cans).await else {
                 return;
             };
-            let global = MixpanelGlobalProps::try_get(
-                &auth_cans,
-                auth.is_logged_in_with_oauth().get_untracked(),
-            );
-            MixPanelEvent::track_refer_friend_clicked(MixpanelReferFriendClickedProps {
-                is_airdrop_eligible,
-                cta_type: "low_sats_popup".to_string(),
-                page_name: "home_low_sats".to_string(),
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-            });
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                if Some(video_url()) == window().location().href().ok() {
+                    MixPanelEvent::track_refer_earn_clicked(
+                        global,
+                        is_airdrop_eligible,
+                        "home_low_sats".to_string(),
+                    );
+                }
+            }
             navigate("/refer-earn", Default::default());
         });
         async move {}

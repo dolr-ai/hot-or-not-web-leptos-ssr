@@ -832,7 +832,11 @@ pub fn FastWalletCard(
             let cans = auth.auth_cans(base).await?;
             let global = MixpanelGlobalProps::try_get(&cans.clone(), is_connected);
             let global_dispatched = MixpanelGlobalProps::try_get(&cans.clone(), is_connected);
-            MixPanelEvent::track_claim_airdrop_clicked(global, token_type.clone());
+            MixPanelEvent::track_claim_airdrop_clicked(
+                global,
+                token_type.clone(),
+                "wallet".to_string(),
+            );
             error_claiming_airdrop.set(false);
             show_airdrop_popup.set(true);
             match airdropper.as_ref().unwrap().claim_airdrop(cans).await {

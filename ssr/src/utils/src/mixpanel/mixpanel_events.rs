@@ -527,7 +527,8 @@ derive_event!(track_withdraw_tokens_clicked {
 });
 
 derive_event!(track_claim_airdrop_clicked {
-    token_type: StakeType
+    token_type: StakeType,
+    page: String
 });
 
 derive_event!(track_airdrop_claimed {
@@ -539,6 +540,11 @@ derive_event!(track_airdrop_claimed {
 
 derive_event!(track_referral_link_copied {
     referral_bonus: u64
+});
+
+derive_event!(track_refer_earn_clicked {
+    is_airdrop_eligible: bool,
+    page: String
 });
 
 derive_event!(track_share_invites_clicked {
@@ -593,6 +599,11 @@ derive_event!(track_sats_to_btc_converted {
 });
 
 derive_event!(track_enable_nsfw_popup_shown { page_name: String });
+
+derive_event!(track_low_on_sats_popup_shown {
+    is_airdrop_claimed: bool,
+    page_name: String
+});
 
 derive_event!(track_nsfw_enabled {
     publisher_user_id: String,
