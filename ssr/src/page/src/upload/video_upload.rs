@@ -388,6 +388,7 @@ pub fn VideoUploader(
             let canisters = auth.auth_cans(unauth_cans).await.ok()?;
             let id = canisters.identity();
             let delegated_identity = delegate_short_lived_identity(id);
+
             let res: std::result::Result<reqwest::Response, ServerFnError> = {
                 let client = reqwest::Client::new();
                 notification_nudge.set(true);

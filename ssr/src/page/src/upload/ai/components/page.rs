@@ -16,7 +16,6 @@ use leptos::reactive::send_wrapper_ext::SendOption;
 use leptos_meta::Title;
 use leptos_use::storage::use_local_storage;
 use state::canisters::{auth_state, unauth_canisters};
-use utils::event_streaming::events::{VideoUploadSuccessful, VideoUploadUnsuccessful};
 
 #[component]
 pub fn UploadAiPostPage() -> impl IntoView {
@@ -44,7 +43,6 @@ pub fn UploadAiPostPage() -> impl IntoView {
             move |params: &VideoGenerationParams| {
                 let params = params.clone();
                 let show_form = show_form;
-                let auth = auth;
 
                 async move {
                     // Get auth canisters and identity for signing
@@ -110,14 +108,13 @@ pub fn UploadAiPostPage() -> impl IntoView {
     let upload_action: Action<UploadActionParams, Result<String, String>> = Action::new_unsync({
         move |params: &UploadActionParams| {
             let params = params.clone();
-            let auth = auth;
             let notification_nudge = notification_nudge;
             let show_success_modal = show_success_modal;
+            // Get unauth_canisters within the Action (like video_upload.rs)
+            let unauth_cans = unauth_canisters();
             async move {
                 // Show notification nudge when starting upload
                 notification_nudge.set(true);
-                // Get unauth_canisters within the Action (like video_upload.rs)
-                let unauth_cans = unauth_canisters();
 
                 // Get delegated identity within the Action
                 match auth.auth_cans(unauth_cans).await {
@@ -142,33 +139,12 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                     video_uid
                                 );
 
-                                // Send success event
-                                let ev_ctx = auth.event_ctx();
-                                VideoUploadSuccessful.send_event(
-                                    ev_ctx,
-                                    video_uid.clone(),
-                                    2,     // hashtags_len (AI tags)
-                                    false, // is_nsfw
-                                    false, // enable_hot_or_not
-                                    0,     // post_id (using 0 for AI generated videos)
-                                );
-
                                 // Show success modal
                                 show_success_modal.set(true);
                                 Ok(video_uid)
                             }
                             Err(e) => {
                                 leptos::logging::error!("Failed to upload video: {}", e);
-
-                                // Send unsuccessful event
-                                let ev_ctx = auth.event_ctx();
-                                VideoUploadUnsuccessful.send_event(
-                                    ev_ctx,
-                                    e.to_string(),
-                                    2,     // hashtags_len
-                                    false, // enable_hot_or_not
-                                    false, // is_nsfw
-                                );
 
                                 Err(format!("Upload failed: {e}"))
                             }
