@@ -92,6 +92,8 @@ dolr-airdrop = { workspace = true, optional = true }
 sats-airdrop = { workspace = true, optional = true }
 num-bigint = { workspace = true }
 num-traits.workspace = true
+videogen-common = { workspace = true }
+base64 = { workspace = true }
 
 # local deps`
 auth = { workspace = true }
