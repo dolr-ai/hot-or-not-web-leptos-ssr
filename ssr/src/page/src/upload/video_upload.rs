@@ -119,6 +119,7 @@ pub fn PreVideoUpload(
             .map(|v| v.duration())
             .unwrap_or_default();
         let Some(vid_file) = file.get_untracked() else {
+            modal_show.set(false);
             return;
         };
         if duration <= 60.0 || duration.is_nan() {
