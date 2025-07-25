@@ -274,6 +274,7 @@ fn HNButtonOverlay(
                     //     login_post.canister_id, login_post.post_id
                     // );
                     // let _ = window.location().set_href(&url);
+                    let _ = window().location().reload();
                 },
                 10.0,
             );
