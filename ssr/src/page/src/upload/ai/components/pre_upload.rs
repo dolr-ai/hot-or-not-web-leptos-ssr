@@ -29,7 +29,7 @@ pub fn PreUploadAiView(
 
     // Get auth state
     let auth = auth_state();
-    let is_logged_in = Signal::stored(true); // auth.is_logged_in_with_oauth(); // Signal::stored(true);
+    let is_logged_in = auth.is_logged_in_with_oauth(); // Signal::stored(true);
 
     // Form validation
     let form_valid = Signal::derive(move || !prompt_text.get().trim().is_empty());
