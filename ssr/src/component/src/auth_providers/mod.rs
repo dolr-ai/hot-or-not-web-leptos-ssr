@@ -4,18 +4,25 @@ mod server_impl;
 pub mod yral;
 
 use candid::Principal;
+use codee::string::JsonSerdeCodec;
+use consts::auth::REFRESH_MAX_AGE;
+use consts::AUTH_JOURNEY_PAGE;
 use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
 use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
 use leptos_icons::Icon;
+use leptos_router::hooks::use_location;
 use leptos_router::hooks::use_navigate;
+use leptos_use::use_cookie_with_options;
+use leptos_use::UseCookieOptions;
 use state::canisters::auth_state;
 use state::canisters::unauth_canisters;
 use utils::event_streaming::events::CentsAdded;
 use utils::event_streaming::events::EventCtx;
 use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, ProviderKind};
+use utils::mixpanel::mixpanel_events::BottomNavigationCategory;
 use utils::mixpanel::mixpanel_events::MixPanelEvent;
 use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
 use utils::send_wrap;
@@ -37,10 +44,18 @@ pub async fn handle_user_login(
     event_ctx: EventCtx,
     referrer: Option<Principal>,
 ) -> Result<(), ServerFnError> {
+    let (auth_journey_page, _) = use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
+        AUTH_JOURNEY_PAGE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(REFRESH_MAX_AGE.as_millis() as i64),
+    );
     let user_principal = canisters.user_principal();
     let first_time_login = mark_user_registered(user_principal).await?;
 
     let auth_journey = MixpanelGlobalProps::get_auth_journey();
+
+    let page_name = auth_journey_page.get_untracked().unwrap_or_default();
 
     if first_time_login {
         CentsAdded.send_event(event_ctx, "signup".to_string(), NEW_USER_SIGNUP_REWARD_SATS);
@@ -50,10 +65,11 @@ pub async fn handle_user_login(
             referrer.is_some(),
             referrer.map(|f| f.to_text()),
             auth_journey,
+            page_name,
         );
     } else {
         let global = MixpanelGlobalProps::try_get(&canisters, true);
-        MixPanelEvent::track_login_success(global, auth_journey);
+        MixPanelEvent::track_login_success(global, auth_journey, page_name);
     }
 
     match referrer {
@@ -132,9 +148,29 @@ pub fn LoginProviders(
 
     let event_ctx = auth.event_ctx();
 
+    let loc = use_location();
+
     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
-        MixPanelEvent::track_auth_screen_viewed(global);
+        let page_name = global.page_name();
+        MixPanelEvent::track_auth_screen_viewed(global, page_name);
     }
+
+    let (_, set_auth_journey_page) =
+        use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
+            AUTH_JOURNEY_PAGE,
+            UseCookieOptions::default()
+                .path("/")
+                .max_age(REFRESH_MAX_AGE.as_millis() as i64),
+        );
+
+    Effect::new(move || {
+        if show_modal.get() {
+            let path = loc.pathname.get();
+            let category: BottomNavigationCategory =
+                BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
+            set_auth_journey_page.update(|f| *f = Some(category));
+        }
+    });
 
     let base_cans = unauth_canisters();
     let login_action = Action::new(move |new_id: &NewIdentity| {

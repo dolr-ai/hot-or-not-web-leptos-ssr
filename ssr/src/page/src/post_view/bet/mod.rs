@@ -17,6 +17,7 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
+use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -102,6 +103,7 @@ fn HNButtonOverlay(
 ) -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
+    let ev_ctx = auth.event_ctx();
 
     fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
         #[cfg(not(feature = "hydrate"))]
@@ -270,14 +272,23 @@ fn HNButtonOverlay(
 
     let was_connected = RwSignal::new(is_connected.get_untracked());
 
-    Effect::new(move |_| {
-        if !was_connected.get_untracked() && is_connected.get() {
-            let window = window();
+    let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
+        move |_: ()| {
             let url = format!(
                 "/hot-or-not/{}/{}",
                 login_post.canister_id, login_post.post_id
             );
-            let _ = window.location().set_href(&url);
+            let _ = window().location().set_href(&url);
+        },
+        3000.0,
+    );
+
+    Effect::new(move |_| {
+        let is_now = is_connected.get();
+        let was = was_connected.get();
+        if !was && is_now {
+            was_connected.set(is_now);
+            start(());
         }
     });
 
@@ -290,8 +301,8 @@ fn HNButtonOverlay(
                 />
             </button>
         </div>
-        <LoginNudgePopup show=show_login_nudge show_login_popup />
-        <LoginModal show=show_login_popup redirect_to=Some(format!("/hot-or-not/{}/{}", login_post.canister_id, login_post.post_id)) />
+        <LoginNudgePopup show=show_login_nudge show_login_popup  ev_ctx coin/>
+        <LoginModal show=show_login_popup redirect_to=None />
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>

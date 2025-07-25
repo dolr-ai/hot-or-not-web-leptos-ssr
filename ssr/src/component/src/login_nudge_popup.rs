@@ -1,10 +1,40 @@
+use global_constants::CoinState;
 use leptos::prelude::*;
 use leptos_icons::*;
+use utils::{
+    event_streaming::events::EventCtx,
+    mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, StakeType},
+};
 
 use crate::{buttons::HighlightedButton, login_icons::*, overlay::ShadowOverlay};
 
 #[component]
-pub fn LoginNudgePopup(show: RwSignal<bool>, show_login_popup: RwSignal<bool>) -> impl IntoView {
+pub fn LoginNudgePopup(
+    show: RwSignal<bool>,
+    coin: RwSignal<CoinState>,
+    show_login_popup: RwSignal<bool>,
+    ev_ctx: EventCtx,
+) -> impl IntoView {
+    Effect::new(move |_| {
+        if show.get() {
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                MixPanelEvent::track_unlock_higher_bets_popup_shown(
+                    global,
+                    "home".into(),
+                    coin.get_untracked().to_cents(),
+                    StakeType::Sats,
+                );
+            }
+        }
+    });
+
+    let analytics_action = Action::new(move |_: &()| {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            let page_name = global.page_name();
+            MixPanelEvent::track_signup_clicked(global, page_name);
+        }
+        async {}
+    });
     view! {
         <ShadowOverlay show=show>
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
@@ -57,6 +87,7 @@ pub fn LoginNudgePopup(show: RwSignal<bool>, show_login_popup: RwSignal<bool>) -
                             on_click=move || {
                                 show.set(false);
                                 show_login_popup.set(true);
+                                analytics_action.dispatch(());
                             }
                         >
                             "Login Now"
