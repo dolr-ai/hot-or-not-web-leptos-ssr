@@ -12,7 +12,7 @@ use hon_worker_common::{
 };
 use ic_agent::Identity;
 use leptos::html::Audio;
-use leptos::{logging, prelude::*};
+use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
 use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
