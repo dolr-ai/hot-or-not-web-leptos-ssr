@@ -614,14 +614,7 @@ pub fn WithdrawSection(
                 s if s == CENT_TOKEN_NAME => StakeType::Cents,
                 _ => unimplemented!("Withdrawing is not implemented for a token"),
             };
-            MixPanelEvent::track_withdraw_tokens_clicked(MixpanelWithdrawTokenClickedProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                token_clicked,
-            });
+            MixPanelEvent::track_withdraw_tokens_clicked(global, token_clicked);
         }
         nav(&withdraw_url, Default::default());
     };
@@ -839,31 +832,19 @@ pub fn FastWalletCard(
             let cans = auth.auth_cans(base).await?;
             let global = MixpanelGlobalProps::try_get(&cans.clone(), is_connected);
             let global_dispatched = MixpanelGlobalProps::try_get(&cans.clone(), is_connected);
-            MixPanelEvent::track_claim_airdrop_clicked(MixpanelClaimAirdropClickedProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                token_type: token_type.clone(),
-                page_name: "wallet".to_string(),
-            });
+            MixPanelEvent::track_claim_airdrop_clicked(global, token_type.clone());
             error_claiming_airdrop.set(false);
             show_airdrop_popup.set(true);
             match airdropper.as_ref().unwrap().claim_airdrop(cans).await {
                 Ok(amount) => {
                     airdrop_amount_claimed.set(amount);
-                    MixPanelEvent::track_airdrop_claimed(MixpanelAirdropClaimedProps {
-                        is_success: true,
-                        claimed_amount: amount,
-                        user_id: global_dispatched.user_id,
-                        visitor_id: global_dispatched.visitor_id,
-                        is_logged_in: global.is_logged_in,
-                        canister_id: global_dispatched.canister_id,
-                        is_nsfw_enabled: global.is_nsfw_enabled,
+                    MixPanelEvent::track_airdrop_claimed(
+                        global_dispatched,
                         token_type,
-                        page_name: "wallet".to_string(),
-                    });
+                        true,
+                        amount,
+                        "wallet".to_string(),
+                    );
                     is_airdrop_claimed.set(true);
                     error_claiming_airdrop.set(false);
                     balance.refetch();
@@ -872,17 +853,13 @@ pub fn FastWalletCard(
                 }
                 Err(err) => {
                     log::error!("error claiming airdrop");
-                    MixPanelEvent::track_airdrop_claimed(MixpanelAirdropClaimedProps {
-                        is_success: false,
-                        claimed_amount: 0,
-                        user_id: global_dispatched.user_id,
-                        visitor_id: global_dispatched.visitor_id,
-                        is_logged_in: global.is_logged_in,
-                        canister_id: global_dispatched.canister_id,
-                        is_nsfw_enabled: global.is_nsfw_enabled,
+                    MixPanelEvent::track_airdrop_claimed(
+                        global_dispatched,
                         token_type,
-                        page_name: "wallet".to_string(),
-                    });
+                        false,
+                        0,
+                        "wallet".to_string(),
+                    );
                     error_claiming_airdrop.set(true);
                     Err(err)
                 }

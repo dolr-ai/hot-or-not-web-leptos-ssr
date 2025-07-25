@@ -35,24 +35,21 @@ fn Post(
     let video_click = move || {
         ProfileViewVideo.send_event(ev_ctx, post_details.clone());
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_video_clicked_profile(MixpanelVideoClickedProfileProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id.clone(),
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                publisher_user_id: post_details.poster_principal.to_text(),
-                like_count: post_details.likes,
-                view_count: post_details.views,
-                is_game_enabled: true,
-                video_id: post_details.uid.clone(),
-                game_type: MixpanelPostGameType::HotOrNot,
-                cta_type: MixpanelVideoClickedCTAType::VideoPlay,
-                position: post_index.map(|i| i as u64 + 1),
-                is_own_profile: user_canister.to_text() == global.canister_id,
-                is_nsfw: post_details.is_nsfw,
-                page_name: "profile".to_string(),
-            });
+            let logged_in_canister = global.canister_id.clone();
+            MixPanelEvent::track_video_clicked_profile(
+                global,
+                post_details.poster_principal.to_text(),
+                post_details.likes,
+                post_details.views,
+                true,
+                post_details.uid.clone(),
+                MixpanelPostGameType::HotOrNot,
+                MixpanelVideoClickedCTAType::VideoPlay,
+                post_index.map(|i| i as u64 + 1),
+                user_canister.to_text() == logged_in_canister,
+                post_details.is_nsfw,
+                "profile".to_string(),
+            );
         }
     };
 
