@@ -586,7 +586,7 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
         <button
             class="z-10 rounded-r-lg bg-black/25 py-2 px-3 cursor-pointer text-sm font-medium text-white items-center gap-1
             pointer-coarse:flex pointer-fine:hidden absolute top-[7rem] left-0
-            active:translate-x-0 -translate-x-2/3 focus:delay-2000 focus:active:delay-0 transition-all"
+            active:translate-x-0 -translate-x-2/3 focus:delay-[3.5s] focus:active:delay-0 transition-all"
             on:click=move |_| {
                 let is_muted = muted.get_untracked();
                 muted.set(!is_muted);
