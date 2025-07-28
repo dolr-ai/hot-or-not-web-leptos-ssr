@@ -291,12 +291,12 @@ fn HNButtonOverlay(
 
     Effect::new(move |_| {
         let post = params.get().ok();
-        if !show_login_popup.get_untracked() && !was_connected.get_untracked() && is_connected.get() {
-            logging::log!("User connected, redirecting to post view");
+        if !show_login_popup.get_untracked() && !was_connected.get_untracked() && is_connected.get()
+        {
             if let Some(post) = post {
+                logging::log!("User connected, redirecting to post view");
                 if post.canister_id == login_post.canister_id && post.post_id == login_post.post_id
                 {
-                    show_login_popup.set(false);
                     current_post_params.set(None);
                     navigate("/", Default::default())
                 }
