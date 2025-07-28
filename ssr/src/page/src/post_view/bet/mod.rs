@@ -136,7 +136,7 @@ fn HNButtonOverlay(
 
     let show_login_nudge = RwSignal::new(false);
     let show_login_popup = RwSignal::new(false);
-    // let login_post = post.clone();
+    let login_post = post.clone();
 
     let default_bet_coin = if is_connected.get_untracked() {
         DEFAULT_BET_COIN_FOR_LOGGED_IN
@@ -285,9 +285,13 @@ fn HNButtonOverlay(
         let was = was_connected.get();
         let auth_journey_page = auth_journey_page.get();
         if !was && is_now && auth_journey_page.is_none() {
-            log::debug!("Redirect check: is_connected = {is_now}, was_connected = {was}");
             was_connected.set(true);
-            let _ = window().location().reload();
+            let window = window();
+            let url = format!(
+                "/hot-or-not/{}/{}",
+                login_post.canister_id, login_post.post_id
+            );
+            let _ = window.location().set_href(&url);
         }
     });
 

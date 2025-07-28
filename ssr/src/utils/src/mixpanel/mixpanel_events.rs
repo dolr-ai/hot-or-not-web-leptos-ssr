@@ -94,6 +94,32 @@ pub(super) fn send_event_to_server<T>(event_name: &str, props: T)
 where
     T: Serialize,
 {
+    let payload = get_event_payload(event_name, props);
+    spawn_local(async {
+        let res = track_event_server_fn(payload).await;
+        match res {
+            Ok(_) => {}
+            Err(e) => logging::error!("Error tracking Mixpanel event: {}", e),
+        }
+    });
+}
+
+pub(super) async fn send_event_to_server_async<T>(event_name: &str, props: T)
+where
+    T: Serialize,
+{
+    let payload = get_event_payload(event_name, props);
+    let res = track_event_server_fn(payload).await;
+    match res {
+        Ok(_) => {}
+        Err(e) => logging::error!("Error tracking Mixpanel event: {}", e),
+    }
+}
+
+fn get_event_payload<T>(event_name: &str, props: T) -> Value
+where
+    T: Serialize,
+{
     let mut props = serde_json::to_value(&props).unwrap();
     props["event"] = event_name.into();
     props["time"] = chrono::Utc::now().timestamp().into();
@@ -133,13 +159,7 @@ where
     } else {
         logging::error!("HistoryCtx not found. Gracefully continuing");
     }
-    spawn_local(async {
-        let res = track_event_server_fn(props).await;
-        match res {
-            Ok(_) => {}
-            Err(e) => logging::error!("Error tracking Mixpanel event: {}", e),
-        }
-    });
+    props
 }
 
 /// Global properties for Mixpanel events
@@ -448,6 +468,32 @@ macro_rules! derive_event {
             is_nsfw_enabled: bool,
             $($prop: $typ),*
         }
+
+        impl $name {
+            #[allow(clippy::too_many_arguments)]
+            pub fn new(
+                global: MixpanelGlobalProps,
+                $($prop: $typ),*
+            ) -> Self {
+                let MixpanelGlobalProps {
+                    user_id,
+                    visitor_id,
+                    username,
+                    is_logged_in,
+                    canister_id,
+                    is_nsfw_enabled,
+                } = global;
+                Self {
+                    user_id,
+                    visitor_id,
+                    username,
+                    is_logged_in,
+                    canister_id,
+                    is_nsfw_enabled,
+                    $($prop),*
+                }
+            }
+        }
         // static assert to ensure $name begins with track_
         const _: () = {
             assert!(matches!(stringify!($name).as_bytes().split_at(6), (b"track_", _)));
@@ -459,26 +505,8 @@ macro_rules! derive_event {
                 global: MixpanelGlobalProps,
                 $($prop: $typ),*
             ) {
-                let MixpanelGlobalProps {
-                    user_id,
-                    visitor_id,
-                    username,
-                    is_logged_in,
-                    canister_id,
-                    is_nsfw_enabled,
-                } = global;
-                send_event_to_server(
-                    $ev,
-                    $name {
-                        user_id,
-                        visitor_id,
-                        username,
-                        is_logged_in,
-                        canister_id,
-                        is_nsfw_enabled,
-                        $($prop),*
-                    }
-                );
+                let event = $name::new(global, $($prop),*);
+                send_event_to_server($ev, event);
             }
         }
     };
@@ -751,6 +779,32 @@ derive_event!(track_how_to_play_clicked {
 derive_event!(track_username_saved {});
 
 impl MixPanelEvent {
+    pub async fn track_login_success_async(
+        global: MixpanelGlobalProps,
+        auth_journey: String,
+        page_name: BottomNavigationCategory,
+    ) {
+        let props = track_login_success::new(global, auth_journey, page_name);
+        send_event_to_server_async("login_success", props).await;
+    }
+
+    pub async fn track_signup_success_async(
+        global: MixpanelGlobalProps,
+        is_referral: bool,
+        referrer_user_id: Option<String>,
+        auth_journey: String,
+        page_name: BottomNavigationCategory,
+    ) {
+        let props = track_signup_success::new(
+            global,
+            is_referral,
+            referrer_user_id,
+            auth_journey,
+            page_name,
+        );
+        send_event_to_server_async("signup_success", props).await;
+    }
+
     pub fn track_page_viewed(page: String, p: MixpanelGlobalProps) {
         let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
             move |_| {

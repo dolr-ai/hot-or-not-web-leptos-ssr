@@ -60,16 +60,17 @@ pub async fn handle_user_login(
     if first_time_login {
         CentsAdded.send_event(event_ctx, "signup".to_string(), NEW_USER_SIGNUP_REWARD_SATS);
         let global = MixpanelGlobalProps::try_get(&canisters, true);
-        MixPanelEvent::track_signup_success(
+        MixPanelEvent::track_signup_success_async(
             global,
             referrer.is_some(),
             referrer.map(|f| f.to_text()),
             auth_journey,
             page_name,
-        );
+        )
+        .await;
     } else {
         let global = MixpanelGlobalProps::try_get(&canisters, true);
-        MixPanelEvent::track_login_success(global, auth_journey, page_name);
+        MixPanelEvent::track_login_success_async(global, auth_journey, page_name).await;
     }
 
     match referrer {
