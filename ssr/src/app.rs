@@ -194,7 +194,6 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/about-us") view=AboutUs />
                         <Route path=path!("/wallet/:id") view=Wallet />
                         <Route path=path!("/wallet") view=Wallet />
-                        <Route path=path!("/notifications") view=NotificationPage />
                         <Route path=path!("/leaderboard") view=Leaderboard />
                         <Route path=path!("/logout") view=Logout />
                         <Route

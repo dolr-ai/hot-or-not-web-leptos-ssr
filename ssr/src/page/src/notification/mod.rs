@@ -1,6 +1,7 @@
 use crate::notification::provider::{NotificationError, NotificationProvider};
-use component::{back_btn::BackButton, infinite_scroller::InfiniteScroller, title::TitleText};
+use component::{infinite_scroller::InfiniteScroller, title::TitleText};
 use leptos::prelude::*;
+use leptos_icons::Icon;
 use leptos_meta::*;
 use leptos_router::components::Redirect;
 use leptos_router::hooks::use_navigate;
@@ -11,18 +12,19 @@ use utils::send_wrap;
 use yral_canisters_client::ic::NOTIFICATION_STORE_ID;
 use yral_canisters_client::notification_store::NotificationStore;
 use yral_canisters_client::notification_store::{NotificationData, NotificationType};
-
+use leptos_use::use_media_query;
+use component::overlay::{ShadowOverlay, ShowOverlay};
 pub mod provider;
 
 #[component]
 fn NotificationLoadingItem() -> impl IntoView {
     view! {
-        <div class="bg-black w-full p-4 border-b border-neutral-900">
+        <div class="w-full p-4 border-b border-neutral-800">
              <div class="flex items-center gap-3">
-                 <div class="size-11 rounded-full bg-neutral-900 animate-pulse" />
+                 <div class="size-11 rounded-full bg-neutral-800 animate-pulse" />
                  <div class="flex flex-col gap-1.5 w-1/2">
-                    <div class="w-1/2 h-3.5 rounded-full bg-neutral-800 animate-pulse" />
-                    <div class="w-full h-3.5 rounded-full bg-neutral-900 animate-pulse" />
+                    <div class="w-1/2 h-3.5 rounded-full bg-neutral-700 animate-pulse" />
+                    <div class="w-full h-3.5 rounded-full bg-neutral-800 animate-pulse" />
                  </div>
              </div>
         </div>
@@ -104,32 +106,27 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
                         let nav = use_navigate();
 
                         view! {
-                            <div class="bg-black w-full p-4 border-b border-neutral-900">
-                                <div class="flex items-center gap-3">
-                                    <div class="size-11 rounded-full bg-neutral-800 relative">
-                                        <img src={icon.clone()} class="size-11 rounded-full object-cover" />
-                                        <div class="size-2 rounded-full bg-pink-700 absolute -left-4 top-5"></div>
+                            <div class="w-full p-4 border-b border-neutral-800">
+                                <div class="flex items-start gap-3">
+                                    <div class="relative mt-0.5">
+                                        <div class="size-2 rounded-full bg-pink-700 absolute -left-1 top-1/2 -translate-y-1/2 z-10"></div>
+                                        <div class="size-11 rounded-full bg-neutral-800 overflow-hidden">
+                                            <img src={icon.clone()} class="size-11 rounded-full object-cover" />
+                                        </div>
                                     </div>
-                                    <div class="flex flex-col gap-1">
+                                    <div class="flex flex-col gap-1 flex-1">
                                         <div class="text-neutral-50 font-semibold">
                                             {title.clone()}
                                         </div>
-                                        <div class="text-neutral-500 font-semibold line-clamp-2">
+                                        <div class="text-neutral-500 text-sm line-clamp-2">
                                             {description.clone()}
                                         </div>
-                                        <div class="flex items-center gap-2 pt-1">
+                                        <div class="flex items-center gap-2 pt-2">
                                             <NotificationActionButton on_click=move || {
                                                 set_read.dispatch(());
                                                 nav(&href_value_clone, NavigateOptions::default());
                                             }>View</NotificationActionButton>
-                                            // <NotificationActionButton on_click=move || {}>Accept</NotificationActionButton>
-                                            // <NotificationActionButton on_click=move || {} secondary=true>Reject</NotificationActionButton>
                                         </div>
-                                        // <div class="flex items-center gap-4 flex-wrap pt-1">
-                                        //     <NotificationItemStatus status="accepted".to_string() />
-                                        //     <NotificationItemStatus status="pending".to_string() />
-                                        //     <NotificationItemStatus status="rejected".to_string() />
-                                        // </div>
                                     </div>
                                 </div>
                             </div>
@@ -184,36 +181,69 @@ fn NotificationActionButton(
 }
 
 #[component]
-pub fn NotificationPage() -> impl IntoView {
+pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
     let app_state = use_context::<AppState>();
     let page_title = app_state.unwrap().name.to_owned() + " - Notifications";
 
     let auth = auth_state();
     let provider = NotificationProvider { auth };
+    let is_desktop = use_media_query("(min-width: 1024px)");
+
     view! {
         <Title text=page_title />
-        <div class="flex flex-col items-center pt-4 pb-12 w-screen min-h-screen text-white bg-black h-full">
-            <div class="sticky top-0 z-10 w-full bg-black">
-                <TitleText justify_center=false>
-                    <div class="flex flex-row justify-between">
-                        <BackButton fallback="/wallet".to_string() />
-                        <div>
-                            <span class="text-xl font-bold">Notifications</span>
+        {move || if is_desktop.get() {
+            // Desktop: right-side panel with ShadowOverlay
+            view! {
+                <ShadowOverlay show=ShowOverlay::Closable(close)>
+                    <div class="fixed top-0 right-0 w-[552px] h-full bg-neutral-900 flex flex-col shadow-2xl border-l border-neutral-800">
+                        <div class="sticky top-0 z-10 w-full bg-neutral-900 px-4 py-6">
+                            <div class="flex flex-row justify-between items-center">
+                                <h2 class="text-2xl font-semibold text-white">Notifications</h2>
+                                <button
+                                    on:click=move |_| close.set(false)
+                                    class="text-white hover:text-gray-300 transition-colors"
+                                >
+                                    <Icon icon=icondata::AiCloseOutlined attr:class="w-6 h-6" />
+                                </button>
+                            </div>
                         </div>
-                        <div></div>
+                        <div class="flex-1 min-h-0 overflow-y-auto">
+                            <NotificationInfiniteScroller provider=provider />
+                        </div>
                     </div>
-                </TitleText>
-            </div>
-
-            <NotificationInfiniteScroller provider=provider />
-        </div>
+                </ShadowOverlay>
+            }.into_any()
+        } else {
+            // Mobile: current layout
+            view! {
+                <div class="flex flex-col items-center pt-4 pb-12 w-screen min-h-screen text-white bg-black h-full">
+                    <div class="sticky top-0 z-10 w-full bg-black">
+                        <TitleText justify_center=false>
+                            <div class="flex flex-row justify-between">
+                                <button
+                                    on:click=move |_| close.set(false)
+                                    class="ml-3"
+                                >
+                                    <Icon icon=icondata::AiLeftOutlined attr:class="w-6 h-6" />
+                                </button>
+                                <div>
+                                    <span class="text-xl font-bold">Notifications</span>
+                                </div>
+                                <div></div>
+                            </div>
+                        </TitleText>
+                    </div>
+                    <NotificationInfiniteScroller provider=provider />
+                </div>
+            }.into_any()
+        }}
     }
 }
 
 #[component]
 fn NotificationInfiniteScroller(provider: NotificationProvider) -> impl IntoView {
     view! {
-            <div class="flex overflow-hidden overflow-y-auto flex-col px-8 pb-32 mx-auto mt-2 w-full max-w-5xl h-full md:px-16">
+            <div class="flex overflow-hidden overflow-y-auto flex-col px-4 pb-32 mx-auto mt-2 w-full max-w-5xl h-full">
                 <InfiniteScroller
                     provider
                     fetch_count=10
