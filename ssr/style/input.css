@@ -288,3 +288,20 @@
     box-shadow: 0 0 0px var(--ping-strength, 6px) #0000;
   }
 }
+
+.mute-indicator {
+    animation: muteIndicator 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes muteIndicator {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    70% {
+      opacity: 0;
+    }
+    100% {
+        transform: scale(0);
+    }
+}

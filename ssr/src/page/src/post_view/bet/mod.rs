@@ -9,6 +9,9 @@ use consts::{
     UserOnboardingStore, AUTH_JOURNEY_PAGE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
 };
 use global_constants::{CoinState, DEFAULT_BET_COIN_STATE};
+use global_constants::{
+    CoinState, DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT,
+};
 use hon_worker_common::{
     sign_vote_request_v3, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV3,
     VoteResV2, WORKER_URL,
@@ -144,8 +147,14 @@ fn HNButtonOverlay(
     let show_login_popup = RwSignal::new(false);
     let login_post = post.clone();
 
+    let default_bet_coin = if is_connected.get_untracked() {
+        DEFAULT_BET_COIN_FOR_LOGGED_IN
+    } else {
+        DEFAULT_BET_COIN_FOR_LOGGED_OUT
+    };
+
     let check_show_login_nudge = move || {
-        if !is_connected.get_untracked() && coin.get_untracked() != DEFAULT_BET_COIN_STATE {
+        if !is_connected.get_untracked() && coin.get_untracked() != default_bet_coin {
             show_login_nudge.set(true);
             Err(())
         } else {
@@ -226,7 +235,7 @@ fn HNButtonOverlay(
 
                         HnBetState::set(post_mix.uid.clone(), res.video_comparison_result);
 
-                        set_wallet_balalnce_store.set(match res.game_result.game_result.clone() {
+                        let balance = match res.game_result.game_result.clone() {
                             GameResultV2::Win {
                                 win_amt: _,
                                 updated_balance,
@@ -235,7 +244,9 @@ fn HNButtonOverlay(
                                 lose_amt: _,
                                 updated_balance,
                             } => updated_balance.to_u64().unwrap_or(0),
-                        });
+                        };
+                        HnBetState::set_balance(balance);
+                        set_wallet_balalnce_store.set(balance);
 
                         MixPanelEvent::track_game_played(
                             global,
@@ -382,25 +393,37 @@ fn HNWonLost(
     let creator_reward_text = if creator_reward > 0 {
         format!(", creator gets {creator_reward} SATS")
     } else {
-        "".to_string()
+        String::new()
     };
     let (line1, line2) = match game_result.clone() {
-        GameResult::Win { win_amt } => (
-            format!("You voted \"{bet_direction_text}\" - Spot on!"),
-            format!(
-                "You won {} SATS{}",
-                TokenBalance::new((win_amt + vote_amount).into(), 0).humanize(),
-                creator_reward_text
-            ),
-        ),
-        GameResult::Loss { lose_amt } => (
-            format!("You voted \"{bet_direction_text}\" - wrong vote."),
-            format!(
-                "You lost {} SATS{}",
-                TokenBalance::new(lose_amt.into(), 0).humanize(),
-                creator_reward_text
-            ),
-        ),
+        GameResult::Win { win_amt } => {
+            let total_win = TokenBalance::new((win_amt + vote_amount).into(), 0).humanize();
+            if bet_direction_text.is_empty() {
+                (
+                    format!("You won {total_win} SATS",),
+                    "Tap ? to see how it works".into(),
+                )
+            } else {
+                (
+                    format!("You voted \"{bet_direction_text}\" - Spot on!"),
+                    format!("You won {total_win} SATS{creator_reward_text}",),
+                )
+            }
+        }
+        GameResult::Loss { lose_amt } => {
+            let total_loss = TokenBalance::new(lose_amt.into(), 0).humanize();
+            if bet_direction_text.is_empty() {
+                (
+                    format!("You lost {total_loss} SATS"),
+                    "Tap ? to see how it works".into(),
+                )
+            } else {
+                (
+                    format!("You voted \"{bet_direction_text}\" - wrong vote."),
+                    format!("You lost {total_loss} SATS{creator_reward_text}"),
+                )
+            }
+        }
     };
 
     let bet_amount = vote_amount;
@@ -433,14 +456,6 @@ fn HNWonLost(
             show_help_ping.set(false);
         }
     });
-
-    let (wallet_balance_store, _, _) =
-        use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
-
-    let total_balance_text = move || {
-        let balance = wallet_balance_store.get();
-        format!("Total balance: {balance} SATS")
-    };
 
     let show_ping = move || show_help_ping.get() && !won;
 
@@ -507,10 +522,34 @@ fn HNWonLost(
                         />
                     }})
             }
-            <div class=format!("flex items-center text-white text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-[#158F5C]" } else { "bg-[#F14331]" })>
+            <TotalBalance won />
+        </div>
+    }
+}
+
+#[component]
+fn TotalBalance(won: bool) -> impl IntoView {
+    let (wallet_balance_store, _, _) =
+        use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+
+    let total_balance_text = move || {
+        let balance = HnBetState::get_balance().unwrap_or(0);
+        format!("Total balance: {balance} SATS")
+    };
+
+    Effect::new(move |_| {
+        if HnBetState::get_balance().is_none() {
+            let balance = wallet_balance_store.get();
+            HnBetState::set_balance(balance);
+        }
+    });
+
+    view! {
+        <Show when=move|| HnBetState::get_balance().is_some()>
+            <div class=format!("flex items-center text-sm font-semibold justify-center p-2 rounded-full {}", if won { "bg-[#158F5C]" } else { "bg-[#F14331]" })>
                 {total_balance_text}
             </div>
-        </div>
+        </Show>
     }
 }
 
@@ -612,12 +651,16 @@ pub fn HNGameOverlay(
     show_tutorial: RwSignal<bool>,
 ) -> impl IntoView {
     let bet_direction = RwSignal::new(None::<VoteKind>);
-    let coin = RwSignal::new(DEFAULT_BET_COIN_STATE);
 
     let refetch_bet = Trigger::new();
     let post = StoredValue::new(post);
 
     let auth = auth_state();
+    let coin = RwSignal::new(if auth.is_logged_in_with_oauth().get_untracked() {
+        DEFAULT_BET_COIN_FOR_LOGGED_IN
+    } else {
+        DEFAULT_BET_COIN_FOR_LOGGED_OUT
+    });
     let create_game_info = auth.derive_resource(
         move || refetch_bet.track(),
         move |cans, _| {
@@ -640,7 +683,6 @@ pub fn HNGameOverlay(
 
     view! {
         <Suspense fallback=LoaderWithShadowBg>
-
             {move || {
                 create_game_info
                     .get()
