@@ -95,6 +95,7 @@ jsonwebtoken = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
 dolr-airdrop = { workspace = true, optional = true }
 sats-airdrop = { workspace = true, optional = true }
+videogen-common = { workspace = true }
 
 # local deps
 auth = { workspace = true }
@@ -251,11 +252,7 @@ alloydb = [
     "state/alloydb",
     "page/alloydb",
 ]
-neon-postgres = [
-    "dep:sea-orm",
-    "state/neon-postgres",
-    "page/neon-postgres",
-]
+neon-postgres = ["dep:sea-orm", "state/neon-postgres", "page/neon-postgres"]
 dolr-airdrop = [
     "neon-postgres",
     "dep:dolr-airdrop",
@@ -284,7 +281,7 @@ release-bin = [
     "page/release-bin",
     "alloydb",
     "dolr-airdrop",
-    "sats-airdrop"
+    "sats-airdrop",
 ]
 release-lib = [
     "hydrate",
@@ -416,4 +413,4 @@ lib-default-features = false
 lib-profile-release = "wasm-release"
 
 # Uncomment in local to disable erasing components
-# disable-erase-components = true
+disable-erase-components = true

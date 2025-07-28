@@ -13,7 +13,7 @@ mod build_common {
             .build_client(true)
             .build_server(false)
             .out_dir(out_dir.clone())
-            .compile_protos(&[ml_feed_proto], &["proto"])?;
+            .compile_protos(&[ml_feed_proto], &["contracts"])?;
 
         out_dir = out_dir.join("grpc-web");
         fs::create_dir_all(&out_dir)?;
@@ -22,7 +22,7 @@ mod build_common {
             .build_client(true)
             .build_server(false)
             .out_dir(out_dir)
-            .compile_protos(&[ml_feed_proto], &["proto"])?;
+            .compile_protos(&[ml_feed_proto], &["contracts"])?;
 
         Ok(())
     }
@@ -49,7 +49,7 @@ mod build_ssr {
             .build_client(true)
             .build_server(false)
             .out_dir(out_dir)
-            .compile_protos(&[warehouse_events_proto, off_chain_proto], &["proto"])?;
+            .compile_protos(&[warehouse_events_proto, off_chain_proto], &["contracts"])?;
         Ok(())
     }
 
