@@ -15,7 +15,7 @@ use ic_agent::Identity;
 use leptos::html::Audio;
 use leptos::{logging, prelude::*};
 use leptos_icons::*;
-use leptos_router::hooks::use_navigate;
+use leptos_router::hooks::{use_navigate, use_params};
 use leptos_use::storage::use_local_storage;
 // use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
@@ -28,6 +28,8 @@ use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
     posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
 };
+
+use crate::post_view::PostParams;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VoteAPIRes {
@@ -104,6 +106,7 @@ fn HNButtonOverlay(
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
     let ev_ctx = auth.event_ctx();
+    let params = use_params::<PostParams>();
     fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
         #[cfg(not(feature = "hydrate"))]
         {
@@ -286,13 +289,24 @@ fn HNButtonOverlay(
     let navigate = use_navigate();
 
     Effect::new(move |_| {
+        let post = params.get().ok();
         if !show_login_popup.get() && !was_connected.get_untracked() && is_connected.get() {
-            let url = format!(
-                "/hot-or-not/{}/{}",
-                login_post.canister_id, login_post.post_id
-            );
-            logging::log!("Navigating to {url} after login");
-            navigate(&url, Default::default());
+            logging::log!("User connected, redirecting to post view");
+            if let Some(post) = post {
+                if post.canister_id == login_post.canister_id && post.post_id == login_post.post_id
+                {
+                    logging::log!("Redirecting to root view");
+                    navigate("/fresh=true", Default::default())
+                }
+            } else {
+                logging::log!("No post params found, redirecting to root view");
+                navigate("/", Default::default())
+            }
+            // if let Some(post) = post {
+            //     let url = format!("/hot-or-not/{}/{}", post.canister_id, post.post_id);
+            //     navigate(&url, Default::default());
+            // } else {
+            // }
         }
     });
 
