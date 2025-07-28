@@ -8,10 +8,8 @@ use consts::auth::REFRESH_MAX_AGE;
 use consts::{
     UserOnboardingStore, AUTH_JOURNEY_PAGE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
 };
-use global_constants::{CoinState, DEFAULT_BET_COIN_STATE};
-use global_constants::{
-    CoinState, DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT,
-};
+use global_constants::CoinState;
+use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
 use hon_worker_common::{
     sign_vote_request_v3, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV3,
     VoteResV2, WORKER_URL,
