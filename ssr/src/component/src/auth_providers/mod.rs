@@ -43,19 +43,14 @@ pub async fn handle_user_login(
     canisters: Canisters<true>,
     event_ctx: EventCtx,
     referrer: Option<Principal>,
+    page_name: Option<BottomNavigationCategory>,
 ) -> Result<(), ServerFnError> {
-    let (auth_journey_page, _) = use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
-        AUTH_JOURNEY_PAGE,
-        UseCookieOptions::default()
-            .path("/")
-            .max_age(REFRESH_MAX_AGE.as_millis() as i64),
-    );
     let user_principal = canisters.user_principal();
     let first_time_login = mark_user_registered(user_principal).await?;
 
     let auth_journey = MixpanelGlobalProps::get_auth_journey();
 
-    let page_name = auth_journey_page.get_untracked().unwrap_or_default();
+    let page_name = page_name.unwrap_or_default();
 
     if first_time_login {
         CentsAdded.send_event(event_ctx, "signup".to_string(), NEW_USER_SIGNUP_REWARD_SATS);
@@ -173,7 +168,7 @@ pub fn LoginProviders(
         }
     });
 
-    let (_, set_auth_journey_page) =
+    let (auth_journey_page, set_auth_journey_page) =
         use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
             AUTH_JOURNEY_PAGE,
             UseCookieOptions::default()
@@ -187,6 +182,7 @@ pub fn LoginProviders(
         let new_id = new_id.clone();
         let redirect_to = redirect_to.clone();
         let base_cans = base_cans.clone();
+        let page_name = auth_journey_page.get_untracked();
         // Capture the context signal setter
         send_wrap(async move {
             let referrer = auth.referrer_store.get_untracked();
@@ -202,7 +198,9 @@ pub fn LoginProviders(
                 canisters = Canisters::authenticate_with_network(new_id.id_wire, referrer).await?;
             }
 
-            if let Err(e) = handle_user_login(canisters.clone(), auth.event_ctx(), referrer).await {
+            if let Err(e) =
+                handle_user_login(canisters.clone(), auth.event_ctx(), referrer, page_name).await
+            {
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
 
