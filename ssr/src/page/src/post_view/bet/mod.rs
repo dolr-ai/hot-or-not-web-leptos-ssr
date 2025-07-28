@@ -1,5 +1,7 @@
 mod server_impl;
 
+use std::collections::HashMap;
+
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
@@ -29,7 +31,7 @@ use yral_canisters_common::utils::{
     posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
 };
 
-use crate::post_view::PostParams;
+use crate::post_view::{PostDetailsCacheCtx, PostParams};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VoteAPIRes {
@@ -289,15 +291,27 @@ fn HNButtonOverlay(
     let navigate = use_navigate();
     let current_post_params: RwSignal<Option<utils::types::PostParams>> = expect_context();
 
+    let check_current_post = move || {
+        let post = params.get().ok();
+        if let Some(post) = post {
+            post.canister_id == login_post.canister_id && post.post_id == login_post.post_id
+        } else {
+            false
+        }
+    };
+
+    let post_details_cache: PostDetailsCacheCtx = expect_context();
+
     Effect::new(move |_| {
         let post = params.get().ok();
-        if !show_login_popup.get_untracked() && !was_connected.get_untracked() && is_connected.get()
-        {
+        if !was_connected.get() && is_connected.get() {
             if let Some(post) = post {
                 if post.canister_id == login_post.canister_id && post.post_id == login_post.post_id
                 {
                     logging::log!("User connected, redirecting to post view");
+                    post_details_cache.post_details.set(HashMap::new());
                     current_post_params.set(None);
+                    was_connected.set(true);
                     navigate("/", Default::default())
                 }
             }
@@ -314,7 +328,7 @@ fn HNButtonOverlay(
             </button>
         </div>
         <LoginNudgePopup show=show_login_nudge show_login_popup  ev_ctx coin/>
-        <LoginModal show=show_login_popup redirect_to=None />
+        <Show when=move||check_current_post()> <LoginModal show=show_login_popup redirect_to=None /></Show>
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
