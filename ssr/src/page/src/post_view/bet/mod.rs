@@ -268,8 +268,6 @@ fn HNButtonOverlay(
 
     let running = place_bet_action.pending();
 
-    let was_connected = RwSignal::new(is_connected.get_untracked());
-
     let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
         move |_: ()| {
             log::debug!("Redirecting to post view after bet placed");
@@ -282,19 +280,14 @@ fn HNButtonOverlay(
         3000.0,
     );
 
-    Effect::new(move |_| {
+    Effect::new(move |prev: Option<bool>| {
         let is_now = is_connected.get();
-        let was = was_connected.get();
-        let show_popup = show_login_popup.get();
-
-        log::debug!(
-            "Redirect check: is_connected = {is_now}, was_connected = {was}, show_login_popup = {show_popup}"
-        );
-
-        if !show_popup && !was && is_now {
-            was_connected.set(true);
+        let was = prev.unwrap_or_default();
+        log::debug!("Redirect check: is_connected = {is_now}, was_connected = {was}");
+        if !was && is_now {
             start(());
         }
+        is_now
     });
 
     view! {
