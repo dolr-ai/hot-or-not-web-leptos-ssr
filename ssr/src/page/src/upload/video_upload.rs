@@ -21,9 +21,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use utils::mixpanel::mixpanel_events::*;
 use utils::{
-    event_streaming::events::{
-        VideoUploadSuccessful, VideoUploadUnsuccessful, VideoUploadVideoSelected,
-    },
+    event_streaming::events::{VideoUploadUnsuccessful, VideoUploadVideoSelected},
     try_or_redirect_opt,
     web::FileWithUrl,
 };
