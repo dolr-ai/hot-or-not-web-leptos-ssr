@@ -287,29 +287,20 @@ fn HNButtonOverlay(
     // );
 
     let navigate = use_navigate();
+    let current_post_params: RwSignal<Option<utils::types::PostParams>> = expect_context();
 
     Effect::new(move |_| {
         let post = params.get().ok();
-        if !show_login_popup.get() && !was_connected.get_untracked() && is_connected.get() {
+        if !show_login_popup.get_untracked() && !was_connected.get_untracked() && is_connected.get() {
             logging::log!("User connected, redirecting to post view");
             if let Some(post) = post {
                 if post.canister_id == login_post.canister_id && post.post_id == login_post.post_id
                 {
-                    logging::log!("Redirecting to current view");
-                    navigate(
-                        &format!("/hot-or-not/{}/{}", post.canister_id, post.post_id),
-                        Default::default(),
-                    );
+                    show_login_popup.set(false);
+                    current_post_params.set(None);
+                    navigate("/", Default::default())
                 }
-            } else {
-                logging::log!("No post params found, redirecting to root view");
-                navigate("/", Default::default())
             }
-            // if let Some(post) = post {
-            //     let url = format!("/hot-or-not/{}/{}", post.canister_id, post.post_id);
-            //     navigate(&url, Default::default());
-            // } else {
-            // }
         }
     });
 
