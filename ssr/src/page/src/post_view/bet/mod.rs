@@ -4,10 +4,7 @@ use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
-use consts::auth::REFRESH_MAX_AGE;
-use consts::{
-    UserOnboardingStore, AUTH_JOURNEY_PAGE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
-};
+use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
 use global_constants::CoinState;
 use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
 use hon_worker_common::{
@@ -19,7 +16,6 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
-use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -273,18 +269,11 @@ fn HNButtonOverlay(
 
     let was_connected = RwSignal::new(is_connected.get_untracked());
 
-    let (auth_journey_page, _) = use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
-        AUTH_JOURNEY_PAGE,
-        UseCookieOptions::default()
-            .path("/")
-            .max_age(REFRESH_MAX_AGE.as_millis() as i64),
-    );
-
     Effect::new(move |_| {
         let is_now = is_connected.get();
         let was = was_connected.get();
-        let auth_journey_page = auth_journey_page.get();
-        if !was && is_now && auth_journey_page.is_none() {
+        let show = show_login_popup.get();
+        if !was && is_now && !show {
             was_connected.set(true);
             let window = window();
             let url = format!(
@@ -292,6 +281,7 @@ fn HNButtonOverlay(
                 login_post.canister_id, login_post.post_id
             );
             let _ = window.location().set_href(&url);
+            let _ = window.location().reload();
         }
     });
 
