@@ -1,6 +1,7 @@
 use candid::Principal;
 use serde::{Deserialize, Serialize};
-use videogen_common::VideoModel;
+use utils::host::show_preview_component;
+use videogen_common::{VideoGenProvider, VideoModel};
 
 // Local storage key for video generation parameters
 pub const AI_VIDEO_PARAMS_STORE: &str = "ai_video_generation_params";
@@ -53,13 +54,21 @@ pub struct VideoGenerationParams {
 
 impl Default for VideoGenerationParams {
     fn default() -> Self {
+        let is_preview = show_preview_component();
+        let all_models = VideoModel::get_models();
+        let filtered_models: Vec<VideoModel> = if is_preview {
+            all_models
+        } else {
+            all_models
+                .into_iter()
+                .filter(|model| model.provider != VideoGenProvider::IntTest)
+                .collect()
+        };
+
         Self {
             user_principal: Principal::anonymous(),
             prompt: String::new(),
-            model: VideoModel::get_models()
-                .into_iter()
-                .next()
-                .unwrap_or_default(),
+            model: filtered_models.into_iter().next().unwrap_or_default(),
             image_data: None,
         }
     }

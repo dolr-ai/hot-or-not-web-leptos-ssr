@@ -1,6 +1,7 @@
 use leptos::prelude::*;
 use leptos_icons::*;
-use videogen_common::VideoModel;
+use utils::host::show_preview_component;
+use videogen_common::{VideoGenProvider, VideoModel};
 
 #[component]
 pub fn ModelDropdown(
@@ -8,7 +9,17 @@ pub fn ModelDropdown(
     show_dropdown: RwSignal<bool>,
 ) -> impl IntoView {
     // Store models in a StoredValue to avoid the closure trait bounds issue
-    let models = StoredValue::new(VideoModel::get_models());
+    let is_preview = show_preview_component();
+    let all_models = VideoModel::get_models();
+    let filtered_models: Vec<VideoModel> = if is_preview {
+        all_models
+    } else {
+        all_models
+            .into_iter()
+            .filter(|model| model.provider != VideoGenProvider::IntTest)
+            .collect()
+    };
+    let models = StoredValue::new(filtered_models);
 
     // Create derived signals for the selected model properties
     let model_name = Signal::derive(move || selected_model.get().name.clone());
