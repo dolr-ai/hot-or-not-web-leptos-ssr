@@ -1,4 +1,5 @@
 use crate::notification::provider::{NotificationError, NotificationProvider};
+use component::overlay::{ShadowOverlay, ShowOverlay};
 use component::{infinite_scroller::InfiniteScroller, title::TitleText};
 use leptos::prelude::*;
 use leptos_icons::Icon;
@@ -6,14 +7,13 @@ use leptos_meta::*;
 use leptos_router::components::Redirect;
 use leptos_router::hooks::use_navigate;
 use leptos_router::NavigateOptions;
+use leptos_use::use_media_query;
 use state::canisters::unauth_canisters;
 use state::{app_state::AppState, canisters::auth_state};
 use utils::send_wrap;
 use yral_canisters_client::ic::NOTIFICATION_STORE_ID;
 use yral_canisters_client::notification_store::NotificationStore;
 use yral_canisters_client::notification_store::{NotificationData, NotificationType};
-use leptos_use::use_media_query;
-use component::overlay::{ShadowOverlay, ShowOverlay};
 pub mod provider;
 
 #[component]
