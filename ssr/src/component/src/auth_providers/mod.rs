@@ -151,7 +151,7 @@ pub fn LoginProviders(
         MixPanelEvent::track_auth_screen_viewed(global, page_name);
     }
 
-    let (_, set_auth_journey_page) =
+    let (auth_journey_page, set_auth_journey_page) =
         use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
             AUTH_JOURNEY_PAGE,
             UseCookieOptions::default()
@@ -167,14 +167,6 @@ pub fn LoginProviders(
             set_auth_journey_page.update(|f| *f = Some(category));
         }
     });
-
-    let (auth_journey_page, set_auth_journey_page) =
-        use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
-            AUTH_JOURNEY_PAGE,
-            UseCookieOptions::default()
-                .path("/")
-                .max_age(REFRESH_MAX_AGE.as_millis() as i64),
-        );
 
     let base_cans = unauth_canisters();
     let login_action = Action::new(move |new_id: &NewIdentity| {
