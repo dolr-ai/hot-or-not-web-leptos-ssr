@@ -16,7 +16,6 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
-use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -133,7 +132,7 @@ fn HNButtonOverlay(
 
     let show_login_nudge = RwSignal::new(false);
     let show_login_popup = RwSignal::new(false);
-    let login_post = post.clone();
+    // let login_post = post.clone();
 
     let default_bet_coin = if is_connected.get_untracked() {
         DEFAULT_BET_COIN_FOR_LOGGED_IN
@@ -268,26 +267,16 @@ fn HNButtonOverlay(
 
     let running = place_bet_action.pending();
 
-    let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
-        move |_: ()| {
-            log::debug!("Redirecting to post view after bet placed");
-            let url = format!(
-                "/hot-or-not/{}/{}",
-                login_post.canister_id, login_post.post_id
-            );
-            let _ = window().location().set_href(&url);
-        },
-        3000.0,
-    );
+    let was_connected = RwSignal::new(is_connected.get_untracked());
 
-    Effect::new(move |prev: Option<bool>| {
+    Effect::new(move |_| {
         let is_now = is_connected.get();
-        let was = prev.unwrap_or_default();
-        log::debug!("Redirect check: is_connected = {is_now}, was_connected = {was}");
+        let was = was_connected.get();
         if !was && is_now {
-            start(());
+            log::debug!("Redirect check: is_connected = {is_now}, was_connected = {was}");
+            was_connected.set(true);
+            let _ = window().location().reload();
         }
-        is_now
     });
 
     view! {
@@ -300,7 +289,7 @@ fn HNButtonOverlay(
             </button>
         </div>
         <LoginNudgePopup show=show_login_nudge show_login_popup  ev_ctx coin/>
-        <LoginModal show=show_login_popup redirect_to=Some(format!("/hot-or-not/{}/{}",login_post.canister_id, login_post.post_id)) />
+        <LoginModal show=show_login_popup redirect_to=None />
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>

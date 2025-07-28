@@ -44,13 +44,12 @@ pub async fn handle_user_login(
     event_ctx: EventCtx,
     referrer: Option<Principal>,
 ) -> Result<(), ServerFnError> {
-    let (auth_journey_page, set_auth_journey_page) =
-        use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
-            AUTH_JOURNEY_PAGE,
-            UseCookieOptions::default()
-                .path("/")
-                .max_age(REFRESH_MAX_AGE.as_millis() as i64),
-        );
+    let (auth_journey_page, _) = use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
+        AUTH_JOURNEY_PAGE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(REFRESH_MAX_AGE.as_millis() as i64),
+    );
     let user_principal = canisters.user_principal();
     let first_time_login = mark_user_registered(user_principal).await?;
 
@@ -72,8 +71,6 @@ pub async fn handle_user_login(
         let global = MixpanelGlobalProps::try_get(&canisters, true);
         MixPanelEvent::track_login_success(global, auth_journey, page_name);
     }
-
-    set_auth_journey_page.set(None);
 
     match referrer {
         Some(referrer_principal) if first_time_login => {
@@ -175,6 +172,14 @@ pub fn LoginProviders(
         }
     });
 
+    let (_, set_auth_journey_page) =
+        use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
+            AUTH_JOURNEY_PAGE,
+            UseCookieOptions::default()
+                .path("/")
+                .max_age(REFRESH_MAX_AGE.as_millis() as i64),
+        );
+
     let base_cans = unauth_canisters();
     let login_action = Action::new(move |new_id: &NewIdentity| {
         // Clone the necessary parts
@@ -201,6 +206,8 @@ pub fn LoginProviders(
             }
 
             let _ = LoginSuccessful.send_event(canisters.clone());
+
+            set_auth_journey_page.set(None);
 
             if let Some(redir_loc) = redirect_to {
                 let nav = use_navigate();
