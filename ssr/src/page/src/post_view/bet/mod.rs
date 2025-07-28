@@ -16,6 +16,7 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
+use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -269,19 +270,25 @@ fn HNButtonOverlay(
 
     let was_connected = RwSignal::new(is_connected.get_untracked());
 
+    let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
+        move |_: ()| {
+            let url = format!(
+                "/hot-or-not/{}/{}",
+                login_post.canister_id, login_post.post_id
+            );
+            let _ = window().location().set_href(&url);
+            let _ = window().location().reload();
+        },
+        5000.0,
+    );
+
     Effect::new(move |_| {
         let is_now = is_connected.get();
         let was = was_connected.get();
         let show = show_login_popup.get();
         if !was && is_now && !show {
             was_connected.set(true);
-            let window = window();
-            let url = format!(
-                "/hot-or-not/{}/{}",
-                login_post.canister_id, login_post.post_id
-            );
-            let _ = window.location().set_href(&url);
-            let _ = window.location().reload();
+            start(());
         }
     });
 
