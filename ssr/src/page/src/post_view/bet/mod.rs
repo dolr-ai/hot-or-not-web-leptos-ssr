@@ -13,8 +13,9 @@ use hon_worker_common::{
 };
 use ic_agent::Identity;
 use leptos::html::Audio;
-use leptos::prelude::*;
+use leptos::{logging, prelude::*};
 use leptos_icons::*;
+use leptos_router::hooks::use_navigate;
 use leptos_use::storage::use_local_storage;
 // use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
@@ -282,14 +283,16 @@ fn HNButtonOverlay(
     //     5000.0,
     // );
 
+    let navigate = use_navigate();
+
     Effect::new(move |_| {
         if !show_login_popup.get() && !was_connected.get_untracked() && is_connected.get() {
-            let window = window();
             let url = format!(
                 "/hot-or-not/{}/{}",
                 login_post.canister_id, login_post.post_id
             );
-            let _ = window.location().set_href(&url);
+            logging::log!("Navigating to {url} after login");
+            navigate(&url, Default::default());
         }
     });
 
