@@ -272,11 +272,10 @@ fn HNButtonOverlay(
 
     let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
         move |_: ()| {
-            let url = format!(
-                "/hot-or-not/{}/{}",
-                login_post.canister_id, login_post.post_id
-            );
-            let _ = window().location().set_href(&url);
+            // let url = format!(
+            //     "/hot-or-not/{}/{}",
+            //     login_post.canister_id, login_post.post_id
+            // );
             let _ = window().location().reload();
         },
         5000.0,
@@ -285,8 +284,7 @@ fn HNButtonOverlay(
     Effect::new(move |_| {
         let is_now = is_connected.get();
         let was = was_connected.get();
-        let show = show_login_popup.get();
-        if !was && is_now && !show {
+        if !was && is_now {
             was_connected.set(true);
             start(());
         }
