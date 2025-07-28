@@ -190,7 +190,7 @@ pub fn HonWithdrawal() -> impl IntoView {
             let cans = auth.auth_cans(expect_context()).await?;
 
             // TODO: do we still need this?
-            handle_user_login(cans.clone(), auth.event_ctx(), None).await?;
+            handle_user_login(cans.clone(), auth.event_ctx(), None, None).await?;
 
             let req = hon_worker_common::WithdrawRequest {
                 receiver: cans.user_principal(),

@@ -1,22 +1,25 @@
 mod server_impl;
 
+use std::collections::HashMap;
+
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
 use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
-use global_constants::{
-    CoinState, DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT,
-};
+use global_constants::CoinState;
+use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
 use hon_worker_common::{
     sign_vote_request_v3, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV3,
     VoteResV2, WORKER_URL,
 };
 use ic_agent::Identity;
 use leptos::html::Audio;
-use leptos::prelude::*;
+use leptos::{logging, prelude::*};
 use leptos_icons::*;
+use leptos_router::hooks::{use_navigate, use_params};
 use leptos_use::storage::use_local_storage;
+// use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -27,6 +30,8 @@ use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
     posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
 };
+
+use crate::post_view::{PostDetailsCacheCtx, PostParams};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VoteAPIRes {
@@ -102,7 +107,8 @@ fn HNButtonOverlay(
 ) -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
-
+    let ev_ctx = auth.event_ctx();
+    let params = use_params::<PostParams>();
     fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
         #[cfg(not(feature = "hydrate"))]
         {
@@ -270,14 +276,45 @@ fn HNButtonOverlay(
 
     let was_connected = RwSignal::new(is_connected.get_untracked());
 
+    // let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
+    //     move |_: ()| {
+    //         let url = format!(
+    //             "/hot-or-not/{}/{}",
+    //             login_post.canister_id, login_post.post_id
+    //         );
+    //         let _ = window().location().set_href(&url);
+    //         let _ = window().location().reload();
+    //     },
+    //     5000.0,
+    // );
+
+    let navigate = use_navigate();
+    let current_post_params: RwSignal<Option<utils::types::PostParams>> = expect_context();
+
+    let check_current_post = move || {
+        let post = params.get().ok();
+        if let Some(post) = post {
+            post.canister_id == login_post.canister_id && post.post_id == login_post.post_id
+        } else {
+            false
+        }
+    };
+
+    let post_details_cache: PostDetailsCacheCtx = expect_context();
+
     Effect::new(move |_| {
-        if !was_connected.get_untracked() && is_connected.get() {
-            let window = window();
-            let url = format!(
-                "/hot-or-not/{}/{}",
-                login_post.canister_id, login_post.post_id
-            );
-            let _ = window.location().set_href(&url);
+        let post = params.get().ok();
+        if !was_connected.get() && is_connected.get() {
+            if let Some(post) = post {
+                if post.canister_id == login_post.canister_id && post.post_id == login_post.post_id
+                {
+                    logging::log!("User connected, redirecting to post view");
+                    post_details_cache.post_details.set(HashMap::new());
+                    current_post_params.set(None);
+                    was_connected.set(true);
+                    navigate("/", Default::default())
+                }
+            }
         }
     });
 
@@ -290,8 +327,8 @@ fn HNButtonOverlay(
                 />
             </button>
         </div>
-        <LoginNudgePopup show=show_login_nudge show_login_popup />
-        <LoginModal show=show_login_popup redirect_to=Some(format!("/hot-or-not/{}/{}", login_post.canister_id, login_post.post_id)) />
+        <LoginNudgePopup show=show_login_nudge show_login_popup  ev_ctx coin/>
+        <Show when=move||check_current_post()> <LoginModal show=show_login_popup redirect_to=None /></Show>
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
