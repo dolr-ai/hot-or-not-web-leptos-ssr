@@ -288,10 +288,7 @@ fn HNButtonOverlay(
         let show_popup = show_login_popup.get();
 
         log::debug!(
-            "Redirect check: is_connected = {}, was_connected = {}, show_login_popup = {}",
-            is_now,
-            was,
-            show_popup
+            "Redirect check: is_connected = {is_now}, was_connected = {was}, show_login_popup = {show_popup}"
         );
 
         if !show_popup && !was && is_now {
