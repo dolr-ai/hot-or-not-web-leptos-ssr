@@ -19,10 +19,6 @@ use state::canisters::{auth_state, unauth_canisters};
 
 #[component]
 pub fn UploadAiPostPage() -> impl IntoView {
-    let trigger_upload = RwSignal::new(SendOption::<UploadParams>::new_local(None));
-    let uid = RwSignal::new(None);
-    let upload_file_actual_progress = RwSignal::new(0.0f64);
-
     // Signal to control returning to form for re-generation
     let show_form = RwSignal::new(true);
 
@@ -128,8 +124,8 @@ pub fn UploadAiPostPage() -> impl IntoView {
                         // Call server function with delegated identity
                         match upload_ai_video_from_url(
                             params.video_url,
-                            vec!["AI".to_string(), "Generated".to_string()],
-                            "AI Generated Video".to_string(),
+                            vec![],
+                            "".to_string(),
                             delegated_identity,
                             false, // is_nsfw
                             false, // enable_hot_or_not
@@ -182,9 +178,6 @@ pub fn UploadAiPostPage() -> impl IntoView {
                             fallback=move || {
                                 view! {
                                     <PreUploadAiView
-                                        _trigger_upload=trigger_upload.write_only()
-                                        _uid=uid
-                                        _upload_file_actual_progress=upload_file_actual_progress.write_only()
                                         generate_action=generate_action
                                         set_stored_params=set_stored_params
                                     />

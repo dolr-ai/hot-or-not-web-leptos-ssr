@@ -30,7 +30,7 @@ pub fn sign_videogen_request(
 pub async fn generate_video_with_signature(
     signed_request: VideoGenRequestWithSignature,
 ) -> Result<VideoGenResponse, VideoGenError> {
-    // TODO: Remove this dummy implementation when ready
+    // TODO: Remove this dummy implementation later when feature is stable
     // Sleep for 2 seconds to simulate processing
     // gloo::timers::future::TimeoutFuture::new(2_000).await;
 

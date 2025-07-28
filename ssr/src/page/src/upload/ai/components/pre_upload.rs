@@ -1,8 +1,6 @@
 use super::ModelDropdown;
 use crate::upload::ai::types::VideoGenerationParams;
-use crate::upload::UploadParams;
 use component::{back_btn::BackButton, buttons::GradientButton, login_modal::LoginModal};
-use leptos::reactive::send_wrapper_ext::SendOption;
 use leptos::{html::Input, prelude::*};
 use leptos_icons::*;
 use state::canisters::auth_state;
@@ -11,9 +9,6 @@ use videogen_common::VideoModel;
 
 #[component]
 pub fn PreUploadAiView(
-    _trigger_upload: WriteSignal<SendOption<UploadParams>>,
-    _uid: RwSignal<Option<String>>,
-    _upload_file_actual_progress: WriteSignal<f64>,
     generate_action: Action<VideoGenerationParams, Result<String, String>>,
     set_stored_params: WriteSignal<VideoGenerationParams>,
 ) -> impl IntoView {
@@ -237,9 +232,6 @@ pub fn PreUploadAiView(
                                                             let prompt = prompt_text.get_untracked();
                                                             let model = selected_model.get_untracked();
                                                             let image_data = uploaded_image.get_untracked();
-
-                                                            leptos::logging::log!("Dispatching video generation with image_data: {:?}",
-                                                                image_data.as_ref().map(|d| &d[..50.min(d.len())]));
 
                                                             // Create params struct and dispatch the action
                                                             let params = VideoGenerationParams {

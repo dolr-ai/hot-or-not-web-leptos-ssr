@@ -442,15 +442,6 @@ pub fn VideoUploader(
             }
             try_or_redirect_opt!(res);
 
-            VideoUploadSuccessful.send_event(
-                ev_ctx,
-                uid_value.clone(),
-                hashtags_len,
-                is_nsfw,
-                enable_hot_or_not,
-                0,
-            );
-
             Some(())
         }
     });
