@@ -4,9 +4,7 @@ use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
-use consts::{
-    UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
-};
+use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
 use global_constants::CoinState;
 use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
 use hon_worker_common::{
@@ -274,6 +272,7 @@ fn HNButtonOverlay(
 
     let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
         move |_: ()| {
+            log::debug!("Redirecting to post view after bet placed");
             let url = format!(
                 "/hot-or-not/{}/{}",
                 login_post.canister_id, login_post.post_id
@@ -286,7 +285,11 @@ fn HNButtonOverlay(
     Effect::new(move |_| {
         let is_now = is_connected.get();
         let was = was_connected.get();
-        if !was && is_now {
+        let show_popup = show_login_popup.get();
+        
+        log::debug!("Redirect check: is_connected = {}, was_connected = {}, show_login_popup = {}", is_now, was, show_popup);
+
+        if !show_popup && !was && is_now {
             was_connected.set(true);
             start(());
         }
