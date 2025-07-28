@@ -8,18 +8,19 @@ pub fn ModelDropdown(
     selected_model: RwSignal<VideoModel>,
     show_dropdown: RwSignal<bool>,
 ) -> impl IntoView {
-    // Store models in a StoredValue to avoid the closure trait bounds issue
-    let is_preview = show_preview_component();
-    let all_models = VideoModel::get_models();
-    let filtered_models: Vec<VideoModel> = if is_preview {
-        all_models
-    } else {
-        all_models
-            .into_iter()
-            .filter(|model| model.provider != VideoGenProvider::IntTest)
-            .collect()
-    };
-    let models = StoredValue::new(filtered_models);
+    let filtered_models = Memo::new(move |_| {
+        let is_preview = show_preview_component();
+        let all_models = VideoModel::get_models();
+        if is_preview {
+            all_models
+        } else {
+            all_models
+                .into_iter()
+                .filter(|model| model.provider != VideoGenProvider::IntTest)
+                .collect()
+        }
+    });
+    let models = StoredValue::new(filtered_models.get_untracked());
 
     // Create derived signals for the selected model properties
     let model_name = Signal::derive(move || selected_model.get().name.clone());

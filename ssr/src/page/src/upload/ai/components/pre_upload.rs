@@ -14,17 +14,20 @@ pub fn PreUploadAiView(
     set_stored_params: WriteSignal<VideoGenerationParams>,
 ) -> impl IntoView {
     // Form state
-    let is_preview = show_preview_component();
-    let all_models = VideoModel::get_models();
-    let filtered_models: Vec<VideoModel> = if is_preview {
-        all_models
-    } else {
-        all_models
-            .into_iter()
-            .filter(|model| model.provider != VideoGenProvider::IntTest)
-            .collect()
-    };
-    let selected_model = RwSignal::new(filtered_models.into_iter().next().unwrap());
+    // Use Memo to cache filtered models across re-renders
+    let filtered_models = Memo::new(move |_| {
+        let is_preview = show_preview_component();
+        let all_models = VideoModel::get_models();
+        if is_preview {
+            all_models
+        } else {
+            all_models
+                .into_iter()
+                .filter(|model| model.provider != VideoGenProvider::IntTest)
+                .collect::<Vec<_>>()
+        }
+    });
+    let selected_model = RwSignal::new(filtered_models.get_untracked().into_iter().next().unwrap());
     let show_dropdown = RwSignal::new(false);
     let prompt_text = RwSignal::new(String::new());
     let character_count = Signal::derive(move || prompt_text.get().len());
