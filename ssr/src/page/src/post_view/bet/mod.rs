@@ -4,7 +4,10 @@ use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
-use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
+use consts::auth::REFRESH_MAX_AGE;
+use consts::{
+    UserOnboardingStore, AUTH_JOURNEY_PAGE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
+};
 use global_constants::{CoinState, DEFAULT_BET_COIN_STATE};
 use hon_worker_common::{
     sign_vote_request_v3, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV3,
@@ -15,7 +18,7 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
-use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
+use leptos_use::{use_cookie_with_options, use_timeout_fn, UseCookieOptions, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -102,6 +105,12 @@ fn HNButtonOverlay(
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
     let ev_ctx = auth.event_ctx();
+    let (auth_journey_page, _) = use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
+        AUTH_JOURNEY_PAGE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(REFRESH_MAX_AGE.as_millis() as i64),
+    );
 
     fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
         #[cfg(not(feature = "hydrate"))]
@@ -276,7 +285,8 @@ fn HNButtonOverlay(
     Effect::new(move |_| {
         let is_now = is_connected.get();
         let was = was_connected.get();
-        if !was && is_now {
+        let page = auth_journey_page.get();
+        if !was && is_now && page.is_none() {
             was_connected.set(is_now);
             start(());
         }
