@@ -89,7 +89,6 @@ pub fn YralRootPage() -> impl IntoView {
         <Suspense fallback=FullScreenSpinner>
             {move || {
                 let user_refer = params.get().get("user_refer").map(|s| s.to_string());
-                let fresh = params.get().get("fresh").map(|s| s == "true").unwrap_or(false);
                 Suspend::new(async move {
                     let utms = store_utms.await;
                     let mut url = match target_post.await {
@@ -100,9 +99,6 @@ pub fn YralRootPage() -> impl IntoView {
                             post_details_cache
                                 .post_details
                                 .update(|post_details| {
-                                    if fresh {
-                                        post_details.clear();
-                                    }
                                     post_details.insert((Principal::from_text(publisher_user_id).unwrap(), post_id), post_item.clone());
                                 });
                             format!("/hot-or-not/{canister_id}/{post_id}")

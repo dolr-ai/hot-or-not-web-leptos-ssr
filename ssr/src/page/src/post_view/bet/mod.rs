@@ -295,8 +295,11 @@ fn HNButtonOverlay(
             if let Some(post) = post {
                 if post.canister_id == login_post.canister_id && post.post_id == login_post.post_id
                 {
-                    logging::log!("Redirecting to root view");
-                    navigate("/fresh=true", Default::default())
+                    logging::log!("Redirecting to current view");
+                    navigate(
+                        &format!("/hot-or-not/{}/{}", post.canister_id, post.post_id),
+                        Default::default(),
+                    );
                 }
             } else {
                 logging::log!("No post params found, redirecting to root view");
