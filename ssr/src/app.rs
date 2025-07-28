@@ -8,7 +8,6 @@ use leptos_router::{components::*, path, MatchNestedRoutes};
 use page::about_us::AboutUs;
 use page::internal::clear_sats::ClearSats;
 use page::leaderboard::Leaderboard;
-use page::notification::NotificationPage;
 use page::post_view::PostDetailsCacheCtx;
 use page::root::YralRootPage;
 use page::terms_android::TermsAndroid;

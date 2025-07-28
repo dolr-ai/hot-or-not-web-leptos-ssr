@@ -219,17 +219,14 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
                 <div class="flex flex-col items-center pt-4 pb-12 w-screen min-h-screen text-white bg-black h-full">
                     <div class="sticky top-0 z-10 w-full bg-black">
                         <TitleText justify_center=false>
-                            <div class="flex flex-row justify-between">
+                            <div class="relative flex items-center justify-center">
                                 <button
                                     on:click=move |_| close.set(false)
-                                    class="ml-3"
+                                    class="absolute left-3"
                                 >
                                     <Icon icon=icondata::AiLeftOutlined attr:class="w-6 h-6" />
                                 </button>
-                                <div>
-                                    <span class="text-xl font-bold">Notifications</span>
-                                </div>
-                                <div></div>
+                                <span class="text-xl font-bold">Notifications</span>
                             </div>
                         </TitleText>
                     </div>
