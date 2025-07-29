@@ -293,13 +293,10 @@ pub fn HonWithdrawal() -> impl IntoView {
                         }.into_any()
                     } else {
                         view! {
-                            <Suspense>
-                                {move || {
-                                    balance
-                                        .get()
-                                        .map(|balance| view! { <BalanceDisplay balance=balance.clone() /> })
-                                }}
-                            </Suspense>
+                            {balance
+                                .get()
+                                .map(|balance| view! { <BalanceDisplay balance=balance.clone() /> })
+                                .unwrap_or_else(|| view! { <div></div> })}
                             <div class="flex flex-col gap-5 mt-8 w-full">
                                 <span class="text-sm">Choose how much to redeem:</span>
                                 <div
@@ -335,57 +332,40 @@ pub fn HonWithdrawal() -> impl IntoView {
                                             />
                                         </div>
                                     </div>
-                                    <Suspense fallback=|| {
+                                    {move || {
+                                        let balance = balance.get().unwrap_or_else(|| Nat::from(0_usize));
+                                        let can_withdraw = true;
+                                        let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN_SATS as usize
+                                            || sats() > MAX_WITHDRAWAL_PER_TXN_SATS as usize;
+                                        let invalid_balance = sats() > balance || balance == zero;
+                                        let is_claiming = is_claiming();
+                                        let message = if invalid_balance {
+                                            "Not enough balance".to_string()
+                                        } else if invalid_input {
+                                            format!(
+                                                "Enter valid amount, min: {MIN_WITHDRAWAL_PER_TXN_SATS} max: {MAX_WITHDRAWAL_PER_TXN_SATS}",
+                                            )
+                                        } else {
+                                            match (can_withdraw, is_claiming) {
+                                                (false, _) => "Not enough winnings".to_string(),
+                                                (_, true) => "Claiming...".to_string(),
+                                                (_, _) => "Withdraw Now!".to_string(),
+                                            }
+                                        };
                                         view! {
+                                            // all of the money can be withdrawn
                                             <button
-                                                disabled
-                                                class="py-2 px-5 text-sm font-bold text-center rounded-lg bg-brand-gradient-disabled"
+                                                disabled=invalid_input || !can_withdraw
+                                                class=("pointer-events-none", is_claiming)
+                                                class="py-2 px-5 text-sm font-bold text-center rounded-lg bg-brand-gradient disabled:bg-brand-gradient-disabled"
+                                                on:click=move |_ev| {
+                                                    send_claim.dispatch(());
+                                                }
                                             >
-                                                Please Wait
+                                                {message}
                                             </button>
                                         }
-                                    }>
-                                        {move || {
-                                            let balance = if let Some(balance) = balance.get() {
-                                                balance
-                                            } else {
-                                                Nat::from(0_usize)
-                                            };
-                                            let can_withdraw = true;
-                                            let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN_SATS as usize
-                                                || sats() > MAX_WITHDRAWAL_PER_TXN_SATS as usize;
-                                            let invalid_balance = sats() > balance || balance == zero;
-                                            let is_claiming = is_claiming();
-                                            let message = if invalid_balance {
-                                                "Not enough balance".to_string()
-                                            } else if invalid_input {
-                                                format!(
-                                                    "Enter valid amount, min: {MIN_WITHDRAWAL_PER_TXN_SATS} max: {MAX_WITHDRAWAL_PER_TXN_SATS}",
-                                                )
-                                            } else {
-                                                match (can_withdraw, is_claiming) {
-                                                    (false, _) => "Not enough winnings".to_string(),
-                                                    (_, true) => "Claiming...".to_string(),
-                                                    (_, _) => "Withdraw Now!".to_string(),
-                                                }
-                                            };
-                                            Some(
-                                                view! {
-                                                    // all of the money can be withdrawn
-                                                    <button
-                                                        disabled=invalid_input || !can_withdraw
-                                                        class=("pointer-events-none", is_claiming)
-                                                        class="py-2 px-5 text-sm font-bold text-center rounded-lg bg-brand-gradient disabled:bg-brand-gradient-disabled"
-                                                        on:click=move |_ev| {
-                                                            send_claim.dispatch(());
-                                                        }
-                                                    >
-                                                        {message}
-                                                    </button>
-                                                },
-                                            )
-                                        }}
-                                    </Suspense>
+                                    }}
                                 </div>
                                 <span class="text-sm">
                                     1 Sats = {crate::consts::SATS_TO_BTC_CONVERSION_RATIO}BTC
