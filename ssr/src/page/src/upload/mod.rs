@@ -77,7 +77,7 @@ fn PreUploadView(
                 global,
                 !description.is_empty(),
                 !hashtags.is_empty(),
-                Some("upload_video".to_string())
+                Some("upload_video".to_string()),
             );
         }
         trigger_upload.set(Some(UploadParams {
@@ -223,7 +223,7 @@ pub fn UploadPostPage() -> impl IntoView {
 pub fn UploadOptionsPage() -> impl IntoView {
     let selected_option = RwSignal::new(None::<String>);
     let navigate = use_navigate();
-    
+
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
 
@@ -321,7 +321,7 @@ pub fn UploadOptionsPage() -> impl IntoView {
                                         MixPanelEvent::track_upload_type_continue_clicked(global, upload_type.to_string());
                                     }
                                 }
-                                
+
                                 // Navigate
                                 match option.as_str() {
                                     "ai" => navigate("/upload-ai", Default::default()),

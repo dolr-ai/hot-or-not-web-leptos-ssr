@@ -745,13 +745,9 @@ derive_event!(track_upload_type_continue_clicked {
     upload_type: String
 });
 
-derive_event!(track_video_generation_model_selected {
-    model: String
-});
+derive_event!(track_video_generation_model_selected { model: String });
 
-derive_event!(track_create_ai_video_clicked {
-    model: String
-});
+derive_event!(track_create_ai_video_clicked { model: String });
 
 derive_event!(track_ai_video_generated {
     is_success: bool,
@@ -759,9 +755,7 @@ derive_event!(track_ai_video_generated {
     model: String
 });
 
-derive_event!(track_regenerate_video_clicked {
-    model: String
-});
+derive_event!(track_regenerate_video_clicked { model: String });
 
 impl MixPanelEvent {
     pub fn track_page_viewed(page: String, p: MixpanelGlobalProps) {

@@ -49,10 +49,10 @@ pub fn UploadAiPostPage() -> impl IntoView {
                 async move {
                     // Store model name for tracking
                     let model_name = params.model.name.clone();
-                    
+
                     // Get auth canisters
                     let canisters = get_auth_canisters(&auth, unauth_cans).await?;
-                    
+
                     // Get identity from canisters
                     let identity = canisters.identity();
 
@@ -61,16 +61,13 @@ pub fn UploadAiPostPage() -> impl IntoView {
 
                     // Execute video generation
                     let result = execute_video_generation(signed_request, &canisters).await;
-                    
+
                     // Track video generation result
                     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                         match &result {
                             Ok(_) => {
                                 MixPanelEvent::track_ai_video_generated(
-                                    global,
-                                    true,
-                                    None,
-                                    model_name
+                                    global, true, None, model_name,
                                 );
                             }
                             Err(error) => {
@@ -78,17 +75,17 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                     global,
                                     false,
                                     Some(error.clone()),
-                                    model_name
+                                    model_name,
                                 );
                             }
                         }
                     }
-                    
+
                     // Update UI state on success
                     if result.is_ok() {
                         show_form.set(false);
                     }
-                    
+
                     result
                 }
             }
@@ -105,14 +102,14 @@ pub fn UploadAiPostPage() -> impl IntoView {
             async move {
                 // Show notification nudge when starting upload
                 notification_nudge.set(true);
-                
+
                 // Track video upload initiated for AI video
                 if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                     MixPanelEvent::track_video_upload_initiated(
                         global,
                         false, // caption_added - we're not using captions for AI videos
                         false, // hashtags_added - we're not using hashtags for AI videos
-                        Some("ai_video".to_string())
+                        Some("ai_video".to_string()),
                     );
                 }
 
@@ -138,7 +135,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                     "Video uploaded successfully with UID: {}",
                                     video_uid
                                 );
-                                
+
                                 // Track video upload success for AI video
                                 if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                                     MixPanelEvent::track_video_upload_success(
@@ -147,7 +144,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                         crate::consts::CREATOR_COMMISION_PERCENT,
                                         false, // is_game_enabled - AI videos don't have game enabled
                                         MixpanelPostGameType::HotOrNot,
-                                        Some("ai_video".to_string())
+                                        Some("ai_video".to_string()),
                                     );
                                 }
 
@@ -221,7 +218,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                     // Check if we have valid parameters (not default/empty)
                                     if !params.prompt.is_empty() && params.user_principal != Principal::anonymous() {
                                         leptos::logging::log!("Re-generating video with stored parameters");
-                                        
+
                                         // Track regenerate clicked
                                         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
                                             MixPanelEvent::track_regenerate_video_clicked(
@@ -229,7 +226,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                                 params.model.name.clone()
                                             );
                                         }
-                                        
+
                                         // Dispatch the action again with the stored parameters
                                         generate_action.dispatch(params);
                                     } else {

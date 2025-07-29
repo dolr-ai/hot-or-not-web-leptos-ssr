@@ -12,7 +12,7 @@ pub fn ModelDropdown(
 ) -> impl IntoView {
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
-    
+
     let filtered_models = Memo::new(move |_| {
         let is_preview = show_preview_component();
         let all_models = VideoModel::get_models();
@@ -96,7 +96,7 @@ pub fn ModelDropdown(
                                         if is_available {
                                             selected_model.set(model_clone.clone());
                                             show_dropdown.set(false);
-                                            
+
                                             // Track model selection
                                             if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                                                 MixPanelEvent::track_video_generation_model_selected(

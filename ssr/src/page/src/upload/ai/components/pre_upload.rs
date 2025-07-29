@@ -256,7 +256,7 @@ pub fn PreUploadAiView(
                                                                     model.name.clone()
                                                                 );
                                                             }
-                                                            
+
                                                             // Create params struct and dispatch the action
                                                             let params = VideoGenerationParams {
                                                                 user_principal: *user_principal,
