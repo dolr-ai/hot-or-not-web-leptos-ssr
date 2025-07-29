@@ -295,8 +295,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                         view! {
                             {balance
                                 .get()
-                                .map(|balance| view! { <BalanceDisplay balance=balance.clone() /> })
-                                .unwrap_or_else(|| view! { <div></div> })}
+                                .map(|balance| view! { <BalanceDisplay balance=balance.clone() /> })}
                             <div class="flex flex-col gap-5 mt-8 w-full">
                                 <span class="text-sm">Choose how much to redeem:</span>
                                 <div
