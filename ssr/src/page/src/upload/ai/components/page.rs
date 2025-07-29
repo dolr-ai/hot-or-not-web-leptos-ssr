@@ -60,9 +60,14 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                     // Sign the request on client side
                                     match sign_videogen_request(identity, request) {
                                         Ok(signed_request) => {
+                                            // Get rate limits client from canisters
+                                            let rate_limits = canisters.rate_limits().await;
                                             // Generate video with signed request
-                                            match generate_video_with_signature(signed_request)
-                                                .await
+                                            match generate_video_with_signature(
+                                                signed_request,
+                                                &rate_limits,
+                                            )
+                                            .await
                                             {
                                                 Ok(videogen_resp) => {
                                                     // Set show_form to false to show result screen
@@ -74,7 +79,9 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                                         "Video generation failed: {}",
                                                         err
                                                     );
-                                                    Err(format!("Failed to generate video: {err}"))
+                                                    Err(format!(
+                                                        "Failed to generate video: {err}"
+                                                    ))
                                                 }
                                             }
                                         }

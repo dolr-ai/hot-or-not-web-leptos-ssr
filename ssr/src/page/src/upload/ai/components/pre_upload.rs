@@ -38,14 +38,15 @@ pub fn PreUploadAiView(
 
     // Get auth state
     let auth = auth_state();
-    let is_logged_in = auth.is_logged_in_with_oauth(); // Signal::stored(true);
+    let is_logged_in = Signal::stored(true); // auth.is_logged_in_with_oauth(); // Signal::stored(true);
 
     // Form validation
     let form_valid = Signal::derive(move || !prompt_text.get().trim().is_empty());
     let can_generate = Signal::derive(move || {
         // Allow button click for non-logged-in users (to show login modal)
         // For logged-in users, check form validity and balance
-        !is_logged_in.get() || form_valid.get() && !generate_action.pending().get()
+        // !is_logged_in.get() ||
+        form_valid.get() && !generate_action.pending().get()
     });
 
     // Error handling from action

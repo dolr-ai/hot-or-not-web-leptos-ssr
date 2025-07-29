@@ -1,7 +1,10 @@
 use consts::OFF_CHAIN_AGENT_URL;
+use gloo::timers::future::TimeoutFuture;
 use videogen_common::{
-    VideoGenClient, VideoGenError, VideoGenRequest, VideoGenRequestWithSignature, VideoGenResponse,
+    VideoGenClient, VideoGenError, VideoGenQueuedResponse, VideoGenRequest, VideoGenRequestStatus,
+    VideoGenRequestWithSignature, VideoGenResponse,
 };
+use yral_canisters_client::rate_limits::RateLimits;
 
 /// Create a message for videogen request signing
 pub fn videogen_request_msg(request: VideoGenRequest) -> yral_identity::msg_builder::Message {
@@ -29,24 +32,13 @@ pub fn sign_videogen_request(
 /// The off-chain agent will handle signature verification and balance deduction
 pub async fn generate_video_with_signature(
     signed_request: VideoGenRequestWithSignature,
+    rate_limits: &RateLimits<'_>,
 ) -> Result<VideoGenResponse, VideoGenError> {
-    // TODO: Remove this dummy implementation later when feature is stable
-    // Sleep for 2 seconds to simulate processing
-    // gloo::timers::future::TimeoutFuture::new(2_000).await;
-
-    // // // Return dummy response
-    // let dummy_response = VideoGenResponse {
-    //     operation_id: format!("dummy-op-{}", uuid::Uuid::new_v4()),
-    //     video_url: "https://storage.googleapis.com/yral_ai_generated_videos/veo-output/5790230970440583959/sample_0.mp4".to_string(),
-    //     provider: "dummy".to_string(),
-    // };
-
-    // Ok(dummy_response)
-
     // Create client and call the signed endpoint
     let client = VideoGenClient::new(OFF_CHAIN_AGENT_URL.clone());
 
-    let video_response = client
+    // Get the queued response with request_key
+    let queued_response: VideoGenQueuedResponse = client
         .generate_with_signature(signed_request)
         .await
         .map_err(|e| {
@@ -54,5 +46,64 @@ pub async fn generate_video_with_signature(
             e
         })?;
 
-    Ok(video_response)
+    // Extract request_key from the response
+    let request_key = queued_response.request_key;
+
+    // Start polling for status
+    poll_video_status(&client, &request_key, rate_limits).await
+}
+
+/// Poll the video generation status with exponential backoff
+async fn poll_video_status(
+    client: &VideoGenClient,
+    request_key: &videogen_common::VideoGenRequestKey,
+    rate_limits: &RateLimits<'_>,
+) -> Result<VideoGenResponse, VideoGenError> {
+    // Polling intervals: 2s, 4s, 8s, 16s, 30s, then every 30s
+    let mut poll_interval_ms = 2000;
+    const MAX_POLL_INTERVAL_MS: u32 = 30000;
+    const MAX_ATTEMPTS: u32 = 20; // Maximum 10 minutes of polling
+
+    for attempt in 0..MAX_ATTEMPTS {
+        // Wait before polling (except on first attempt)
+        if attempt > 0 {
+            TimeoutFuture::new(poll_interval_ms).await;
+        }
+
+        // Poll the status
+        match client
+            .poll_video_status_with_client(request_key, rate_limits)
+            .await
+        {
+            Ok(status) => match status {
+                VideoGenRequestStatus::Complete(video_url) => {
+                    leptos::logging::log!("Video generation completed: {}", video_url);
+                    return Ok(VideoGenResponse {
+                        operation_id: format!("{}_{}", request_key.principal, request_key.counter),
+                        video_url,
+                        provider: "unknown".to_string(), // We don't have provider info from status
+                    });
+                }
+                VideoGenRequestStatus::Failed(error) => {
+                    leptos::logging::log!("Video generation failed: {}", error);
+                    return Err(VideoGenError::ProviderError(error));
+                }
+                VideoGenRequestStatus::Pending | VideoGenRequestStatus::Processing => {
+                    leptos::logging::log!("Video generation status: {:?}", status);
+                    // Continue polling
+                }
+            },
+            Err(e) => {
+                leptos::logging::log!("Error polling status: {}", e);
+                // Continue polling on transient errors
+            }
+        }
+
+        // Increase interval with exponential backoff
+        poll_interval_ms = (poll_interval_ms * 2).min(MAX_POLL_INTERVAL_MS);
+    }
+
+    Err(VideoGenError::NetworkError(
+        "Video generation timed out after 10 minutes".to_string(),
+    ))
 }
