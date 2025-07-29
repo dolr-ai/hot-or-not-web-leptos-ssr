@@ -400,30 +400,18 @@ pub fn VideoDetailsOverlay(
     let show_low_balance_popup: RwSignal<bool> = RwSignal::new(false);
     let auth = auth_state();
 
-
     let show_sats_airdrop_popup = RwSignal::new(false);
     let sats_airdrop_claimed = RwSignal::new(false);
     let sats_airdrop_amount = RwSignal::new(0u64);
     let sats_airdrop_error = RwSignal::new(false);
 
-    let claim_sats_airdrop_action = Action::new_local(move |_| {
-        async move {
-            show_sats_airdrop_popup.set(true);
-            sats_airdrop_claimed.set(false);
-            sats_airdrop_error.set(false);
-            let cans = unauth_canisters();
+    let claim_sats_airdrop_action = Action::new_local(move |_| async move {
+        show_sats_airdrop_popup.set(true);
+        sats_airdrop_claimed.set(false);
+        sats_airdrop_error.set(false);
+        let cans = unauth_canisters();
 
-            let Ok(auth_cans) = auth.auth_cans(cans).await else {
-                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                    MixPanelEvent::track_claim_airdrop_clicked(
-                        global,
-                        StakeType::Sats,
-                        "home_low_sats".to_string(),
-                    );
-                }
-                sats_airdrop_error.set(true);
-                return Err(ServerFnError::new("Failed to get authenticated canisters"));
-            };
+        let Ok(auth_cans) = auth.auth_cans(cans).await else {
             if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                 MixPanelEvent::track_claim_airdrop_clicked(
                     global,
@@ -431,40 +419,48 @@ pub fn VideoDetailsOverlay(
                     "home_low_sats".to_string(),
                 );
             }
-            let user_canister = auth_cans.user_canister();
-            let user_principal = auth_cans.user_principal();
-            let request = hon_worker_common::ClaimRequest { user_principal };
-            let signature =
-                hon_worker_common::sign_claim_request(auth_cans.identity(), request.clone())
-                    .unwrap();
-            claim_sats_airdrop(user_canister, request, signature)
-                .await
-                .inspect(|&amount| {
-                    sats_airdrop_claimed.set(true);
-                    sats_airdrop_amount.set(amount);
-                    if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                        MixPanelEvent::track_airdrop_claimed(
-                            global,
-                            StakeType::Sats,
-                            true,
-                            amount,
-                            "home_low_sats".to_string(),
-                        );
-                    }
-                })
-                .inspect_err(|_| {
-                    sats_airdrop_error.set(true);
-                    if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                        MixPanelEvent::track_airdrop_claimed(
-                            global,
-                            StakeType::Sats,
-                            false,
-                            0,
-                            "home_low_sats".to_string(),
-                        );
-                    }
-                })
+            sats_airdrop_error.set(true);
+            return Err(ServerFnError::new("Failed to get authenticated canisters"));
+        };
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_claim_airdrop_clicked(
+                global,
+                StakeType::Sats,
+                "home_low_sats".to_string(),
+            );
         }
+        let user_canister = auth_cans.user_canister();
+        let user_principal = auth_cans.user_principal();
+        let request = hon_worker_common::ClaimRequest { user_principal };
+        let signature =
+            hon_worker_common::sign_claim_request(auth_cans.identity(), request.clone()).unwrap();
+        claim_sats_airdrop(user_canister, request, signature)
+            .await
+            .inspect(|&amount| {
+                sats_airdrop_claimed.set(true);
+                sats_airdrop_amount.set(amount);
+                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                    MixPanelEvent::track_airdrop_claimed(
+                        global,
+                        StakeType::Sats,
+                        true,
+                        amount,
+                        "home_low_sats".to_string(),
+                    );
+                }
+            })
+            .inspect_err(|_| {
+                sats_airdrop_error.set(true);
+                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                    MixPanelEvent::track_airdrop_claimed(
+                        global,
+                        StakeType::Sats,
+                        false,
+                        0,
+                        "home_low_sats".to_string(),
+                    );
+                }
+            })
     });
 
     let navigate = use_navigate();
