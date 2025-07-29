@@ -11,19 +11,26 @@ use utils::posts::FeedPostCtx;
 use yral_canisters_common::utils::posts::PostDetails;
 
 #[component]
-pub fn MuteIconOverlay(show_mute_icon: RwSignal<bool>) -> impl IntoView {
+pub fn MuteUnmuteOverlay(muted: RwSignal<bool>) -> impl IntoView {
     view! {
-        <Show when=show_mute_icon>
-            <button
-                class="fixed top-1/2 left-1/2 z-20 cursor-pointer pointer-events-none"
-                on:click=move |_| AudioState::toggle_mute()
+        <div
+            class="fixed top-1/2 left-1/2 z-20 text-[5rem] pointer-events-none transform -translate-x-1/2 -translate-y-1/2"
+        >
+            <Show
+                when=move || muted.get()
+                fallback=|| view! {
+                    <Icon
+                        attr:class="text-white/80 mute-indicator"
+                        icon=icondata::BiVolumeFullSolid
+                    />
+                }
             >
-                <Icon
-                    attr:class="text-white/80 animate-ping text-4xl"
-                    icon=icondata::BiVolumeMuteSolid
-                />
-            </button>
-        </Show>
+            <Icon
+                attr:class="text-white/80 mute-indicator"
+                icon=icondata::BiVolumeMuteSolid
+            />
+            </Show>
+        </div>
     }
 }
 
@@ -39,11 +46,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
     threshold_trigger_fetch: usize,
     #[prop(optional, into)] hard_refresh_target: RwSignal<String>,
 ) -> impl IntoView {
-    let AudioState {
-        muted,
-        show_mute_icon,
-        ..
-    } = AudioState::get();
+    let AudioState { muted, volume } = AudioState::get();
 
     let scroll_root: NodeRef<html::Div> = NodeRef::new();
 
@@ -122,6 +125,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                             current_idx
                                             idx=queue_idx
                                             muted
+                                            volume
                                             to_load
                                         />
                                     </BgView>
@@ -137,7 +141,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                     </div>
                 </Show>
 
-                <MuteIconOverlay show_mute_icon />
+                <MuteUnmuteOverlay muted />
             </div>
         </div>
     };

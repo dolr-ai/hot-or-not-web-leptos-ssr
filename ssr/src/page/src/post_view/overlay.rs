@@ -1,5 +1,9 @@
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::buttons::HighlightedButton;
+use component::icons::sound_off_icon::SoundOffIcon;
+use component::icons::sound_on_icon::SoundOnIcon;
+use component::icons::volume_high_icon::VolumeHighIcon;
+use component::icons::volume_mute_icon::VolumeMuteIcon;
 use component::overlay::ShadowOverlay;
 use component::spinner::SpinnerFit;
 use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption};
@@ -12,6 +16,7 @@ use leptos_icons::*;
 use leptos_router::hooks::{use_location, use_navigate};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
+use state::audio_state::AudioState;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::host::show_nsfw_content;
 use utils::{
@@ -394,12 +399,13 @@ pub fn VideoDetailsOverlay(
 
     let show_low_balance_popup: RwSignal<bool> = RwSignal::new(false);
     let auth = auth_state();
-    // Add state for sats airdrop popup
+
+
     let show_sats_airdrop_popup = RwSignal::new(false);
     let sats_airdrop_claimed = RwSignal::new(false);
     let sats_airdrop_amount = RwSignal::new(0u64);
     let sats_airdrop_error = RwSignal::new(false);
-    // Action for claiming sats airdrop
+
     let claim_sats_airdrop_action = Action::new_local(move |_| {
         async move {
             show_sats_airdrop_popup.set(true);
@@ -408,7 +414,6 @@ pub fn VideoDetailsOverlay(
             let cans = unauth_canisters();
 
             let Ok(auth_cans) = auth.auth_cans(cans).await else {
-                // Fallback: no canister/user info available
                 if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                     MixPanelEvent::track_claim_airdrop_clicked(
                         global,
@@ -437,7 +442,6 @@ pub fn VideoDetailsOverlay(
                 .inspect(|&amount| {
                     sats_airdrop_claimed.set(true);
                     sats_airdrop_amount.set(amount);
-                    // Track airdrop_claimed (success)
                     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                         MixPanelEvent::track_airdrop_claimed(
                             global,
@@ -450,7 +454,6 @@ pub fn VideoDetailsOverlay(
                 })
                 .inspect_err(|_| {
                     sats_airdrop_error.set(true);
-                    // Track airdrop_claimed (failure)
                     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                         MixPanelEvent::track_airdrop_claimed(
                             global,
@@ -483,8 +486,10 @@ pub fn VideoDetailsOverlay(
             navigate("/refer-earn", Default::default());
         }
     });
+    let AudioState { muted, volume } = AudioState::get();
 
     view! {
+        <MuteUnmuteControl muted volume />
         <div class="flex absolute bottom-0 left-0 flex-col flex-nowrap justify-between pt-5 pb-20 w-full h-full text-white bg-transparent pointer-events-none px-[16px] z-4 md:px-[16px]">
             <div class="flex flex-row justify-between items-center w-full pointer-events-auto">
                 <div class="flex flex-row gap-2 items-center p-2 w-9/12 rounded-s-full bg-linear-to-r from-black/25 via-80% via-black/10">
@@ -684,6 +689,83 @@ fn ExpandableText(description: String) -> impl IntoView {
 }
 
 #[component]
+pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl IntoView {
+    let volume_ = Signal::derive(move || if muted.get() { 0.0 } else { volume.get() });
+    view! {
+        <button
+            tabindex="0"
+            class="z-10 select-none rounded-r-lg bg-black/25 py-2 px-3 cursor-pointer text-sm font-medium text-white items-center gap-1
+            pointer-coarse:flex pointer-fine:hidden absolute top-[7rem] left-0
+            active:translate-x-0 -translate-x-2/3 focus:delay-[3.5s] active:focus:delay-0 transition-all duration-100"
+            on:click=move |_| {
+                let is_muted = muted.get_untracked();
+                muted.set(!is_muted);
+                volume.set(if is_muted { 1.0 } else { 0.0 });
+            }
+        >
+            <div class="w-[10ch] text-center">{move || if muted.get() { "Unmute" } else { "Mute" }}</div>
+            <Show
+                when=move || muted.get()
+                fallback=|| view! { <SoundOnIcon classes="w-4 h-4".to_string() /> }
+            >
+                <SoundOffIcon classes="w-4 h-4".to_string() />
+            </Show>
+        </button>
+        <div class="z-10 select-none rounded-full bg-black/35 p-2.5 cursor-pointer text-sm font-medium text-white items-center gap-3
+            pointer-coarse:hidden pointer-fine:flex absolute top-[7rem] left-4
+            size-11 hover:size-auto group">
+            <button
+                class="shrink-0"
+                on:click=move |_| {
+                    let is_muted = muted.get_untracked();
+                    muted.set(!is_muted);
+                    volume.set(if is_muted { 1.0 } else { 0.0 });
+                }
+                >
+                <Show
+                    when=move || muted.get() || volume.get() == 0.0
+                    fallback=|| view! {<VolumeHighIcon classes="w-6 h-6".to_string() /> }
+                >
+                    <VolumeMuteIcon classes="w-6 h-6".to_string() />
+                </Show>
+
+            </button>
+            <div class="overflow-hidden max-w-0 group-hover:max-w-[500px] transition-all duration-1000">
+                <div class="relative w-fit -translate-y-0.5">
+                    <div class="absolute inset-0 flex items-center pointer-events-none">
+                        <div
+                            style:width=move || format!("calc({}% - 0.25%)", volume_.get() * 100.0)
+                            class="bg-white w-full h-1.5 translate-y-[0.15rem] rounded-full"
+                            >
+                        </div>
+                    </div>
+                    <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        class="z-[2] appearance-none bg-zinc-500 h-1.5 rounded-full accent-white"
+                        prop:value={move || volume_.get()}
+                        on:change=move |ev: leptos::ev::Event| {
+                            let input = event_target_value(&ev);
+                            if let Ok(value) = input.parse::<f64>() {
+                                volume.set(value);
+                                if value > 0.0 {
+                                    muted.set(false);
+                                } else {
+                                    muted.set(true);
+                                }
+                            }
+                        }
+
+                    />
+                    </div>
+                </div>
+            </div>
+    }
+}
+
+#[component]
 pub fn HotOrNotTutorialOverlay(
     show: RwSignal<bool>,
     close_action: Action<(), ()>,
@@ -760,7 +842,6 @@ pub fn LowSatsBalancePopup(
             let cans = unauth_canisters();
             async move {
                 if !showing {
-                    // Don't fetch if not showing
                     return false;
                 }
                 let Ok(auth_cans) = auth.auth_cans(cans).await else {
@@ -801,7 +882,6 @@ pub fn LowSatsBalancePopup(
                         {move || Suspend::new(async move {
                             let is_airdrop_eligible = eligibility_resource.await;
 
-                            // Track popup shown event when resource loads
                             if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                                 MixPanelEvent::track_low_on_sats_popup_shown(
                                     global,
