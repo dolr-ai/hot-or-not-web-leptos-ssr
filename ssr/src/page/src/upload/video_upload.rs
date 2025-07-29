@@ -5,6 +5,7 @@ use component::modal::Modal;
 use component::notification_nudge::NotificationNudge;
 use consts::UPLOAD_URL;
 use futures::channel::oneshot;
+use global_constants::CREATOR_COMMISSION_PERCENT;
 use gloo::net::http::Request;
 use leptos::web_sys::{Blob, FormData, ProgressEvent};
 use leptos::{
@@ -14,7 +15,6 @@ use leptos::{
 };
 use leptos_icons::*;
 use leptos_use::use_event_listener;
-use global_constants::CREATOR_COMMISSION_PERCENT;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use state::canisters::{auth_state, unauth_canisters};
