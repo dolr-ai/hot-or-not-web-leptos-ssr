@@ -29,7 +29,6 @@ candid.workspace = true
 ic-agent = { workspace = true }
 ic-base-types = { workspace = true }
 icp-ledger = { workspace = true }
-serde-wasm-bindgen = { workspace = true }
 futures = { workspace = true }
 leptos-use = { workspace = true }
 codee = { workspace = true }
@@ -74,7 +73,7 @@ urlencoding = { workspace = true }
 yral-types = { workspace = true }
 yral-canisters-client = { workspace = true }
 yral-canisters-common = { workspace = true }
-limits = { workspace = true }
+global-constants = { workspace = true }
 ic-certification = { workspace = true }
 ciborium = { workspace = true }
 yral-metadata-client = { workspace = true, optional = true }
@@ -86,6 +85,10 @@ anyhow = { workspace = true }
 send_wrapper = { workspace = true }
 indexmap = { workspace = true }
 chrono = "0.4"
+num-bigint = { workspace = true }
+hon-worker-common = { workspace = true }
+videogen-common = { workspace = true }
+yral-identity = { workspace = true }
 
 # workspace specific deps
 consts = { workspace = true }

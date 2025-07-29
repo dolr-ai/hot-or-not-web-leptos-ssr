@@ -5,9 +5,9 @@ pub mod single_post;
 pub mod video_iter;
 pub mod video_loader;
 use crate::scrolling_post_view::ScrollingPostView;
-use component::buttons::HighlightedButton;
 use component::overlay::ShadowOverlay;
 use component::spinner::FullScreenSpinner;
+use component::{buttons::HighlightedButton, nsfw_nudge_popup::NsfwUnlockPopup};
 use consts::{
     UserOnboardingStore, MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY,
 };
@@ -16,7 +16,7 @@ use leptos_icons::*;
 use priority_queue::DoublePriorityQueue;
 use state::canisters::{auth_state, unauth_canisters};
 use std::{cmp::Reverse, collections::HashMap};
-use yral_types::post::PostItem;
+use yral_types::post::PostItemV2;
 
 use candid::Principal;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
@@ -78,7 +78,7 @@ impl PostViewCtx {
 
 #[derive(Clone, Default)]
 pub struct PostDetailsCacheCtx {
-    pub post_details: RwSignal<HashMap<PostId, PostItem>>,
+    pub post_details: RwSignal<HashMap<PostId, PostItemV2>>,
 }
 
 #[component]
@@ -312,7 +312,11 @@ pub fn PostView() -> impl IntoView {
     let params = use_params::<PostParams>();
     let initial_canister_and_post = RwSignal::new(params.get_untracked().ok());
     let home_page_viewed_sent = RwSignal::new(false);
+    let show_nsfw_popup = RwSignal::new(false);
+    let nsfw_shown_idx: RwSignal<Vec<usize>> = RwSignal::new(Vec::new());
+
     let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
     let (nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
     Effect::new(move |_| {
         if home_page_viewed_sent.get_untracked() {
@@ -322,13 +326,7 @@ pub fn PostView() -> impl IntoView {
             auth.event_ctx(),
             nsfw_enabled.get_untracked(),
         ) {
-            MixPanelEvent::track_home_page_viewed(MixpanelBottomBarPageViewedProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-            });
+            MixPanelEvent::track_home_page_viewed(global);
             home_page_viewed_sent.set(true);
         }
     });
@@ -346,6 +344,20 @@ pub fn PostView() -> impl IntoView {
         current_idx,
         ..
     } = expect_context();
+
+    let current_post = Signal::derive(move || {
+        let index = current_idx.get();
+        video_queue.with(|q| q.get_index(index).cloned())
+    });
+
+    Effect::new(move |_| {
+        let index = current_idx.get();
+        if (index == 2 || index == 8) && !nsfw_shown_idx.get_untracked().contains(&index) {
+            show_nsfw_popup.set(true);
+            nsfw_shown_idx.update(|f| f.push(index));
+        }
+    });
+
     let canisters = unauth_canisters();
     let post_details_cache: PostDetailsCacheCtx = expect_context();
 
@@ -366,7 +378,11 @@ pub fn PostView() -> impl IntoView {
             let post_nsfw_prob = post_details_cache.post_details.with_untracked(|p| {
                 let item = p.get(&(params.canister_id, params.post_id));
                 if let Some(item) = item {
-                    item.nsfw_probability
+                    if item.is_nsfw {
+                        1.0
+                    } else {
+                        0.0
+                    }
                 } else {
                     1.0 // TODO: handle this for when we don't have details (when user shares video)
                 }
@@ -416,6 +432,7 @@ pub fn PostView() -> impl IntoView {
                 { Some(view! { <PostViewWithUpdatesMLFeed initial_post /> }.into_any()) }
             })}
         </Suspense>
+        <NsfwUnlockPopup show=show_nsfw_popup current_post ev_ctx />
         <OnboardingWelcomePopup show=show_onboarding_popup close_action=close_onboarding_action />
     }
     .into_any()
@@ -425,18 +442,16 @@ pub fn PostView() -> impl IntoView {
 pub fn OnboardingWelcomePopup(show: RwSignal<bool>, close_action: Action<(), ()>) -> impl IntoView {
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
-    const CREDITED_AMOUNT: u64 = limits::NEW_USER_SIGNUP_REWARD_SATS;
+    const CREDITED_AMOUNT: u64 = global_constants::NEW_USER_SIGNUP_REWARD_SATS;
     Effect::new(move || {
-        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_onboarding_popup(MixpanelOnboardingPopupViewProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                credited_amount: CREDITED_AMOUNT,
-                popup_type: MixpanelOnboardingPopupType::SatsCreditPopup,
-            });
+        if show.get() {
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                MixPanelEvent::track_onboarding_popup_shown(
+                    global,
+                    CREDITED_AMOUNT,
+                    MixpanelOnboardingPopupType::SatsCreditPopup,
+                );
+            }
         }
     });
     view! {

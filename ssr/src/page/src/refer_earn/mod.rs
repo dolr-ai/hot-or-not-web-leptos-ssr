@@ -1,4 +1,5 @@
 use candid::Principal;
+use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use gloo::timers::callback::Timeout;
 use leptos::either::Either;
 use leptos::prelude::*;
@@ -6,8 +7,6 @@ use leptos_icons::*;
 use leptos_meta::*;
 use leptos_router::components::Redirect;
 use leptos_use::use_window;
-use limits::NEW_USER_SIGNUP_REWARD_SATS;
-use limits::REFERRAL_REWARD_SATS;
 
 use component::connect::ConnectLogin;
 use component::{back_btn::BackButton, buttons::HighlightedButton, title::TitleText};
@@ -77,14 +76,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
             ReferShareLink.send_event(ev_ctx);
             let global = MixpanelGlobalProps::from_ev_ctx(ev_ctx);
             if let Some(global) = global {
-                MixPanelEvent::track_referral_link_copied(MixpanelReferAndEarnPageViewedProps {
-                    user_id: global.user_id,
-                    visitor_id: global.visitor_id,
-                    is_logged_in: global.is_logged_in,
-                    canister_id: global.canister_id,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                    referral_bonus: REFERRAL_REWARD_SATS,
-                });
+                MixPanelEvent::track_referral_link_copied(global, REFERRAL_REWARD_SATS);
             }
 
             show_copied_popup.set(true);
@@ -96,14 +88,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
         let text = format!("Join YRAL—the world's 1st social platform on BITCOIN\nGet FREE BITCOIN ({NEW_USER_SIGNUP_REWARD_SATS} SATS) Instantly\nAdditional BITCOIN ({REFERRAL_REWARD_SATS} SATS) when you log in using the link.");
         let global = MixpanelGlobalProps::from_ev_ctx(ev_ctx);
         if let Some(global) = global {
-            MixPanelEvent::track_share_invites_clicked(MixpanelReferAndEarnPageViewedProps {
-                user_id: global.user_id,
-                visitor_id: global.visitor_id,
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id,
-                is_nsfw_enabled: global.is_nsfw_enabled,
-                referral_bonus: REFERRAL_REWARD_SATS,
-            });
+            MixPanelEvent::track_share_invites_clicked(global, REFERRAL_REWARD_SATS);
         }
         if share(&refer_link_share, &text).is_some() {
             return;

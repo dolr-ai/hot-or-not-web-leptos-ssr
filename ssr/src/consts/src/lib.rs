@@ -64,6 +64,8 @@ pub const AUTH_UTIL_COOKIES_MAX_AGE_MS: i64 = 400 * 24 * 60 * 60 * 1000; // 400 
 
 pub const MAX_VIDEO_ELEMENTS_FOR_FEED: usize = 200;
 
+pub const USERNAME_MAX_LEN: usize = 15;
+
 pub mod social {
     pub const TELEGRAM_YRAL: &str = "https://t.me/+c-LTX0Cp-ENmMzI1";
     pub const DISCORD: &str = "https://discord.gg/GZ9QemnZuj";
@@ -90,9 +92,22 @@ pub enum LoginProvider {
 
 #[cfg(feature = "oauth-ssr")]
 pub mod yral_auth {
+    use jsonwebtoken::DecodingKey;
+    use std::sync::LazyLock;
+
     pub const YRAL_AUTH_AUTHORIZATION_URL: &str = "https://auth.yral.com/oauth/auth";
     pub const YRAL_AUTH_TOKEN_URL: &str = "https://auth.yral.com/oauth/token";
     pub const YRAL_AUTH_ISSUER_URL: &str = "https://auth.yral.com";
+
+    pub static YRAL_AUTH_TRUSTED_KEY: LazyLock<DecodingKey> = LazyLock::new(|| {
+        let pem = "-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEoqN3/0RNfrnrnYGxKBgy/qHnmITr
++6ucjxStx7tjA30QJZlWzo0atxmY8y9dUR+eKQI0SnbQds4xLEU8+JGm8Q==
+-----END PUBLIC KEY-----";
+        DecodingKey::from_ec_pem(pem.as_bytes()).unwrap()
+    });
+
+    pub const YRAL_AUTH_CLIENT_ID_ENV: &str = "YRAL_AUTH_CLIENT_ID";
 }
 
 pub const UPLOAD_URL: &str = "https://yral-upload-video.go-bazzinga.workers.dev";

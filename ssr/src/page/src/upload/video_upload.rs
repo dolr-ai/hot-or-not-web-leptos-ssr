@@ -21,9 +21,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use utils::mixpanel::mixpanel_events::*;
 use utils::{
-    event_streaming::events::{
-        VideoUploadSuccessful, VideoUploadUnsuccessful, VideoUploadVideoSelected,
-    },
+    event_streaming::events::{VideoUploadUnsuccessful, VideoUploadVideoSelected},
     try_or_redirect_opt,
     web::FileWithUrl,
 };
@@ -57,31 +55,14 @@ pub fn PreVideoUpload(
     let ev_ctx = auth.event_ctx();
     let file_upload_clicked = Action::new(move |_: &()| {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_video_upload_select_file_clicked(
-                MixpanelVideoUploadFileSelectionInitProps {
-                    user_id: global.user_id,
-                    visitor_id: global.visitor_id,
-                    is_logged_in: global.is_logged_in,
-                    canister_id: global.canister_id,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                },
-            );
+            MixPanelEvent::track_select_file_clicked(global);
         }
         async {}
     });
 
     let file_selection_success = Action::new(move |_: &()| {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_video_upload_file_selection_success(
-                MixpanelVideoFileSelectionSuccessProps {
-                    user_id: global.user_id,
-                    visitor_id: global.visitor_id,
-                    is_logged_in: global.is_logged_in,
-                    canister_id: global.canister_id,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                    file_type: "video".into(),
-                },
-            );
+            MixPanelEvent::track_file_selection_success(global, "video".into());
         }
         async {}
     });
@@ -119,16 +100,7 @@ pub fn PreVideoUpload(
                 .inspect_err(|e| {
                     VideoUploadUnsuccessful.send_event(ev_ctx, e.to_string(), 0, false, true);
                     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                        MixPanelEvent::track_video_upload_error_shown(
-                            MixpanelVideoUploadFailureProps {
-                                user_id: global.user_id,
-                                visitor_id: global.visitor_id,
-                                is_logged_in: global.is_logged_in,
-                                canister_id: global.canister_id,
-                                is_nsfw_enabled: global.is_nsfw_enabled,
-                                error: e.to_string(),
-                            },
-                        );
+                        MixPanelEvent::track_video_upload_error_shown(global, e.to_string());
                     }
                 }));
 
@@ -260,7 +232,7 @@ pub struct SerializablePostDetailsFromFrontend {
 }
 
 #[cfg(feature = "hydrate")]
-async fn upload_video_part(
+pub async fn upload_video_part(
     upload_base_url: &str,
     form_field_name: &str,
     file_blob: &Blob,
@@ -401,11 +373,12 @@ pub fn VideoUploader(
     let notification_nudge = RwSignal::new(false);
 
     let publish_action: Action<_, _> = Action::new_unsync(move |&()| {
+        leptos::logging::log!("Publish action triggered");
         let unauth_cans = unauth_canisters();
         let hashtags = hashtags.clone();
         let hashtags_len = hashtags.len();
         let description = description.clone();
-        log::info!("Publish action called");
+        leptos::logging::log!("Publish action called");
 
         async move {
             let uid_value = uid.get_untracked()?;
@@ -413,6 +386,7 @@ pub fn VideoUploader(
             let canisters = auth.auth_cans(unauth_cans).await.ok()?;
             let id = canisters.identity();
             let delegated_identity = delegate_short_lived_identity(id);
+
             let res: std::result::Result<reqwest::Response, ServerFnError> = {
                 let client = reqwest::Client::new();
                 notification_nudge.set(true);
@@ -444,17 +418,13 @@ pub fn VideoUploader(
                 Ok(_) => {
                     let is_logged_in = is_connected.get_untracked();
                     let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
-                    MixPanelEvent::track_video_upload_success(MixpanelVideoUploadSuccessProps {
-                        user_id: global.user_id,
-                        visitor_id: global.visitor_id,
-                        is_logged_in: global.is_logged_in,
-                        canister_id: global.canister_id,
-                        is_nsfw_enabled: global.is_nsfw_enabled,
-                        video_id: uid_value.clone(),
-                        is_game_enabled: true,
-                        creator_commision_percentage: crate::consts::CREATOR_COMMISION_PERCENT,
-                        game_type: MixpanelPostGameType::HotOrNot,
-                    });
+                    MixPanelEvent::track_video_upload_success(
+                        global,
+                        uid_value.clone(),
+                        crate::consts::CREATOR_COMMISION_PERCENT,
+                        true,
+                        MixpanelPostGameType::HotOrNot,
+                    );
                     published.set(true)
                 }
                 Err(_) => {
@@ -469,15 +439,6 @@ pub fn VideoUploader(
                 }
             }
             try_or_redirect_opt!(res);
-
-            VideoUploadSuccessful.send_event(
-                ev_ctx,
-                uid_value.clone(),
-                hashtags_len,
-                is_nsfw,
-                enable_hot_or_not,
-                0,
-            );
 
             Some(())
         }
@@ -569,7 +530,7 @@ pub fn VideoUploader(
 
 // post as in after not the content post
 #[component]
-fn PostUploadScreen() -> impl IntoView {
+pub fn PostUploadScreen() -> impl IntoView {
     view! {
         <div
             style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
@@ -580,7 +541,7 @@ fn PostUploadScreen() -> impl IntoView {
                 src="/img/airdrop/bg.webp"
                 class="object-cover absolute inset-0 w-full h-full z-25 fade-in"
             />
-            <div class="flex z-50 flex-col items-center">
+            <div class="flex z-50 flex-col items-center text-white">
                 <img src="/img/common/coins/sucess-coin.png" width=170 class="mb-6 z-300" />
 
                 <h1 class="mb-2 text-lg font-semibold">Video uploaded sucessfully</h1>

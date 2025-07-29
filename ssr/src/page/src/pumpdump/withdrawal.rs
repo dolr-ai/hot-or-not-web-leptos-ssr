@@ -175,16 +175,7 @@ pub fn PndWithdrawal() -> impl IntoView {
             .unwrap_or(0.0)
             - mix_formatted_cents as f64;
 
-        MixPanelEvent::track_cents_to_dolr(MixpanelCentsToDolrProps {
-            user_id: global.user_id,
-            visitor_id: global.visitor_id,
-            is_logged_in: global.is_logged_in,
-            canister_id: global.canister_id,
-            is_nsfw_enabled: global.is_nsfw_enabled,
-            updated_cents_wallet_balance,
-            conversion_ratio: 0.01,
-            cents_converted: cents_value,
-        });
+        MixPanelEvent::track_cents_to_dolr(global, cents_value, updated_cents_wallet_balance, 0.01);
 
         Ok::<(), ServerFnError>(())
     });

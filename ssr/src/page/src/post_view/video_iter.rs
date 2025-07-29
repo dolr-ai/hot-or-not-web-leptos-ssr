@@ -34,31 +34,31 @@ pub struct FetchVideosRes<'a> {
 pub struct VideoFetchStream<
     'a,
     const AUTH: bool,
-    CanFun: for<'x> AsyncFn(&'x Canisters<AUTH>, &'x AuthState) -> Result<Principal, ServerFnError>,
+    UserIdFun: for<'x> AsyncFn(&'x Canisters<AUTH>, &'x AuthState) -> Result<Principal, ServerFnError>,
 > {
     canisters: &'a Canisters<AUTH>,
     auth: AuthState,
     cursor: FetchCursor,
-    user_canister: CanFun,
+    user_principal: UserIdFun,
 }
 
-async fn user_canister_unauth(
+async fn user_principal_unauth(
     _canisters: &Canisters<false>,
     auth: &AuthState,
 ) -> Result<Principal, ServerFnError> {
-    if let Some(user_canister_id) = auth.user_canister_if_available() {
-        return Ok(user_canister_id);
+    if let Some(user_principal_id) = auth.user_principal_if_available() {
+        return Ok(user_principal_id);
     }
 
     let cans = auth.cans_wire().await?;
-    Ok(cans.user_canister)
+    Ok(cans.profile_details.principal)
 }
 
-async fn user_canister_auth(
+async fn user_principal_auth(
     canisters: &Canisters<true>,
     _auth: &AuthState,
 ) -> Result<Principal, ServerFnError> {
-    Ok(canisters.user_canister())
+    Ok(canisters.user_principal())
 }
 
 pub fn new_video_fetch_stream(
@@ -74,7 +74,7 @@ pub fn new_video_fetch_stream(
         canisters,
         auth,
         cursor,
-        user_canister: user_canister_unauth,
+        user_principal: user_principal_unauth,
     }
 }
 
@@ -91,18 +91,18 @@ pub fn new_video_fetch_stream_auth(
         canisters,
         auth,
         cursor,
-        user_canister: user_canister_auth,
+        user_principal: user_principal_auth,
     }
 }
 
 impl<
         'a,
         const AUTH: bool,
-        CanFun: AsyncFn(&Canisters<AUTH>, &AuthState) -> Result<Principal, ServerFnError>,
-    > VideoFetchStream<'a, AUTH, CanFun>
+        UserIdFun: AsyncFn(&Canisters<AUTH>, &AuthState) -> Result<Principal, ServerFnError>,
+    > VideoFetchStream<'a, AUTH, UserIdFun>
 {
-    async fn user_canister(&self) -> Result<Principal, ServerFnError> {
-        (self.user_canister)(self.canisters, &self.auth).await
+    async fn user_principal(&self) -> Result<Principal, ServerFnError> {
+        (self.user_principal)(self.canisters, &self.auth).await
     }
 
     pub async fn fetch_post_uids_ml_feed_chunked(
@@ -111,12 +111,12 @@ impl<
         allow_nsfw: bool,
         video_queue: Vec<PostDetails>,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
-        let user_canister_id = self.user_canister().await?;
+        let user_principal_id = self.user_principal().await?;
 
         let show_nsfw = allow_nsfw || show_nsfw_content();
         let top_posts = if show_nsfw {
             get_ml_feed_nsfw(
-                user_canister_id,
+                user_principal_id,
                 self.cursor.limit as u32,
                 video_queue.clone(),
             )
@@ -124,7 +124,7 @@ impl<
             .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
         } else {
             get_ml_feed_clean(
-                user_canister_id,
+                user_principal_id,
                 self.cursor.limit as u32,
                 video_queue.clone(),
             )
@@ -136,10 +136,11 @@ impl<
         let chunk_stream = top_posts
             .into_iter()
             .map(move |item| {
+                // TODO: not changing now since this will be replaced with new post canister service
                 self.canisters.get_post_details_with_nsfw_info(
-                    item.canister_id,
+                    Principal::from_text(item.canister_id).unwrap(),
                     item.post_id,
-                    item.nsfw_probability,
+                    if item.is_nsfw { 1.0 } else { 0.0 },
                 )
             })
             .collect::<FuturesOrdered<_>>()
@@ -159,12 +160,12 @@ impl<
         allow_nsfw: bool,
         video_queue: Vec<PostDetails>,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
-        let user_canister_id = self.user_canister().await?;
+        let user_principal_id = self.user_principal().await?;
 
         let show_nsfw = allow_nsfw || show_nsfw_content();
         let top_posts = if show_nsfw {
             get_ml_feed_coldstart_nsfw(
-                user_canister_id,
+                user_principal_id,
                 self.cursor.limit as u32,
                 video_queue.clone(),
             )
@@ -172,7 +173,7 @@ impl<
             .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
         } else {
             get_ml_feed_coldstart_clean(
-                user_canister_id,
+                user_principal_id,
                 self.cursor.limit as u32,
                 video_queue.clone(),
             )
@@ -185,9 +186,9 @@ impl<
             .into_iter()
             .map(move |item| {
                 self.canisters.get_post_details_with_nsfw_info(
-                    item.canister_id,
+                    Principal::from_text(item.canister_id).unwrap(),
                     item.post_id,
-                    item.nsfw_probability,
+                    if item.is_nsfw { 1.0 } else { 0.0 },
                 )
             })
             .collect::<FuturesOrdered<_>>()
