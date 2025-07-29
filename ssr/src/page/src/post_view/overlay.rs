@@ -846,10 +846,9 @@ pub fn LowSatsBalancePopup(
                 };
                 let user_canister = auth_cans.user_canister();
                 let user_principal = auth_cans.user_principal();
-                match is_user_eligible_for_sats_airdrop(user_canister, user_principal).await {
-                    Ok(available) => available,
-                    Err(_) => false,
-                }
+                is_user_eligible_for_sats_airdrop(user_canister, user_principal)
+                    .await
+                    .unwrap_or_default()
             }
         },
     );
