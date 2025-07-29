@@ -393,49 +393,7 @@ pub fn VideoDetailsOverlay(
     });
 
     let show_low_balance_popup: RwSignal<bool> = RwSignal::new(false);
-
-    let eligibility_resource = Resource::new(
-        move || show_low_balance_popup.get(),
-        move |showing| {
-            let auth = auth_state();
-            let cans = unauth_canisters();
-            async move {
-                if !showing {
-                    // Don't fetch if not showing
-                    return None;
-                }
-                let Ok(auth_cans) = auth.auth_cans(cans).await else {
-                    log::warn!("Failed to get authenticated canisters");
-                    return None;
-                };
-                let user_canister = auth_cans.user_canister();
-                let user_principal = auth_cans.user_principal();
-                match is_user_eligible_for_sats_airdrop(user_canister, user_principal).await {
-                    Ok(available) => Some(available),
-                    Err(_) => Some(false),
-                }
-            }
-        },
-    );
-
-    {
-        Effect::new(move || {
-            if show_low_balance_popup.get_untracked() {
-                let is_airdrop_eligible = eligibility_resource.get().flatten().unwrap_or(false);
-                spawn_local(async move {
-                    if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                        if Some(video_url()) == window().location().href().ok() {
-                            MixPanelEvent::track_low_on_sats_popup_shown(
-                                global,
-                                is_airdrop_eligible,
-                                "home_low_sats".to_string(),
-                            );
-                        }
-                    }
-                });
-            }
-        });
-    }
+    let auth = auth_state();
     // Add state for sats airdrop popup
     let show_sats_airdrop_popup = RwSignal::new(false);
     let sats_airdrop_claimed = RwSignal::new(false);
@@ -447,31 +405,26 @@ pub fn VideoDetailsOverlay(
             show_sats_airdrop_popup.set(true);
             sats_airdrop_claimed.set(false);
             sats_airdrop_error.set(false);
-            let auth = auth_state();
             let cans = unauth_canisters();
 
             let Ok(auth_cans) = auth.auth_cans(cans).await else {
                 // Fallback: no canister/user info available
                 if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                    if Some(video_url()) == window().location().href().ok() {
-                        MixPanelEvent::track_claim_airdrop_clicked(
-                            global,
-                            StakeType::Sats,
-                            "home_low_sats".to_string(),
-                        );
-                    }
-                }
-                sats_airdrop_error.set(true);
-                return Err(ServerFnError::new("Failed to get authenticated canisters"));
-            };
-            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                if Some(video_url()) == window().location().href().ok() {
                     MixPanelEvent::track_claim_airdrop_clicked(
                         global,
                         StakeType::Sats,
                         "home_low_sats".to_string(),
                     );
                 }
+                sats_airdrop_error.set(true);
+                return Err(ServerFnError::new("Failed to get authenticated canisters"));
+            };
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                MixPanelEvent::track_claim_airdrop_clicked(
+                    global,
+                    StakeType::Sats,
+                    "home_low_sats".to_string(),
+                );
             }
             let user_canister = auth_cans.user_canister();
             let user_principal = auth_cans.user_principal();
@@ -479,66 +432,56 @@ pub fn VideoDetailsOverlay(
             let signature =
                 hon_worker_common::sign_claim_request(auth_cans.identity(), request.clone())
                     .unwrap();
-            match claim_sats_airdrop(user_canister, request, signature).await {
-                Ok(amount) => {
+            claim_sats_airdrop(user_canister, request, signature)
+                .await
+                .inspect(|&amount| {
                     sats_airdrop_claimed.set(true);
                     sats_airdrop_amount.set(amount);
                     // Track airdrop_claimed (success)
                     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                        if Some(video_url()) == window().location().href().ok() {
-                            MixPanelEvent::track_airdrop_claimed(
-                                global,
-                                StakeType::Sats,
-                                true,
-                                amount,
-                                "home_low_sats".to_string(),
-                            );
-                        }
+                        MixPanelEvent::track_airdrop_claimed(
+                            global,
+                            StakeType::Sats,
+                            true,
+                            amount,
+                            "home_low_sats".to_string(),
+                        );
                     }
-                    Ok(amount)
-                }
-                Err(e) => {
+                })
+                .inspect_err(|_| {
                     sats_airdrop_error.set(true);
                     // Track airdrop_claimed (failure)
                     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                        if Some(video_url()) == window().location().href().ok() {
-                            MixPanelEvent::track_airdrop_claimed(
-                                global,
-                                StakeType::Sats,
-                                false,
-                                0,
-                                "home_low_sats".to_string(),
-                            );
-                        }
+                        MixPanelEvent::track_airdrop_claimed(
+                            global,
+                            StakeType::Sats,
+                            false,
+                            0,
+                            "home_low_sats".to_string(),
+                        );
                     }
-                    Err(e)
-                }
-            }
+                })
         }
     });
 
     let navigate = use_navigate();
-    let navigate_to_refer = Action::new(move |_| {
+    let navigate_to_refer = Action::new(move |is_airdrop_eligible: &bool| {
         let navigate = navigate.clone();
-        spawn_local(async move {
-            let is_airdrop_eligible = eligibility_resource.get().flatten().unwrap_or(false);
-            let auth = auth_state();
+        let is_airdrop_eligible = *is_airdrop_eligible;
+        async move {
             let cans = unauth_canisters();
             let Ok(_) = auth.auth_cans(cans).await else {
                 return;
             };
             if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                if Some(video_url()) == window().location().href().ok() {
-                    MixPanelEvent::track_refer_earn_clicked(
-                        global,
-                        is_airdrop_eligible,
-                        "home_low_sats".to_string(),
-                    );
-                }
+                MixPanelEvent::track_refer_earn_clicked(
+                    global,
+                    is_airdrop_eligible,
+                    "home_low_sats".to_string(),
+                );
             }
             navigate("/refer-earn", Default::default());
-        });
-        async move {}
+        }
     });
 
     view! {
@@ -709,10 +652,10 @@ pub fn VideoDetailsOverlay(
             navigate_refer_page=navigate_to_refer
             claim_airdrop=Action::new(move |_| {
                 show_low_balance_popup.set(false);
-                claim_sats_airdrop_action.dispatch(auth_state().is_logged_in_with_oauth().get());
+                claim_sats_airdrop_action.dispatch(auth.is_logged_in_with_oauth().get());
                 async move {}
             })
-            eligibility_resource=eligibility_resource
+            auth=auth
         />
         <SatsAirdropPopup
             show=show_sats_airdrop_popup
@@ -805,12 +748,34 @@ pub fn HotOrNotTutorialOverlay(
 #[component]
 pub fn LowSatsBalancePopup(
     show: RwSignal<bool>,
-    navigate_refer_page: Action<(), ()>,
+    navigate_refer_page: Action<bool, ()>,
     claim_airdrop: Action<(), ()>,
-    eligibility_resource: Resource<Option<bool>>, // new prop
+    auth: state::canisters::AuthState,
 ) -> impl IntoView {
-    let loading = move || eligibility_resource.get().is_none();
-    let airdrop_claimed = move || eligibility_resource.get().flatten().unwrap_or(false);
+    let ev_ctx = auth.event_ctx();
+    
+    let eligibility_resource = Resource::new(
+        move || show.get(),
+        move |showing| {
+            let cans = unauth_canisters();
+            async move {
+                if !showing {
+                    // Don't fetch if not showing
+                    return false;
+                }
+                let Ok(auth_cans) = auth.auth_cans(cans).await else {
+                    log::warn!("Failed to get authenticated canisters");
+                    return false;
+                };
+                let user_canister = auth_cans.user_canister();
+                let user_principal = auth_cans.user_principal();
+                match is_user_eligible_for_sats_airdrop(user_canister, user_principal).await {
+                    Ok(available) => available,
+                    Err(_) => false,
+                }
+            }
+        },
+    );
 
     view! {
         <ShadowOverlay show=show >
@@ -824,62 +789,73 @@ pub fn LowSatsBalancePopup(
                     >
                         <Icon icon=icondata::ChCross />
                     </button>
-                    {
-                    if loading() {
-                        view! {
+                    <Suspense
+                        fallback=move || view! {
                             <div style="padding-top:50%" class="flex flex-col items-center justify-center w-full">
                                 <div class="size-12">
                                     <SpinnerFit />
                                 </div>
                              </div>
-                        }.into_any()
-                    } else {
-                        view! {
-                              <div class="flex z-[2] relative flex-col items-center gap-5 text-white justify-center p-12">
-                                <img src="/img/hotornot/sad.webp" class="size-14" />
-                                <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on Bitcoin (SATS)"</div>
-                                {
-                                    if airdrop_claimed() {
-                                        view! {
-                                            <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
-                                            <div class="text-neutral-300 text-center">"Meanwhile, earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you refer!"</div>
-                                        }.into_any()
-                                    } else {
-                                        view! {
-                                            <div class="text-neutral-300 text-center">"Earn more in two easy ways:"</div>
-                                            <ul class="flex list-disc flex-col gap-5 text-neutral-300">
-                                                <li>"Unlock your daily"<span class="font-semibold">" Bitcoin (SATS) "</span>"loot every 24 hours!"</li>
-                                                <li>"Refer & earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you invite."</li>
-                                                <li class="font-semibold">"Upload Videos to earn comissions."</li>
-                                            </ul>
-                                        }.into_any()
+                        }
+                    >
+                        {move || Suspend::new(async move {
+                            let is_airdrop_eligible = eligibility_resource.await;
+                            
+                            // Track popup shown event when resource loads
+                            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                                MixPanelEvent::track_low_on_sats_popup_shown(
+                                    global,
+                                    is_airdrop_eligible,
+                                    "home_low_sats".to_string(),
+                                );
+                            }
+                            
+                            view! {
+                                  <div class="flex z-[2] relative flex-col items-center gap-5 text-white justify-center p-12">
+                                    <img src="/img/hotornot/sad.webp" class="size-14" />
+                                    <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on Bitcoin (SATS)"</div>
+                                    {
+                                        if is_airdrop_eligible {
+                                            view! {
+                                                <div class="text-neutral-300 text-center">"Earn more in two easy ways:"</div>
+                                                <ul class="flex list-disc flex-col gap-5 text-neutral-300">
+                                                    <li>"Unlock your daily"<span class="font-semibold">" Bitcoin (SATS) "</span>"loot every 24 hours!"</li>
+                                                    <li>"Refer & earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you invite."</li>
+                                                    <li class="font-semibold">"Upload Videos to earn comissions."</li>
+                                                </ul>
+                                            }.into_any()
+                                        } else {
+                                            view! {
+                                                <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
+                                                <div class="text-neutral-300 text-center">"Meanwhile, earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you refer!"</div>
+                                            }.into_any()
+                                        }
                                     }
-                                }
 
-                                <HighlightedButton
-                                    alt_style=false
-                                    disabled=false
-                                    on_click=move || {
-                                        show.set(false);
-                                        claim_airdrop.dispatch(());
-                                    }
-                                >
-                                    "Claim airdrop"
-                                </HighlightedButton>
-                                <HighlightedButton
-                                    alt_style=true
-                                    disabled=false
-                                    on_click=move || {
-                                        show.set(false);
-                                        navigate_refer_page.dispatch(());
-                                    }
-                                >
-                                    "Refer a friend"
-                                </HighlightedButton>
-                            </div>
-                        }.into_any()
-                    }
-                    }
+                                    <HighlightedButton
+                                        alt_style=false
+                                        disabled=false
+                                        on_click=move || {
+                                            show.set(false);
+                                            claim_airdrop.dispatch(());
+                                        }
+                                    >
+                                        "Claim airdrop"
+                                    </HighlightedButton>
+                                    <HighlightedButton
+                                        alt_style=true
+                                        disabled=false
+                                        on_click=move || {
+                                            show.set(false);
+                                            navigate_refer_page.dispatch(is_airdrop_eligible);
+                                        }
+                                    >
+                                        "Refer a friend"
+                                    </HighlightedButton>
+                                </div>
+                            }
+                        })}
+                    </Suspense>
                 </div>
             </div>
         </ShadowOverlay>
