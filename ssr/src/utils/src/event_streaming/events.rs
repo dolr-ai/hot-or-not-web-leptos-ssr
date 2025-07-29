@@ -15,7 +15,6 @@ pub enum ProviderKind {
 }
 
 use circular_buffer::CircularBuffer;
-use yral_types::delegated_identity::DelegatedIdentityWire;
 
 #[derive(Clone)]
 pub struct HistoryCtx {
