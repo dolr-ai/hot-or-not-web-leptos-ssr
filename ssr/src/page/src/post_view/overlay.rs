@@ -753,7 +753,7 @@ pub fn LowSatsBalancePopup(
     auth: state::canisters::AuthState,
 ) -> impl IntoView {
     let ev_ctx = auth.event_ctx();
-    
+
     let eligibility_resource = Resource::new(
         move || show.get(),
         move |showing| {
@@ -800,7 +800,7 @@ pub fn LowSatsBalancePopup(
                     >
                         {move || Suspend::new(async move {
                             let is_airdrop_eligible = eligibility_resource.await;
-                            
+
                             // Track popup shown event when resource loads
                             if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                                 MixPanelEvent::track_low_on_sats_popup_shown(
@@ -809,7 +809,7 @@ pub fn LowSatsBalancePopup(
                                     "home_low_sats".to_string(),
                                 );
                             }
-                            
+
                             view! {
                                   <div class="flex z-[2] relative flex-col items-center gap-5 text-white justify-center p-12">
                                     <img src="/img/hotornot/sad.webp" class="size-14" />
