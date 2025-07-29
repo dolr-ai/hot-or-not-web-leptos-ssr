@@ -290,10 +290,12 @@ pub fn Menu() -> impl IntoView {
             <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
                 // add later when NSFW toggle is needed
                 // <NsfwToggle />
-                <Show when=move ||!KycState::is_verified()>
+                <Show when=move ||!KycState::is_verified() && is_connected()>
                     <StartVerificationButton show_popup/>
                 </Show>
-                <StartKycPopup show=show_popup />
+                <Show when=move||is_connected()>
+                    <StartKycPopup show=show_popup />
+                </Show>
                 <MenuItem click_cta_type=MixpanelMenuClickedCTAType::ReferAndEarn href="/refer-earn" text="Refer & Earn" icon=icondata::AiGiftFilled />
                 <MenuItem click_cta_type=MixpanelMenuClickedCTAType::Leaderboard href="/leaderboard" text="Leaderboard" icon=icondata::ChTrophy />
                 <MenuItem

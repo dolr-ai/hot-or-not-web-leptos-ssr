@@ -8,6 +8,7 @@ use codee::string::FromToStringCodec;
 use component::connect::ConnectLogin;
 use component::icons::notification_icon::NotificationIcon;
 use component::share_popup::ShareButtonWithFallbackPopup;
+use component::start_kyc_popup::StartKycPopup;
 use component::toggle::Toggle;
 use consts::NOTIFICATIONS_ENABLED_STORE;
 use leptos::either::Either;
@@ -192,6 +193,7 @@ pub fn Wallet() -> impl IntoView {
 #[component]
 pub fn WalletImpl(principal: Principal) -> impl IntoView {
     let show_login = RwSignal::new(false);
+    let show_kyc_popup = RwSignal::new(false);
 
     provide_context(ShowLoginSignal(show_login));
 
@@ -281,15 +283,18 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
                                             <div class="text-lg font-bold text-white font-kumbh">
                                                 My Tokens
                                             </div>
-                                            <div class="flex items-center gap-2 text-sm font-medium text-white">
-                                                <span
-                                                    class={format!(
-                                                        "w-3 h-3 rounded-full {}",
-                                                        if KycState::is_verified() { "bg-green-500" } else { "bg-red-500" }
-                                                    )}
-                                                ></span>
-                                                { if KycState::is_verified() { "Verified" } else { "Unverified" } }
-                                            </div>
+                                            <Show when=move||is_connected()>
+                                                <div on:click=move|_| { if !KycState::is_verified() { show_kyc_popup.set(true); } } class="flex items-center gap-2 text-sm font-medium text-white">
+                                                    <span
+                                                        class={format!(
+                                                            "w-3 h-3 rounded-full {}",
+                                                            if KycState::is_verified() { "bg-green-500" } else { "bg-red-500" }
+                                                        )}
+                                                    ></span>
+                                                    { if KycState::is_verified() { "Verified" } else { "Unverified" } }
+                                                    <StartKycPopup show=show_kyc_popup />
+                                                </div>
+                                            </Show>
                                         </div>
                                         <TokenList
                                             user_principal=principal

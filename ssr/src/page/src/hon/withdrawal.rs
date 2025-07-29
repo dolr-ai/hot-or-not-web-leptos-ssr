@@ -152,6 +152,7 @@ fn BalanceDisplay(#[prop(into)] balance: Nat) -> impl IntoView {
 pub fn HonWithdrawal() -> impl IntoView {
     let show_kyc_popup = RwSignal::new(false);
     let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
     let details_res = auth.derive_resource(
         || (),
         move |cans, _| {
@@ -335,8 +336,10 @@ pub fn HonWithdrawal() -> impl IntoView {
                                 }}
                             </Suspense>
                         </div>
-                        <StartKycPopup show=show_kyc_popup />
-                        <Show when=move || !KycState::is_verified()>
+                        <Show when=move||is_connected()>
+                            <StartKycPopup show=show_kyc_popup />
+                        </Show>
+                        <Show when=move || !KycState::is_verified() && is_connected()>
                                 <HighlightedButton
                                     alt_style=true
                                     disabled=false

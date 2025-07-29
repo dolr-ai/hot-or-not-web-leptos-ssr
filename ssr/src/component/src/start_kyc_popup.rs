@@ -20,7 +20,7 @@ pub fn StartKycPopup(show: RwSignal<bool>) -> impl IntoView {
 }
 
 #[component]
-pub fn StartKyc(show: RwSignal<bool>) -> impl IntoView {
+fn StartKyc(show: RwSignal<bool>) -> impl IntoView {
     view! {
             <div class="w-full h-full flex items-center justify-center">
                 <div class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-[#171717] rounded-md w-full relative">
@@ -120,24 +120,35 @@ fn VerificationStatusPopup(show: RwSignal<bool>, is_verified: RwSignal<bool>) ->
                         </div>
 
                         // Body content
-                        <div class="text-sm text-neutral-300 flex flex-col gap-2 leading-snug">
+                        <div class="text-sm text-center text-white flex flex-col gap-2 leading-relaxed">
                             {move || if is_verified.get() {
                                 view! {
-                                    <div>
-                                        <span>"You’re all set. You can now go back to your wallet to withdraw SATS."</span>
-                                        <span class="mt-2">"New Withdrawal Limit: Min 50 SATS"</span>
-                                        <span>"Max 1000 SATS per day"</span>
-                                    </div>
+                                    <>
+                                        <span class="text-neutral-400">
+                                            "You're all set. You can now go back to your wallet to withdraw SATS."
+                                        </span>
+                                        <span class="font-semibold mt-2">
+                                            "New Withdrawal Limit: Min 50 SATS"
+                                        </span>
+                                        <span class="font-semibold">
+                                            "Max Limit: 1000 SATS"
+                                        </span>
+                                    </>
                                 }.into_any()
                             } else {
                                 view! {
-                                    <div>
-                                        <span>"We’re redirecting you to our verification partner to complete verification."</span>
-                                        <span>"Please don’t close or refresh this tab."</span>
-                                    </div>
+                                    <>
+                                        <span class="text-neutral-400">
+                                            "We're redirecting you to our verification partner to complete verification."
+                                        </span>
+                                        <span class="text-neutral-400">
+                                            "Please don’t close or refresh this tab."
+                                        </span>
+                                    </>
                                 }.into_any()
                             }}
                         </div>
+
 
                         <Show when=move || is_verified.get()>
                             <HighlightedButton
