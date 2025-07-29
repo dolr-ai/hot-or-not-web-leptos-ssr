@@ -134,7 +134,7 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
 fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     let user_principal = user.principal;
     let user_canister = user.user_canister;
-    let username_or_principal = user.username_or_principal();
+    let username_or_fallback = user.username_or_fallback();
     let profile_pic = user.profile_pic_or_random();
     let _earnings = user.lifetime_earnings;
 
@@ -152,13 +152,13 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                             <div class="flex flex-row items-center gap-4">
                                 <img
                                     class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-full"
-                                    alt=username_or_principal.clone()
+                                    alt=username_or_fallback.clone()
                                     src=profile_pic
                                 />
                                 <div class="flex flex-col gap-2">
                                     <div node_ref=edit_icon_mount_point class="flex flex-row justify-between">
                                         <span class="font-bold text-neutral-50 text-lg line-clamp-1">
-                                            @{username_or_principal.clone()}
+                                            @{username_or_fallback.clone()}
                                         </span>
                                     </div>
                                     <span class="text-neutral-400 text-sm line-clamp-1">
