@@ -557,7 +557,8 @@ derive_event!(track_file_selection_success { file_type: String });
 
 derive_event!(track_video_upload_initiated {
     caption_added: bool,
-    hashtags_added: bool
+    hashtags_added: bool,
+    upload_type: Option<String>
 });
 
 derive_event!(track_bottom_navigation_clicked {
@@ -708,7 +709,8 @@ derive_event!(track_video_upload_success {
     video_id: String,
     creator_comission_percentage: u64,
     is_game_enabled: bool,
-    game_type: MixpanelPostGameType
+    game_type: MixpanelPostGameType,
+    upload_type: Option<String>
 });
 
 derive_event!(track_cents_to_dolr = "cents_to_DOLR" => {
@@ -734,6 +736,32 @@ derive_event!(track_how_to_play_clicked {
 });
 
 derive_event!(track_username_saved {});
+
+derive_event!(track_video_upload_type_selected {
+    upload_type: String
+});
+
+derive_event!(track_upload_type_continue_clicked {
+    upload_type: String
+});
+
+derive_event!(track_video_generation_model_selected {
+    model: String
+});
+
+derive_event!(track_create_ai_video_clicked {
+    model: String
+});
+
+derive_event!(track_ai_video_generated {
+    is_success: bool,
+    reason: Option<String>,
+    model: String
+});
+
+derive_event!(track_regenerate_video_clicked {
+    model: String
+});
 
 impl MixPanelEvent {
     pub fn track_page_viewed(page: String, p: MixpanelGlobalProps) {

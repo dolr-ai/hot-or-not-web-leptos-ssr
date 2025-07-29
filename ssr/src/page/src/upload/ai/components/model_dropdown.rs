@@ -1,6 +1,8 @@
 use leptos::prelude::*;
 use leptos_icons::*;
+use state::canisters::auth_state;
 use utils::host::show_preview_component;
+use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps};
 use videogen_common::{VideoGenProvider, VideoModel};
 
 #[component]
@@ -8,6 +10,9 @@ pub fn ModelDropdown(
     selected_model: RwSignal<VideoModel>,
     show_dropdown: RwSignal<bool>,
 ) -> impl IntoView {
+    let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
+    
     let filtered_models = Memo::new(move |_| {
         let is_preview = show_preview_component();
         let all_models = VideoModel::get_models();
@@ -91,6 +96,14 @@ pub fn ModelDropdown(
                                         if is_available {
                                             selected_model.set(model_clone.clone());
                                             show_dropdown.set(false);
+                                            
+                                            // Track model selection
+                                            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                                                MixPanelEvent::track_video_generation_model_selected(
+                                                    global,
+                                                    model_clone.name.clone()
+                                                );
+                                            }
                                         }
                                     }
                                 >
