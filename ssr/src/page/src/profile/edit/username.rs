@@ -9,7 +9,10 @@ use state::{
     app_state::AppState,
     canisters::{auth_state, unauth_canisters, AuthState},
 };
-use utils::send_wrap;
+use utils::{
+    mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps},
+    send_wrap,
+};
 use yral_canisters_common::Canisters;
 
 #[component]
@@ -110,6 +113,9 @@ fn UsernameEditInner() -> impl IntoView {
                 input.set_custom_validity(&e);
                 trigger_validity_change.notify();
                 return Err(());
+            }
+            if let Some(a) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
+                MixPanelEvent::track_username_saved(a)
             }
 
             let nav_options = NavigateOptions {
