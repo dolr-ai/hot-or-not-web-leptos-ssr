@@ -6,7 +6,7 @@ use component::login_nudge_popup::LoginNudgePopup;
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
 use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
 use global_constants::{
-    CoinState, CREATOR_COMMISION_PERCENT, DEFAULT_BET_COIN_FOR_LOGGED_IN,
+    CoinState, CREATOR_COMMISSION_PERCENT, DEFAULT_BET_COIN_FOR_LOGGED_IN,
     DEFAULT_BET_COIN_FOR_LOGGED_OUT,
 };
 use hon_worker_common::{
@@ -250,7 +250,7 @@ fn HNButtonOverlay(
                             true,
                             game_conclusion,
                             win_loss_amount,
-                            CREATOR_COMMISION_PERCENT,
+                            CREATOR_COMMISSION_PERCENT,
                             post.is_nsfw,
                         );
                         play_win_sound_and_vibrate(

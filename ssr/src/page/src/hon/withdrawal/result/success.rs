@@ -31,7 +31,7 @@ pub fn Success() -> impl IntoView {
             MixPanelEvent::track_sats_to_btc_converted(
                 global,
                 sats_value,
-                crate::consts::SATS_TO_BTC_CONVERSION_RATIO,
+                crate::global_constants::SATS_TO_BTC_CONVERSION_RATIO,
             );
         }
     });

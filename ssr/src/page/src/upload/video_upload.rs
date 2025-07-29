@@ -14,7 +14,7 @@ use leptos::{
 };
 use leptos_icons::*;
 use leptos_use::use_event_listener;
-use limits::CREATOR_COMMISSION_PERCENT;
+use global_constants::CREATOR_COMMISSION_PERCENT;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use state::canisters::{auth_state, unauth_canisters};
@@ -422,7 +422,7 @@ pub fn VideoUploader(
                     MixPanelEvent::track_video_upload_success(
                         global,
                         uid_value.clone(),
-                        crate::consts::CREATOR_COMMISION_PERCENT,
+                        crate::global_constants::CREATOR_COMMISSION_PERCENT,
                         true,
                         MixpanelPostGameType::HotOrNot,
                     );
