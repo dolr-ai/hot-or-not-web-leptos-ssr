@@ -35,6 +35,7 @@ use page::{hon, pumpdump};
 use state::app_state::AppState;
 use state::app_type::AppType;
 use state::hn_bet_state::HnBetState;
+use state::kyc_state::KycState;
 use state::{audio_state::AudioState, content_seed_client::ContentSeedClient};
 use utils::event_streaming::events::HistoryCtx;
 use utils::event_streaming::EventHistory;
@@ -117,6 +118,8 @@ pub fn App() -> impl IntoView {
     let _ = HnBetState::init();
 
     let _ = MixpanelState::init();
+
+    let _ = KycState::init();
 
     let current_post_params = RwSignal::new(None::<PostParams>);
     provide_context(current_post_params);

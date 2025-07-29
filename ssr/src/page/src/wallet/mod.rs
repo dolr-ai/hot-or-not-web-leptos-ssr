@@ -22,6 +22,7 @@ use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use state::app_state::AppState;
 use state::canisters::{auth_state, unauth_canisters};
+use state::kyc_state::KycState;
 use tokens::TokenList;
 use utils::notifications::get_device_registeration_token;
 use utils::send_wrap;
@@ -276,8 +277,19 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
                             Ok(meta) => {
                                 Either::Left(
                                     view! {
-                                        <div class="self-start pt-3 text-lg font-bold text-white font-kumbh">
-                                            My tokens
+                                        <div class="flex items-center justify-between w-full pt-3">
+                                            <div class="text-lg font-bold text-white font-kumbh">
+                                                My Tokens
+                                            </div>
+                                            <div class="flex items-center gap-2 text-sm font-medium text-white">
+                                                <span
+                                                    class={format!(
+                                                        "w-3 h-3 rounded-full {}",
+                                                        if KycState::is_verified() { "bg-green-500" } else { "bg-red-500" }
+                                                    )}
+                                                ></span>
+                                                { if KycState::is_verified() { "Verified" } else { "Unverified" } }
+                                            </div>
                                         </div>
                                         <TokenList
                                             user_principal=principal

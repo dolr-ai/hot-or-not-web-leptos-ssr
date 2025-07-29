@@ -17,6 +17,7 @@ use leptos_router::{hooks::use_params, params::Params};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use state::canisters::auth_state;
+use state::kyc_state::{KycState, KycStatus};
 use utils::mixpanel::mixpanel_events::*;
 use utils::notifications::{
     get_device_registeration_token, get_fcm_token, notification_permission_granted,
@@ -136,6 +137,55 @@ fn ProfileInfo() -> impl IntoView {
                 }
             })}
         </Suspense>
+    }
+}
+// Write a component to toggle KycState just like notification toggle
+#[component]
+fn ToggleKyc() -> impl IntoView {
+    let kyc_status = KycState::get();
+
+    view! {
+        <div class="flex items-center justify-between w-full">
+            <div class="flex flex-row gap-4 items-center flex-1">
+                <Icon attr:class="text-2xl flex-shrink-0" icon=icondata::BiCommentDotsRegular />
+                <span class="text-wrap">"KYC Status"</span>
+            </div>
+
+            <div class="flex-shrink-0">
+                <select
+                    class="border border-neutral-700 bg-neutral-800 text-white rounded-md px-3 py-1"
+                    on:change=move |ev| {
+                        let value = event_target_value(&ev);
+                        let status = match value.as_str() {
+                            "pending" => KycStatus::Pending,
+                            "inprogress" => KycStatus::InProgress,
+                            "verified" => KycStatus::Verified,
+                            _ => KycStatus::Pending,
+                        };
+                        KycState::set_status(status);
+                    }
+                >
+                    <option
+                        value="pending"
+                        selected=move || kyc_status.get() == KycStatus::Pending
+                    >
+                        Pending
+                    </option>
+                    <option
+                        value="inprogress"
+                        selected=move || kyc_status.get() == KycStatus::InProgress
+                    >
+                        In Progress
+                    </option>
+                    <option
+                        value="verified"
+                        selected=move || kyc_status.get() == KycStatus::Verified
+                    >
+                        Verified
+                    </option>
+                </select>
+            </div>
+        </div>
     }
 }
 
@@ -413,6 +463,7 @@ pub fn Settings() -> impl IntoView {
                             </TitleText>
                         </div>
                         <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
+                            <ToggleKyc />
                             <EnableNotifications />
                             <DeleteAccount show_popup />
                         </div>

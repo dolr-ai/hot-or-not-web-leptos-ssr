@@ -2,6 +2,8 @@ use codee::string::FromToStringCodec;
 use component::content_upload::AuthorizedUserToSeedContent;
 use component::content_upload::YoutubeUpload;
 use component::modal::Modal;
+use component::start_kyc_button::StartVerificationButton;
+use component::start_kyc_popup::StartKycPopup;
 use component::title::TitleText;
 use component::{connect::ConnectLogin, social::*, toggle::Toggle};
 use consts::NSFW_TOGGLE_STORE;
@@ -19,6 +21,7 @@ use state::app_state::AppState;
 use state::canisters::auth_state;
 use state::canisters::unauth_canisters;
 use state::content_seed_client::ContentSeedClient;
+use state::kyc_state::KycState;
 use utils::mixpanel::mixpanel_events::*;
 use utils::send_wrap;
 use yral_canisters_common::utils::profile::ProfileDetails;
@@ -103,6 +106,12 @@ fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
                 @{user_details.display_name_or_fallback()}
             </span>
             <span class="text-xs md:text-sm text-neutral-400 line-clamp-1">{user_details.principal()}</span>
+            <Show when=move||KycState::is_verified()>
+                <span class="flex items-center gap-1 font-medium">
+                <img src="/img/kyc/kyc_verified.svg" class="h-4 w-4" />
+                    "Verified"
+                </span>
+            </Show>
         </div>
     }
     .into_any()
@@ -142,7 +151,7 @@ pub fn Menu() -> impl IntoView {
     let query_map = use_query_map();
     let show_content_modal = RwSignal::new(false);
     let is_authorized_to_seed_content: AuthorizedUserToSeedContent = expect_context();
-
+    let show_popup = RwSignal::new(false);
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
 
@@ -281,6 +290,10 @@ pub fn Menu() -> impl IntoView {
             <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
                 // add later when NSFW toggle is needed
                 // <NsfwToggle />
+                <Show when=move ||!KycState::is_verified()>
+                    <StartVerificationButton show_popup/>
+                </Show>
+                <StartKycPopup show=show_popup />
                 <MenuItem click_cta_type=MixpanelMenuClickedCTAType::ReferAndEarn href="/refer-earn" text="Refer & Earn" icon=icondata::AiGiftFilled />
                 <MenuItem click_cta_type=MixpanelMenuClickedCTAType::Leaderboard href="/leaderboard" text="Leaderboard" icon=icondata::ChTrophy />
                 <MenuItem

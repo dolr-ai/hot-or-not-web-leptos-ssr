@@ -1,7 +1,7 @@
 use candid::{Nat, Principal};
 use component::{
-    auth_providers::handle_user_login, back_btn::BackButton,
-    icons::notification_icon::NotificationIcon, title::TitleText,
+    auth_providers::handle_user_login, back_btn::BackButton, buttons::HighlightedButton,
+    icons::notification_icon::NotificationIcon, start_kyc_popup::StartKycPopup, title::TitleText,
 };
 use futures::TryFutureExt;
 use global_constants::{MAX_WITHDRAWAL_PER_TXN_SATS, MIN_WITHDRAWAL_PER_TXN_SATS};
@@ -9,7 +9,7 @@ use hon_worker_common::{HoNGameWithdrawReq, SatsBalanceInfo};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
-use state::{canisters::auth_state, server::HonWorkerJwt};
+use state::{canisters::auth_state, kyc_state::KycState, server::HonWorkerJwt};
 use utils::send_wrap;
 use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::{utils::token::balance::TokenBalance, Canisters};
@@ -150,6 +150,7 @@ fn BalanceDisplay(#[prop(into)] balance: Nat) -> impl IntoView {
 
 #[component]
 pub fn HonWithdrawal() -> impl IntoView {
+    let show_kyc_popup = RwSignal::new(false);
     let auth = auth_state();
     let details_res = auth.derive_resource(
         || (),
@@ -334,6 +335,22 @@ pub fn HonWithdrawal() -> impl IntoView {
                                 }}
                             </Suspense>
                         </div>
+                        <StartKycPopup show=show_kyc_popup />
+                        <Show when=move || !KycState::is_verified()>
+                                <HighlightedButton
+                                    alt_style=true
+                                    disabled=false
+                                    on_click=move || {
+                                        show_kyc_popup.set(true);
+                                    }
+                                    >
+                                    "Complete Verification"
+                                </HighlightedButton>
+                            <div class="flex items-center justify-center gap-2">
+                                <img src="/img/kyc/info_circle.svg" class="h-4" alt="Info Icon" />
+                                Unverified users withdraw only 50 SATS / day.
+                            </div>
+                        </Show>
                         <span class="text-sm">
                             1 Sats = {crate::consts::SATS_TO_BTC_CONVERSION_RATIO}BTC
                         </span>
