@@ -1,6 +1,6 @@
 use crate::notification::provider::{NotificationError, NotificationProvider};
-use component::overlay::{ShadowOverlay, ShowOverlay};
-use component::{infinite_scroller::InfiniteScroller, title::TitleText};
+use crate::overlay::{ShadowOverlay, ShowOverlay};
+use crate::{infinite_scroller::InfiniteScroller, title::TitleText};
 use leptos::prelude::*;
 use leptos_icons::Icon;
 use leptos_meta::*;

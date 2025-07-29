@@ -29,7 +29,7 @@ use utils::send_wrap;
 use yral_canisters_common::utils::profile::ProfileDetails;
 use yral_metadata_client::MetadataClient;
 
-use crate::notification::NotificationPage;
+use component::notification::NotificationPage;
 
 /// Controller for the login modal, passed through context
 /// under wallet
