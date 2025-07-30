@@ -3126,6 +3126,7 @@ checksum = "a8d1add55171497b4705a648c6b583acafb01d58050a51727785f0b2c8e0a2b2"
 [[package]]
 name = "global-constants"
 version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=2d6386813df55774de8404fd374d69eb10507f2c#2d6386813df55774de8404fd374d69eb10507f2c"
 dependencies = [
  "candid",
  "num-bigint",
@@ -3770,6 +3771,7 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=2d6386813df55774de8404fd374d69eb10507f2c#2d6386813df55774de8404fd374d69eb10507f2c"
 dependencies = [
  "candid",
  "global-constants",
@@ -3779,7 +3781,7 @@ dependencies = [
  "serde_with 3.14.0",
  "thiserror 2.0.12",
  "url",
- "yral-identity 0.1.0",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?rev=2d6386813df55774de8404fd374d69eb10507f2c)",
 ]
 
 [[package]]
@@ -6687,7 +6689,7 @@ dependencies = [
  "web-time",
  "yral-canisters-client",
  "yral-canisters-common",
- "yral-identity 0.1.0",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?rev=2d6386813df55774de8404fd374d69eb10507f2c)",
  "yral-metadata-client",
  "yral-metadata-types",
  "yral-pump-n-dump-common",
@@ -8884,6 +8886,7 @@ dependencies = [
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=2d6386813df55774de8404fd374d69eb10507f2c#2d6386813df55774de8404fd374d69eb10507f2c"
 dependencies = [
  "candid",
  "humantime",
@@ -10386,7 +10389,7 @@ dependencies = [
  "web-time",
  "yral-canisters-client",
  "yral-canisters-common",
- "yral-identity 0.1.0",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?rev=2d6386813df55774de8404fd374d69eb10507f2c)",
  "yral-metadata-client",
  "yral-metadata-types",
  "yral-testcontainers",
@@ -10488,6 +10491,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 [[package]]
 name = "videogen-common"
 version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=2d6386813df55774de8404fd374d69eb10507f2c#2d6386813df55774de8404fd374d69eb10507f2c"
 dependencies = [
  "candid",
  "enum_dispatch",
@@ -10499,7 +10503,7 @@ dependencies = [
  "utoipa",
  "web-sys",
  "yral-canisters-client",
- "yral-identity 0.1.0",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?rev=2d6386813df55774de8404fd374d69eb10507f2c)",
 ]
 
 [[package]]
@@ -11121,6 +11125,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=2d6386813df55774de8404fd374d69eb10507f2c#2d6386813df55774de8404fd374d69eb10507f2c"
 dependencies = [
  "anyhow",
  "candid",
@@ -11140,6 +11145,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=2d6386813df55774de8404fd374d69eb10507f2c#2d6386813df55774de8404fd374d69eb10507f2c"
 dependencies = [
  "candid",
  "ciborium",
@@ -11161,7 +11167,7 @@ dependencies = [
  "url",
  "web-time",
  "yral-canisters-client",
- "yral-identity 0.1.0",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?rev=2d6386813df55774de8404fd374d69eb10507f2c)",
  "yral-metadata-client",
  "yral-metadata-types",
  "yral-pump-n-dump-common",
@@ -11171,12 +11177,10 @@ dependencies = [
 [[package]]
 name = "yral-identity"
 version = "0.1.0"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#8377118a98b549157f374e28751af998eefb33e2"
 dependencies = [
  "candid",
- "getrandom 0.2.16",
  "ic-agent",
- "ic-types",
- "ic-validator-ingress-message",
  "serde",
  "thiserror 2.0.12",
  "web-time",
@@ -11185,10 +11189,13 @@ dependencies = [
 [[package]]
 name = "yral-identity"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#8377118a98b549157f374e28751af998eefb33e2"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=2d6386813df55774de8404fd374d69eb10507f2c#2d6386813df55774de8404fd374d69eb10507f2c"
 dependencies = [
  "candid",
+ "getrandom 0.2.16",
  "ic-agent",
+ "ic-types",
+ "ic-validator-ingress-message",
  "serde",
  "thiserror 2.0.12",
  "web-time",
@@ -11223,6 +11230,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=2d6386813df55774de8404fd374d69eb10507f2c#2d6386813df55774de8404fd374d69eb10507f2c"
 dependencies = [
  "candid",
  "ic-agent",
@@ -11231,7 +11239,7 @@ dependencies = [
  "url",
  "uuid",
  "yral-canisters-client",
- "yral-identity 0.1.0",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?rev=2d6386813df55774de8404fd374d69eb10507f2c)",
 ]
 
 [[package]]
@@ -11248,6 +11256,7 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
+source = "git+https://github.com/dolr-ai/yral-common.git?rev=2d6386813df55774de8404fd374d69eb10507f2c#2d6386813df55774de8404fd374d69eb10507f2c"
 dependencies = [
  "ic-agent",
  "k256",
