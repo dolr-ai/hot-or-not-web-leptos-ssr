@@ -6,7 +6,8 @@ use component::login_nudge_popup::LoginNudgePopup;
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
 use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
 use global_constants::{
-    CoinState, DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT,
+    CoinState, CREATOR_COMMISSION_PERCENT, DEFAULT_BET_COIN_FOR_LOGGED_IN,
+    DEFAULT_BET_COIN_FOR_LOGGED_OUT,
 };
 use hon_worker_common::{
     sign_vote_request_v3, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV3,
@@ -249,7 +250,7 @@ fn HNButtonOverlay(
                             true,
                             game_conclusion,
                             win_loss_amount,
-                            crate::consts::CREATOR_COMMISION_PERCENT,
+                            CREATOR_COMMISSION_PERCENT,
                             post.is_nsfw,
                         );
                         play_win_sound_and_vibrate(
@@ -362,14 +363,15 @@ fn HNWonLost(
     let is_connected = auth.is_logged_in_with_oauth();
     let event_ctx = auth.event_ctx();
     let won = matches!(game_result, GameResult::Win { .. });
-    let creator_reward = (vote_amount * crate::consts::CREATOR_COMMISION_PERCENT) / 100;
+    let creator_reward_rounded =
+        ((vote_amount * CREATOR_COMMISSION_PERCENT) as f64 / 100.0).ceil() as u64;
     let bet_direction_text = match bet_direction.get() {
         Some(VoteKind::Hot) => "Hot",
         Some(VoteKind::Not) => "Not",
         None => "",
     };
-    let creator_reward_text = if creator_reward > 0 {
-        format!(", creator gets {creator_reward} SATS")
+    let creator_reward_text = if creator_reward_rounded > 0 {
+        format!(", creator gets {creator_reward_rounded} SATS")
     } else {
         String::new()
     };
