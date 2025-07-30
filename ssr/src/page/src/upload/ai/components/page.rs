@@ -32,6 +32,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
 
     // Get auth state outside actions for reuse
     let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
 
     // Get unauth_canisters at component level to preserve reactive context
     let unauth_cans = unauth_canisters();
@@ -44,7 +45,6 @@ pub fn UploadAiPostPage() -> impl IntoView {
                 let params = params.clone();
                 let show_form = show_form;
                 let unauth_cans = unauth_cans.clone();
-                let ev_ctx = auth.event_ctx();
 
                 async move {
                     // Store model name for tracking
@@ -98,7 +98,6 @@ pub fn UploadAiPostPage() -> impl IntoView {
             let notification_nudge = notification_nudge;
             let show_success_modal = show_success_modal;
             let unauth_cans = unauth_cans_for_upload.clone();
-            let ev_ctx = auth.event_ctx();
             async move {
                 // Show notification nudge when starting upload
                 notification_nudge.set(true);
