@@ -1,8 +1,11 @@
 use crate::{buttons::HighlightedButton, overlay::ShadowOverlay};
+use candid::Principal;
+use codee::string::FromToStringCodec;
+use consts::USER_PRINCIPAL_STORE;
 use leptos::prelude::*;
 use leptos_icons::*;
-use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
-use state::kyc_state::{KycState, KycStatus};
+use leptos_use::use_cookie;
+use state::kyc_state::{KycState, KycStatus, PersonaConfig};
 
 #[component]
 pub fn StartKycPopup(show: RwSignal<bool>) -> impl IntoView {
@@ -10,7 +13,7 @@ pub fn StartKycPopup(show: RwSignal<bool>) -> impl IntoView {
         <ShadowOverlay show=show>
         {
             move || match KycState::get().get() {
-                KycStatus::Pending => view! { <StartKyc show=show/> }.into_any(),
+                KycStatus::Pending => view! { <StartKyc show /> }.into_any(),
                 KycStatus::InProgress => view! { <VerificationStatusPopup show=show is_verified=RwSignal::new(false) /> }.into_any(),
                 KycStatus::Verified => view! { <VerificationStatusPopup show=show is_verified=RwSignal::new(true) /> }.into_any(),
             }
@@ -23,10 +26,10 @@ pub fn StartKycPopup(show: RwSignal<bool>) -> impl IntoView {
 fn StartKyc(show: RwSignal<bool>) -> impl IntoView {
     view! {
             <div class="w-full h-full flex items-center justify-center">
-                <div class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-[#171717] rounded-md w-full relative">
+                <div class="overflow-visible h-fit max-w-md items-center cursor-auto bg-[#171717] rounded-md w-full relative">
                     <button
                         on:click=move |_| show.set(false)
-                        class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[2] top-4 right-4"
+                        class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[50] top-4 right-4"
                     >
                         <Icon icon=icondata::ChCross />
                     </button>
@@ -39,16 +42,16 @@ fn StartKyc(show: RwSignal<bool>) -> impl IntoView {
 
                         <div class="text-center text-xl font-semibold mt-2">Verify to unlock higher limits</div>
 
-                        <div class="w-full text-center items-start text-sm text-neutral-300 flex flex-col gap-1">
+                        <div class="w-full text-center text-sm text-neutral-300 flex flex-col gap-1">
                             <span>Get access to:</span>
                             <span class="px-2">"• Daily withdrawals: 50 – 1000 SATS"</span>
                             <span class="px-2">"• Faster withdrawals & added security"</span>
                         </div>
 
-                        <div class="w-full my-4 bg-neutral-800 text-sm text-blue-300 border border-blue-500 p-2 rounded-md text-center">
-                            <div class="flex items-center justify-center gap-2">
+                        <div class=" my-4 bg-neutral-800 text-xs text-blue-300 border border-blue-500 p-2 rounded-md text-center">
+                            <div class="flex items-center justify-start gap-2">
                                 <Icon icon=icondata::BsInfoCircle />
-                                Unverified users withdraw only 50 SATS / day.
+                                <span class="text-white">Unverified users withdraw only 50 SATS / day.</span>
                             </div>
                         </div>
 
@@ -69,14 +72,13 @@ fn StartKyc(show: RwSignal<bool>) -> impl IntoView {
 
 #[component]
 fn VerificationStatusPopup(show: RwSignal<bool>, is_verified: RwSignal<bool>) -> impl IntoView {
-    let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
-        move |_: ()| {
-            if !is_verified.get() {
-                KycState::toggle();
-            }
-        },
-        3000.0,
-    );
+    let (user_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
+
+    let start = move |_: ()| {
+        if !is_verified.get() {
+            PersonaConfig::launch(user_principal.get_untracked().unwrap().to_text().as_str());
+        }
+    };
 
     Effect::new(move || {
         if !is_verified.get() {

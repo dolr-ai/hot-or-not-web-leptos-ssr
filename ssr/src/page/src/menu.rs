@@ -287,7 +287,7 @@ pub fn Menu() -> impl IntoView {
                     <div node_ref=upload_content_mount_point />
                 </div>
             </div>
-            <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
+            <div class="flex flex-col gap-8 py-4 px-8 w-full text-lg">
                 // add later when NSFW toggle is needed
                 // <NsfwToggle />
                 <Show when=move ||!KycState::is_verified() && is_connected()>

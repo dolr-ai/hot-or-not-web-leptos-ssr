@@ -6,10 +6,10 @@ pub fn StartVerificationButton(show_popup: RwSignal<bool>) -> impl IntoView {
     view! {
         <button
             on:click=move |_| show_popup.set(true)
-            class="flex w-full items-center justify-between gap-4 p-3 border rounded-xl border-yellow-700 bg-neutral-900 text-left hover:bg-yellow-900/10 transition-all"
+            class="flex w-full items-center justify-between p-2 rounded-xl border border-yellow-800 bg-neutral-900 text-left hover:bg-yellow-900/10 transition-all"
         >
             <div class="flex flex-col gap-1">
-                <div class="flex items-center gap-2 text-yellow-400 font-semibold">
+                <div class="flex items-center gap-2 font-semibold">
                     <img src="/img/kyc/kyc-shield.svg" />
                     <span>Start verification</span>
                 </div>
@@ -18,7 +18,7 @@ pub fn StartVerificationButton(show_popup: RwSignal<bool>) -> impl IntoView {
                 </div>
             </div>
 
-            <div class="text-yellow-400">
+            <div class="text-yellow-800">
                 <Icon icon=icondata::AiRightOutlined />
             </div>
         </button>

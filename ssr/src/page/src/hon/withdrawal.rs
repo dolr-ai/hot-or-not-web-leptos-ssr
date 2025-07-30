@@ -324,7 +324,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                                             <button
                                                 disabled=invalid_input || !can_withdraw
                                                 class=("pointer-events-none", is_claiming)
-                                                class="py-2 px-5 text-sm font-bold text-center rounded-lg bg-brand-gradient disabled:bg-brand-gradient-disabled"
+                                                class="py-3 px-5 text-sm font-bold text-center rounded-lg bg-brand-gradient disabled:bg-brand-gradient-disabled"
                                                 on:click=move |_ev| {
                                                     send_claim.dispatch(());
                                                 }
@@ -337,19 +337,20 @@ pub fn HonWithdrawal() -> impl IntoView {
                             </Suspense>
                         </div>
                         <Show when=move||is_connected()>
-                            <StartKycPopup show=show_kyc_popup />
+                            <StartKycPopup show=show_kyc_popup  />
                         </Show>
                         <Show when=move || !KycState::is_verified() && is_connected()>
                                 <HighlightedButton
                                     alt_style=true
                                     disabled=false
+                                    py="py-2".to_string()
                                     on_click=move || {
                                         show_kyc_popup.set(true);
                                     }
                                     >
                                     "Complete Verification"
                                 </HighlightedButton>
-                            <div class="flex items-center justify-center gap-2">
+                            <div class="flex text-xs items-center justify-start gap-2">
                                 <img src="/img/kyc/info_circle.svg" class="h-4" alt="Info Icon" />
                                 Unverified users withdraw only 50 SATS / day.
                             </div>
