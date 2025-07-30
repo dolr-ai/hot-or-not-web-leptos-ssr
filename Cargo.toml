@@ -37,11 +37,11 @@ web-time = "1.0.0"
 axum = { version = "0.8.4", features = ["macros"] }
 console_error_panic_hook = "0.1"
 console_log = "1"
-leptos = { version = "0.8.2", features = ["nightly"] }
-leptos_axum = { version = "0.8.2" }
-leptos_meta = "0.8.2"
-leptos_router = { version = "0.8.2", features = ["nightly"] }
-reactive_graph = "0.2.2"
+leptos = { version = "0.8.5", features = ["nightly"] }
+leptos_axum = { version = "0.8.5" }
+leptos_meta = "0.8.5"
+leptos_router = { version = "0.8.5", features = ["nightly"] }
+reactive_graph = "0.2.5"
 log = "0.4"
 simple_logger = "4.0"
 tokio = { version = "1", features = ["rt-multi-thread", "signal", "time"] }
@@ -56,7 +56,7 @@ ic-agent = { version = "0.41.0", default-features = false, features = ["pem"] }
 ic-base-types = { git = "https://github.com/dfinity/ic", rev = "tags/release-2024-10-17_03-07-base" }
 icp-ledger = { git = "https://github.com/dfinity/ic", rev = "tags/release-2024-10-17_03-07-base" }
 futures = "0.3.30"
-leptos-use = { version = "0.16.0-beta2" }
+leptos-use = { version = "0.16.2-beta2" }
 codee = { version = "0.3.0", features = ["json_serde"] }
 reqwest = { version = "0.12", default-features = false, features = [
     "json",
@@ -204,22 +204,22 @@ base64 = "0.22"
 
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], branch = "rupansh/fallback-username", version = "0.1.0" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "rupansh/fallback-username" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "rupansh/fallback-username" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "rupansh/fallback-username", features = [
+], branch = "master", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "rupansh/fallback-username" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], branch = "rupansh/fallback-username", version = "0.1.0" }
-global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "rupansh/fallback-username" }
-yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "rupansh/fallback-username", default-features = false, features = [
+], branch = "master", version = "0.1.0" }
+global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", default-features = false, features = [
     "ic-git",
     "wasm-bindgen",
 ] }
-videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "rupansh/fallback-username", features = [
+videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
     "client",
     "ic",
 ] }

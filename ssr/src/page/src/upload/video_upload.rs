@@ -421,9 +421,10 @@ pub fn VideoUploader(
                     MixPanelEvent::track_video_upload_success(
                         global,
                         uid_value.clone(),
-                        crate::consts::CREATOR_COMMISION_PERCENT,
+                        global_constants::CREATOR_COMMISSION_PERCENT,
                         true,
                         MixpanelPostGameType::HotOrNot,
+                        Some("upload_video".to_string()),
                     );
                     published.set(true)
                 }
