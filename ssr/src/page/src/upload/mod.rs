@@ -77,6 +77,7 @@ fn PreUploadView(
                 global,
                 !description.is_empty(),
                 !hashtags.is_empty(),
+                Some("upload_video".to_string()),
             );
         }
         trigger_upload.set(Some(UploadParams {
@@ -223,6 +224,9 @@ pub fn UploadOptionsPage() -> impl IntoView {
     let selected_option = RwSignal::new(None::<String>);
     let navigate = use_navigate();
 
+    let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
+
     view! {
         <Title text="YRAL - Upload Options" />
         <div class="flex flex-col bg-black min-w-dvw min-h-dvh">
@@ -240,7 +244,12 @@ pub fn UploadOptionsPage() -> impl IntoView {
                 // Create AI video option
                 <div class="w-full">
                     <div
-                        on:click=move |_| selected_option.set(Some("ai".to_string()))
+                        on:click=move |_| {
+                            selected_option.set(Some("ai".to_string()));
+                            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                                MixPanelEvent::track_video_upload_type_selected(global, "ai_video".to_string());
+                            }
+                        }
                         class=move || format!(
                             "bg-neutral-900 rounded-lg p-3 h-[150px] flex flex-col items-center justify-center gap-4 hover:bg-neutral-800 transition-colors cursor-pointer {}",
                             if selected_option.get() == Some("ai".to_string()) {
@@ -267,7 +276,12 @@ pub fn UploadOptionsPage() -> impl IntoView {
                 // Upload video option
                 <div class="w-full">
                     <div
-                        on:click=move |_| selected_option.set(Some("upload".to_string()))
+                        on:click=move |_| {
+                            selected_option.set(Some("upload".to_string()));
+                            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                                MixPanelEvent::track_video_upload_type_selected(global, "upload_video".to_string());
+                            }
+                        }
                         class=move || format!(
                             "bg-neutral-900 rounded-lg p-3 h-[150px] flex flex-col items-center justify-center gap-4 hover:bg-neutral-800 transition-colors cursor-pointer {}",
                             if selected_option.get() == Some("upload".to_string()) {
@@ -296,6 +310,19 @@ pub fn UploadOptionsPage() -> impl IntoView {
                     <GradientButton
                         on_click=move || {
                             if let Some(option) = selected_option.get_untracked() {
+                                // Track continue click
+                                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                                    let upload_type = match option.as_str() {
+                                        "ai" => "ai_video",
+                                        "upload" => "upload_video",
+                                        _ => ""
+                                    };
+                                    if !upload_type.is_empty() {
+                                        MixPanelEvent::track_upload_type_continue_clicked(global, upload_type.to_string());
+                                    }
+                                }
+
+                                // Navigate
                                 match option.as_str() {
                                     "ai" => navigate("/upload-ai", Default::default()),
                                     "upload" => navigate("/upload", Default::default()),

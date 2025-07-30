@@ -424,6 +424,7 @@ pub fn VideoUploader(
                         global_constants::CREATOR_COMMISSION_PERCENT,
                         true,
                         MixpanelPostGameType::HotOrNot,
+                        Some("upload_video".to_string()),
                     );
                     published.set(true)
                 }
