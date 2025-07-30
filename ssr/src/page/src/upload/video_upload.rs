@@ -21,9 +21,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use utils::mixpanel::mixpanel_events::*;
 use utils::{
-    event_streaming::events::{
-        VideoUploadSuccessful, VideoUploadUnsuccessful, VideoUploadVideoSelected,
-    },
+    event_streaming::events::{VideoUploadUnsuccessful, VideoUploadVideoSelected},
     try_or_redirect_opt,
     web::FileWithUrl,
 };
@@ -234,7 +232,7 @@ pub struct SerializablePostDetailsFromFrontend {
 }
 
 #[cfg(feature = "hydrate")]
-async fn upload_video_part(
+pub async fn upload_video_part(
     upload_base_url: &str,
     form_field_name: &str,
     file_blob: &Blob,
@@ -375,11 +373,12 @@ pub fn VideoUploader(
     let notification_nudge = RwSignal::new(false);
 
     let publish_action: Action<_, _> = Action::new_unsync(move |&()| {
+        leptos::logging::log!("Publish action triggered");
         let unauth_cans = unauth_canisters();
         let hashtags = hashtags.clone();
         let hashtags_len = hashtags.len();
         let description = description.clone();
-        log::info!("Publish action called");
+        leptos::logging::log!("Publish action called");
 
         async move {
             let uid_value = uid.get_untracked()?;
@@ -387,6 +386,7 @@ pub fn VideoUploader(
             let canisters = auth.auth_cans(unauth_cans).await.ok()?;
             let id = canisters.identity();
             let delegated_identity = delegate_short_lived_identity(id);
+
             let res: std::result::Result<reqwest::Response, ServerFnError> = {
                 let client = reqwest::Client::new();
                 notification_nudge.set(true);
@@ -421,7 +421,7 @@ pub fn VideoUploader(
                     MixPanelEvent::track_video_upload_success(
                         global,
                         uid_value.clone(),
-                        crate::consts::CREATOR_COMMISION_PERCENT,
+                        global_constants::CREATOR_COMMISSION_PERCENT,
                         true,
                         MixpanelPostGameType::HotOrNot,
                     );
@@ -439,15 +439,6 @@ pub fn VideoUploader(
                 }
             }
             try_or_redirect_opt!(res);
-
-            VideoUploadSuccessful.send_event(
-                ev_ctx,
-                uid_value.clone(),
-                hashtags_len,
-                is_nsfw,
-                enable_hot_or_not,
-                0,
-            );
 
             Some(())
         }
@@ -539,7 +530,7 @@ pub fn VideoUploader(
 
 // post as in after not the content post
 #[component]
-fn PostUploadScreen() -> impl IntoView {
+pub fn PostUploadScreen() -> impl IntoView {
     view! {
         <div
             style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
@@ -550,7 +541,7 @@ fn PostUploadScreen() -> impl IntoView {
                 src="/img/airdrop/bg.webp"
                 class="object-cover absolute inset-0 w-full h-full z-25 fade-in"
             />
-            <div class="flex z-50 flex-col items-center">
+            <div class="flex z-50 flex-col items-center text-white">
                 <img src="/img/common/coins/sucess-coin.png" width=170 class="mb-6 z-300" />
 
                 <h1 class="mb-2 text-lg font-semibold">Video uploaded sucessfully</h1>

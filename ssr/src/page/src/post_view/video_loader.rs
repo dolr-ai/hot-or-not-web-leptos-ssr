@@ -72,6 +72,7 @@ pub fn VideoView(
     #[prop(optional)] autoplay_at_render: bool,
     to_load: Memo<bool>,
     muted: RwSignal<bool>,
+    volume: RwSignal<f64>,
     #[prop(optional, into)] is_current: Option<Signal<bool>>,
 ) -> impl IntoView {
     let post_for_uid = post;
@@ -103,6 +104,13 @@ pub fn VideoView(
     Effect::new(move |_| {
         let vid = _ref.get()?;
         vid.set_muted(muted());
+        Some(())
+    });
+
+    // Handles volume change
+    Effect::new(move |_| {
+        let vid = _ref.get()?;
+        vid.set_volume(volume());
         Some(())
     });
 
@@ -140,6 +148,7 @@ pub fn VideoViewForQueue(
     current_idx: RwSignal<usize>,
     idx: usize,
     muted: RwSignal<bool>,
+    volume: RwSignal<f64>,
     to_load: Memo<bool>,
 ) -> impl IntoView {
     let container_ref = NodeRef::<Video>::new();
@@ -200,6 +209,7 @@ pub fn VideoViewForQueue(
             _ref=container_ref
             to_load
             muted
+            volume
             is_current=is_current_signal
         />
     }
