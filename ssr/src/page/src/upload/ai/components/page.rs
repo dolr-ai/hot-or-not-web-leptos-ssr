@@ -141,7 +141,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                     MixPanelEvent::track_video_upload_success(
                                         global,
                                         video_uid.clone(),
-                                        crate::consts::CREATOR_COMMISION_PERCENT,
+                                        global_constants::CREATOR_COMMISSION_PERCENT,
                                         false, // is_game_enabled - AI videos don't have game enabled
                                         MixpanelPostGameType::HotOrNot,
                                         Some("ai_video".to_string()),

@@ -53,21 +53,20 @@ pub async fn generate_video_with_signature(
     poll_video_status(&client, &request_key, rate_limits).await
 }
 
-/// Poll the video generation status with exponential backoff
+/// Poll the video generation status every 15 seconds for 5 minutes
 async fn poll_video_status(
     client: &VideoGenClient,
     request_key: &videogen_common::VideoGenRequestKey,
     rate_limits: &RateLimits<'_>,
 ) -> Result<VideoGenResponse, VideoGenError> {
-    // Polling intervals: 2s, 4s, 8s, 16s, 30s, then every 30s
-    let mut poll_interval_ms = 2000;
-    const MAX_POLL_INTERVAL_MS: u32 = 30000;
-    const MAX_ATTEMPTS: u32 = 20; // Maximum 10 minutes of polling
+    // Poll every 15 seconds for 5 minutes
+    const POLL_INTERVAL_MS: u32 = 15000; // 15 seconds
+    const MAX_ATTEMPTS: u32 = 20; // 20 attempts * 15 seconds = 5 minutes
 
     for attempt in 0..MAX_ATTEMPTS {
         // Wait before polling (except on first attempt)
         if attempt > 0 {
-            TimeoutFuture::new(poll_interval_ms).await;
+            TimeoutFuture::new(POLL_INTERVAL_MS).await;
         }
 
         // Poll the status
@@ -98,12 +97,9 @@ async fn poll_video_status(
                 // Continue polling on transient errors
             }
         }
-
-        // Increase interval with exponential backoff
-        poll_interval_ms = (poll_interval_ms * 2).min(MAX_POLL_INTERVAL_MS);
     }
 
     Err(VideoGenError::NetworkError(
-        "Video generation timed out after 10 minutes".to_string(),
+        "Video generation timed out after 5 minutes".to_string(),
     ))
 }
