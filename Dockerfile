@@ -1,17 +1,9 @@
-FROM debian:bookworm-slim 
-
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update
-RUN apt-get -y install --no-install-recommends openssl ca-certificates
-RUN apt-get clean
-RUN rm -rf /var/lib/apt/lists/*
+FROM scratch
 
 WORKDIR /app
-COPY ./target/prod-release/hot-or-not-web-leptos-ssr .
-COPY ./target/prod-release/hash.txt .
+COPY ./target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr .
+COPY ./target/x86_64-unknown-linux-musl/prod-release/hash.txt .
 COPY ./target/site ./site
-
-RUN chmod +x hot-or-not-web-leptos-ssr
 
 ENV LEPTOS_SITE_ROOT="site"
 

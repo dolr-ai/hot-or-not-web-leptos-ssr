@@ -77,29 +77,23 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
     let event_ctx = auth.event_ctx();
     let view_profile_clicked = move |cta_type: MixpanelProfileClickedCTAType| {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
-            MixPanelEvent::track_profile_clicked(MixpanelProfileClickedProps {
-                user_id: global.user_id.clone(),
-                visitor_id: global.visitor_id.clone(),
-                is_logged_in: global.is_logged_in,
-                canister_id: global.canister_id.clone(),
-                is_nsfw_enabled: global.is_nsfw_enabled,
+            let logged_in_canister = global.canister_id.clone();
+            MixPanelEvent::track_profile_tab_clicked(
+                global,
+                logged_in_canister == user_canister.to_text(),
+                user_principal.to_text(),
                 cta_type,
-                is_own_profile: global.canister_id == user_canister.to_text(),
-                publisher_user_id: user_principal.to_string(),
-            });
+            );
         }
     };
 
     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
-        MixPanelEvent::track_profile_page_viewed(MixpanelProfilePageViewedProps {
-            user_id: global.user_id,
-            visitor_id: global.visitor_id,
-            is_logged_in: global.is_logged_in,
-            canister_id: global.canister_id.clone(),
-            is_nsfw_enabled: global.is_nsfw_enabled,
-            is_own_profile: global.canister_id == user_canister.to_text(),
-            publisher_user_id: user_principal.to_string(),
-        });
+        let logged_in_caniser = global.canister_id.clone();
+        MixPanelEvent::track_profile_page_viewed(
+            global,
+            logged_in_caniser == user_canister.to_text(),
+            user_principal.to_string(),
+        );
     }
 
     let current_tab = Memo::new(move |_| match tab.get().as_str() {
@@ -140,7 +134,7 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
 fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     let user_principal = user.principal;
     let user_canister = user.user_canister;
-    let username_or_principal = user.username_or_principal();
+    let username_or_fallback = user.username_or_fallback();
     let profile_pic = user.profile_pic_or_random();
     let _earnings = user.lifetime_earnings;
 
@@ -158,13 +152,13 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                             <div class="flex flex-row items-center gap-4">
                                 <img
                                     class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-full"
-                                    alt=username_or_principal.clone()
+                                    alt=username_or_fallback.clone()
                                     src=profile_pic
                                 />
                                 <div class="flex flex-col gap-2">
                                     <div node_ref=edit_icon_mount_point class="flex flex-row justify-between">
                                         <span class="font-bold text-neutral-50 text-lg line-clamp-1">
-                                            @{username_or_principal.clone()}
+                                            @{username_or_fallback.clone()}
                                         </span>
                                     </div>
                                     <span class="text-neutral-400 text-sm line-clamp-1">

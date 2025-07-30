@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 
 // TODO: make it consistent with the actual bet amount
 pub const CENTS_IN_E6S: u64 = 1_000_000;
+pub const SATS_TO_BTC_CONVERSION_RATIO: f64 = 0.00000001;
 pub const CF_STREAM_BASE: &str = "https://customer-2p3jflss4r4hmpnz.cloudflarestream.com";
 pub const FALLBACK_PROPIC_BASE: &str = "https://api.dicebear.com/7.x/big-smile/svg";
 // an example URL is "https://imagedelivery.net/abXI9nS4DYYtyR1yFFtziA/gob.5/public";
@@ -63,8 +64,6 @@ pub const CLOUDFLARE_ACCOUNT_ID: &str = "a209c523d2d9646cc56227dbe6ce3ede";
 pub const AUTH_UTIL_COOKIES_MAX_AGE_MS: i64 = 400 * 24 * 60 * 60 * 1000; // 400 days
 
 pub const MAX_VIDEO_ELEMENTS_FOR_FEED: usize = 200;
-
-pub const USERNAME_MAX_LEN: usize = 15;
 
 pub mod social {
     pub const TELEGRAM_YRAL: &str = "https://t.me/+c-LTX0Cp-ENmMzI1";

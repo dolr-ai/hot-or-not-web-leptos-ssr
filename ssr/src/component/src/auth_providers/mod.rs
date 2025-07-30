@@ -18,8 +18,6 @@ use utils::event_streaming::events::EventCtx;
 use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, ProviderKind};
 use utils::mixpanel::mixpanel_events::MixPanelEvent;
 use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
-use utils::mixpanel::mixpanel_events::MixpanelLoginSuccessProps;
-use utils::mixpanel::mixpanel_events::MixpanelSignupSuccessProps;
 use utils::send_wrap;
 use utils::types::NewIdentity;
 use yral_canisters_common::Canisters;
@@ -47,29 +45,16 @@ pub async fn handle_user_login(
     if first_time_login {
         CentsAdded.send_event(event_ctx, "signup".to_string(), NEW_USER_SIGNUP_REWARD_SATS);
         let global = MixpanelGlobalProps::try_get(&canisters, true);
-        MixPanelEvent::track_signup_success(MixpanelSignupSuccessProps {
-            user_id: global.user_id,
-            visitor_id: global.visitor_id,
-            is_logged_in: global.is_logged_in,
-            canister_id: global.canister_id,
-            is_nsfw_enabled: global.is_nsfw_enabled,
-            is_referral: referrer.is_some(),
-            referrer_user_id: referrer.map(|f| f.to_text()),
+        MixPanelEvent::track_signup_success(
+            global,
+            referrer.is_some(),
+            referrer.map(|f| f.to_text()),
             auth_journey,
-        });
+        );
     } else {
         let global = MixpanelGlobalProps::try_get(&canisters, true);
-        MixPanelEvent::track_login_success(MixpanelLoginSuccessProps {
-            user_id: global.user_id,
-            visitor_id: global.visitor_id,
-            is_logged_in: global.is_logged_in,
-            canister_id: global.canister_id,
-            is_nsfw_enabled: global.is_nsfw_enabled,
-            auth_journey,
-        });
+        MixPanelEvent::track_login_success(global, auth_journey);
     }
-
-    MixPanelEvent::identify_user(user_principal.to_text().as_str());
 
     match referrer {
         Some(referrer_principal) if first_time_login => {

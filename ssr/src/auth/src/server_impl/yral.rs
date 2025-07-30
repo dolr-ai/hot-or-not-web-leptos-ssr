@@ -5,7 +5,8 @@ use axum_extra::extract::{
     PrivateCookieJar, SignedCookieJar,
 };
 use candid::Principal;
-use consts::{LoginProvider, USERNAME_MAX_LEN};
+use consts::LoginProvider;
+use global_constants::USERNAME_MAX_LEN;
 use leptos::prelude::*;
 use leptos_axum::{extract_with_state, ResponseOptions};
 use openidconnect::{

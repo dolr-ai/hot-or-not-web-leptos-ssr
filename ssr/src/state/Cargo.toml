@@ -28,7 +28,6 @@ candid.workspace = true
 ic-agent = { workspace = true }
 ic-base-types = { workspace = true }
 icp-ledger = { workspace = true }
-serde-wasm-bindgen = { workspace = true }
 futures = { workspace = true }
 leptos-use = { workspace = true }
 codee = { workspace = true }
@@ -73,6 +72,7 @@ urlencoding = { workspace = true }
 yral-types = { workspace = true }
 yral-canisters-client = { workspace = true }
 yral-canisters-common = { workspace = true }
+global-constants = { workspace = true }
 ic-certification = { workspace = true }
 ciborium = { workspace = true }
 yral-metadata-client = { workspace = true }
@@ -112,6 +112,7 @@ hydrate = [
     "send_wrapper/futures",
     "consts/hydrate",
     "utils/hydrate",
+    "yral-metadata-client/native-tls"
 ]
 ssr = [
     "dep:axum",
@@ -145,6 +146,7 @@ ssr = [
     "auth/ssr",
     "consts/ssr",
     "utils/ssr",
+    "yral-metadata-client/rustls-tls"
 ]
 # Fetch mock referral history instead of history via canister
 mock-referral-history = ["dep:rand_chacha", "k256/arithmetic"]

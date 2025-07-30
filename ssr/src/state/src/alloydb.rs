@@ -19,7 +19,8 @@ impl AlloyDbInstance {
         db_password: String,
     ) -> Self {
         let execute_sql = client
-            .execute_sql(instance)
+            .execute_sql()
+            .set_instance(instance)
             .set_database(db_name)
             .set_user(db_user)
             .set_password(db_password);

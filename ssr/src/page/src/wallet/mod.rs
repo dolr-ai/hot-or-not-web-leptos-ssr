@@ -104,7 +104,7 @@ fn Header(details: ProfileDetails, is_own_account: bool) -> impl IntoView {
             <div class="flex gap-8 items-center">
                 <ShareButtonWithFallbackPopup share_link message />
                 <Show when=move || is_own_account>
-                    <a href="/wallet/notifications">
+                    <a href="/notifications">
                         <NotificationIcon show_dot=false class="w-6 h-6 text-neutral-300" />
                     </a>
                 </Show>

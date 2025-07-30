@@ -22,18 +22,14 @@ pub fn NsfwUnlockPopup(
         if agreed.get() {
             if let Some(global) = MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(ev_ctx, false) {
                 if let Some(current_post) = current_post.get_untracked() {
-                    MixPanelEvent::track_nsfw_true(MixpanelNsfwToggleProps {
-                        user_id: global.user_id,
-                        visitor_id: global.visitor_id,
-                        is_logged_in: global.is_logged_in,
-                        canister_id: global.canister_id,
-                        is_nsfw_enabled: global.is_nsfw_enabled,
-                        page_name: "home".to_string(),
-                        is_nsfw: current_post.is_nsfw,
-                        cta_type: Some("popup".to_string()),
-                        publisher_user_id: current_post.poster_principal.to_text(),
-                        video_id: current_post.uid,
-                    });
+                    MixPanelEvent::track_nsfw_enabled(
+                        global,
+                        current_post.poster_principal.to_text(),
+                        current_post.uid,
+                        current_post.is_nsfw,
+                        "home".into(),
+                        Some("popup".into()),
+                    );
                 }
             }
             set_nsfw_enabled.set(true);
@@ -49,14 +45,7 @@ pub fn NsfwUnlockPopup(
                 ev_ctx,
                 nsfw_enabled.get_untracked(),
             ) {
-                MixPanelEvent::track_enable_nsfw_popup_shown(MixpanelNudgeNsfwPopupProps {
-                    user_id: global.user_id,
-                    visitor_id: global.visitor_id,
-                    is_logged_in: global.is_logged_in,
-                    canister_id: global.canister_id,
-                    is_nsfw_enabled: global.is_nsfw_enabled,
-                    page_name: "home".to_string(),
-                });
+                MixPanelEvent::track_enable_nsfw_popup_shown(global, "home".into());
             }
         }
     });

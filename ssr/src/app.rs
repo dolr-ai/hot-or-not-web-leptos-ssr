@@ -8,6 +8,7 @@ use leptos_router::{components::*, path, MatchNestedRoutes};
 use page::about_us::AboutUs;
 use page::internal::clear_sats::ClearSats;
 use page::leaderboard::Leaderboard;
+use page::notification::NotificationPage;
 use page::post_view::PostDetailsCacheCtx;
 use page::root::YralRootPage;
 use page::terms_android::TermsAndroid;
@@ -27,7 +28,7 @@ use page::{
     settings::Settings,
     terms::TermsOfService,
     token::{info::TokenInfo, transfer::TokenTransfer},
-    upload::UploadPostPage,
+    upload::{UploadAiPostPage, UploadOptionsPage, UploadPostPage},
     wallet::Wallet,
 };
 use page::{hon, pumpdump};
@@ -71,7 +72,6 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <meta name="facebook-domain-verification" content="sqtv2sr90ar0ck7t7zcklos44fw8t3" />
                 <script fetchpriority="low" type="module" src="/js/sentry-init.js" async></script>
-                <script fetchpriority="low" type="module" src="/js/mixpanel-init.js" async></script>
                 <script
                     fetchpriority="low"
                     type="module"
@@ -180,6 +180,8 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/post/:canister_id/:post_id") view=SinglePost />
                         <Route path=path!("/profile/:canister_id/post/:post_id") view=ProfilePost />
                         <Route path=path!("/upload") view=UploadPostPage />
+                        <Route path=path!("/upload-ai") view=UploadAiPostPage />
+                        <Route path=path!("/upload-options") view=UploadOptionsPage />
                         <Route path=path!("/error") view=ServerErrorPage />
                         <Route path=path!("/menu") view=Menu />
                         <Route path=path!("/settings") view=Settings />
@@ -194,6 +196,7 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/about-us") view=AboutUs />
                         <Route path=path!("/wallet/:id") view=Wallet />
                         <Route path=path!("/wallet") view=Wallet />
+                        <Route path=path!("/notifications") view=NotificationPage />
                         <Route path=path!("/leaderboard") view=Leaderboard />
                         <Route path=path!("/logout") view=Logout />
                         <Route

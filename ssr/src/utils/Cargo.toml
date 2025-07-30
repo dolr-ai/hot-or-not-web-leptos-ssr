@@ -29,7 +29,6 @@ candid.workspace = true
 ic-agent = { workspace = true }
 ic-base-types = { workspace = true }
 icp-ledger = { workspace = true }
-serde-wasm-bindgen = { workspace = true }
 futures = { workspace = true }
 leptos-use = { workspace = true }
 codee = { workspace = true }
@@ -86,6 +85,10 @@ anyhow = { workspace = true }
 send_wrapper = { workspace = true }
 indexmap = { workspace = true }
 chrono = "0.4"
+num-bigint = { workspace = true }
+hon-worker-common = { workspace = true }
+videogen-common = { workspace = true }
+yral-identity = { workspace = true }
 
 # workspace specific deps
 consts = { workspace = true }
