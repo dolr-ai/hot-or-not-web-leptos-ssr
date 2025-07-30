@@ -12,15 +12,12 @@ async fn check_if_enquiry_completed(
     // reference_id: String,
 ) -> Result<bool, ServerFnError> {
     let token = std::env::var("KYC_SERVER_TOKEN").expect("KYC_SERVER_TOKEN is not set");
-    let url = format!(
-        "https://api.withpersona.com/api/v1/inquiries/{}",
-        inquiry_id
-    );
+    let url = format!("https://api.withpersona.com/api/v1/inquiries/{inquiry_id}",);
 
     let client = reqwest::Client::new();
     let res = client
         .get(&url)
-        .header(AUTHORIZATION, format!("Bearer {}", token))
+        .header(AUTHORIZATION, format!("Bearer {token}"))
         .header(CONTENT_TYPE, "application/json")
         .send()
         .await
@@ -55,6 +52,7 @@ struct Inquiry {
     attributes: InquiryAttributes,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct InquiryAttributes {
     status: String,
