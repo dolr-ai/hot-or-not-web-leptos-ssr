@@ -42,8 +42,8 @@ pub fn PreUploadAiView(
 
     // Get auth state
     let auth = auth_state();
-    let is_logged_in = Signal::stored(true); // auth.is_logged_in_with_oauth(); // Signal::stored(true);
-    
+    let is_logged_in = auth.is_logged_in_with_oauth(); // Signal::stored(true);
+
     // Fetch SATS balance
     let auth_clone = auth.clone();
     let balance_resource = OnceResource::new(async move {
@@ -53,17 +53,26 @@ pub fn PreUploadAiView(
                 let balance_info = send_wrap(load_sats_balance(user_principal)).await?;
                 Ok::<TokenBalance, ServerFnError>(TokenBalance::new(balance_info.balance.into(), 0))
             }
-            Err(e) => Err(e)
+            Err(e) => Err(e),
         }
     });
 
     // Form validation
     let form_valid = Signal::derive(move || !prompt_text.get().trim().is_empty());
     let can_generate = Signal::derive(move || {
-        // Allow button click for non-logged-in users (to show login modal)
-        // For logged-in users, check form validity and balance
-        // !is_logged_in.get() ||
-        form_valid.get() && !generate_action.pending().get()
+        // For logged-in users, check form validity, balance, and action state
+        if !form_valid.get() || generate_action.pending().get() {
+            return false;
+        }
+
+        // Check if user has sufficient balance
+        balance_resource.get().map_or(false, |balance_result| {
+            balance_result.map_or(false, |balance| {
+                let required_sats = selected_model.get().cost_sats;
+                // Since TokenBalance is created with 0 decimals, e8s represents whole SATS
+                balance.e8s >= required_sats
+            })
+        })
     });
 
     // Error handling from action
