@@ -269,13 +269,13 @@ pub fn HonWithdrawal() -> impl IntoView {
                     }
                 }>
                 {
-                    let is_treasury_empty = treasury_balance.get().map(|balance| balance == 0_usize).unwrap_or(true);
+                    let is_treasury_empty = treasury_balance.get().map(|balance| balance == 0_usize).unwrap_or(false);
                     if is_treasury_empty {
                         view! {
-                            <div class="flex flex-col gap-4 items-center">
+                            <div class="flex flex-col gap-4 items-center max-w-sm mx-auto px-12">
                                 <img src="/img/hotornot/bank-empty.webp" alt="Treasury is empty" class="size-40" />
                                 <span class="text-lg font-semibold">Oh no!</span>
-                                <span class="text-sm text-neutral-400">"The withdrawal pot is currently empty! Please come back in a while for the next top-up."</span>
+                                <span class="text-sm text-neutral-400 text-center">"The withdrawal pot is currently empty! Please come back in a while for the next top-up."</span>
                                 <span class="text-sm text-neutral-400">"Need assistance?"</span>
                                 <HighlightedLinkButton
                                     alt_style=true

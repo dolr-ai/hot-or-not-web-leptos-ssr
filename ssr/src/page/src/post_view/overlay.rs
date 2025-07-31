@@ -450,6 +450,7 @@ pub fn VideoDetailsOverlay(
                 }
             })
             .inspect_err(|_| {
+                log::warn!("Something went wrong claiming airdrop");
                 sats_airdrop_error.set(true);
                 if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                     MixPanelEvent::track_airdrop_claimed(
