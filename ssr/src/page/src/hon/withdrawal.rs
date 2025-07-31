@@ -1,9 +1,13 @@
 use candid::{Nat, Principal};
 use component::buttons::HighlightedLinkButton;
 use component::{
-    auth_providers::handle_user_login, back_btn::BackButton,
-    icons::notification_icon::NotificationIcon, icons::telegram_icon::TelegramIcon,
-    spinner::SpinnerFit, title::TitleText,
+    auth_providers::handle_user_login,
+    back_btn::BackButton,
+    buttons::HighlightedButton,
+    icons::{notification_icon::NotificationIcon, telegram_icon::TelegramIcon},
+    spinner::SpinnerFit,
+    start_kyc_popup::StartKycPopup,
+    title::TitleText,
 };
 use consts::{CKBTC_LEDGER_CANISTER, SATS_CKBTC_CANISTER};
 use futures::TryFutureExt;
@@ -12,7 +16,7 @@ use hon_worker_common::{HoNGameWithdrawReq, SatsBalanceInfo};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
-use state::{canisters::auth_state, server::HonWorkerJwt};
+use state::{canisters::auth_state, kyc_state::KycState, server::HonWorkerJwt};
 use utils::send_wrap;
 use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::{utils::token::balance::TokenBalance, Canisters};
@@ -153,7 +157,9 @@ fn BalanceDisplay(#[prop(into)] balance: Nat) -> impl IntoView {
 
 #[component]
 pub fn HonWithdrawal() -> impl IntoView {
+    let show_kyc_popup = RwSignal::new(false);
     let auth = auth_state();
+    let is_connected = auth.is_logged_in_with_oauth();
     let details_res = auth.derive_resource(
         || (),
         move |cans, _| {
@@ -356,25 +362,41 @@ pub fn HonWithdrawal() -> impl IntoView {
                                             <button
                                                 disabled=invalid_input || !can_withdraw
                                                 class=("pointer-events-none", is_claiming)
-                                                class="py-2 px-5 text-sm font-bold text-center rounded-lg bg-brand-gradient disabled:bg-brand-gradient-disabled"
+                                                class="py-3 px-5 text-sm font-bold text-center rounded-lg bg-brand-gradient disabled:bg-brand-gradient-disabled"
                                                 on:click=move |_ev| {
                                                     send_claim.dispatch(());
                                                 }
                                             >
                                                 {message}
                                             </button>
-                                        }
-                                    }}
-                                </div>
-                                <span class="text-sm">
-                                    "1 Sats = "{consts::SATS_TO_BTC_CONVERSION_RATIO}
-                                </span>
+                                        },
+                                    )
+                                }}
+                            </Suspense>
+                        </div>
+                        <Show when=move||is_connected()>
+                            <StartKycPopup show=show_kyc_popup  />
+                        </Show>
+                        <Show when=move || !KycState::is_verified() && is_connected()>
+                                <HighlightedButton
+                                    alt_style=true
+                                    disabled=false
+                                    py="py-2".to_string()
+                                    on_click=move || {
+                                        show_kyc_popup.set(true);
+                                    }
+                                    >
+                                    "Complete Verification"
+                                </HighlightedButton>
+                            <div class="flex text-xs items-center justify-start gap-2">
+                                <img src="/img/kyc/info_circle.svg" class="h-4" alt="Info Icon" />
+                                Unverified users withdraw only 50 SATS / day.
                             </div>
-                        }.into_any()
-                    }
-
-                }
-                </Suspense>
+                        </Show>
+                        <span class="text-sm">
+                            1 Sats = {crate::consts::SATS_TO_BTC_CONVERSION_RATIO}BTC
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>

@@ -35,6 +35,7 @@ use page::{hon, pumpdump};
 use state::app_state::AppState;
 use state::app_type::AppType;
 use state::hn_bet_state::HnBetState;
+use state::kyc_state::KycState;
 use state::{audio_state::AudioState, content_seed_client::ContentSeedClient};
 use utils::event_streaming::events::HistoryCtx;
 use utils::event_streaming::EventHistory;
@@ -72,6 +73,7 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <meta name="facebook-domain-verification" content="sqtv2sr90ar0ck7t7zcklos44fw8t3" />
                 <script fetchpriority="low" type="module" src="/js/sentry-init.js" async></script>
+                <script fetchpriority="low" type="module" src="/js/persona-kyc.js" async></script>
                 <script
                     fetchpriority="low"
                     type="module"
@@ -117,6 +119,8 @@ pub fn App() -> impl IntoView {
     let _ = HnBetState::init();
 
     let _ = MixpanelState::init();
+
+    let _ = KycState::init();
 
     let current_post_params = RwSignal::new(None::<PostParams>);
     provide_context(current_post_params);

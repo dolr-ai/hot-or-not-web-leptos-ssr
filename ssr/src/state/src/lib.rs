@@ -8,6 +8,7 @@ pub mod audio_state;
 pub mod canisters;
 pub mod content_seed_client;
 pub mod hn_bet_state;
+pub mod kyc_state;
 
 #[cfg(not(feature = "ssr"))]
 pub mod server {

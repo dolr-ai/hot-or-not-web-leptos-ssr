@@ -7,6 +7,7 @@ pub fn HighlightedButton(
     #[prop(optional)] classes: String,
     #[prop(optional)] alt_style: bool,
     #[prop(optional)] disabled: bool,
+    #[prop(optional)] py: Option<String>,
 ) -> impl IntoView {
     let on_click = move |_| on_click();
     view! {
@@ -14,7 +15,8 @@ pub fn HighlightedButton(
             on:click=on_click
             disabled=disabled
             class=format!(
-                "w-full px-5 py-3 rounded-lg flex items-center transition-all justify-center gap-8 font-kumbh font-bold {}",
+                "w-full px-5 {} rounded-lg flex items-center transition-all justify-center gap-8 font-kumbh font-bold {}",
+                py.unwrap_or_else(|| "py-3".to_string()),
                 classes,
             )
             style=if alt_style {
