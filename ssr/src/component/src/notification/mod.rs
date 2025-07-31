@@ -44,11 +44,13 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
         ),
     };
 
-    let notif_clone = notif.clone();
+    let notif = StoredValue::new(notif.clone());
+
     let auth = auth_state();
     let href_icon = auth.derive_resource(
         move || notif.clone(),
         move |cans, notif| async move {
+            let notif = notif.get_value();
             let path = match notif.payload.clone() {
                 NotificationType::VideoUpload(v) => {
                     let icon = cans.profile_details().profile_pic_or_random();
@@ -91,7 +93,7 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
             .unwrap();
         let agent = cans.authenticated_user().await.1;
         let client = NotificationStore(NOTIFICATION_STORE_ID, agent);
-        send_wrap(client.mark_notification_as_read(notif_clone.notification_id))
+        send_wrap(client.mark_notification_as_read(notif.get_value().notification_id))
             .await
             .map_err(|e| NotificationError(e.to_string()))
             .unwrap();
@@ -109,7 +111,9 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
                             <div class="w-full p-4 border-b border-neutral-800">
                                 <div class="flex items-start gap-3">
                                     <div class="relative mt-0.5">
-                                        <div class="size-2 rounded-full bg-pink-700 absolute -left-1 top-1/2 -translate-y-1/2 z-10"></div>
+                                        <Show when=move || !notif.get_value().read>
+                                            <div class="size-2 rounded-full bg-pink-700 absolute -left-1 top-1/2 -translate-y-1/2 -translate-x-2 z-10"></div>
+                                        </Show>
                                         <div class="size-11 rounded-full bg-neutral-800 overflow-hidden">
                                             <img src={icon.clone()} class="size-11 rounded-full object-cover" />
                                         </div>
@@ -174,7 +178,12 @@ fn NotificationActionButton(
     view! {
         <button
         on:click=on_click
-        class=format!("border px-5 py-2 font-semibold rounded-lg {}", if secondary { "border-neutral-700 text-neutral-700" } else { "border-pink-700 text-pink-700" })>
+        class=format!("border px-5 py-2 font-semibold rounded-lg transition-all {}",
+            if secondary {
+                "border-neutral-700 text-neutral-700 hover:border-neutral-500 hover:text-neutral-500"
+            } else {
+                "border-pink-700 text-pink-700 hover:bg-pink-700 hover:text-white"
+            })>
             {children()}
         </button>
     }
@@ -238,9 +247,28 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
 }
 
 #[component]
+fn EmptyNotifications() -> impl IntoView {
+    view! {
+        <div class="flex flex-col items-center justify-center h-full w-full px-4">
+            <div class="flex flex-col items-center gap-12">
+                <img
+                    src="/img/yral/empty-notification-bell.png"
+                    alt="No notifications"
+                    class="w-32 h-32"
+                />
+                <div class="text-center max-w-xs">
+                    <h3 class="text-xl font-semibold text-white">No Notifications Found!</h3>
+                    <p class="text-base text-neutral-300 mt-2">"We'll notify you when there's something new or exciting."</p>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+#[component]
 fn NotificationInfiniteScroller(provider: NotificationProvider) -> impl IntoView {
     view! {
-            <div class="flex overflow-hidden overflow-y-auto flex-col px-4 pb-32 mx-auto mt-2 w-full max-w-5xl h-full">
+            <div class="flex overflow-hidden overflow-y-auto flex-col px-4 pb-32 mx-auto w-full max-w-5xl h-full">
                 <InfiniteScroller
                     provider
                     fetch_count=10
@@ -251,6 +279,7 @@ fn NotificationInfiniteScroller(provider: NotificationProvider) -> impl IntoView
                             </div>
                         }
                     }
+                    empty_content= move || view! { <EmptyNotifications /> }
                 />
             </div>
     }
