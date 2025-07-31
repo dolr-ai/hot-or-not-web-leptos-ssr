@@ -883,7 +883,7 @@ pub fn LowSatsBalancePopup(
                 let user_principal = auth_cans.user_principal();
                 match get_sats_airdrop_status(user_canister, user_principal).await {
                     Ok(status) => status,
-                    Err(_) => return AirdropStatus::Available, // User not eligible
+                    Err(_) => AirdropStatus::Available,
                 }
             }
         },
