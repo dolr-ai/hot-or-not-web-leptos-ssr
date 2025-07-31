@@ -201,8 +201,6 @@ async fn validate_sats_airdrop_eligibility(
     Ok(())
 }
 
-
-
 #[server(input = server_fn::codec::Json)]
 pub async fn get_sats_airdrop_status(
     user_canister: Principal,
