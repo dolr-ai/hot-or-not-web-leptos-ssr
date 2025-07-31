@@ -269,7 +269,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                     }
                 }>
                 {
-                    let is_treasury_empty = treasury_balance.get().map(|balance| balance == 0_usize).unwrap_or(true);
+                    let is_treasury_empty = treasury_balance.get().map(|balance| balance == 0_usize).unwrap_or(false);
                     log::info!("Treasury balance, {:?}", treasury_balance.get());
                     if is_treasury_empty {
                         view! {
