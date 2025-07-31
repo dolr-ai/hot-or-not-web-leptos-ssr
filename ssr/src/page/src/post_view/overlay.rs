@@ -16,6 +16,7 @@ use leptos_icons::*;
 use leptos_router::hooks::{use_location, use_navigate};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
+use leptos_use::{use_interval_fn_with_options, UseIntervalFnOptions};
 use state::audio_state::AudioState;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::host::show_nsfw_content;
@@ -29,8 +30,8 @@ use utils::{
 use utils::mixpanel::mixpanel_events::*;
 use yral_canisters_common::utils::posts::PostDetails;
 
-use crate::wallet::airdrop::sats_airdrop::{claim_sats_airdrop, is_user_eligible_for_sats_airdrop};
-use crate::wallet::airdrop::SatsAirdropPopup;
+use crate::wallet::airdrop::sats_airdrop::{claim_sats_airdrop, get_sats_airdrop_status};
+use crate::wallet::airdrop::{AirdropStatus, SatsAirdropPopup};
 use leptos::prelude::ServerFnError;
 
 use super::bet::HNGameOverlay;
@@ -824,6 +825,33 @@ pub fn HotOrNotTutorialOverlay(
 }
 
 #[component]
+fn AirdropCountdown(duration: web_time::Duration) -> impl IntoView {
+    use utils::time::to_hh_mm_ss;
+    use web_time::Instant;
+
+    let end_time = Instant::now() + duration;
+    let (remaining_duration, set_remaining_duration) = signal(duration);
+
+    let _ = use_interval_fn_with_options(
+        move || {
+            let now = Instant::now();
+            let remaining = end_time.saturating_duration_since(now);
+            set_remaining_duration(remaining);
+        },
+        1000,
+        UseIntervalFnOptions::default().immediate(true),
+    );
+
+    view! {
+        <div class="bg-[#444444] rounded-md px-3 py-2">
+            <span class="text-white text-sm font-medium">
+                "Next Airdrop: "{move || to_hh_mm_ss(remaining_duration())}
+            </span>
+        </div>
+    }
+}
+
+#[component]
 pub fn LowSatsBalancePopup(
     show: RwSignal<bool>,
     navigate_refer_page: Action<bool, ()>,
@@ -832,23 +860,24 @@ pub fn LowSatsBalancePopup(
 ) -> impl IntoView {
     let ev_ctx = auth.event_ctx();
 
-    let eligibility_resource = Resource::new(
+    let status_resource = Resource::new(
         move || show.get(),
         move |showing| {
             let cans = unauth_canisters();
             async move {
                 if !showing {
-                    return false;
+                    return AirdropStatus::Available;
                 }
                 let Ok(auth_cans) = auth.auth_cans(cans).await else {
                     log::warn!("Failed to get authenticated canisters");
-                    return false;
+                    return AirdropStatus::Available;
                 };
                 let user_canister = auth_cans.user_canister();
                 let user_principal = auth_cans.user_principal();
-                is_user_eligible_for_sats_airdrop(user_canister, user_principal)
-                    .await
-                    .unwrap_or_default()
+                match get_sats_airdrop_status(user_canister, user_principal).await {
+                    Ok(status) => status,
+                    Err(_) => AirdropStatus::Available,
+                }
             }
         },
     );
@@ -875,7 +904,8 @@ pub fn LowSatsBalancePopup(
                         }
                     >
                         {move || Suspend::new(async move {
-                            let is_airdrop_eligible = eligibility_resource.await;
+                            let airdrop_status = status_resource.await;
+                            let is_airdrop_eligible = matches!(airdrop_status, AirdropStatus::Available);
 
                             if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                                 MixPanelEvent::track_low_on_sats_popup_shown(
@@ -890,33 +920,37 @@ pub fn LowSatsBalancePopup(
                                     <img src="/img/hotornot/sad.webp" class="size-14" />
                                     <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on Bitcoin (SATS)"</div>
                                     {
-                                        if is_airdrop_eligible {
-                                            view! {
+                                        match airdrop_status {
+                                            AirdropStatus::Available => view! {
                                                 <div class="text-neutral-300 text-center">"Earn more in two easy ways:"</div>
                                                 <ul class="flex list-disc flex-col gap-5 text-neutral-300">
                                                     <li>"Unlock your daily"<span class="font-semibold">" Bitcoin (SATS) "</span>"loot every 24 hours!"</li>
                                                     <li>"Refer & earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you invite."</li>
                                                     <li class="font-semibold">"Upload Videos to earn comissions."</li>
                                                 </ul>
-                                            }.into_any()
-                                        } else {
-                                            view! {
-                                                <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
-                                                <div class="text-neutral-300 text-center">"Meanwhile, earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you refer!"</div>
-                                            }.into_any()
+                                                <HighlightedButton
+                                                    alt_style=false
+                                                    disabled=false
+                                                    on_click=move || {
+                                                        show.set(false);
+                                                        claim_airdrop.dispatch(());
+                                                    }
+                                                >
+                                                    "Claim airdrop"
+                                                </HighlightedButton>
+                                            }.into_any(),
+                                            AirdropStatus::WaitFor(duration) => view! {
+                                                <div class="text-neutral-300 text-sm text-center">"Looks like you've already claimed your daily airdrop."</div>
+                                                <AirdropCountdown duration=duration />
+                                                <div class="text-neutral-300 text-sm text-center">"Meanwhile, earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you refer!"</div>
+                                            }.into_any(),
+                                            AirdropStatus::Claimed => view! {
+                                                <div class="text-neutral-300 text-sm text-center">"Looks like you've already claimed your daily airdrop."</div>
+                                                <div class="text-neutral-300 text-sm text-center">"Meanwhile, earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you refer!"</div>
+                                            }.into_any(),
                                         }
                                     }
 
-                                    <HighlightedButton
-                                        alt_style=false
-                                        disabled=false
-                                        on_click=move || {
-                                            show.set(false);
-                                            claim_airdrop.dispatch(());
-                                        }
-                                    >
-                                        "Claim airdrop"
-                                    </HighlightedButton>
                                     <HighlightedButton
                                         alt_style=true
                                         disabled=false
