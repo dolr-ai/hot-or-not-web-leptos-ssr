@@ -48,7 +48,7 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
 
     let auth = auth_state();
     let href_icon = auth.derive_resource(
-        move || notif.clone(),
+        move || notif,
         move |cans, notif| async move {
             let notif = notif.get_value();
             let path = match notif.payload.clone() {
