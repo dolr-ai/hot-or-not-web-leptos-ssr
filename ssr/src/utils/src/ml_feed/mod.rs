@@ -6,7 +6,7 @@ use yral_types::post::FeedResponseV2;
 use yral_types::post::PostItemV2;
 
 const RECOMMENDATION_SERVICE_URL: &str =
-    "https://recommendation-service-749244211103.us-central1.run.app/recommendations";
+    "https://recommendation-service-82502260393.us-central1.run.app/recommendations";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WatchHistoryItem {
