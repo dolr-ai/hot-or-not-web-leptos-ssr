@@ -26,7 +26,7 @@ use state::hn_bet_state::{HnBetState, VideoComparisonResult};
 use utils::try_or_redirect_opt;
 use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
-    posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
+    posts::PostDetails, token::balance::TokenBalance, token::load_sats_balance, vote::VoteKind,
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -653,6 +653,28 @@ pub fn HNGameOverlay(
     } else {
         DEFAULT_BET_COIN_FOR_LOGGED_OUT
     });
+
+    // Fetch and update wallet balance on initial load
+    let (_, set_wallet_balance_store, _) =
+        use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+
+    let fetch_balance_action = Action::new_local(move |_: &()| async move {
+        let cans = auth.auth_cans(unauth_canisters()).await.ok()?;
+        let user_principal = cans.user_principal();
+        let balance_info = load_sats_balance(user_principal).await.ok()?;
+        let balance = balance_info.balance.to_u64().unwrap_or(25);
+        set_wallet_balance_store.set(balance);
+        HnBetState::set_balance(balance);
+        Some(balance)
+    });
+
+    // Dispatch balance fetch when component loads (only once)
+    Effect::new(move |prev: Option<()>| {
+        if prev.is_none() {
+            fetch_balance_action.dispatch(());
+        }
+    });
+
     let create_game_info = auth.derive_resource(
         move || refetch_bet.track(),
         move |cans, _| {
