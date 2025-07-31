@@ -30,9 +30,7 @@ use utils::{
 use utils::mixpanel::mixpanel_events::*;
 use yral_canisters_common::utils::posts::PostDetails;
 
-use crate::wallet::airdrop::sats_airdrop::{
-    claim_sats_airdrop, get_sats_airdrop_status, is_user_eligible_for_sats_airdrop,
-};
+use crate::wallet::airdrop::sats_airdrop::{claim_sats_airdrop, get_sats_airdrop_status};
 use crate::wallet::airdrop::{AirdropStatus, SatsAirdropPopup};
 use leptos::prelude::ServerFnError;
 
@@ -828,7 +826,6 @@ pub fn HotOrNotTutorialOverlay(
 
 #[component]
 fn AirdropCountdown(duration: web_time::Duration) -> impl IntoView {
-    use std::time::Duration;
     use web_time::Instant;
 
     let end_time = Instant::now() + duration;
@@ -847,13 +844,6 @@ fn AirdropCountdown(duration: web_time::Duration) -> impl IntoView {
         1000,
         UseIntervalFnOptions::default().immediate(true),
     );
-
-    // Stop the interval when countdown reaches zero
-    Effect::new(move |_| {
-        if remaining_time() == 0 {
-            interval_fn.pause();
-        }
-    });
 
     let hours = move || remaining_time() / 3600;
     let minutes = move || (remaining_time() % 3600) / 60;
