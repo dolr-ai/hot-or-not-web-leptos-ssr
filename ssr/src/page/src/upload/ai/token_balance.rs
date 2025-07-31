@@ -1,0 +1,43 @@
+use candid::Principal;
+use leptos::prelude::*;
+use state::canisters::unauth_canisters;
+use utils::send_wrap;
+use videogen_common::TokenType;
+use yral_canisters_common::utils::token::balance::TokenBalance;
+use yral_canisters_common::utils::token::load_sats_balance;
+
+/// Load balance for any token type
+pub async fn load_token_balance(
+    user_principal: Principal,
+    token_type: TokenType,
+) -> Result<TokenBalance, ServerFnError> {
+    match token_type {
+        TokenType::Sats => {
+            let balance_info = send_wrap(load_sats_balance(user_principal)).await?;
+            Ok(TokenBalance::new(balance_info.balance.into(), 0))
+        }
+        TokenType::Dolr => {
+            let canisters = unauth_canisters();
+            let balance = canisters
+                .icrc1_balance_of(
+                    user_principal,
+                    consts::DOLR_AI_LEDGER_CANISTER.parse().unwrap(),
+                )
+                .await?;
+            Ok(TokenBalance::new(balance, 8))
+        }
+    }
+}
+
+/// Create a resource for loading token balance
+pub fn create_token_balance_resource(
+    user_principal: Signal<Principal>,
+    token_type: Signal<TokenType>,
+) -> Resource<Result<TokenBalance, ServerFnError>> {
+    Resource::new(
+        move || (user_principal.get(), token_type.get()),
+        move |(principal, token)| async move {
+            send_wrap(load_token_balance(principal, token)).await
+        },
+    )
+}

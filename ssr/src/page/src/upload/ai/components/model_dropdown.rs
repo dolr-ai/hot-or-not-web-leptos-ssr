@@ -81,7 +81,7 @@ pub fn ModelDropdown(
                             let model_name = model.name.clone();
                             let model_description = model.description.clone();
                             let model_duration = model.duration_display();
-                            let model_cost_sats = model.cost_sats;
+                            let _model_cost_usd_cents = model.cost_usd_cents;
                             let model_icon = model.model_icon.clone();
                             let is_available = model.is_available;
                             let model_clone = model.clone();

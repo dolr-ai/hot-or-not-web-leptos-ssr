@@ -1,4 +1,4 @@
-use super::ModelDropdown;
+use super::{ModelDropdown, TokenDropdown};
 use crate::upload::ai::types::VideoGenerationParams;
 use component::{back_btn::BackButton, buttons::GradientButton, login_modal::LoginModal};
 use leptos::{html::Input, prelude::*};
@@ -7,10 +7,11 @@ use state::canisters::auth_state;
 use utils::event_streaming::events::VideoUploadInitiated;
 use utils::host::show_preview_component;
 use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps};
-use utils::send_wrap;
-use videogen_common::{VideoGenProvider, VideoModel};
+use videogen_common::{TokenType, VideoGenProvider, VideoModel};
+use videogen_common::token_costs::TOKEN_COST_CONFIG;
 use yral_canisters_common::utils::token::balance::TokenBalance;
-use yral_canisters_common::utils::token::load_sats_balance;
+use crate::upload::ai::token_balance::load_token_balance;
+use utils::send_wrap;
 
 #[component]
 pub fn PreUploadAiView(
@@ -33,6 +34,8 @@ pub fn PreUploadAiView(
     });
     let selected_model = RwSignal::new(filtered_models.get_untracked().into_iter().next().unwrap());
     let show_dropdown = RwSignal::new(false);
+    let selected_token = RwSignal::new(TokenType::Sats);
+    let show_token_dropdown = RwSignal::new(false);
     let prompt_text = RwSignal::new(String::new());
     let character_count = Signal::derive(move || prompt_text.get().len());
     let uploaded_image = RwSignal::new(None::<String>);
@@ -42,38 +45,28 @@ pub fn PreUploadAiView(
 
     // Get auth state
     let auth = auth_state();
-    let is_logged_in = auth.is_logged_in_with_oauth(); // Signal::stored(true);
+    let is_logged_in = auth.is_logged_in_with_oauth();
 
-    // Fetch SATS balance
-    let auth_clone = auth.clone();
-    let balance_resource = OnceResource::new(async move {
-        let principal_result = auth_clone.user_principal.await;
-        match principal_result {
-            Ok(user_principal) => {
-                let balance_info = send_wrap(load_sats_balance(user_principal)).await?;
-                Ok::<TokenBalance, ServerFnError>(TokenBalance::new(balance_info.balance.into(), 0))
+    // Create a resource that loads balance based on auth state and selected token
+    let balance_resource = Resource::new(
+        move || selected_token.get(),
+        move |token| {
+            let auth = auth_state();
+            async move {
+                let principal = auth.user_principal.await?;
+                send_wrap(load_token_balance(principal, token)).await
             }
-            Err(e) => Err(e),
-        }
-    });
+        },
+    );
 
-    // Form validation
+    // Form validation - only check non-async conditions
     let form_valid = Signal::derive(move || !prompt_text.get().trim().is_empty());
-    let can_generate = Signal::derive(move || {
-        // For logged-in users, check form validity, balance, and action state
-        if !form_valid.get() || generate_action.pending().get() {
-            return false;
-        }
-
-        // Check if user has sufficient balance
-        balance_resource.get().map_or(false, |balance_result| {
-            balance_result.map_or(false, |balance| {
-                let required_sats = selected_model.get().cost_sats;
-                // Since TokenBalance is created with 0 decimals, e8s represents whole SATS
-                balance.e8s >= required_sats
-            })
-        })
+    let base_can_generate = Signal::derive(move || {
+        form_valid.get() && !generate_action.pending().get()
     });
+    
+    // Create a signal for balance sufficiency that will be used inside Suspense
+    let has_sufficient_balance = RwSignal::new(false);
 
     // Error handling from action
     let generation_error = Signal::derive(move || {
@@ -154,6 +147,9 @@ pub fn PreUploadAiView(
                     // Model Selection Dropdown
                     <ModelDropdown selected_model=selected_model show_dropdown=show_dropdown />
 
+                    // Token Selection Dropdown
+                    <TokenDropdown selected_token=selected_token show_dropdown=show_token_dropdown />
+
                     // Image Upload Section (Optional) - Only show if model supports images
                     <Show when=move || selected_model.get().supports_image>
                         <div class="w-full">
@@ -222,15 +218,40 @@ pub fn PreUploadAiView(
                         </div>
                     </div>
 
-                    // SATS Required Section
+                    // Token Required Section
                     <div class="flex items-center justify-between p-4 bg-neutral-900 rounded-lg">
                         <div class="flex items-center gap-2">
-                            <span class="text-white font-medium">"SATS Required:"</span>
+                            <span class="text-white font-medium">
+                                {move || match selected_token.get() {
+                                    TokenType::Sats => "SATS Required:",
+                                    TokenType::Dolr => "DOLR Required:",
+                                }}
+                            </span>
                             <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
                         </div>
                         <div class="flex items-center gap-1">
-                            <span class="text-orange-400">"🪙"</span>
-                            <span class="text-orange-400 font-bold">{move || format!("{} SATS", selected_model.get().cost_sats)}</span>
+                            <span class="text-orange-400">
+                                {move || match selected_token.get() {
+                                    TokenType::Sats => "🪙",
+                                    TokenType::Dolr => "💰",
+                                }}
+                            </span>
+                            <span class="text-orange-400 font-bold">
+                                {move || {
+                                    let token = selected_token.get();
+                                    let model = selected_model.get();
+                                    let model_name = model.name.as_str();
+                                    let cost = TOKEN_COST_CONFIG.get_model_cost(model_name, &token);
+                                    let humanized = match token {
+                                        TokenType::Sats => TokenBalance::new(cost.into(), 0).humanize_float_truncate_to_dp(0),
+                                        TokenType::Dolr => TokenBalance::new(cost.into(), 8).humanize_float_truncate_to_dp(2),
+                                    };
+                                    match token {
+                                        TokenType::Sats => format!("{} SATS", humanized),
+                                        TokenType::Dolr => format!("{} DOLR", humanized),
+                                    }
+                                }}
+                            </span>
                         </div>
                     </div>
 
@@ -242,12 +263,31 @@ pub fn PreUploadAiView(
                             {move || Suspend::new(async move {
                                 match balance_resource.await {
                                     Ok(balance) => {
+                                        // Check balance sufficiency
+                                        let model = selected_model.get();
+                                        let model_name = model.name.as_str();
+                                        let token_type = selected_token.get();
+                                        let required_amount = TOKEN_COST_CONFIG.get_model_cost(model_name, &token_type);
+                                        
+                                        let is_sufficient = match token_type {
+                                            TokenType::Sats => balance.e8s >= required_amount,
+                                            TokenType::Dolr => balance.e8s >= required_amount,
+                                        };
+                                        
+                                        // Update the balance sufficiency signal
+                                        has_sufficient_balance.set(is_sufficient);
+                                        
                                         let formatted_balance = balance.humanize_float_truncate_to_dp(0);
+                                        let token_name = match token_type {
+                                            TokenType::Sats => "SATS",
+                                            TokenType::Dolr => "DOLR",
+                                        };
                                         view! {
-                                            <span>{format!("(Current balance: {} SATS)", formatted_balance)}</span>
+                                            <span>{format!("(Current balance: {} {})", formatted_balance, token_name)}</span>
                                         }
                                     }
                                     Err(_) => {
+                                        has_sufficient_balance.set(false);
                                         view! {
                                             <span>{format!("(Current balance: Error loading)")}</span>
                                         }
@@ -275,63 +315,63 @@ pub fn PreUploadAiView(
                                 </div>
                             }
                         >
-                            {move || {
-                                auth.user_principal.get().map(|principal_result| {
-                                    view! {
-                                        <GradientButton
-                                            on_click=move || {
-                                                // Check if user is logged in
-                                                if !is_logged_in.get_untracked() {
-                                                    // Show login modal if not logged in
-                                                    show_login_modal.set(true);
-                                                } else {
-                                                    match &principal_result {
-                                                        Ok(user_principal) => {
-                                                            // Get current form values
-                                                            let prompt = prompt_text.get_untracked();
-                                                            let model = selected_model.get_untracked();
-                                                            let image_data = uploaded_image.get_untracked();
+                            {move || Suspend::new(async move {
+                                let principal_result = auth.user_principal.await;
+                                view! {
+                                    <GradientButton
+                                        on_click=move || {
+                                            // Check if user is logged in
+                                            if !is_logged_in.get_untracked() {
+                                                // Show login modal if not logged in
+                                                show_login_modal.set(true);
+                                            } else {
+                                                match &principal_result {
+                                                    Ok(user_principal) => {
+                                                        // Get current form values
+                                                        let prompt = prompt_text.get_untracked();
+                                                        let model = selected_model.get_untracked();
+                                                        let image_data = uploaded_image.get_untracked();
 
-                                                            // Track Create AI Video clicked
-                                                            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                                                                MixPanelEvent::track_create_ai_video_clicked(
-                                                                    global,
-                                                                    model.name.clone()
-                                                                );
-                                                            }
+                                                        // Track Create AI Video clicked
+                                                        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                                                            MixPanelEvent::track_create_ai_video_clicked(
+                                                                global,
+                                                                model.name.clone()
+                                                            );
+                                                        }
 
-                                                            // Create params struct and dispatch the action
-                                                            let params = VideoGenerationParams {
-                                                                user_principal: *user_principal,
-                                                                prompt,
-                                                                model,
-                                                                image_data,
-                                                            };
-                                                            // Store parameters before dispatching
-                                                            set_stored_params.set(params.clone());
-                                                            generate_action.dispatch(params);
-                                                        }
-                                                        Err(e) => {
-                                                            leptos::logging::error!("Failed to get user principal: {:?}", e);
-                                                            // You might want to show an error message to the user here
-                                                        }
+                                                        // Create params struct and dispatch the action
+                                                        let params = VideoGenerationParams {
+                                                            user_principal: *user_principal,
+                                                            prompt,
+                                                            model,
+                                                            image_data,
+                                                            token_type: selected_token.get_untracked(),
+                                                        };
+                                                        // Store parameters before dispatching
+                                                        set_stored_params.set(params.clone());
+                                                        generate_action.dispatch(params);
+                                                    }
+                                                    Err(e) => {
+                                                        leptos::logging::error!("Failed to get user principal: {:?}", e);
+                                                        // You might want to show an error message to the user here
                                                     }
                                                 }
                                             }
-                                            classes="w-full h-12 rounded-lg font-bold".to_string()
-                                            disabled=Signal::derive(move || !can_generate.get())
-                                        >
-                                            {move || {
-                                                if generate_action.pending().get() {
-                                                    "Generating..."
-                                                } else {
-                                                    "Create AI Video"
-                                                }
-                                            }}
-                                        </GradientButton>
-                                    }
-                                })
-                            }}
+                                        }
+                                        classes="w-full h-12 rounded-lg font-bold".to_string()
+                                        disabled=Signal::derive(move || !base_can_generate.get() || !has_sufficient_balance.get())
+                                    >
+                                        {move || {
+                                            if generate_action.pending().get() {
+                                                "Generating..."
+                                            } else {
+                                                "Create AI Video"
+                                            }
+                                        }}
+                                    </GradientButton>
+                                }
+                            })}
                         </Suspense>
                     </div>
                 </div>

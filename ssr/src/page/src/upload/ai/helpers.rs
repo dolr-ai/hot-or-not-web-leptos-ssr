@@ -2,7 +2,7 @@ use crate::upload::ai::types::VideoGenerationParams;
 use crate::upload::ai::videogen_client::{generate_video_with_signature, sign_videogen_request};
 use candid::Principal;
 use state::canisters::AuthState;
-use videogen_common::{ImageInput, VideoGenRequest, VideoGenRequestWithSignature, VideoModel};
+use videogen_common::{ImageInput, TokenType, VideoGenRequest, VideoGenRequestWithSignature, VideoModel};
 use yral_canisters_common::Canisters;
 
 // Helper function to create video request
@@ -11,6 +11,7 @@ pub fn create_video_request(
     prompt: String,
     model: VideoModel,
     image_data: Option<String>,
+    token_type: TokenType,
 ) -> Result<VideoGenRequest, Box<dyn std::error::Error>> {
     leptos::logging::log!("Starting video generation with prompt: {}", prompt);
 
@@ -63,6 +64,7 @@ pub fn create_video_request(
     let request = VideoGenRequest {
         principal: user_principal,
         input,
+        token_type,
     };
 
     Ok(request)
@@ -90,6 +92,7 @@ pub fn create_and_sign_request(
         params.prompt.clone(),
         params.model.clone(),
         params.image_data.clone(),
+        params.token_type,
     )
     .map_err(|err| {
         leptos::logging::error!("Failed to create request: {}", err);
