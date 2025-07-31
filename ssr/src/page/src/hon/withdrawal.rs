@@ -270,7 +270,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                 }>
                 {
                     let is_treasury_empty = treasury_balance.get().map(|balance| balance == 0_usize).unwrap_or(true);
-                    log::info!(format!("Treasury balance, {}", treasury_balance.get()))
+                    log::info!(format!("Treasury balance, {}", treasury_balance.get()));
                     if is_treasury_empty {
                         view! {
                             <div class="flex flex-col gap-4 items-center max-w-sm mx-auto px-12">

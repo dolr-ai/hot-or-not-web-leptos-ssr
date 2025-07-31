@@ -21,7 +21,7 @@ use leptos_use::storage::use_local_storage;
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
-use state::canisters::auth_state;
+use state::canisters::{auth_state, unauth_canisters};
 use state::hn_bet_state::{HnBetState, VideoComparisonResult};
 use utils::try_or_redirect_opt;
 use utils::{mixpanel::mixpanel_events::*, send_wrap};
