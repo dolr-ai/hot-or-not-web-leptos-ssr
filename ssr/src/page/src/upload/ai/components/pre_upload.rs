@@ -7,7 +7,10 @@ use state::canisters::auth_state;
 use utils::event_streaming::events::VideoUploadInitiated;
 use utils::host::show_preview_component;
 use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps};
+use utils::send_wrap;
 use videogen_common::{VideoGenProvider, VideoModel};
+use yral_canisters_common::utils::token::balance::TokenBalance;
+use yral_canisters_common::utils::token::load_sats_balance;
 
 #[component]
 pub fn PreUploadAiView(
@@ -40,6 +43,19 @@ pub fn PreUploadAiView(
     // Get auth state
     let auth = auth_state();
     let is_logged_in = Signal::stored(true); // auth.is_logged_in_with_oauth(); // Signal::stored(true);
+    
+    // Fetch SATS balance
+    let auth_clone = auth.clone();
+    let balance_resource = OnceResource::new(async move {
+        let principal_result = auth_clone.user_principal.await;
+        match principal_result {
+            Ok(user_principal) => {
+                let balance_info = send_wrap(load_sats_balance(user_principal)).await?;
+                Ok::<TokenBalance, ServerFnError>(TokenBalance::new(balance_info.balance.into(), 0))
+            }
+            Err(e) => Err(e)
+        }
+    });
 
     // Form validation
     let form_valid = Signal::derive(move || !prompt_text.get().trim().is_empty());
@@ -198,21 +214,39 @@ pub fn PreUploadAiView(
                     </div>
 
                     // SATS Required Section
-                    // <div class="flex items-center justify-between p-4 bg-neutral-900 rounded-lg">
-                    //     <div class="flex items-center gap-2">
-                    //         <span class="text-white font-medium">"SATS Required:"</span>
-                    //         <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
-                    //     </div>
-                    //     <div class="flex items-center gap-1">
-                    //         <span class="text-orange-400">"🪙"</span>
-                    //         <span class="text-orange-400 font-bold">{move || format!("{} SATS", selected_model.get().cost_sats)}</span>
-                    //     </div>
-                    // </div>
+                    <div class="flex items-center justify-between p-4 bg-neutral-900 rounded-lg">
+                        <div class="flex items-center gap-2">
+                            <span class="text-white font-medium">"SATS Required:"</span>
+                            <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <span class="text-orange-400">"🪙"</span>
+                            <span class="text-orange-400 font-bold">{move || format!("{} SATS", selected_model.get().cost_sats)}</span>
+                        </div>
+                    </div>
 
                     // Current Balance
-                    // <div class="text-center text-sm text-neutral-400">
-                    //     {move || format!("(Current balance: {}SATS)", user_balance.get())}
-                    // </div>
+                    <div class="text-center text-sm text-neutral-400">
+                        <Suspense fallback=move || view! {
+                            <span>"(Current balance: Loading...)"</span>
+                        }>
+                            {move || Suspend::new(async move {
+                                match balance_resource.await {
+                                    Ok(balance) => {
+                                        let formatted_balance = balance.humanize_float_truncate_to_dp(0);
+                                        view! {
+                                            <span>{format!("(Current balance: {} SATS)", formatted_balance)}</span>
+                                        }
+                                    }
+                                    Err(_) => {
+                                        view! {
+                                            <span>{format!("(Current balance: Error loading)")}</span>
+                                        }
+                                    }
+                                }
+                            })}
+                        </Suspense>
+                    </div>
 
                     // Error display
                     <Show when=move || generation_error.get().is_some()>
