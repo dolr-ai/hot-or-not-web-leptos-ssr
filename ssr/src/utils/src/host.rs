@@ -43,7 +43,7 @@ pub fn is_host_or_origin_from_preview_domain(uri: &str) -> bool {
 
 pub fn show_preview_component() -> bool {
     let host = get_host();
-    host.contains("dolr-ai-hot-or-not-web-leptos-ssr.fly.dev")
+    host.contains("dolr-ai-hot-or-not-web-leptos-ssr.fly.dev") || host.contains("localhost")
 }
 
 // TODO: migrate to AppType

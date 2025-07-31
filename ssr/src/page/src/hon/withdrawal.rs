@@ -367,7 +367,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                                     }}
                                 </div>
                                 <span class="text-sm">
-                                    1 Sats = {crate::consts::SATS_TO_BTC_CONVERSION_RATIO}BTC
+                                    "1 Sats = "{consts::SATS_TO_BTC_CONVERSION_RATIO}
                                 </span>
                             </div>
                         }.into_any()

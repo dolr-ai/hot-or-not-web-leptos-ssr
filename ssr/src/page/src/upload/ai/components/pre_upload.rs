@@ -6,6 +6,7 @@ use leptos_icons::*;
 use state::canisters::auth_state;
 use utils::event_streaming::events::VideoUploadInitiated;
 use utils::host::show_preview_component;
+use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps};
 use videogen_common::{VideoGenProvider, VideoModel};
 
 #[component]
@@ -38,14 +39,15 @@ pub fn PreUploadAiView(
 
     // Get auth state
     let auth = auth_state();
-    let is_logged_in = auth.is_logged_in_with_oauth(); // Signal::stored(true);
+    let is_logged_in = Signal::stored(true); // auth.is_logged_in_with_oauth(); // Signal::stored(true);
 
     // Form validation
     let form_valid = Signal::derive(move || !prompt_text.get().trim().is_empty());
     let can_generate = Signal::derive(move || {
         // Allow button click for non-logged-in users (to show login modal)
         // For logged-in users, check form validity and balance
-        !is_logged_in.get() || form_valid.get() && !generate_action.pending().get()
+        // !is_logged_in.get() ||
+        form_valid.get() && !generate_action.pending().get()
     });
 
     // Error handling from action
@@ -246,6 +248,14 @@ pub fn PreUploadAiView(
                                                             let prompt = prompt_text.get_untracked();
                                                             let model = selected_model.get_untracked();
                                                             let image_data = uploaded_image.get_untracked();
+
+                                                            // Track Create AI Video clicked
+                                                            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                                                                MixPanelEvent::track_create_ai_video_clicked(
+                                                                    global,
+                                                                    model.name.clone()
+                                                                );
+                                                            }
 
                                                             // Create params struct and dispatch the action
                                                             let params = VideoGenerationParams {

@@ -586,7 +586,7 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
         <button
             tabindex="0"
             class="z-10 select-none rounded-r-lg bg-black/25 py-2 px-3 cursor-pointer text-sm font-medium text-white items-center gap-1
-            pointer-coarse:flex pointer-fine:hidden absolute top-[7rem] left-0
+            pointer-coarse:flex pointer-fine:hidden absolute top-[7rem] left-0 safari:transition-none
             active:translate-x-0 -translate-x-2/3 focus:delay-[3.5s] active:focus:delay-0 transition-all duration-100"
             on:click=move |_| {
                 let is_muted = muted.get_untracked();
@@ -664,7 +664,7 @@ pub fn HotOrNotTutorialOverlay(
     view! {
         <ShadowOverlay show=show >
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
-                <div class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
+                <div style="max-height: 90vh;" class="overflow-hidden overflow-y-auto h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
                     <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
                     <div
                         style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
@@ -681,7 +681,7 @@ pub fn HotOrNotTutorialOverlay(
                     </button>
                     <div class="flex z-[2] relative flex-col items-center gap-2 text-white justify-center p-12">
                         <div class="text-lg font-bold">"How to play?"</div>
-                        <div class="font-bold text-yellow-500 pb-4">"Stake Bitcoin (SATS) to vote HOT or NOT."</div>
+                        <div class="font-bold text-yellow-500 pb-4 text-center">"Stake Bitcoin (SATS) to vote HOT or NOT."</div>
                         <div class="border rounded-md border-neutral-800 bg-neutral-950 flex p-3 gap-4 items-center">
                             <img src="/img/hotornot/hot-circular.svg" class="size-12 shrink-0" />
                             <div class="text-neutral-400"><span class="font-bold text-white">"'Hot'"</span>" = Higher engagement score than the previous"</div>

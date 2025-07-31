@@ -1,5 +1,9 @@
+use crate::upload::ai::types::VideoGenerationParams;
+use crate::upload::ai::videogen_client::{generate_video_with_signature, sign_videogen_request};
 use candid::Principal;
-use videogen_common::{ImageInput, VideoGenRequest, VideoModel};
+use state::canisters::AuthState;
+use videogen_common::{ImageInput, VideoGenRequest, VideoGenRequestWithSignature, VideoModel};
+use yral_canisters_common::Canisters;
 
 // Helper function to create video request
 pub fn create_video_request(
@@ -62,4 +66,57 @@ pub fn create_video_request(
     };
 
     Ok(request)
+}
+
+/// Get authenticated canisters
+pub async fn get_auth_canisters(
+    auth: &AuthState,
+    unauth_cans: Canisters<false>,
+) -> Result<Canisters<true>, String> {
+    auth.auth_cans(unauth_cans).await.map_err(|err| {
+        leptos::logging::error!("Failed to get auth canisters: {:?}", err);
+        format!("Failed to get auth canisters: {err:?}")
+    })
+}
+
+/// Create and sign a video generation request
+pub fn create_and_sign_request(
+    identity: &impl ic_agent::Identity,
+    params: &VideoGenerationParams,
+) -> Result<VideoGenRequestWithSignature, String> {
+    // Create the video request
+    let request = create_video_request(
+        params.user_principal,
+        params.prompt.clone(),
+        params.model.clone(),
+        params.image_data.clone(),
+    )
+    .map_err(|err| {
+        leptos::logging::error!("Failed to create request: {}", err);
+        format!("Failed to create request: {err}")
+    })?;
+
+    // Sign the request
+    sign_videogen_request(identity, request).map_err(|err| {
+        leptos::logging::error!("Failed to sign request: {:?}", err);
+        format!("Failed to sign request: {err:?}")
+    })
+}
+
+/// Execute video generation with signed request
+pub async fn execute_video_generation(
+    signed_request: VideoGenRequestWithSignature,
+    canisters: &Canisters<true>,
+) -> Result<String, String> {
+    // Get rate limits client from canisters
+    let rate_limits = canisters.rate_limits().await;
+
+    // Generate video with signed request
+    generate_video_with_signature(signed_request, &rate_limits)
+        .await
+        .map(|response| response.video_url)
+        .map_err(|err| {
+            leptos::logging::error!("Video generation failed: {}", err);
+            format!("Failed to generate video: {err}")
+        })
 }
