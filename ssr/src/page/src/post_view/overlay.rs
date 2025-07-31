@@ -420,6 +420,7 @@ pub fn VideoDetailsOverlay(
                 );
             }
             sats_airdrop_error.set(true);
+            log::warn!("Failed to get authenticated canisters");
             return Err(ServerFnError::new("Failed to get authenticated canisters"));
         };
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
@@ -440,6 +441,7 @@ pub fn VideoDetailsOverlay(
                 sats_airdrop_claimed.set(true);
                 sats_airdrop_amount.set(amount);
                 if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                    log::info!("Claimed airdrop");
                     MixPanelEvent::track_airdrop_claimed(
                         global,
                         StakeType::Sats,
