@@ -406,13 +406,11 @@ pub fn VideoDetailsOverlay(
     let sats_airdrop_error = RwSignal::new(false);
 
     let claim_sats_airdrop_action = Action::new_local(move |_| async move {
-        
         log::info!("Claiming airdrop");
         show_sats_airdrop_popup.set(true);
         sats_airdrop_claimed.set(false);
         sats_airdrop_error.set(false);
         let cans = unauth_canisters();
-
 
         let Ok(auth_cans) = auth.auth_cans(cans).await else {
             if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
