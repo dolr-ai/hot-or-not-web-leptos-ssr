@@ -772,7 +772,7 @@ impl MixPanelEvent {
                     "/menu" => {
                         Self::track_menu_page_viewed(props);
                     }
-                    "/upload" => {
+                    "/upload-options" => {
                         Self::track_upload_page_viewed(props);
                     }
                     "/profile/edit" => {
