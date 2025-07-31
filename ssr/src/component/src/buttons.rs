@@ -43,10 +43,12 @@ pub fn HighlightedLinkButton(
     #[prop(optional)] classes: String,
     #[prop(optional)] alt_style: bool,
     #[prop(optional)] disabled: bool,
+    #[prop(optional)] target: String,
 ) -> impl IntoView {
     view! {
         <a
             href=href
+            target=target
             aria_disabled=disabled
             class=format!(
                 "w-full px-5 py-3 rounded-lg flex items-center transition-all justify-center gap-8 font-kumbh font-bold {}",

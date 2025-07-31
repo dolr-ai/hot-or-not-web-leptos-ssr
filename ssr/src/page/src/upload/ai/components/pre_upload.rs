@@ -6,6 +6,7 @@ use leptos_icons::*;
 use state::canisters::auth_state;
 use utils::event_streaming::events::VideoUploadInitiated;
 use utils::host::show_preview_component;
+use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps};
 use videogen_common::{VideoGenProvider, VideoModel};
 
 #[component]
@@ -246,6 +247,14 @@ pub fn PreUploadAiView(
                                                             let prompt = prompt_text.get_untracked();
                                                             let model = selected_model.get_untracked();
                                                             let image_data = uploaded_image.get_untracked();
+
+                                                            // Track Create AI Video clicked
+                                                            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                                                                MixPanelEvent::track_create_ai_video_clicked(
+                                                                    global,
+                                                                    model.name.clone()
+                                                                );
+                                                            }
 
                                                             // Create params struct and dispatch the action
                                                             let params = VideoGenerationParams {

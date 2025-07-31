@@ -832,7 +832,11 @@ pub fn FastWalletCard(
             let cans = auth.auth_cans(base).await?;
             let global = MixpanelGlobalProps::try_get(&cans.clone(), is_connected);
             let global_dispatched = MixpanelGlobalProps::try_get(&cans.clone(), is_connected);
-            MixPanelEvent::track_claim_airdrop_clicked(global, token_type.clone());
+            MixPanelEvent::track_claim_airdrop_clicked(
+                global,
+                token_type.clone(),
+                "wallet".to_string(),
+            );
             error_claiming_airdrop.set(false);
             show_airdrop_popup.set(true);
             match airdropper.as_ref().unwrap().claim_airdrop(cans).await {
@@ -843,6 +847,7 @@ pub fn FastWalletCard(
                         token_type,
                         true,
                         amount,
+                        "wallet".to_string(),
                     );
                     is_airdrop_claimed.set(true);
                     error_claiming_airdrop.set(false);
@@ -852,7 +857,13 @@ pub fn FastWalletCard(
                 }
                 Err(err) => {
                     log::error!("error claiming airdrop");
-                    MixPanelEvent::track_airdrop_claimed(global_dispatched, token_type, false, 0);
+                    MixPanelEvent::track_airdrop_claimed(
+                        global_dispatched,
+                        token_type,
+                        false,
+                        0,
+                        "wallet".to_string(),
+                    );
                     error_claiming_airdrop.set(true);
                     Err(err)
                 }

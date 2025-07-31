@@ -8,9 +8,10 @@ use candid::Principal;
 use codee::string::FromToStringCodec;
 use consts::{
     auth::REFRESH_MAX_AGE, ACCOUNT_CONNECTED_STORE, AUTH_UTIL_COOKIES_MAX_AGE_MS, REFERRER_COOKIE,
-    USERNAME_MAX_LEN, USER_CANISTER_ID_STORE, USER_PRINCIPAL_STORE,
+    USER_CANISTER_ID_STORE, USER_PRINCIPAL_STORE,
 };
 use futures::FutureExt;
+use global_constants::USERNAME_MAX_LEN;
 use leptos::prelude::*;
 use leptos_router::{hooks::use_query, params::Params};
 use leptos_use::{use_cookie_with_options, UseCookieOptions};

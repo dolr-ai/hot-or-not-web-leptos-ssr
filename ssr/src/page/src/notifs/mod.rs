@@ -24,7 +24,7 @@ fn NotifInnerComponent(details: ProfileDetails) -> impl IntoView {
 
     view! {
         <h1>"YRAL Notifs for"</h1>
-        <h2>{details.username_or_principal()}</h2>
+        <h2>{details.username_or_fallback()}</h2>
         <br />
         <div class="flex flex-row gap-2 text-black">
             <button

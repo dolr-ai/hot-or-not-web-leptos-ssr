@@ -1,9 +1,10 @@
 use super::{PreUploadAiView, VideoGenerationLoadingScreen, VideoResultScreen};
-use crate::upload::ai::helpers::create_video_request;
+use crate::upload::ai::helpers::{
+    create_and_sign_request, execute_video_generation, get_auth_canisters,
+};
 use crate::upload::ai::server::upload_ai_video_from_url;
 use crate::upload::ai::types::VideoGenerationParams;
 use crate::upload::ai::types::{UploadActionParams, AI_VIDEO_PARAMS_STORE};
-use crate::upload::ai::videogen_client::{generate_video_with_signature, sign_videogen_request};
 use crate::upload::PostUploadScreen;
 use auth::delegate_short_lived_identity;
 use candid::Principal;
@@ -14,6 +15,7 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_use::storage::use_local_storage;
 use state::canisters::{auth_state, unauth_canisters};
+use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, MixpanelPostGameType};
 
 #[component]
 pub fn UploadAiPostPage() -> impl IntoView {
@@ -30,12 +32,13 @@ pub fn UploadAiPostPage() -> impl IntoView {
 
     // Get auth state outside actions for reuse
     let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
 
     // Get unauth_canisters at component level to preserve reactive context
     let unauth_cans = unauth_canisters();
     let unauth_cans_for_upload = unauth_cans.clone();
 
-    // Video generation action - this is the proper way to handle async operations
+    // Video generation action - cleaned up with helper functions
     let generate_action: Action<VideoGenerationParams, Result<String, String>> =
         Action::new_unsync({
             move |params: &VideoGenerationParams| {
@@ -44,60 +47,46 @@ pub fn UploadAiPostPage() -> impl IntoView {
                 let unauth_cans = unauth_cans.clone();
 
                 async move {
-                    // Get auth canisters and identity for signing
-                    match auth.auth_cans(unauth_cans).await {
-                        Ok(canisters) => {
-                            let identity = canisters.identity();
+                    // Store model name for tracking
+                    let model_name = params.model.name.clone();
 
-                            // Create the video request
-                            match create_video_request(
-                                params.user_principal,
-                                params.prompt,
-                                params.model,
-                                params.image_data,
-                            ) {
-                                Ok(request) => {
-                                    // Sign the request on client side
-                                    match sign_videogen_request(identity, request) {
-                                        Ok(signed_request) => {
-                                            // Generate video with signed request
-                                            match generate_video_with_signature(signed_request)
-                                                .await
-                                            {
-                                                Ok(videogen_resp) => {
-                                                    // Set show_form to false to show result screen
-                                                    show_form.set(false);
-                                                    Ok(videogen_resp.video_url)
-                                                }
-                                                Err(err) => {
-                                                    leptos::logging::error!(
-                                                        "Video generation failed: {}",
-                                                        err
-                                                    );
-                                                    Err(format!("Failed to generate video: {err}"))
-                                                }
-                                            }
-                                        }
-                                        Err(err) => {
-                                            leptos::logging::error!(
-                                                "Failed to sign request: {:?}",
-                                                err
-                                            );
-                                            Err(format!("Failed to sign request: {err:?}"))
-                                        }
-                                    }
-                                }
-                                Err(err) => {
-                                    leptos::logging::error!("Failed to create request: {}", err);
-                                    Err(format!("Failed to create request: {err}"))
-                                }
+                    // Get auth canisters
+                    let canisters = get_auth_canisters(&auth, unauth_cans).await?;
+
+                    // Get identity from canisters
+                    let identity = canisters.identity();
+
+                    // Create and sign the request
+                    let signed_request = create_and_sign_request(identity, &params)?;
+
+                    // Execute video generation
+                    let result = execute_video_generation(signed_request, &canisters).await;
+
+                    // Track video generation result
+                    if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                        match &result {
+                            Ok(_) => {
+                                MixPanelEvent::track_ai_video_generated(
+                                    global, true, None, model_name,
+                                );
+                            }
+                            Err(error) => {
+                                MixPanelEvent::track_ai_video_generated(
+                                    global,
+                                    false,
+                                    Some(error.clone()),
+                                    model_name,
+                                );
                             }
                         }
-                        Err(err) => {
-                            leptos::logging::error!("Failed to get auth canisters: {:?}", err);
-                            Err(format!("Failed to get auth canisters: {err:?}"))
-                        }
                     }
+
+                    // Update UI state on success
+                    if result.is_ok() {
+                        show_form.set(false);
+                    }
+
+                    result
                 }
             }
         });
@@ -112,6 +101,16 @@ pub fn UploadAiPostPage() -> impl IntoView {
             async move {
                 // Show notification nudge when starting upload
                 notification_nudge.set(true);
+
+                // Track video upload initiated for AI video
+                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                    MixPanelEvent::track_video_upload_initiated(
+                        global,
+                        false, // caption_added - we're not using captions for AI videos
+                        false, // hashtags_added - we're not using hashtags for AI videos
+                        Some("ai_video".to_string()),
+                    );
+                }
 
                 // Get delegated identity within the Action
                 match auth.auth_cans(unauth_cans).await {
@@ -135,6 +134,18 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                     "Video uploaded successfully with UID: {}",
                                     video_uid
                                 );
+
+                                // Track video upload success for AI video
+                                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                                    MixPanelEvent::track_video_upload_success(
+                                        global,
+                                        video_uid.clone(),
+                                        global_constants::CREATOR_COMMISSION_PERCENT,
+                                        false, // is_game_enabled - AI videos don't have game enabled
+                                        MixpanelPostGameType::HotOrNot,
+                                        Some("ai_video".to_string()),
+                                    );
+                                }
 
                                 // Show success modal
                                 show_success_modal.set(true);
@@ -206,6 +217,15 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                     // Check if we have valid parameters (not default/empty)
                                     if !params.prompt.is_empty() && params.user_principal != Principal::anonymous() {
                                         leptos::logging::log!("Re-generating video with stored parameters");
+
+                                        // Track regenerate clicked
+                                        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
+                                            MixPanelEvent::track_regenerate_video_clicked(
+                                                global,
+                                                params.model.name.clone()
+                                            );
+                                        }
+
                                         // Dispatch the action again with the stored parameters
                                         generate_action.dispatch(params);
                                     } else {
