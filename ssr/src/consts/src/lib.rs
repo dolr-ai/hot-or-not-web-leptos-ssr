@@ -116,6 +116,9 @@ pub const DOLR_AI_LEDGER_CANISTER: &str = "6rdgd-kyaaa-aaaaq-aaavq-cai";
 pub const CKBTC_LEDGER_CANISTER: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
 pub const USDC_LEDGER_CANISTER: &str = "xevnm-gaaaa-aaaar-qafnq-cai";
 
+pub const SATS_CKBTC_CANISTER: &str =
+    "zg7n3-345by-nqf6o-3moz4-iwxql-l6gko-jqdz2-56juu-ja332-unymr-fqe";
+
 pub const USER_ONBOARDING_STORE_KEY: &str = "user-onboarding";
 #[derive(Serialize, Deserialize, Clone, PartialEq, Default)]
 pub struct UserOnboardingStore {
