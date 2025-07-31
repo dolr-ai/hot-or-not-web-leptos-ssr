@@ -826,8 +826,8 @@ pub fn HotOrNotTutorialOverlay(
 
 #[component]
 fn AirdropCountdown(duration: web_time::Duration) -> impl IntoView {
-    use web_time::Instant;
     use utils::time::to_hh_mm_ss;
+    use web_time::Instant;
 
     let end_time = Instant::now() + duration;
     let (remaining_duration, set_remaining_duration) = signal(duration);
@@ -835,12 +835,8 @@ fn AirdropCountdown(duration: web_time::Duration) -> impl IntoView {
     let _ = use_interval_fn_with_options(
         move || {
             let now = Instant::now();
-            if now < end_time {
-                let remaining = end_time.duration_since(now);
-                set_remaining_duration(remaining);
-            } else {
-                set_remaining_duration(web_time::Duration::ZERO);
-            }
+            let remaining = end_time.saturating_duration_since(now);
+            set_remaining_duration(remaining);
         },
         1000,
         UseIntervalFnOptions::default().immediate(true),
