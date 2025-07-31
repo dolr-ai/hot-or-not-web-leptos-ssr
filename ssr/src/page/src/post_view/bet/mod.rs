@@ -178,12 +178,6 @@ fn HNButtonOverlay(
 
             let post_mix = post.clone();
             send_wrap(async move {
-                if bet_amount > wallet_balance_store.get() {
-                    log::warn!("Insufficient balance for bet amount: {bet_amount}");
-                    show_low_balance_popup.set(true);
-                    return None;
-                }
-
                 let res = check_show_login_nudge();
                 if res.is_err() {
                     return None;
@@ -204,6 +198,13 @@ fn HNButtonOverlay(
                     StakeType::Sats,
                     post.is_nsfw,
                 );
+
+                if bet_amount > wallet_balance_store.get() {
+                    log::warn!("Insufficient balance for bet amount: {bet_amount}");
+                    show_low_balance_popup.set(true);
+                    return None;
+                }
+
                 let identity = cans.identity();
                 let sender = identity.sender().unwrap();
                 let sig = sign_vote_request_v3(identity, req_v3).ok()?;
