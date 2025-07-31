@@ -831,7 +831,7 @@ fn AirdropCountdown(duration: web_time::Duration) -> impl IntoView {
     let end_time = Instant::now() + duration;
     let (remaining_time, set_remaining_time) = signal(duration.as_secs());
 
-    let interval_fn = use_interval_fn_with_options(
+    let _ = use_interval_fn_with_options(
         move || {
             let now = Instant::now();
             if now < end_time {
