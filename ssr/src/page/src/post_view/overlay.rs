@@ -901,7 +901,7 @@ pub fn LowSatsBalancePopup(
                                                 <ul class="flex list-disc flex-col gap-5 text-neutral-300">
                                                     <li>"Unlock your daily"<span class="font-semibold">" Bitcoin (SATS) "</span>"loot every 24 hours!"</li>
                                                     <li>"Refer & earn "<span class="font-semibold">{refer_reward_text}</span>" for every friend you invite."</li>
-                                                    <li class="font-semibold">"Upload Videos to earn comissions."</li>
+                                                    <li class="font-semibold">"Upload Videos to earn commissions."</li>
                                                 </ul>
                                             }.into_any()
                                         } else {
@@ -912,26 +912,53 @@ pub fn LowSatsBalancePopup(
                                         }
                                     }
 
-                                    <HighlightedButton
-                                        alt_style=false
-                                        disabled=false
-                                        on_click=move || {
-                                            show.set(false);
-                                            claim_airdrop.dispatch(());
+                                    if is_airdrop_eligible {
+                                        view! {
+
+                                            <HighlightedButton
+                                            alt_style=false
+                                            disabled=false
+                                            on_click=move || {
+                                                show.set(false);
+                                                claim_airdrop.dispatch(());
+                                            }
+                                            >
+                                            "Claim Bitcoin Airdrop"
+                                            </HighlightedButton>
+                                            <HighlightedButton
+                                            alt_style=true
+                                            disabled=false
+                                            on_click=move || {
+                                                show.set(false);
+                                                navigate_refer_page.dispatch(is_airdrop_eligible);
+                                            }
+                                            >
+                                            "Refer a friend"
+                                            </HighlightedButton>
+                                        } else {
+                                            view! {
+                                                <HighlightedButton
+                                            alt_style=false
+                                            disabled=false
+                                            on_click=move || {
+                                                show.set(false);
+                                                navigate_refer_page.dispatch(is_airdrop_eligible);
+                                            }
+                                            >
+                                            "Refer a friend"
+                                            </HighlightedButton>
+                                            <HighlightedButton
+                                                alt_style=true
+                                                disabled=false
+                                                on_click=move || {
+                                                    show.set(false);
+                                                }
+                                                >
+                                                "Back to Game"
+                                            </HighlightedButton>
+                                            }
                                         }
-                                    >
-                                        "Claim airdrop"
-                                    </HighlightedButton>
-                                    <HighlightedButton
-                                        alt_style=true
-                                        disabled=false
-                                        on_click=move || {
-                                            show.set(false);
-                                            navigate_refer_page.dispatch(is_airdrop_eligible);
-                                        }
-                                    >
-                                        "Refer a friend"
-                                    </HighlightedButton>
+                                    }
                                 </div>
                             }
                         })}
