@@ -154,15 +154,20 @@ fn BalanceDisplay(#[prop(into)] balance: Nat) -> impl IntoView {
 #[component]
 pub fn HonWithdrawal() -> impl IntoView {
     let auth = auth_state();
-    let details_res = auth.derive_resource(
+    let balance = auth.derive_resource(
         || (),
         move |cans, _| {
             send_wrap(async move {
                 let principal = cans.user_principal();
 
-                load_withdrawal_details(principal)
+                let details = load_withdrawal_details(principal)
                     .map_err(ServerFnError::new)
                     .await
+                    .unwrap_or_else(|_| SatsBalanceInfo {
+                        balance: 0u64.into(),
+                        airdropped: 0u64.into(),
+                    });
+                Ok::<Nat, ServerFnError>(details.balance.into())
             })
         },
     );
@@ -225,18 +230,6 @@ pub fn HonWithdrawal() -> impl IntoView {
             }
         }
     });
-    let balance = Resource::new(
-        move || details_res.get().map(|r| r.ok().map(|d| d.balance.into())),
-        |res| async move {
-            if let Some(res) = res {
-                res.unwrap_or_default()
-            } else {
-                Nat::from(0_usize)
-            }
-        },
-    );
-
-    let zero = Nat::from(0_usize);
 
     use state::canisters::unauth_canisters;
     let cans = unauth_canisters();
@@ -268,7 +261,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                         </div>
                     }
                 }>
-                {
+                {move || {
                     let is_treasury_empty = treasury_balance.get().map(|balance| balance == 0_usize).unwrap_or(false);
                     if is_treasury_empty {
                         view! {
@@ -295,6 +288,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                         view! {
                             {balance
                                 .get()
+                                .and_then(|res| res.ok())
                                 .map(|balance| view! { <BalanceDisplay balance=balance.clone() /> })}
                             <div class="flex flex-col gap-5 mt-8 w-full">
                                 <span class="text-sm">Choose how much to redeem:</span>
@@ -332,11 +326,11 @@ pub fn HonWithdrawal() -> impl IntoView {
                                         </div>
                                     </div>
                                     {move || {
-                                        let balance = balance.get().unwrap_or_else(|| Nat::from(0_usize));
+                                        let balance = balance.get().and_then(|res| res.ok()).unwrap_or_else(|| Nat::from(0_usize));
                                         let can_withdraw = true;
                                         let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN_SATS as usize
                                             || sats() > MAX_WITHDRAWAL_PER_TXN_SATS as usize;
-                                        let invalid_balance = sats() > balance || balance == zero;
+                                        let invalid_balance = sats() > balance || balance == 0_usize;
                                         let is_claiming = is_claiming();
                                         let message = if invalid_balance {
                                             "Not enough balance".to_string()
@@ -373,7 +367,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                         }.into_any()
                     }
 
-                }
+                }}
                 </Suspense>
                 </div>
             </div>
