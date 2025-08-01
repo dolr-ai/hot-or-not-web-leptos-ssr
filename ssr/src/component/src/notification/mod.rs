@@ -118,11 +118,11 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
                                             <img src={icon.clone()} class="size-11 rounded-full object-cover" />
                                         </div>
                                     </div>
-                                    <div class="flex flex-col gap-1 flex-1">
+                                    <div class="flex flex-col gap-1 flex-1 min-w-0">
                                         <div class="text-neutral-50 font-semibold">
                                             {title.clone()}
                                         </div>
-                                        <div class="text-neutral-500 text-sm line-clamp-2">
+                                        <div class="text-neutral-500 text-sm line-clamp-2 overflow-hidden break-words notification-description">
                                             {description.clone()}
                                         </div>
                                         <div class="flex items-center gap-2 pt-2">
@@ -225,7 +225,7 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
         } else {
             // Mobile: current layout
             view! {
-                <div class="flex flex-col items-center pt-4 pb-12 w-screen min-h-screen text-white bg-black h-full">
+                <div class="flex flex-col items-center pt-4 pb-12 w-full min-h-screen text-white bg-black h-full">
                     <div class="sticky top-0 z-10 w-full bg-black">
                         <TitleText justify_center=false>
                             <div class="relative flex items-center justify-center">
@@ -268,7 +268,7 @@ fn EmptyNotifications() -> impl IntoView {
 #[component]
 fn NotificationInfiniteScroller(provider: NotificationProvider) -> impl IntoView {
     view! {
-            <div class="flex overflow-hidden overflow-y-auto flex-col px-4 pb-32 mx-auto w-full max-w-5xl h-full">
+            <div class="flex overflow-hidden overflow-y-auto flex-col px-4 pb-32 mx-auto w-full h-full">
                 <InfiniteScroller
                     provider
                     fetch_count=10

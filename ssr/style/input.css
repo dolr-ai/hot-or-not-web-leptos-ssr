@@ -305,3 +305,74 @@
         transform: scale(0);
     }
 }
+
+/* Enhanced line-clamp implementation with Chrome mobile fallbacks */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  max-height: 2.8em; /* Fallback for browsers without line-clamp support */
+  line-height: 1.4;
+}
+
+/* Chrome mobile specific fixes */
+@supports (-webkit-touch-callout: none) {
+  .line-clamp-2 {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+  }
+}
+
+/* Additional mobile browser fixes */
+@media (max-width: 768px) {
+  .line-clamp-2 {
+    /* Ensure proper text rendering on mobile */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent text from being cut off */
+    padding-right: 0.25rem;
+  }
+}
+
+/* Notification-specific text fixes for Chrome mobile */
+.notification-description {
+  /* Force proper box model for Chrome mobile */
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis;
+  
+  /* Ensure text doesn't overflow container */
+  max-width: 100%;
+  word-wrap: break-word;
+  word-break: break-word;
+  hyphens: auto;
+  
+  /* Chrome mobile rendering optimization */
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+/* Fallback for older Chrome versions */
+@supports not (-webkit-line-clamp: 2) {
+  .notification-description {
+    max-height: 2.8em;
+    line-height: 1.4em;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .notification-description::after {
+    content: '...';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    padding-left: 2em;
+    background: linear-gradient(to right, transparent, rgb(115 115 115) 50%);
+  }
+}
