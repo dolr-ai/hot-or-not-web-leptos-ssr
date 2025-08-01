@@ -100,7 +100,7 @@ fn HNButtonOverlay(
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
     audio_ref: NodeRef<Audio>,
-    show_low_balance_popup: RwSignal<bool>,
+    _show_low_balance_popup: RwSignal<bool>,
 ) -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
