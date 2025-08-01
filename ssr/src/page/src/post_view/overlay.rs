@@ -443,8 +443,6 @@ pub fn VideoDetailsOverlay(
                 sats_airdrop_claimed.set(true);
                 sats_airdrop_amount.set(amount);
 
-                log::info!("Claimed sats airdrop: {amount}");
-
                 let (_, set_wallet_balance_store, _) =
                             use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
@@ -453,7 +451,6 @@ pub fn VideoDetailsOverlay(
                 });
                 
                 if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                    log::info!("Claimed airdrop");
                     MixPanelEvent::track_airdrop_claimed(
                         global,
                         StakeType::Sats,

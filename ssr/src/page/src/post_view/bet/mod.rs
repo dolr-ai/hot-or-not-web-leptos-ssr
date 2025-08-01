@@ -200,7 +200,6 @@ fn HNButtonOverlay(
                 );
 
                 let current_balance = wallet_balance_store.get_untracked();
-                log::info!("Placing bet, wallet balance: {current_balance}, bet amount: {bet_amount}");
 
                 if bet_amount > current_balance {
                     log::warn!("Insufficient balance for bet amount: {bet_amount}");
@@ -233,21 +232,24 @@ fn HNButtonOverlay(
                             } => TokenBalance::new((lose_amt + 0u64).into(), 0).humanize(),
                         };
 
-                        let (_, set_wallet_balance_store, _) =
-                            use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
-
                         HnBetState::set(post_mix.uid.clone(), res.video_comparison_result);
+
+                        let (wallet_balance_store, set_wallet_balance_store, _) =
+                            use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+                        let current_balance = wallet_balance_store.get_untracked() - bet_amount;
+                        
 
                         let balance = match res.game_result.game_result.clone() {
                             GameResultV2::Win {
                                 win_amt: _,
                                 updated_balance,
-                            } => updated_balance.to_u64().unwrap_or(0),
+                            } => updated_balance.to_u64().unwrap_or(current_balance),
                             GameResultV2::Loss {
                                 lose_amt: _,
                                 updated_balance,
-                            } => updated_balance.to_u64().unwrap_or(0),
+                            } => updated_balance.to_u64().unwrap_or(current_balance),
                         };
+
                         HnBetState::set_balance(balance);
                         set_wallet_balance_store.set(balance);
 
@@ -658,7 +660,7 @@ pub fn HNGameOverlay(
     });
 
     // Fetch and update wallet balance on initial load
-    let (_, set_wallet_balance_store, _) =
+    let (wallet_balance_store, set_wallet_balance_store, _) =
         use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
     let fetch_balance_action = Action::new_local(move |_: &()| async move {
@@ -666,22 +668,17 @@ pub fn HNGameOverlay(
         let user_principal = cans.user_principal();
         let balance_info = load_sats_balance(user_principal).await.ok()?;
         let balance = balance_info.balance.to_u64().unwrap_or(25);
-        log::info!("Fetched wallet balance: {}", balance);
         set_wallet_balance_store.set(balance);
         HnBetState::set_balance(balance);
         Some(balance)
     });
 
-    // Dispatch balance fetch when component loads (only once per session)
     Effect::new(move |prev: Option<()>| {
         if prev.is_none() {
-            // Check if balance has already been fetched in this session
             let current_balance = wallet_balance_store.get_untracked();
             let hn_balance = HnBetState::get_balance();
             
-            // Only fetch if both stores are empty/default
             if current_balance == 0 && hn_balance.is_none() {
-                log::info!("Initial balance fetch needed");
                 fetch_balance_action.dispatch(());
             } else {
                 log::info!("Balance already exists, skipping fetch: {}", current_balance);
