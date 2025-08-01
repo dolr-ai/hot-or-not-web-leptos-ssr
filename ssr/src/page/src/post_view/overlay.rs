@@ -859,7 +859,6 @@ pub fn LowSatsBalancePopup(
         },
     );
 
-    let refer_reward_text = format!("Bitcoin ({} SATS)", REFERRAL_REWARD_SATS);
     view! {
         <ShadowOverlay show=show >
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
@@ -882,7 +881,6 @@ pub fn LowSatsBalancePopup(
                         }
                     >
                         {move || Suspend::new(async move {
-                            let refer_reward_text = refer_reward_text.clone();
                             let airdrop_status = status_resource.await;
                             let is_airdrop_eligible = matches!(airdrop_status, AirdropStatus::Available);
 
@@ -899,7 +897,7 @@ pub fn LowSatsBalancePopup(
                                     <img src="/img/hotornot/sad.webp" class="size-14" />
                                     <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on Bitcoin (SATS)"</div>
                                     {
-                                        let refer_reward_text = refer_reward_text.clone();
+                                        let refer_reward_text = format!("Bitcoin ({} SATS)", REFERRAL_REWARD_SATS);
                                         match airdrop_status {
                                             AirdropStatus::Available => view! {
                                                     <div class="text-neutral-300 text-center">"Earn more in two easy ways:"</div>
