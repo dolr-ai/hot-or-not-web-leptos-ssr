@@ -104,9 +104,7 @@ fn Header(details: ProfileDetails, is_own_account: bool) -> impl IntoView {
     let notification_panel = RwSignal::new(false);
 
     view! {
-        <ShadowOverlay show=notification_panel>
-            <NotificationPage close=notification_panel />
-        </ShadowOverlay>
+        <NotificationPage close=notification_panel />
         <div class="flex gap-10 justify-between items-center py-3 px-4 w-full">
             <div class="text-xl font-bold text-white font-kumbh">My Wallet</div>
             <div class="flex gap-8 items-center">
