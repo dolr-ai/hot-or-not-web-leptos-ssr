@@ -724,7 +724,7 @@ pub fn HNGameOverlay(
                                         coin
                                         refetch_bet
                                         audio_ref=win_audio_ref
-                                        show_low_balance_popup
+                                        _show_low_balance_popup=show_low_balance_popup
                                     />
                                 }
                                     .into_any()
