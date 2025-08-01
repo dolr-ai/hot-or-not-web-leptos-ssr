@@ -61,6 +61,7 @@ async fn user_principal_auth(
     Ok(canisters.user_principal())
 }
 
+#[allow(clippy::type_complexity)]
 pub fn new_video_fetch_stream(
     canisters: &Canisters<false>,
     auth: AuthState,
@@ -78,6 +79,7 @@ pub fn new_video_fetch_stream(
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub fn new_video_fetch_stream_auth(
     canisters: &Canisters<true>,
     auth: AuthState,
