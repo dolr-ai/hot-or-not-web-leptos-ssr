@@ -7,7 +7,6 @@ use candid::Principal;
 use codee::string::FromToStringCodec;
 use component::connect::ConnectLogin;
 use component::icons::notification_icon::NotificationIcon;
-use component::overlay::ShadowOverlay;
 use component::share_popup::ShareButtonWithFallbackPopup;
 use component::toggle::Toggle;
 use consts::NOTIFICATIONS_ENABLED_STORE;
