@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use crate::wallet::airdrop::AirdropStatus;
 use anyhow::ensure;
 use candid::Principal;
 use global_constants::{MAX_BET_AMOUNT_SATS, SATS_AIRDROP_LIMIT_RANGE_SATS};
@@ -197,4 +198,49 @@ async fn validate_sats_airdrop_eligibility(
     }
 
     Ok(())
+}
+
+#[server(input = server_fn::codec::Json)]
+pub async fn get_sats_airdrop_status(
+    user_canister: Principal,
+    user_principal: Principal,
+) -> Result<AirdropStatus, ServerFnError> {
+    let now = Utc::now();
+    let balance = load_sats_balance(user_principal).await?.balance;
+
+    if balance.ge(&MAX_BET_AMOUNT_SATS.into()) {
+        return Err(ServerFnError::new("Not eligible: balance sufficient"));
+    }
+
+    let cans = Canisters::default();
+    let user = cans.individual_user(user_canister).await;
+    let sess = user.get_session_type().await?;
+    if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
+        return Err(ServerFnError::new("Not eligible: not logged in"));
+    }
+
+    let SatsAirdrop(db) = expect_context();
+    let airdrop_data = sats_airdrop_data::Entity::find_by_id(user_principal.to_text())
+        .lock_shared()
+        .one(&db)
+        .await
+        .map_err(ServerFnError::new)?;
+
+    match airdrop_data {
+        Some(data) => {
+            let next_airdrop_available_after =
+                data.last_airdrop_at.and_utc() + Duration::from_secs(24 * 3600);
+
+            if now < next_airdrop_available_after {
+                let delta = next_airdrop_available_after.signed_duration_since(now);
+                let secs = delta.num_seconds() as u64;
+                let nanos = delta.subsec_nanos() as u32;
+                let duration = web_time::Duration::new(secs, nanos);
+                Ok(AirdropStatus::WaitFor(duration))
+            } else {
+                Ok(AirdropStatus::Available)
+            }
+        }
+        None => Ok(AirdropStatus::Available),
+    }
 }
