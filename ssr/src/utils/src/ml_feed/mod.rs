@@ -21,6 +21,7 @@ pub struct RecommendationRequest {
     pub exclude_items: Vec<String>, // IDs of videos to exclude from recommendations
     pub nsfw_label: bool,           // Whether to include NSFW content in recommendations
     num_results: u32,               // Number of results to return
+    ip_address: Option<String>,     // Optional IP address for geolocation
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -63,11 +64,13 @@ pub async fn get_ml_feed_coldstart_clean(
     filter_results: Vec<PostDetails>,
 ) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
+    let ip_address = crate::client_ip::get_client_ip().await;
     let recommendation_request = RecommendationRequest {
         user_id: user_id.to_string(),
         exclude_items: post_details_to_video_ids(filter_results),
         nsfw_label: false,
         num_results,
+        ip_address,
     };
 
     let cache_url = format!("{RECOMMENDATION_SERVICE_URL}/cache");
@@ -93,11 +96,13 @@ pub async fn get_ml_feed_coldstart_nsfw(
     filter_results: Vec<PostDetails>,
 ) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
+    let ip_address = crate::client_ip::get_client_ip().await;
     let recommendation_request = RecommendationRequest {
         user_id: user_id.to_string(),
         exclude_items: post_details_to_video_ids(filter_results),
         nsfw_label: true,
         num_results,
+        ip_address,
     };
 
     let cache_url = format!("{RECOMMENDATION_SERVICE_URL}/cache");
@@ -123,11 +128,13 @@ pub async fn get_ml_feed_clean(
     filter_results: Vec<PostDetails>,
 ) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
+    let ip_address = crate::client_ip::get_client_ip().await;
     let recommendation_request = RecommendationRequest {
         user_id: user_id.to_string(),
         exclude_items: post_details_to_video_ids(filter_results),
         nsfw_label: false,
         num_results,
+        ip_address,
     };
 
     let response = client
@@ -152,11 +159,13 @@ pub async fn get_ml_feed_nsfw(
     filter_results: Vec<PostDetails>,
 ) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
+    let ip_address = crate::client_ip::get_client_ip().await;
     let recommendation_request = RecommendationRequest {
         user_id: user_id.to_string(),
         exclude_items: post_details_to_video_ids(filter_results),
         nsfw_label: true,
         num_results,
+        ip_address,
     };
 
     let response = client

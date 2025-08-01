@@ -2,6 +2,7 @@ use futures::Future;
 use serde::{Deserialize, Serialize};
 
 pub mod ab_testing;
+pub mod client_ip;
 pub mod event_streaming;
 pub mod host;
 pub mod icon;
