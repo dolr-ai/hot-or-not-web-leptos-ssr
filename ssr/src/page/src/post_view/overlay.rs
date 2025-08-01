@@ -9,7 +9,7 @@ use component::spinner::SpinnerFit;
 use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption};
 use global_constants::REFERRAL_REWARD_SATS;
 
-use consts::{UserOnboardingStore, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY};
+use consts::{UserOnboardingStore, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
 use gloo::timers::callback::Timeout;
 use leptos::html::Audio;
 use leptos::{prelude::*, task::spawn_local};
@@ -442,6 +442,16 @@ pub fn VideoDetailsOverlay(
             .inspect(|&amount| {
                 sats_airdrop_claimed.set(true);
                 sats_airdrop_amount.set(amount);
+
+                log::info!("Claimed sats airdrop: {amount}");
+
+                let (_, set_wallet_balance_store, _) =
+                            use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+
+                set_wallet_balance_store.update(|balance| { 
+                    *balance += amount;
+                });
+                
                 if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                     log::info!("Claimed airdrop");
                     MixPanelEvent::track_airdrop_claimed(

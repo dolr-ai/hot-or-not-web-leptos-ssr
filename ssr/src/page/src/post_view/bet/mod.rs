@@ -106,6 +106,8 @@ fn HNButtonOverlay(
     let is_connected = auth.is_logged_in_with_oauth();
     let (wallet_balance_store, _, _) =
         use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+    let wallet_balance = wallet_balance_store.get_untracked();
+    log::info!("Current wallet balance: {}", wallet_balance);
 
     fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
         #[cfg(not(feature = "hydrate"))]
@@ -199,7 +201,9 @@ fn HNButtonOverlay(
                     post.is_nsfw,
                 );
 
-                if bet_amount > wallet_balance_store.get() {
+                log::info!("Placing bet, wallet balance: {wallet_balance}, bet amount: {bet_amount}");
+
+                if bet_amount > wallet_balance {
                     log::warn!("Insufficient balance for bet amount: {bet_amount}");
                     show_low_balance_popup.set(true);
                     return None;
@@ -663,6 +667,7 @@ pub fn HNGameOverlay(
         let user_principal = cans.user_principal();
         let balance_info = load_sats_balance(user_principal).await.ok()?;
         let balance = balance_info.balance.to_u64().unwrap_or(25);
+        log::info!("Fetched wallet balance: {}", balance);
         set_wallet_balance_store.set(balance);
         HnBetState::set_balance(balance);
         Some(balance)
