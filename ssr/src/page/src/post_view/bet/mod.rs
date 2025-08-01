@@ -680,10 +680,7 @@ pub fn HNGameOverlay(
             if current_balance == 0 && hn_balance.is_none() {
                 fetch_balance_action.dispatch(());
             } else {
-                log::info!(
-                    "Balance already exists, skipping fetch: {}",
-                    current_balance
-                );
+                log::info!("Balance already exists, skipping fetch: {current_balance}");
             }
         }
     });

@@ -906,7 +906,7 @@ pub fn LowSatsBalancePopup(
                                     <img src="/img/hotornot/sad.webp" class="size-14" />
                                     <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on Bitcoin (SATS)"</div>
                                     {
-                                        let refer_reward_text = format!("Bitcoin ({} SATS)", REFERRAL_REWARD_SATS);
+                                        let refer_reward_text = format!("Bitcoin ({REFERRAL_REWARD_SATS} SATS)");
                                         match airdrop_status {
                                             AirdropStatus::Available => view! {
                                                     <div class="text-neutral-300 text-center">"Earn more in two easy ways:"</div>
