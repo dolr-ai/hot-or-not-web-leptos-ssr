@@ -199,13 +199,13 @@ fn HNButtonOverlay(
                     post.is_nsfw,
                 );
 
-                let current_balance = wallet_balance_store.get_untracked();
+                // let current_balance = wallet_balance_store.get_untracked();
 
-                if bet_amount > current_balance {
-                    log::warn!("Insufficient balance for bet amount: {bet_amount}");
-                    show_low_balance_popup.set(true);
-                    return None;
-                }
+                // if bet_amount > current_balance {
+                //     log::warn!("Insufficient balance for bet amount: {bet_amount}");
+                //     show_low_balance_popup.set(true);
+                //     return None;
+                // }
 
                 let identity = cans.identity();
                 let sender = identity.sender().unwrap();
