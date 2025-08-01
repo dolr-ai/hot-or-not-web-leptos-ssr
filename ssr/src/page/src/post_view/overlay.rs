@@ -859,8 +859,8 @@ pub fn LowSatsBalancePopup(
         },
     );
 
+    let refer_reward_text = format!("Bitcoin ({} SATS)", REFERRAL_REWARD_SATS);
     view! {
-        let refer_reward_text = format!("Bitcoin ({} SATS)", REFERRAL_REWARD_SATS);
         <ShadowOverlay show=show >
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
                 <div style="min-height: 40vh;" class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
@@ -882,6 +882,7 @@ pub fn LowSatsBalancePopup(
                         }
                     >
                         {move || Suspend::new(async move {
+                            let refer_reward_text = refer_reward_text.clone();
                             let airdrop_status = status_resource.await;
                             let is_airdrop_eligible = matches!(airdrop_status, AirdropStatus::Available);
 
@@ -894,76 +895,77 @@ pub fn LowSatsBalancePopup(
                             }
 
                             view! {
-                                  <div class="flex z-[2] relative flex-col items-center gap-5 text-white justify-center p-12">
+                                <div class="flex z-[2] relative flex-col items-center gap-5 text-white justify-center p-12">
                                     <img src="/img/hotornot/sad.webp" class="size-14" />
                                     <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on Bitcoin (SATS)"</div>
                                     {
+                                        let refer_reward_text = refer_reward_text.clone();
                                         match airdrop_status {
                                             AirdropStatus::Available => view! {
                                                     <div class="text-neutral-300 text-center">"Earn more in two easy ways:"</div>
                                                     <ul class="flex list-disc flex-col gap-5 text-neutral-300">
                                                         <li>"Unlock your daily"<span class="font-semibold">" Bitcoin (SATS) "</span>"loot every 24 hours!"</li>
-                                                        <li>"Refer & earn "<span class="font-semibold">{refer_reward_text}</span>" for every friend you invite."</li>
+                                                        <li>"Refer & earn "<span class="font-semibold">{refer_reward_text.clone()}</span>" for every friend you invite."</li>
                                                         <li class="font-semibold">"Upload Videos to earn commissions."</li>
                                                     </ul>
                                                 }.into_any(),
                                             AirdropStatus::WaitFor(duration) => view! {
                                                     <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
                                                     <AirdropCountdown duration=duration />
-                                                    <div class="text-neutral-300 text-center">"Meanwhile, earn "<span class="font-semibold">{refer_reward_text}</span>" for every friend you refer!"</div>
+                                                    <div class="text-neutral-300 text-center">"Meanwhile, earn "<span class="font-semibold">{refer_reward_text.clone()}</span>" for every friend you refer!"</div>
                                                 }.into_any(),
                                             AirdropStatus::Claimed => view! {
                                                     <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
-                                                    <div class="text-neutral-300 text-center">"Meanwhile, earn "<span class="font-semibold">{refer_reward_text}</span>" for every friend you refer!"</div>
+                                                    <div class="text-neutral-300 text-center">"Meanwhile, earn "<span class="font-semibold">{refer_reward_text.clone()}</span>" for every friend you refer!"</div>
                                                 }.into_any(),
                                         }
                                     }
 
-                                    match airdrop_status {
-                                        AirdropStatus::Available => view! {
-                                            <HighlightedButton
-                                            alt_style=false
-                                            disabled=false
-                                            on_click=move || {
-                                                show.set(false);
-                                                claim_airdrop.dispatch(());
-                                            }
-                                            >
-                                            "Claim Bitcoin Airdrop"
-                                            </HighlightedButton>
-                                            <HighlightedButton
-                                            alt_style=true
-                                            disabled=false
-                                            on_click=move || {
-                                                show.set(false);
-                                                navigate_refer_page.dispatch(is_airdrop_eligible);
-                                            }
-                                            >
-                                            "Refer a friend"
-                                            </HighlightedButton>
-                                        },
-                                        _ => {
-                                            view! {
+                                    {
+                                        match airdrop_status {
+                                            AirdropStatus::Available => view! {
                                                 <HighlightedButton
-                                            alt_style=false
-                                            disabled=false
-                                            on_click=move || {
-                                                show.set(false);
-                                                navigate_refer_page.dispatch(is_airdrop_eligible);
-                                            }
-                                            >
-                                            "Refer a friend"
-                                            </HighlightedButton>
-                                            <HighlightedButton
+                                                alt_style=false
+                                                disabled=false
+                                                on_click=move || {
+                                                    show.set(false);
+                                                    claim_airdrop.dispatch(());
+                                                }
+                                                >
+                                                "Claim Bitcoin Airdrop"
+                                                </HighlightedButton>
+                                                <HighlightedButton
                                                 alt_style=true
                                                 disabled=false
                                                 on_click=move || {
                                                     show.set(false);
+                                                    navigate_refer_page.dispatch(is_airdrop_eligible);
                                                 }
                                                 >
-                                                "Back to Game"
-                                            </HighlightedButton>
-                                            }
+                                                "Refer a friend"
+                                                </HighlightedButton>
+                                            }.into_any(),
+                                            _ => view! {
+                                                <HighlightedButton
+                                                    alt_style=false
+                                                    disabled=false
+                                                    on_click=move || {
+                                                        show.set(false);
+                                                        navigate_refer_page.dispatch(is_airdrop_eligible);
+                                                    }
+                                                    >
+                                                    "Refer a friend"
+                                                </HighlightedButton>
+                                                <HighlightedButton
+                                                    alt_style=true
+                                                    disabled=false
+                                                    on_click=move || {
+                                                        show.set(false);
+                                                    }
+                                                    >
+                                                    "Back to Game"
+                                                </HighlightedButton>
+                                            }.into_any()
                                         }
                                     }
                                 </div>
