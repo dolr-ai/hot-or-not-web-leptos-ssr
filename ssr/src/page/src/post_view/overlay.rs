@@ -7,6 +7,7 @@ use component::icons::volume_mute_icon::VolumeMuteIcon;
 use component::overlay::ShadowOverlay;
 use component::spinner::SpinnerFit;
 use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption};
+use global_constants::REFERRAL_REWARD_SATS;
 
 use consts::{UserOnboardingStore, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY};
 use gloo::timers::callback::Timeout;
@@ -857,6 +858,7 @@ pub fn LowSatsBalancePopup(
     );
 
     view! {
+        let refer_reward_text = format!("Bitcoin ({} SATS)", REFERRAL_REWARD_SATS);
         <ShadowOverlay show=show >
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
                 <div style="min-height: 40vh;" class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
@@ -898,14 +900,14 @@ pub fn LowSatsBalancePopup(
                                                 <div class="text-neutral-300 text-center">"Earn more in two easy ways:"</div>
                                                 <ul class="flex list-disc flex-col gap-5 text-neutral-300">
                                                     <li>"Unlock your daily"<span class="font-semibold">" Bitcoin (SATS) "</span>"loot every 24 hours!"</li>
-                                                    <li>"Refer & earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you invite."</li>
+                                                    <li>"Refer & earn "<span class="font-semibold">{refer_reward_text}</span>" for every friend you invite."</li>
                                                     <li class="font-semibold">"Upload Videos to earn comissions."</li>
                                                 </ul>
                                             }.into_any()
                                         } else {
                                             view! {
                                                 <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
-                                                <div class="text-neutral-300 text-center">"Meanwhile, earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you refer!"</div>
+                                                <div class="text-neutral-300 text-center">"Meanwhile, earn "<span class="font-semibold">{refer_reward_text}</span>" for every friend you refer!"</div>
                                             }.into_any()
                                         }
                                     }
