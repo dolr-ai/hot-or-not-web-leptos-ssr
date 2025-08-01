@@ -106,8 +106,6 @@ fn HNButtonOverlay(
     let is_connected = auth.is_logged_in_with_oauth();
     let (wallet_balance_store, _, _) =
         use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
-    let wallet_balance = wallet_balance_store.get_untracked();
-    log::info!("Current wallet balance: {}", wallet_balance);
 
     fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
         #[cfg(not(feature = "hydrate"))]
@@ -201,9 +199,10 @@ fn HNButtonOverlay(
                     post.is_nsfw,
                 );
 
-                log::info!("Placing bet, wallet balance: {wallet_balance}, bet amount: {bet_amount}");
+                let current_balance = wallet_balance_store.get_untracked();
+                log::info!("Placing bet, wallet balance: {current_balance}, bet amount: {bet_amount}");
 
-                if bet_amount > wallet_balance {
+                if bet_amount > current_balance {
                     log::warn!("Insufficient balance for bet amount: {bet_amount}");
                     show_low_balance_popup.set(true);
                     return None;
@@ -673,10 +672,20 @@ pub fn HNGameOverlay(
         Some(balance)
     });
 
-    // Dispatch balance fetch when component loads (only once)
+    // Dispatch balance fetch when component loads (only once per session)
     Effect::new(move |prev: Option<()>| {
         if prev.is_none() {
-            fetch_balance_action.dispatch(());
+            // Check if balance has already been fetched in this session
+            let current_balance = wallet_balance_store.get_untracked();
+            let hn_balance = HnBetState::get_balance();
+            
+            // Only fetch if both stores are empty/default
+            if current_balance == 0 && hn_balance.is_none() {
+                log::info!("Initial balance fetch needed");
+                fetch_balance_action.dispatch(());
+            } else {
+                log::info!("Balance already exists, skipping fetch: {}", current_balance);
+            }
         }
     });
 
