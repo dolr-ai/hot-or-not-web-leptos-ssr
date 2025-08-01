@@ -237,7 +237,6 @@ fn HNButtonOverlay(
                         let (wallet_balance_store, set_wallet_balance_store, _) =
                             use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
                         let current_balance = wallet_balance_store.get_untracked() - bet_amount;
-                        
 
                         let balance = match res.game_result.game_result.clone() {
                             GameResultV2::Win {
@@ -677,11 +676,14 @@ pub fn HNGameOverlay(
         if prev.is_none() {
             let current_balance = wallet_balance_store.get_untracked();
             let hn_balance = HnBetState::get_balance();
-            
+
             if current_balance == 0 && hn_balance.is_none() {
                 fetch_balance_action.dispatch(());
             } else {
-                log::info!("Balance already exists, skipping fetch: {}", current_balance);
+                log::info!(
+                    "Balance already exists, skipping fetch: {}",
+                    current_balance
+                );
             }
         }
     });
