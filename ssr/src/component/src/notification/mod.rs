@@ -225,24 +225,26 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
         } else {
             // Mobile: current layout
             view! {
-                <div class="relative w-screen min-h-screen h-full">
-                    <div class="flex flex-col items-center pt-4 pb-12 text-white bg-black">
-                        <div class="sticky top-0 z-10 w-full bg-black">
-                            <TitleText justify_center=false>
-                                <div class="relative flex items-center justify-center">
-                                    <button
-                                        on:click=move |_| close.set(false)
-                                        class="absolute left-3"
-                                    >
-                                        <Icon icon=icondata::AiLeftOutlined attr:class="w-6 h-6" />
-                                    </button>
-                                    <span class="text-xl font-bold">Notifications</span>
-                                </div>
-                            </TitleText>
+                <ShadowOverlay show=ShowOverlay::Closable(close)>
+                    <div class="relative w-screen min-h-screen h-full">
+                        <div class="flex flex-col items-center pt-4 pb-12 text-white bg-black">
+                            <div class="sticky top-0 z-10 w-full bg-black">
+                                <TitleText justify_center=false>
+                                    <div class="relative flex items-center justify-center">
+                                        <button
+                                            on:click=move |_| close.set(false)
+                                            class="absolute left-3"
+                                        >
+                                            <Icon icon=icondata::AiLeftOutlined attr:class="w-6 h-6" />
+                                        </button>
+                                        <span class="text-xl font-bold">Notifications</span>
+                                    </div>
+                                </TitleText>
+                            </div>
+                            <NotificationInfiniteScroller provider=provider />
                         </div>
-                        <NotificationInfiniteScroller provider=provider />
                     </div>
-                </div>
+                </ShadowOverlay>
             }.into_any()
         }}
     }
