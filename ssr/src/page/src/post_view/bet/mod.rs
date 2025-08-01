@@ -201,8 +201,8 @@ fn HNButtonOverlay(
 
                 if bet_amount > wallet_balance_store.get() {
                     log::warn!("Insufficient balance for bet amount: {bet_amount}");
-                    show_low_balance_popup.set(true);
-                    return None;
+                    // show_low_balance_popup.set(true);
+                    // return None;
                 }
 
                 let identity = cans.identity();
