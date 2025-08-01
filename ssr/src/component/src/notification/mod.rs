@@ -228,7 +228,7 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
                 <ShadowOverlay show=ShowOverlay::Closable(close)>
                     <div class="relative w-screen min-h-screen h-full">
                         <div class="flex flex-col items-center pt-4 pb-12 text-white bg-black h-full">
-                            <div class="sticky top-0 z-10 w-full bg-black">
+                            <div class="z-10 w-full bg-black">
                                 <TitleText justify_center=false>
                                     <div class="relative flex items-center justify-center">
                                         <button
