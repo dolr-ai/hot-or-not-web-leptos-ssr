@@ -197,6 +197,27 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
     let auth = auth_state();
     let provider = NotificationProvider { auth };
     let is_desktop = use_media_query("(min-width: 1024px)");
+    
+    // Lock body scroll when popup is open on mobile
+    Effect::new(move || {
+        if !is_desktop.get() && close.get() {
+            if let Some(window) = leptos::web_sys::window() {
+                if let Some(document) = window.document() {
+                    if let Some(body) = document.body() {
+                        let _ = body.style().set_property("overflow", "hidden");
+                    }
+                }
+            }
+        } else {
+            if let Some(window) = leptos::web_sys::window() {
+                if let Some(document) = window.document() {
+                    if let Some(body) = document.body() {
+                        let _ = body.style().remove_property("overflow");
+                    }
+                }
+            }
+        }
+    });
 
     view! {
         <Title text=page_title />
@@ -225,26 +246,24 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
         } else {
             // Mobile: current layout
             view! {
-                <ShadowOverlay show=ShowOverlay::Closable(close)>
-                    <div class="relative w-screen min-h-screen h-full">
-                        <div class="flex flex-col items-center pt-4 pb-12 text-white bg-black h-full">
-                            <div class="z-10 w-full bg-black">
-                                <TitleText justify_center=false>
-                                    <div class="relative flex items-center justify-center">
-                                        <button
-                                            on:click=move |_| close.set(false)
-                                            class="absolute left-3"
-                                        >
-                                            <Icon icon=icondata::AiLeftOutlined attr:class="w-6 h-6" />
-                                        </button>
-                                        <span class="text-xl font-bold">Notifications</span>
-                                    </div>
-                                </TitleText>
+                    <Show when=close>
+                    <div class="fixed inset-0 w-screen min-h-screen h-full overflow-y-auto bg-black">
+                        <div class="flex flex-col items-center pt-4 pb-12 text-white min-h-full">
+                            <div class="w-full bg-black p-4">
+                                <div class="flex items-center">
+                                    <button
+                                        on:click=move |_| close.set(false)
+                                        class="mr-4"
+                                    >
+                                        <Icon icon=icondata::AiLeftOutlined attr:class="w-6 h-6" />
+                                    </button>
+                                    <span class="text-xl font-bold flex-1 text-center mr-10">Notifications</span>
+                                </div>
                             </div>
                             <NotificationInfiniteScroller provider=provider />
                         </div>
                     </div>
-                </ShadowOverlay>
+                    </Show>
             }.into_any()
         }}
     }
@@ -272,7 +291,7 @@ fn EmptyNotifications() -> impl IntoView {
 #[component]
 fn NotificationInfiniteScroller(provider: NotificationProvider) -> impl IntoView {
     view! {
-            <div class="flex overflow-hidden overflow-y-auto flex-col px-4 pb-32 mx-auto w-full max-w-5xl h-full">
+        <div class="flex flex-col px-4 pb-32 mx-auto w-full max-w-5xl h-full">
                 <InfiniteScroller
                     provider
                     fetch_count=10

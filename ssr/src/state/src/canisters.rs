@@ -27,7 +27,7 @@ use utils::{
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
 pub fn unauth_canisters() -> Canisters<false> {
-    expect_context()
+    use_context().unwrap_or_default()
 }
 
 async fn set_fallback_username(cans: &mut Canisters<true>, mut username: String) {
