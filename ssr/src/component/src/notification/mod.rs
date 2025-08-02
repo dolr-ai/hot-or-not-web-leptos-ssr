@@ -1,6 +1,6 @@
+use crate::infinite_scroller::InfiniteScroller;
 use crate::notification::provider::{NotificationError, NotificationProvider};
 use crate::overlay::{ShadowOverlay, ShowOverlay};
-use crate::{infinite_scroller::InfiniteScroller, title::TitleText};
 use leptos::prelude::*;
 use leptos_icons::Icon;
 use leptos_meta::*;
@@ -197,7 +197,7 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
     let auth = auth_state();
     let provider = NotificationProvider { auth };
     let is_desktop = use_media_query("(min-width: 1024px)");
-    
+
     // Lock body scroll when popup is open on mobile
     Effect::new(move || {
         if !is_desktop.get() && close.get() {
@@ -208,12 +208,10 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
                     }
                 }
             }
-        } else {
-            if let Some(window) = leptos::web_sys::window() {
-                if let Some(document) = window.document() {
-                    if let Some(body) = document.body() {
-                        let _ = body.style().remove_property("overflow");
-                    }
+        } else if let Some(window) = leptos::web_sys::window() {
+            if let Some(document) = window.document() {
+                if let Some(body) = document.body() {
+                    let _ = body.style().remove_property("overflow");
                 }
             }
         }
