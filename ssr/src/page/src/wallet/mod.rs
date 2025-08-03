@@ -24,7 +24,7 @@ use state::app_state::AppState;
 use state::canisters::{auth_state, unauth_canisters};
 use tokens::TokenList;
 use utils::notifications::get_device_registeration_token;
-use utils::send_wrap;
+use utils::{send_wrap, UsernameOrPrincipal};
 use yral_canisters_common::utils::profile::ProfileDetails;
 use yral_metadata_client::MetadataClient;
 
@@ -88,8 +88,8 @@ fn ProfileCardLoading() -> impl IntoView {
 #[component]
 fn Header(details: ProfileDetails, is_own_account: bool) -> impl IntoView {
     let share_link = {
-        let principal = details.principal();
-        format!("/wallet/{principal}")
+        let id = details.username_or_principal();
+        format!("/wallet/{id}")
     };
     let app_state = use_context::<AppState>();
     let message = format!(
@@ -144,20 +144,20 @@ fn BalanceFallback() -> impl IntoView {
 
 #[derive(Params, PartialEq, Clone)]
 struct WalletParams {
-    id: Option<String>,
+    id: Option<UsernameOrPrincipal>,
 }
 #[component]
 pub fn Wallet() -> impl IntoView {
     let params = use_params::<WalletParams>();
-    let param_principal = move || {
+    let param_id = move || {
         let WalletParams { id } = params.get()?;
-        Ok::<_, ParamsError>(id.and_then(|p| Principal::from_text(p).ok()))
+        Ok::<_, ParamsError>(id)
     };
 
     view! {
         {move || {
-            match param_principal() {
-                Ok(Some(principal)) => Some(view! { <WalletImpl principal /> }.into_any()),
+            match param_id() {
+                Ok(Some(id)) => Some(view! { <WalletImpl id /> }.into_any()),
                 Ok(None) => {
                     let auth = auth_state();
                     Some(
@@ -189,18 +189,20 @@ pub fn Wallet() -> impl IntoView {
 }
 
 #[component]
-pub fn WalletImpl(principal: Principal) -> impl IntoView {
+pub fn WalletImpl(id: UsernameOrPrincipal) -> impl IntoView {
     let show_login = RwSignal::new(false);
 
     provide_context(ShowLoginSignal(show_login));
 
     let cans = unauth_canisters();
 
+    let id = StoredValue::new(id);
+
     let cans2 = cans.clone();
     let metadata = OnceResource::new(send_wrap(async move {
         let canisters = cans2;
         let user_canister = canisters
-            .get_user_metadata(principal.to_text())
+            .get_user_metadata(id.with_value(|id| id.to_string()))
             .await?
             .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
         Ok::<_, ServerFnError>(user_canister)
@@ -231,10 +233,13 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
             }>
                 {move || Suspend::new(async move {
                     let profile_details = profile_info_res.await;
-                    let logged_in_user = auth.user_principal.await;
+                    let logged_in_user = auth.cans_wire().await;
                     match profile_details.and_then(|c| Ok((c, logged_in_user?))) {
                         Ok((profile_details, logged_in_user)) => {
-                            let is_own_account = logged_in_user == principal;
+                            let is_own_account = match id.get_value() {
+                                UsernameOrPrincipal::Principal(p) => p == Principal::self_authenticating(logged_in_user.id.from_key),
+                                UsernameOrPrincipal::Username(u) => Some(u) == logged_in_user.profile_details.username,
+                            };
                             Either::Left(
                                 view! { <Header details=profile_details is_own_account /> },
                             )
@@ -249,10 +254,13 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
                 <Suspense fallback=ProfileCardLoading>
                     {move || Suspend::new(async move {
                         let profile_details = profile_info_res.await;
-                        let logged_in_user = auth.user_principal.await;
+                        let logged_in_user = auth.cans_wire().await;
                         match profile_details.and_then(|c| Ok((c, logged_in_user?))) {
                             Ok((profile_details, logged_in_user)) => {
-                                let is_own_account = logged_in_user == principal;
+                                let is_own_account = match id.get_value() {
+                                    UsernameOrPrincipal::Principal(p) => p == Principal::self_authenticating(logged_in_user.id.from_key),
+                                    UsernameOrPrincipal::Username(u) => Some(u) == logged_in_user.profile_details.username,
+                                };
                                 Either::Left(
                                     view! {
                                         <ProfileCard
@@ -280,7 +288,7 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
                                             My tokens
                                         </div>
                                         <TokenList
-                                            user_principal=principal
+                                            user_principal=meta.user_principal
                                             user_canister=meta.user_canister_id
                                         />
                                     },

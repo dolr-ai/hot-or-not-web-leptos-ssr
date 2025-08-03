@@ -21,7 +21,7 @@ use state::{
     canisters::{auth_state, unauth_canisters},
 };
 
-use utils::{mixpanel::mixpanel_events::*, posts::FeedPostCtx, send_wrap};
+use utils::{mixpanel::mixpanel_events::*, posts::FeedPostCtx, send_wrap, UsernameOrPrincipal};
 use yral_canisters_common::utils::{posts::PostDetails, profile::ProfileDetails};
 
 #[derive(Clone)]
@@ -55,7 +55,7 @@ impl Default for ProfilePostsContext {
 
 #[derive(Params, PartialEq, Clone)]
 struct ProfileParams {
-    id: String,
+    id: UsernameOrPrincipal,
 }
 
 #[derive(Params, Clone, PartialEq)]
@@ -226,15 +226,15 @@ pub fn LoggedInUserProfileView() -> impl IntoView {
         <ProfilePageTitle />
         <Suspense fallback=FullScreenSpinner>
             {move || Suspend::new(async move {
-                let principal = auth.user_principal.await;
-                match principal {
-                    Ok(principal) => {
+                let id = auth.user_principal.await;
+                match id {
+                    Ok(id) => {
                         view! {
                             {move || {
                                 tab()
-                                    .map(|tab| {
+                                    .map(move |tab| {
                                         view! {
-                                            <Redirect path=format!("/profile/{principal}/{tab}") />
+                                            <Redirect path=format!("/profile/{id}/{tab}") />
                                         }
                                     })
                             }}
@@ -252,29 +252,33 @@ pub fn LoggedInUserProfileView() -> impl IntoView {
 pub fn ProfileView() -> impl IntoView {
     let params = use_params::<ProfileParams>();
 
-    let param_principal = move || {
+    let param_id = move || {
         params.with(|p| {
             let ProfileParams { id, .. } = p.as_ref().ok()?;
-            Principal::from_text(id).ok()
+            Some(id.clone())
         })
     };
 
     let auth = auth_state();
     let cans = unauth_canisters();
-    let user_details = Resource::new(param_principal, move |profile_principal| {
+    let user_details = Resource::new(param_id, move |profile_id| {
         let cans = cans.clone();
         send_wrap(async move {
-            let profile_principal =
-                profile_principal.ok_or_else(|| ServerFnError::new("Invalid principal"))?;
-            if let Some(user_can) = auth
-                .auth_cans_if_available(cans.clone())
-                .filter(|can| can.user_principal() == profile_principal)
+            let profile_id = profile_id.ok_or_else(|| ServerFnError::new("Invalid ID"))?;
+            if let Some(user_can) =
+                auth.auth_cans_if_available(cans.clone())
+                    .filter(|can| match &profile_id {
+                        UsernameOrPrincipal::Principal(princ) => *princ == can.user_principal(),
+                        UsernameOrPrincipal::Username(u) => {
+                            Some(u) == can.profile_details().username.as_ref()
+                        }
+                    })
             {
                 return Ok::<_, ServerFnError>(user_can.profile_details());
             }
 
             let user_details = cans
-                .get_profile_details(profile_principal.to_string())
+                .get_profile_details(profile_id.to_string())
                 .await?
                 .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
 
