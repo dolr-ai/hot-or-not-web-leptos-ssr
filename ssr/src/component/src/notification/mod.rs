@@ -245,7 +245,7 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
             // Mobile: current layout
             view! {
                     <Show when=close>
-                    <div class="fixed inset-0 w-screen min-h-screen h-full overflow-y-auto bg-black">
+                    <div class="fixed z-50 inset-0 w-screen min-h-screen h-full overflow-y-auto bg-black">
                         <div class="flex flex-col items-center pt-4 pb-12 text-white min-h-full">
                             <div class="w-full bg-black p-4">
                                 <div class="flex items-center">
