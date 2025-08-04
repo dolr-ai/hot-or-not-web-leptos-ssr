@@ -67,7 +67,7 @@ mod alloydb {
         // sanitization is not required here, as get_post_details verifies that the post is valid
         // and exists on cloudflare
         let query = format!(
-            "select hot_or_not_evaluator.compare_videos_hot_or_not_v2('{}', {})",
+            "select hot_or_not_evaluator.compare_videos_hot_or_not_v3('{}', {})",
             post_info.uid, prev_uid_formatted,
         );
 
@@ -76,22 +76,22 @@ mod alloydb {
         let mut res = res
             .sql_results
             .pop()
-            .expect("hot_or_not_evaluator.compare_videos_hot_or_not_v2 MUST return a result");
+            .expect("hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a result");
         let mut res = res
             .rows
             .pop()
-            .expect("hot_or_not_evaluator.compare_videos_hot_or_not_v2 MUST return a row");
+            .expect("hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a row");
         let res = res
             .values
             .pop()
-            .expect("hot_or_not_evaluator.compare_videos_hot_or_not_v2 MUST return a value");
+            .expect("hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a value");
 
         let video_comparison_result = match res.value {
             Some(val) => VideoComparisonResult::parse_video_comparison_result(&val)
                 .map_err(ServerFnError::new)?,
             None => {
                 return Err(ServerFnError::new(
-                    "hot_or_not_evaluator.compare_videos_hot_or_not_v2 returned no value",
+                    "hot_or_not_evaluator.compare_videos_hot_or_not_v3 returned no value",
                 ))
             }
         };
