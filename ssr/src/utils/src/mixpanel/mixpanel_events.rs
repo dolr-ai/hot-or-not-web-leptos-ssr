@@ -678,6 +678,12 @@ derive_event!(track_video_impression {
     is_game_enabled: bool
 });
 
+derive_event!(track_verify_to_unlock_popup_shown {
+    page_name: String,
+    unverified_min_limit: u64,
+    token_type: StakeType
+});
+
 derive_event!(track_video_started {
     video_id: String,
     publisher_user_id: String,
@@ -704,7 +710,7 @@ derive_event!(track_game_played {
     is_nsfw: bool
 });
 
-derive_event!(track_game_clicked {
+derive_event!(track_game_voted {
     publisher_user_id: String,
     like_count: u64,
     view_count: u64,
