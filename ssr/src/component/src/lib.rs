@@ -34,6 +34,8 @@ pub mod show_any;
 pub mod skeleton;
 pub mod social;
 pub mod spinner;
+pub mod start_kyc_button;
+pub mod start_kyc_popup;
 pub mod title;
 pub mod toggle;
 pub mod tooltip;

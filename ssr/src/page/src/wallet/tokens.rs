@@ -614,7 +614,7 @@ pub fn WithdrawSection(
                 s if s == CENT_TOKEN_NAME => StakeType::Cents,
                 _ => unimplemented!("Withdrawing is not implemented for a token"),
             };
-            MixPanelEvent::track_withdraw_tokens_clicked(global, token_clicked);
+            MixPanelEvent::track_withdraw_tokens_clicked(global, token_clicked, "wallet".into());
         }
         nav(&withdraw_url, Default::default());
     };

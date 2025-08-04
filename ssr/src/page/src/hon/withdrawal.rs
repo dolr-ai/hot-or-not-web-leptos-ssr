@@ -1,18 +1,27 @@
 use candid::{Nat, Principal};
 use component::buttons::HighlightedLinkButton;
 use component::{
-    auth_providers::handle_user_login, back_btn::BackButton,
-    icons::notification_icon::NotificationIcon, icons::telegram_icon::TelegramIcon,
-    spinner::SpinnerFit, title::TitleText,
+    auth_providers::handle_user_login,
+    back_btn::BackButton,
+    buttons::HighlightedButton,
+    icons::{notification_icon::NotificationIcon, telegram_icon::TelegramIcon},
+    spinner::SpinnerFit,
+    start_kyc_popup::StartKycPopup,
+    title::TitleText,
 };
 use consts::{CKBTC_LEDGER_CANISTER, SATS_CKBTC_CANISTER};
 use futures::TryFutureExt;
-use global_constants::{MAX_WITHDRAWAL_PER_TXN_SATS, MIN_WITHDRAWAL_PER_TXN_SATS};
+use global_constants::{
+    MAX_WITHDRAWAL_PER_TXN_KYC_SATS, MAX_WITHDRAWAL_PER_TXN_SATS, MIN_WITHDRAWAL_PER_TXN_KYC_SATS,
+    MIN_WITHDRAWAL_PER_TXN_SATS,
+};
 use hon_worker_common::{HoNGameWithdrawReq, SatsBalanceInfo};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
-use state::{canisters::auth_state, server::HonWorkerJwt};
+use state::canisters::unauth_canisters;
+use state::{canisters::auth_state, kyc_state::KycState, server::HonWorkerJwt};
+use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, StakeType};
 use utils::send_wrap;
 use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::{utils::token::balance::TokenBalance, Canisters};
@@ -58,21 +67,6 @@ async fn withdraw_sats_for_ckbtc(
     // TODO: yral-auth-v2, we can do this verification with a JWT
     let cans: Canisters<false> = expect_context();
 
-    if req.amount < MIN_WITHDRAWAL_PER_TXN_SATS as u128
-        || req.amount > MAX_WITHDRAWAL_PER_TXN_SATS as u128
-    {
-        log::error!(
-            "Invalid withdraw amount, min amount: {}, max amount: {}, amount: {}",
-            MIN_WITHDRAWAL_PER_TXN_SATS,
-            MAX_WITHDRAWAL_PER_TXN_SATS,
-            req.amount
-        );
-        return Err(ServerFnError::new(format!(
-            "Invalid withdraw amount, min amount: {}, max amount: {}, amount: {}",
-            MIN_WITHDRAWAL_PER_TXN_SATS, MAX_WITHDRAWAL_PER_TXN_SATS, req.amount
-        )));
-    }
-
     let user = cans.individual_user(receiver_canister).await;
     let profile_owner = user.get_profile_details_v_2().await?;
     if profile_owner.principal_id != req.receiver {
@@ -82,6 +76,33 @@ async fn withdraw_sats_for_ckbtc(
             req.receiver
         );
         return Err(ServerFnError::new("Not allowed to withdraw"));
+    }
+
+    let meta = cans
+        .get_user_metadata(profile_owner.principal_id.to_text())
+        .await?
+        .ok_or(ServerFnError::new("Failed to get user metadata"))?;
+
+    let (min_withdrawal, max_withdrawal) = if meta.kyc_completed {
+        (
+            MIN_WITHDRAWAL_PER_TXN_KYC_SATS,
+            MAX_WITHDRAWAL_PER_TXN_KYC_SATS,
+        )
+    } else {
+        (MIN_WITHDRAWAL_PER_TXN_SATS, MAX_WITHDRAWAL_PER_TXN_SATS)
+    };
+
+    if req.amount < min_withdrawal as u128 || req.amount > max_withdrawal as u128 {
+        log::error!(
+            "Invalid withdraw amount, min amount: {}, max amount: {}, amount: {}",
+            min_withdrawal,
+            max_withdrawal,
+            req.amount
+        );
+        return Err(ServerFnError::new(format!(
+            "Invalid withdraw amount, min amount: {}, max amount: {}, amount: {}",
+            min_withdrawal, max_withdrawal, req.amount
+        )));
     }
 
     let sess = user.get_session_type().await?;
@@ -153,6 +174,7 @@ fn BalanceDisplay(#[prop(into)] balance: Nat) -> impl IntoView {
 
 #[component]
 pub fn HonWithdrawal() -> impl IntoView {
+    let show_kyc_popup = RwSignal::new(false);
     let auth = auth_state();
     let balance = auth.derive_resource(
         || (),
@@ -172,6 +194,30 @@ pub fn HonWithdrawal() -> impl IntoView {
         },
     );
 
+    let cans = unauth_canisters();
+
+    let auth = auth_state();
+
+    let ev_ctx = auth.event_ctx();
+
+    Effect::new(move |_| {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_withdraw_page_viewed(global, StakeType::Sats);
+        }
+    });
+
+    let is_connected = auth.is_logged_in_with_oauth();
+
+    let metadata = OnceResource::new(send_wrap(async move {
+        let user_principal = auth.user_principal.await?;
+        let canisters = cans;
+        let user_canister = canisters
+            .get_user_metadata(user_principal.to_text())
+            .await?
+            .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
+        Ok::<_, ServerFnError>(user_canister)
+    }));
+
     let sats = RwSignal::new(0usize);
     let formated_dolrs = move || {
         format!(
@@ -179,6 +225,17 @@ pub fn HonWithdrawal() -> impl IntoView {
             TokenBalance::new(sats().into(), 8).humanize_float_truncate_to_dp(8)
         )
     };
+
+    let complete_verification_clicked = Action::new(move |_: &()| {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_complete_verification_clicked(
+                global,
+                StakeType::Sats,
+                "withdrawal".into(),
+            );
+        }
+        async {}
+    });
 
     let on_input = move |ev: leptos::ev::Event| {
         let value = event_target_value(&ev);
@@ -188,29 +245,30 @@ pub fn HonWithdrawal() -> impl IntoView {
                 log::error!("Couldn't parse value: {err}");
             })
             .ok();
-        let value = value.unwrap_or(0);
-
-        sats.set(value);
+        sats.set(value.unwrap_or(0));
     };
 
-    let send_claim = Action::new_local(move |&()| {
-        async move {
-            let cans = auth.auth_cans(expect_context()).await?;
+    let send_claim = Action::new_local(move |&()| async move {
+        let cans = auth.auth_cans(expect_context()).await?;
+        let global = MixpanelGlobalProps::try_get(&cans, true);
+        MixPanelEvent::track_withdraw_initiated(
+            global,
+            StakeType::Sats,
+            sats.get_untracked() as u64,
+        );
+        handle_user_login(cans.clone(), auth.event_ctx(), None).await?;
 
-            // TODO: do we still need this?
-            handle_user_login(cans.clone(), auth.event_ctx(), None).await?;
-
-            let req = hon_worker_common::WithdrawRequest {
-                receiver: cans.user_principal(),
-                amount: sats.get_untracked() as u128,
-            };
-            let sig = hon_worker_common::sign_withdraw_request(cans.identity(), req.clone())?;
-
-            withdraw_sats_for_ckbtc(cans.user_canister(), req, sig).await
-        }
+        let req = hon_worker_common::WithdrawRequest {
+            receiver: cans.user_principal(),
+            amount: sats.get_untracked() as u128,
+        };
+        let sig = hon_worker_common::sign_withdraw_request(cans.identity(), req.clone())?;
+        withdraw_sats_for_ckbtc(cans.user_canister(), req, sig).await
     });
+
     let is_claiming = send_claim.pending();
     let claim_res = send_claim.value();
+
     Effect::new(move |_| {
         if let Some(res) = claim_res.get() {
             let nav = use_navigate();
@@ -231,8 +289,8 @@ pub fn HonWithdrawal() -> impl IntoView {
         }
     });
 
-    use state::canisters::unauth_canisters;
-    let cans = unauth_canisters();
+    let cans = state::canisters::unauth_canisters();
+
     let treasury_balance = Resource::new(
         || (),
         move |_| {
@@ -254,121 +312,151 @@ pub fn HonWithdrawal() -> impl IntoView {
             <Header />
             <div class="w-full">
                 <div class="flex flex-col justify-center items-center px-4 pb-6 mx-auto mt-4 max-w-md">
-                <Suspense fallback=|| {
-                    view! {
-                        <div class="size-14">
-                            <SpinnerFit />
-                        </div>
-                    }
-                }>
-                {move || {
-                    let is_treasury_empty = treasury_balance.get().map(|balance| balance == 0_usize).unwrap_or(false);
-                    if is_treasury_empty {
-                        view! {
-                            <div class="flex flex-col gap-4 items-center max-w-sm mx-auto px-12">
-                                <img src="/img/hotornot/bank-empty.webp" alt="Treasury is empty" class="size-40" />
-                                <span class="text-lg font-semibold">Oh no!</span>
-                                <span class="text-sm text-neutral-400 text-center">"The withdrawal pot is currently empty! Please come back in a while for the next top-up."</span>
-                                <span class="text-sm text-neutral-400">"Need assistance?"</span>
-                                <HighlightedLinkButton
-                                    alt_style=true
-                                    target="_blank".to_string()
-                                    disabled=false
-                                    classes="max-w-96 w-full mx-auto py-[12px] px-[20px]".to_string()
-                                    href="https://t.me/HotOrNot_app".to_string()
-                                >
-                                    <div class="flex items-center gap-2">
-                                        <TelegramIcon classes="size-6 text-pink-600".to_string() />
-                                        <span>"Chat with us"</span>
-                                    </div>
-                                </HighlightedLinkButton>
-                            </div>
-                        }.into_any()
-                    } else {
-                        view! {
-                            {balance
-                                .get()
-                                .and_then(|res| res.ok())
-                                .map(|balance| view! { <BalanceDisplay balance=balance.clone() /> })}
-                            <div class="flex flex-col gap-5 mt-8 w-full">
-                                <span class="text-sm">Choose how much to redeem:</span>
-                                <div
-                                    id="input-card"
-                                    class="flex flex-col gap-8 p-3 rounded-lg bg-neutral-900"
-                                >
-                                    <div class="flex flex-col gap-3">
-                                        <div class="flex justify-between">
-                                            <div class="flex gap-2 items-center">
-                                                <span>You withdraw</span>
-                                            </div>
-                                            <input
-                                                min=MIN_WITHDRAWAL_PER_TXN_SATS
-                                                max=MAX_WITHDRAWAL_PER_TXN_SATS
-                                                placeholder=format!("Min: {}", MIN_WITHDRAWAL_PER_TXN_SATS)
-                                                disabled=is_claiming
-                                                on:input=on_input
-                                                type="text"
-                                                inputmode="decimal"
-                                                class="px-4 w-44 h-10 text-lg text-right rounded bg-neutral-800 focus:outline focus:outline-1 focus:outline-primary-600"
-                                            />
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <div class="flex gap-2 items-center">
-                                                <span>You get</span>
-                                            </div>
-                                            <input
-                                                disabled
-                                                type="text"
-                                                inputmode="decimal"
-                                                class="px-4 w-44 h-10 text-lg text-right rounded bg-neutral-800 text-neutral-400 focus:outline focus:outline-1 focus:outline-primary-600"
-                                                value=formated_dolrs
-                                            />
-                                        </div>
-                                    </div>
-                                    {move || {
-                                        let balance = balance.get().and_then(|res| res.ok()).unwrap_or_else(|| Nat::from(0_usize));
-                                        let can_withdraw = true;
-                                        let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN_SATS as usize
-                                            || sats() > MAX_WITHDRAWAL_PER_TXN_SATS as usize;
-                                        let invalid_balance = sats() > balance || balance == 0_usize;
-                                        let is_claiming = is_claiming();
-                                        let message = if invalid_balance {
-                                            "Not enough balance".to_string()
-                                        } else if invalid_input {
-                                            format!(
-                                                "Enter valid amount, min: {MIN_WITHDRAWAL_PER_TXN_SATS} max: {MAX_WITHDRAWAL_PER_TXN_SATS}",
-                                            )
-                                        } else {
-                                            match (can_withdraw, is_claiming) {
-                                                (false, _) => "Not enough winnings".to_string(),
-                                                (_, true) => "Claiming...".to_string(),
-                                                (_, _) => "Withdraw Now!".to_string(),
-                                            }
-                                        };
-                                        view! {
-                                            // all of the money can be withdrawn
-                                            <button
-                                                disabled=invalid_input || !can_withdraw
-                                                class=("pointer-events-none", is_claiming)
-                                                class="py-2 px-5 text-sm font-bold text-center rounded-lg bg-brand-gradient disabled:bg-brand-gradient-disabled"
-                                                on:click=move |_ev| {
-                                                    send_claim.dispatch(());
-                                                }
-                                            >
-                                                {message}
-                                            </button>
-                                        }
-                                    }}
-                                </div>
-                                <span class="text-sm">
-                                    "1 Sats = "{consts::SATS_TO_BTC_CONVERSION_RATIO}
-                                </span>
-                            </div>
-                        }.into_any()
-                    }
+                    <Suspense fallback=move || view! {
+                        <div class="size-14"><SpinnerFit /></div>
+                    }>
+                        {{
+                            let is_treasury_empty = treasury_balance.get()
+                                .map(|b| b == 0_usize)
+                                .unwrap_or(false);
 
-                }}
-                </Suspense>
+                            if is_treasury_empty {
+                                view! {
+                                    <div class="flex flex-col gap-4 items-center max-w-sm mx-auto px-12">
+                                        <img src="/img/hotornot/bank-empty.webp" alt="Treasury is empty" class="size-40" />
+                                        <span class="text-lg font-semibold">"Oh no!"</span>
+                                        <span class="text-sm text-neutral-400 text-center">
+                                            "The withdrawal pot is currently empty! Please come back in a while for the next top-up."
+                                        </span>
+                                        <span class="text-sm text-neutral-400">"Need assistance?"</span>
+                                        <HighlightedLinkButton
+                                            alt_style=true
+                                            target="_blank".to_string()
+                                            disabled=false
+                                            classes="max-w-96 w-full mx-auto py-[12px] px-[20px]".to_string()
+                                            href="https://t.me/HotOrNot_app".to_string()
+                                        >
+                                            <div class="flex items-center gap-2">
+                                                <TelegramIcon classes="size-6 text-pink-600".to_string() />
+                                                <span>"Chat with us"</span>
+                                            </div>
+                                        </HighlightedLinkButton>
+                                    </div>
+                                }.into_any()
+                            } else {
+                                view! {
+                                    {move || balance.get().and_then(|f| f.ok()).map(|b| view! { <BalanceDisplay balance=b.clone() /> })}
+                                    {Suspend::new(async move {
+                                            let meta = metadata.await.ok();
+                                            meta.map(|f| {
+                                                let kyc_completed = move || { f.kyc_completed || KycState::is_verified()};
+                                                let (min_withdrawal, max_withdrawal)
+                                                        = if kyc_completed() {
+                                                            (MIN_WITHDRAWAL_PER_TXN_KYC_SATS, MAX_WITHDRAWAL_PER_TXN_KYC_SATS)
+                                                        } else {
+                                                            (MIN_WITHDRAWAL_PER_TXN_SATS, MAX_WITHDRAWAL_PER_TXN_SATS)
+                                                        };
+                                                view! {
+                                                    <div class="flex flex-col gap-5 mt-8 w-full">
+                                                        <span class="text-sm">"Choose how much to redeem:"</span>
+                                                        <div class="flex flex-col gap-8 p-3 rounded-lg bg-neutral-900">
+                                                            <div class="flex flex-col gap-3">
+                                                                <div class="flex justify-between">
+                                                                    <span>"You withdraw"</span>
+                                                                    <input
+                                                                        min=min_withdrawal
+                                                                        max=max_withdrawal
+                                                                        placeholder=format!("Min: {}", min_withdrawal)
+                                                                        disabled=is_claiming
+                                                                        on:input=on_input
+                                                                        type="text"
+                                                                        inputmode="decimal"
+                                                                        class="px-4 w-44 h-10 text-lg text-right rounded bg-neutral-800 focus:outline focus:outline-1 focus:outline-primary-600"
+                                                                    />
+                                                                </div>
+                                                                <div class="flex justify-between">
+                                                                    <span>"You get"</span>
+                                                                    <input
+                                                                        disabled
+                                                                        type="text"
+                                                                        inputmode="decimal"
+                                                                        class="px-4 w-44 h-10 text-lg text-right rounded bg-neutral-800 text-neutral-400 focus:outline focus:outline-1 focus:outline-primary-600"
+                                                                        value=formated_dolrs
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            {move || {
+                                                                let balance = balance.get().and_then(|res| res.ok()).unwrap_or_else(|| Nat::from(0_usize));
+                                                                let can_withdraw = true;
+                                                                let invalid_input = sats() < min_withdrawal as usize
+                                                                    || sats() > max_withdrawal as usize;
+                                                                let invalid_balance = sats() > balance || balance == 0_usize;
+                                                                let is_claiming = is_claiming();
+                                                                let message = if invalid_balance {
+                                                                    "Not enough balance".to_string()
+                                                                } else if invalid_input {
+                                                                    format!(
+                                                                        "Enter valid amount, min: {min_withdrawal} max: {max_withdrawal}",
+                                                                    )
+                                                                } else {
+                                                                    match (can_withdraw, is_claiming) {
+                                                                        (false, _) => "Not enough winnings".to_string(),
+                                                                        (_, true) => "Claiming...".to_string(),
+                                                                        (_, _) => "Withdraw Now!".to_string(),
+                                                                    }
+                                                                };
+
+                                                                view! {
+                                                                    <button
+                                                                        disabled=invalid_input || !can_withdraw
+                                                                        class=("pointer-events-none", is_claiming)
+                                                                        class="py-3 px-5 text-sm font-bold text-center rounded-lg bg-brand-gradient disabled:bg-brand-gradient-disabled"
+                                                                        on:click=move |_| {
+                                                                            send_claim.dispatch(());
+                                                                        }
+                                                                    >
+                                                                        {message}
+                                                                    </button>
+                                                                }
+                                                            }}
+                                                        </div>
+                                                    </div>
+
+                                                    <Show when=move || is_connected()>
+                                                        <StartKycPopup show=show_kyc_popup ev_ctx=ev_ctx page_name="withdrawal".into() />
+                                                    </Show>
+
+                                                    <Show when=move || !kyc_completed() && is_connected()>
+                                                        <HighlightedButton
+                                                            alt_style=true
+                                                            disabled=false
+                                                            py="py-2".to_string()
+                                                            on_click=move || {
+                                                                show_kyc_popup.set(true);
+                                                                complete_verification_clicked.dispatch(());
+                                                            }
+                                                        >
+                                                            "Complete Verification"
+                                                        </HighlightedButton>
+                                                        <div class="flex text-xs items-center justify-start gap-2">
+                                                            <img src="/img/kyc/info_circle.svg" class="h-4" alt="Info Icon" />
+                                                            "Unverified users withdraw only 50 SATS / day."
+                                                        </div>
+                                                    </Show>
+
+                                                    <span class="text-sm">
+                                                        "1 Sats = "{consts::SATS_TO_BTC_CONVERSION_RATIO}BTC
+                                                    </span>
+                                                }
+                                            })
+
+                                        })
+                                    }
+                                }.into_any()
+                            }
+                        }}
+                    </Suspense>
                 </div>
             </div>
         </div>

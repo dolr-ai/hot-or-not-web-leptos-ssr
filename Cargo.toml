@@ -126,8 +126,8 @@ speedate = { version = "0.14.4" }
 urlencoding = "2.1.3"
 ic-certification = "3.0.3"
 ciborium = "0.2.2"
-yral-metadata-client = { git = "https://github.com/yral-dapp/yral-metadata", branch = "master", default-features = false }
-yral-metadata-types = { git = "https://github.com/yral-dapp/yral-metadata", branch = "master" }
+yral-metadata-client = { git = "https://github.com/yral-dapp/yral-metadata", branch = "958-update-kyc-status-on-metadata-service", default-features = false }
+yral-metadata-types = { git = "https://github.com/yral-dapp/yral-metadata", branch = "958-update-kyc-status-on-metadata-service" }
 uuid = { version = "1.11.0", features = ["v4", "js"] }
 regex = { version = "1.11.1" }
 tonic-build = { version = "0.12.0", default-features = false, features = [
@@ -204,22 +204,22 @@ base64 = "0.22"
 
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], branch = "master", version = "0.1.0" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
+], branch = "958-update-kyc-status-on-metadata-service", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "958-update-kyc-status-on-metadata-service" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "958-update-kyc-status-on-metadata-service" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "958-update-kyc-status-on-metadata-service", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "958-update-kyc-status-on-metadata-service" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], branch = "master", version = "0.1.0" }
-global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
-yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", default-features = false, features = [
+], branch = "958-update-kyc-status-on-metadata-service", version = "0.1.0" }
+global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "958-update-kyc-status-on-metadata-service" }
+yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "958-update-kyc-status-on-metadata-service", default-features = false, features = [
     "ic-git",
     "wasm-bindgen",
 ] }
-videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
+videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "958-update-kyc-status-on-metadata-service", features = [
     "client",
     "ic",
 ] }
