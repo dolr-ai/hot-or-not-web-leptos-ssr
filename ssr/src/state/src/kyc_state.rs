@@ -40,7 +40,7 @@ async fn check_if_enquiry_completed(
 
     let status = data.data.attributes.status.to_lowercase();
 
-    Ok(status == "approved")
+    Ok(status == "approved" || status == "completed")
 }
 
 #[derive(Debug, Deserialize)]
@@ -99,6 +99,7 @@ pub fn kyc_on_complete(kyc_result: JsValue) {
             logging::log!("KYC Result: {:?}", result.status);
             let parsed_status = match result.status.as_str() {
                 "approved" => KycStatus::Verified,
+                "completed" => KycStatus::Verified,
                 "in_progress" => KycStatus::InProgress,
                 _ => KycStatus::Pending,
             };
