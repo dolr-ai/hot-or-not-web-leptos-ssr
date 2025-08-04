@@ -1,8 +1,23 @@
 use leptos::prelude::*;
 use leptos_icons::*;
+use utils::{
+    event_streaming::events::EventCtx,
+    mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, StakeType},
+};
 
 #[component]
-pub fn StartVerificationButton(show_popup: RwSignal<bool>) -> impl IntoView {
+pub fn StartVerificationButton(show_popup: RwSignal<bool>, ev_ctx: EventCtx) -> impl IntoView {
+    Effect::new(move |_| {
+        if show_popup.get() {
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                MixPanelEvent::track_start_verification_clicked(
+                    global,
+                    "menu".into(),
+                    StakeType::Sats,
+                );
+            }
+        }
+    });
     view! {
         <button
             on:click=move |_| show_popup.set(true)

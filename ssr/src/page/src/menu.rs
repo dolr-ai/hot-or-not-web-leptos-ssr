@@ -315,7 +315,7 @@ pub fn Menu() -> impl IntoView {
                 {
                         move || metadata.get().map(|m| m.map(|m| view! {
                             <Show when=move || !( KycState::is_verified() || m.kyc_completed) && is_connected()>
-                                <StartVerificationButton show_popup/>
+                                <StartVerificationButton show_popup ev_ctx/>
                             </Show>
                             <Show when=move||is_connected()>
                                 <StartKycPopup show=show_popup ev_ctx=ev_ctx page_name="menu".into() />

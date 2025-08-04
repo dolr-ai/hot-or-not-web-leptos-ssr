@@ -19,6 +19,7 @@ use hon_worker_common::{HoNGameWithdrawReq, SatsBalanceInfo};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
+use rand::rand_core::le;
 use state::canisters::unauth_canisters;
 use state::{canisters::auth_state, kyc_state::KycState, server::HonWorkerJwt};
 use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, StakeType};
@@ -226,6 +227,17 @@ pub fn HonWithdrawal() -> impl IntoView {
         )
     };
 
+    let complete_verification_clicked = Action::new(move |_: &()| {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_complete_verification_clicked(
+                global,
+                StakeType::Sats,
+                "withdrawal".into(),
+            );
+        }
+        async {}
+    });
+
     let on_input = move |ev: leptos::ev::Event| {
         let value = event_target_value(&ev);
         let value: Option<usize> = value
@@ -423,6 +435,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                                                             py="py-2".to_string()
                                                             on_click=move || {
                                                                 show_kyc_popup.set(true);
+                                                                complete_verification_clicked.dispatch(());
                                                             }
                                                         >
                                                             "Complete Verification"

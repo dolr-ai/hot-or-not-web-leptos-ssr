@@ -527,6 +527,11 @@ derive_event!(track_withdraw_tokens_clicked {
     page_name: String
 });
 
+derive_event!(track_complete_verification_clicked {
+    token_clicked: StakeType,
+    page_name: String
+});
+
 derive_event!(track_withdraw_page_viewed {
     token_type: StakeType
 });
