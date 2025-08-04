@@ -438,4 +438,16 @@ impl AuthState {
 
         Ok(())
     }
+
+    // pub async fn update_kyc_status(
+    //     &self,
+    //     mut cans: Canisters<true>,
+    //     inquiry_id: String,
+    // ) -> yral_canisters_common::Result<()> {
+    //     let user_principal  = cans.user_principal();
+    //     cans.mark_kyc_complete(user_principal, inquiry_id).await?;
+    //     self.new_cans_setter.set(Some(cans.into()));
+
+    //     Ok(())
+    // }
 }

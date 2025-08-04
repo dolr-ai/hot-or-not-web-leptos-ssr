@@ -26,10 +26,9 @@ async function launchPersonaFlow(config, kyc_on_status_change, kyc_on_complete) 
       kyc_on_status_change?.("Pending");
     },
     onComplete: ({ inquiryId, status, fields }) => {
-          // Inquiry completed. Optionally tell your server about it.
           console.log(`Sending finished inquiry ${inquiryId} to backend ${status}`);
           console.log("Persona flow completed successfully.");
-          kyc_on_complete?.({ inquiryId, status, fields });
+          kyc_on_complete?.({ inquiryId, status, fields, referenceId: config.referenceId });
     },
     onError: () => {
       console.error("Persona flow encountered an error.");

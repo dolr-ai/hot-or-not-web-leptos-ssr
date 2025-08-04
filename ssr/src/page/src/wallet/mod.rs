@@ -275,24 +275,30 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
                 <Suspense>
                     {move || Suspend::new(async move {
                         let meta = metadata.await;
-                        match meta {
-                            Ok(meta) => {
+                        let logged_in_user = auth.user_principal.await;
+
+                        match meta.and_then(|c| Ok((c, logged_in_user?))) {
+                            Ok((meta, logged_in_user)) => {
+                                let is_own_account = logged_in_user == meta.user_principal;
+                                let kyc_completed = if !is_own_account { meta.kyc_completed } else { meta.kyc_completed || KycState::is_verified()};
                                 Either::Left(
                                     view! {
                                         <div class="flex items-center justify-between w-full pt-3">
                                             <div class="text-lg font-bold text-white font-kumbh">
                                                 My Tokens
                                             </div>
-                                            <Show when=move||is_connected()>
-                                                <div on:click=move|_| { if !KycState::is_verified() { show_kyc_popup.set(true); } } class="flex items-center gap-2 text-sm font-medium text-white">
+                                            <Show when=move|| is_connected()>
+                                                <div on:click=move|_| { if !kyc_completed && is_own_account { show_kyc_popup.set(true); } } class="flex items-center gap-2 text-sm font-medium text-white">
                                                     <span
                                                         class={format!(
                                                             "w-3 h-3 rounded-full {}",
-                                                            if KycState::is_verified() { "bg-green-500" } else { "bg-red-500" }
+                                                            if kyc_completed { "bg-green-500" } else { "bg-red-500" }
                                                         )}
                                                     ></span>
-                                                    { if KycState::is_verified() { "Verified" } else { "Unverified" } }
-                                                    <StartKycPopup show=show_kyc_popup />
+                                                    { if kyc_completed { "Verified" } else { "Unverified" } }
+                                                    <Show when=move||!kyc_completed>
+                                                        <StartKycPopup show=show_kyc_popup />
+                                                    </Show>
                                                 </div>
                                             </Show>
                                         </div>

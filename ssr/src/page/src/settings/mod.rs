@@ -463,7 +463,7 @@ pub fn Settings() -> impl IntoView {
                             </TitleText>
                         </div>
                         <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
-                            <ToggleKyc />
+                            // <ToggleKyc />
                             <EnableNotifications />
                             <DeleteAccount show_popup />
                         </div>

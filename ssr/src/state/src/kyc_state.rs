@@ -1,10 +1,15 @@
+use candid::{types::principal, Principal};
+use codee::string::FromToStringCodec;
+use consts::{METADATA_API_BASE, USER_PRINCIPAL_STORE};
 use gloo_utils::format::JsValueSerdeExt;
 use http::header::{AUTHORIZATION, CONTENT_TYPE};
 use js_sys::Reflect;
 use leptos::{prelude::*, task::spawn_local};
+use leptos_use::use_cookie;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
+use yral_metadata_client::MetadataClient;
 
 #[server]
 async fn check_if_enquiry_completed(
@@ -37,8 +42,6 @@ async fn check_if_enquiry_completed(
 
     let status = data.data.attributes.status.to_lowercase();
 
-    // let res_reference_id = data.data.attributes.reference_id;
-
     Ok(status == "approved")
 }
 
@@ -64,6 +67,8 @@ struct InquiryAttributes {
 pub struct KycResult {
     #[serde(rename = "inquiryId")]
     pub inquiry_id: String,
+    #[serde(rename = "referenceId")]
+    pub reference_id: String,
     pub status: String,
     pub fields: Value,
 }
@@ -89,10 +94,13 @@ pub fn kyc_on_complete(kyc_result: JsValue) {
                 // Check if the inquiry is completed
                 let inquiry_id = result.inquiry_id.clone();
                 spawn_local(async move {
-                    if check_if_enquiry_completed(inquiry_id)
-                        .await
-                        .unwrap_or(false)
-                    {
+                    let url = METADATA_API_BASE.clone();
+                    let client: MetadataClient<false> = MetadataClient::with_base_url(url);
+                    let future = client.mark_kyc_completed(
+                        Principal::from_text(result.reference_id).unwrap(),
+                        inquiry_id,
+                    );
+                    if future.await.is_ok() {
                         KycState::set_status(KycStatus::Verified);
                     } else {
                         KycState::set_status(KycStatus::Pending);
@@ -175,6 +183,23 @@ impl KycState {
         use_context::<Self>().unwrap_or_else(KycState::init)
     }
 
+    pub async fn sync_kyc_status(user_principal: Principal) -> bool {
+        if Self::is_verified_untracked() {
+            return true;
+        }
+        // let (user_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
+        let url = METADATA_API_BASE.clone();
+        let client: MetadataClient<false> = MetadataClient::with_base_url(url);
+        let res = client.get_user_metadata_v2(user_principal.to_text()).await;
+        if let Ok(Some(metadata)) = res {
+            if metadata.kyc_completed {
+                KycState::set_status(KycStatus::Verified);
+                return true;
+            }
+        }
+        false
+    }
+
     pub fn get() -> RwSignal<KycStatus> {
         Self::with_ctx().kyc_status
     }
@@ -182,6 +207,11 @@ impl KycState {
     pub fn is_verified() -> bool {
         let this = Self::with_ctx();
         this.kyc_status.get() == KycStatus::Verified
+    }
+
+    pub fn is_verified_untracked() -> bool {
+        let this = Self::with_ctx();
+        this.kyc_status.get_untracked() == KycStatus::Verified
     }
 
     pub fn set_status(status: KycStatus) {

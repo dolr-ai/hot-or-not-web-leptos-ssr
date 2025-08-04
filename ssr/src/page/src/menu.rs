@@ -1,3 +1,4 @@
+use candid::Principal;
 use codee::string::FromToStringCodec;
 use component::content_upload::AuthorizedUserToSeedContent;
 use component::content_upload::YoutubeUpload;
@@ -98,7 +99,9 @@ fn ProfileLoading() -> impl IntoView {
 }
 
 #[component]
-fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
+fn ProfileLoaded(user_details: ProfileDetails, principal: Principal) -> impl IntoView {
+    let kyc_state =
+        LocalResource::new(move || async move { KycState::sync_kyc_status(principal).await });
     view! {
         <img class="size-12 md:size-14 lg:size-16 rounded-full aspect-square object-cover" src=user_details.profile_pic_or_random() />
         <div class="flex flex-col gap-2 w-full">
@@ -106,12 +109,16 @@ fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
                 @{user_details.display_name_or_fallback()}
             </span>
             <span class="text-xs md:text-sm text-neutral-400 line-clamp-1">{user_details.principal()}</span>
-            <Show when=move||KycState::is_verified()>
-                <span class="flex items-center gap-1 font-medium">
-                <img src="/img/kyc/kyc_verified.svg" class="h-4 w-4" />
-                    "Verified"
-                </span>
-            </Show>
+            <Suspense>
+            {move || kyc_state.get().map(|_| view! {
+                <Show when=move|| KycState::is_verified()>
+                            <span class="flex items-center gap-1 font-medium">
+                        <img src="/img/kyc/kyc_verified.svg" class="h-4 w-4" />
+                            "Verified"
+                        </span>
+                </Show>
+            })}
+            </Suspense>
         </div>
     }
     .into_any()
@@ -154,6 +161,17 @@ pub fn Menu() -> impl IntoView {
     let show_popup = RwSignal::new(false);
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
+
+    let metadata = OnceResource::new(send_wrap(async move {
+        let cans = unauth_canisters();
+        let user_principal = auth.user_principal.await?;
+        let canisters = cans;
+        let user_canister = canisters
+            .get_user_metadata(user_principal.to_text())
+            .await?
+            .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
+        Ok::<_, ServerFnError>(user_canister)
+    }));
 
     Effect::new(move |_| {
         let query_params = query_map.get();
@@ -270,8 +288,10 @@ pub fn Menu() -> impl IntoView {
                         <Suspense fallback=ProfileLoading>
                             {move || Suspend::new(async move {
                                 let cans = auth.auth_cans(unauth_canisters()).await;
+
                                 cans.map(|c| {
-                                    view! { <ProfileLoaded user_details=c.profile_details() /> }
+                                    let principal = c.user_principal();
+                                    view! { <ProfileLoaded user_details=c.profile_details() principal/> }
                                 })
                             })}
                         </Suspense>
@@ -290,12 +310,18 @@ pub fn Menu() -> impl IntoView {
             <div class="flex flex-col gap-8 py-4 px-8 w-full text-lg">
                 // add later when NSFW toggle is needed
                 // <NsfwToggle />
-                <Show when=move ||!KycState::is_verified() && is_connected()>
-                    <StartVerificationButton show_popup/>
-                </Show>
-                <Show when=move||is_connected()>
-                    <StartKycPopup show=show_popup />
-                </Show>
+                <Suspense>
+                {
+                        move || metadata.get().map(|m| m.map(|m| view! {
+                            <Show when=move || !( KycState::is_verified() || m.kyc_completed) && is_connected()>
+                                <StartVerificationButton show_popup/>
+                            </Show>
+                            <Show when=move||is_connected()>
+                                <StartKycPopup show=show_popup />
+                            </Show>
+                        }))
+                }
+                </Suspense>
                 <MenuItem click_cta_type=MixpanelMenuClickedCTAType::ReferAndEarn href="/refer-earn" text="Refer & Earn" icon=icondata::AiGiftFilled />
                 <MenuItem click_cta_type=MixpanelMenuClickedCTAType::Leaderboard href="/leaderboard" text="Leaderboard" icon=icondata::ChTrophy />
                 <MenuItem
