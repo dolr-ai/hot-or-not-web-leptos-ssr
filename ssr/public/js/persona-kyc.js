@@ -22,17 +22,17 @@ async function launchPersonaFlow(config, kyc_on_status_change, kyc_on_complete) 
     onReady: () => {
       personaClient.open();
     },
-    onCancel: () => {
-      kyc_on_status_change?.("Pending", null);
+    onCancel: ({ inquiryId, sessionToken }) => {
+      kyc_on_status_change?.("Pending", inquiryId);
     },
     onComplete: ({ inquiryId, status, fields }) => {
           console.log(`Sending finished inquiry ${inquiryId} to backend ${status}`);
           console.log("Persona flow completed successfully.");
           kyc_on_complete?.({ inquiryId, status, fields, referenceId: config.referenceId });
     },
-    onError: ({ inquiryId, sessionToken }) => {
+    onError: () => {
       console.error("Persona flow encountered an error.");
-      kyc_on_status_change?.("Pending", inquiryId);
+      kyc_on_status_change?.("Pending", null);
     },
   });
 }
