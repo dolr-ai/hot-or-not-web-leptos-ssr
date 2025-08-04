@@ -175,16 +175,20 @@ fn BalanceDisplay(#[prop(into)] balance: Nat) -> impl IntoView {
 pub fn HonWithdrawal() -> impl IntoView {
     let show_kyc_popup = RwSignal::new(false);
     let auth = auth_state();
-    let is_connected = auth.is_logged_in_with_oauth();
-
-    let details_res = auth.derive_resource(
+    let balance = auth.derive_resource(
         || (),
         move |cans, _| {
             send_wrap(async move {
                 let principal = cans.user_principal();
-                load_withdrawal_details(principal)
+
+                let details = load_withdrawal_details(principal)
                     .map_err(ServerFnError::new)
                     .await
+                    .unwrap_or_else(|_| SatsBalanceInfo {
+                        balance: 0u64.into(),
+                        airdropped: 0u64.into(),
+                    });
+                Ok::<Nat, ServerFnError>(details.balance.into())
             })
         },
     );
@@ -192,6 +196,8 @@ pub fn HonWithdrawal() -> impl IntoView {
     let cans = unauth_canisters();
 
     let auth = auth_state();
+
+    let is_connected = auth.is_logged_in_with_oauth();
 
     let metadata = OnceResource::new(send_wrap(async move {
         let user_principal = auth.user_principal.await?;
@@ -257,13 +263,8 @@ pub fn HonWithdrawal() -> impl IntoView {
         }
     });
 
-    let balance = Resource::new(
-        move || details_res.get().map(|r| r.ok().map(|d| d.balance.into())),
-        |res| async move { res.flatten().unwrap_or_else(|| Nat::from(0_usize)) },
-    );
-
-    let zero = Nat::from(0_usize);
     let cans = state::canisters::unauth_canisters();
+
     let treasury_balance = Resource::new(
         || (),
         move |_| {
@@ -318,7 +319,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                                 }.into_any()
                             } else {
                                 view! {
-                                    {move || balance.get().map(|b| view! { <BalanceDisplay balance=b.clone() /> })}
+                                    {move || balance.get().and_then(|f| f.ok()).map(|b| view! { <BalanceDisplay balance=b.clone() /> })}
                                     {Suspend::new(async move {
                                             let meta = metadata.await.ok();
                                             meta.map(|f| {
@@ -360,11 +361,11 @@ pub fn HonWithdrawal() -> impl IntoView {
                                                             </div>
 
                                                             {move || {
-                                                                let balance = balance.get().unwrap_or_else(|| zero.clone());
+                                                                let balance = balance.get().and_then(|res| res.ok()).unwrap_or_else(|| Nat::from(0_usize));
                                                                 let can_withdraw = true;
                                                                 let invalid_input = sats() < min_withdrawal as usize
                                                                     || sats() > max_withdrawal as usize;
-                                                                let invalid_balance = sats() > balance || balance == zero;
+                                                                let invalid_balance = sats() > balance || balance == 0_usize;
                                                                 let is_claiming = is_claiming();
                                                                 let message = if invalid_balance {
                                                                     "Not enough balance".to_string()

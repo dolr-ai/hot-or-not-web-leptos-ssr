@@ -100,7 +100,7 @@ fn HNButtonOverlay(
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
     audio_ref: NodeRef<Audio>,
-    show_low_balance_popup: RwSignal<bool>,
+    _show_low_balance_popup: RwSignal<bool>,
 ) -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
@@ -201,8 +201,8 @@ fn HNButtonOverlay(
 
                 if bet_amount > wallet_balance_store.get() {
                     log::warn!("Insufficient balance for bet amount: {bet_amount}");
-                    show_low_balance_popup.set(true);
-                    return None;
+                    // show_low_balance_popup.set(true);
+                    // return None;
                 }
 
                 let identity = cans.identity();
@@ -724,7 +724,7 @@ pub fn HNGameOverlay(
                                         coin
                                         refetch_bet
                                         audio_ref=win_audio_ref
-                                        show_low_balance_popup
+                                        _show_low_balance_popup=show_low_balance_popup
                                     />
                                 }
                                     .into_any()
