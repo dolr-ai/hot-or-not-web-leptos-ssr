@@ -3,7 +3,7 @@ use consts::METADATA_API_BASE;
 use gloo_utils::format::JsValueSerdeExt;
 use http::header::{AUTHORIZATION, CONTENT_TYPE};
 use js_sys::Reflect;
-use leptos::{logging, prelude::*, task::spawn_local};
+use leptos::{prelude::*, task::spawn_local};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
@@ -93,10 +93,8 @@ pub fn kyc_on_status_change(status: String, inquiry_id: Option<String>) {
 }
 
 pub fn kyc_on_complete(kyc_result: JsValue) {
-    logging::log!("KYC completed");
     match kyc_result.into_serde::<KycResult>() {
         Ok(result) => {
-            logging::log!("KYC Result: {:?}", result.status);
             let parsed_status = match result.status.as_str() {
                 "approved" => KycStatus::Verified,
                 "completed" => KycStatus::Verified,
