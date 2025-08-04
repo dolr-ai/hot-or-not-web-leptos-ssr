@@ -220,7 +220,7 @@ fn UploadIcon(#[prop(into)] cur_selected: Signal<bool>) -> impl IntoView {
     };
     view! {
         <a
-            href="/upload"
+            href="/upload-options"
             on:click=on_click
             class="flex justify-center items-center text-white rounded-full"
         >

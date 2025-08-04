@@ -1,8 +1,11 @@
 use candid::{Nat, Principal};
+use component::buttons::HighlightedLinkButton;
 use component::{
     auth_providers::handle_user_login, back_btn::BackButton,
-    icons::notification_icon::NotificationIcon, title::TitleText,
+    icons::notification_icon::NotificationIcon, icons::telegram_icon::TelegramIcon,
+    spinner::SpinnerFit, title::TitleText,
 };
+use consts::{CKBTC_LEDGER_CANISTER, SATS_CKBTC_CANISTER};
 use futures::TryFutureExt;
 use global_constants::{MAX_WITHDRAWAL_PER_TXN_SATS, MIN_WITHDRAWAL_PER_TXN_SATS};
 use hon_worker_common::{HoNGameWithdrawReq, SatsBalanceInfo};
@@ -151,15 +154,20 @@ fn BalanceDisplay(#[prop(into)] balance: Nat) -> impl IntoView {
 #[component]
 pub fn HonWithdrawal() -> impl IntoView {
     let auth = auth_state();
-    let details_res = auth.derive_resource(
+    let balance = auth.derive_resource(
         || (),
         move |cans, _| {
             send_wrap(async move {
                 let principal = cans.user_principal();
 
-                load_withdrawal_details(principal)
+                let details = load_withdrawal_details(principal)
                     .map_err(ServerFnError::new)
                     .await
+                    .unwrap_or_else(|_| SatsBalanceInfo {
+                        balance: 0u64.into(),
+                        airdropped: 0u64.into(),
+                    });
+                Ok::<Nat, ServerFnError>(details.balance.into())
             })
         },
     );
@@ -222,101 +230,121 @@ pub fn HonWithdrawal() -> impl IntoView {
             }
         }
     });
-    let balance = Resource::new(
-        move || details_res.get().map(|r| r.ok().map(|d| d.balance.into())),
-        |res| async move {
-            if let Some(res) = res {
-                res.unwrap_or_default()
-            } else {
-                Nat::from(0_usize)
-            }
+
+    use state::canisters::unauth_canisters;
+    let cans = unauth_canisters();
+    let treasury_balance = Resource::new(
+        || (),
+        move |_| {
+            let cans = cans.clone();
+            let ledger = CKBTC_LEDGER_CANISTER.parse().unwrap();
+            let treasury = SATS_CKBTC_CANISTER.parse().unwrap();
+
+            send_wrap(async move {
+                match cans.icrc1_balance_of(treasury, ledger).await {
+                    Ok(balance) => balance,
+                    Err(_) => Nat::from(0_usize),
+                }
+            })
         },
     );
-
-    let zero = Nat::from(0_usize);
 
     view! {
         <div class="flex overflow-x-hidden flex-col items-center pt-2 pb-12 w-full min-h-screen text-white bg-black">
             <Header />
             <div class="w-full">
                 <div class="flex flex-col justify-center items-center px-4 pb-6 mx-auto mt-4 max-w-md">
-                    <Suspense>
-                        {move || {
-                            balance
-                                .get()
-                                .map(|balance| view! { <BalanceDisplay balance=balance.clone() /> })
-                        }}
-                    </Suspense>
-                    <div class="flex flex-col gap-5 mt-8 w-full">
-                        <span class="text-sm">Choose how much to redeem:</span>
-                        <div
-                            id="input-card"
-                            class="flex flex-col gap-8 p-3 rounded-lg bg-neutral-900"
-                        >
-                            <div class="flex flex-col gap-3">
-                                <div class="flex justify-between">
-                                    <div class="flex gap-2 items-center">
-                                        <span>You withdraw</span>
+                <Suspense fallback=|| {
+                    view! {
+                        <div class="size-14">
+                            <SpinnerFit />
+                        </div>
+                    }
+                }>
+                {move || {
+                    let is_treasury_empty = treasury_balance.get().map(|balance| balance == 0_usize).unwrap_or(false);
+                    if is_treasury_empty {
+                        view! {
+                            <div class="flex flex-col gap-4 items-center max-w-sm mx-auto px-12">
+                                <img src="/img/hotornot/bank-empty.webp" alt="Treasury is empty" class="size-40" />
+                                <span class="text-lg font-semibold">Oh no!</span>
+                                <span class="text-sm text-neutral-400 text-center">"The withdrawal pot is currently empty! Please come back in a while for the next top-up."</span>
+                                <span class="text-sm text-neutral-400">"Need assistance?"</span>
+                                <HighlightedLinkButton
+                                    alt_style=true
+                                    target="_blank".to_string()
+                                    disabled=false
+                                    classes="max-w-96 w-full mx-auto py-[12px] px-[20px]".to_string()
+                                    href="https://t.me/HotOrNot_app".to_string()
+                                >
+                                    <div class="flex items-center gap-2">
+                                        <TelegramIcon classes="size-6 text-pink-600".to_string() />
+                                        <span>"Chat with us"</span>
                                     </div>
-                                    <input
-                                        min=MIN_WITHDRAWAL_PER_TXN_SATS
-                                        max=MAX_WITHDRAWAL_PER_TXN_SATS
-                                        placeholder=format!("Min: {}", MIN_WITHDRAWAL_PER_TXN_SATS)
-                                        disabled=is_claiming
-                                        on:input=on_input
-                                        type="text"
-                                        inputmode="decimal"
-                                        class="px-4 w-44 h-10 text-lg text-right rounded bg-neutral-800 focus:outline focus:outline-1 focus:outline-primary-600"
-                                    />
-                                </div>
-                                <div class="flex justify-between">
-                                    <div class="flex gap-2 items-center">
-                                        <span>You get</span>
-                                    </div>
-                                    <input
-                                        disabled
-                                        type="text"
-                                        inputmode="decimal"
-                                        class="px-4 w-44 h-10 text-lg text-right rounded bg-neutral-800 text-neutral-400 focus:outline focus:outline-1 focus:outline-primary-600"
-                                        value=formated_dolrs
-                                    />
-                                </div>
+                                </HighlightedLinkButton>
                             </div>
-                            <Suspense fallback=|| {
-                                view! {
-                                    <button
-                                        disabled
-                                        class="py-2 px-5 text-sm font-bold text-center rounded-lg bg-brand-gradient-disabled"
-                                    >
-                                        Please Wait
-                                    </button>
-                                }
-                            }>
-                                {move || {
-                                    let balance = if let Some(balance) = balance.get() {
-                                        balance
-                                    } else {
-                                        Nat::from(0_usize)
-                                    };
-                                    let can_withdraw = true;
-                                    let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN_SATS as usize
-                                        || sats() > MAX_WITHDRAWAL_PER_TXN_SATS as usize;
-                                    let invalid_balance = sats() > balance || balance == zero;
-                                    let is_claiming = is_claiming();
-                                    let message = if invalid_balance {
-                                        "Not enough balance".to_string()
-                                    } else if invalid_input {
-                                        format!(
-                                            "Enter valid amount, min: {MIN_WITHDRAWAL_PER_TXN_SATS} max: {MAX_WITHDRAWAL_PER_TXN_SATS}",
-                                        )
-                                    } else {
-                                        match (can_withdraw, is_claiming) {
-                                            (false, _) => "Not enough winnings".to_string(),
-                                            (_, true) => "Claiming...".to_string(),
-                                            (_, _) => "Withdraw Now!".to_string(),
-                                        }
-                                    };
-                                    Some(
+                        }.into_any()
+                    } else {
+                        view! {
+                            {balance
+                                .get()
+                                .and_then(|res| res.ok())
+                                .map(|balance| view! { <BalanceDisplay balance=balance.clone() /> })}
+                            <div class="flex flex-col gap-5 mt-8 w-full">
+                                <span class="text-sm">Choose how much to redeem:</span>
+                                <div
+                                    id="input-card"
+                                    class="flex flex-col gap-8 p-3 rounded-lg bg-neutral-900"
+                                >
+                                    <div class="flex flex-col gap-3">
+                                        <div class="flex justify-between">
+                                            <div class="flex gap-2 items-center">
+                                                <span>You withdraw</span>
+                                            </div>
+                                            <input
+                                                min=MIN_WITHDRAWAL_PER_TXN_SATS
+                                                max=MAX_WITHDRAWAL_PER_TXN_SATS
+                                                placeholder=format!("Min: {}", MIN_WITHDRAWAL_PER_TXN_SATS)
+                                                disabled=is_claiming
+                                                on:input=on_input
+                                                type="text"
+                                                inputmode="decimal"
+                                                class="px-4 w-44 h-10 text-lg text-right rounded bg-neutral-800 focus:outline focus:outline-1 focus:outline-primary-600"
+                                            />
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <div class="flex gap-2 items-center">
+                                                <span>You get</span>
+                                            </div>
+                                            <input
+                                                disabled
+                                                type="text"
+                                                inputmode="decimal"
+                                                class="px-4 w-44 h-10 text-lg text-right rounded bg-neutral-800 text-neutral-400 focus:outline focus:outline-1 focus:outline-primary-600"
+                                                value=formated_dolrs
+                                            />
+                                        </div>
+                                    </div>
+                                    {move || {
+                                        let balance = balance.get().and_then(|res| res.ok()).unwrap_or_else(|| Nat::from(0_usize));
+                                        let can_withdraw = true;
+                                        let invalid_input = sats() < MIN_WITHDRAWAL_PER_TXN_SATS as usize
+                                            || sats() > MAX_WITHDRAWAL_PER_TXN_SATS as usize;
+                                        let invalid_balance = sats() > balance || balance == 0_usize;
+                                        let is_claiming = is_claiming();
+                                        let message = if invalid_balance {
+                                            "Not enough balance".to_string()
+                                        } else if invalid_input {
+                                            format!(
+                                                "Enter valid amount, min: {MIN_WITHDRAWAL_PER_TXN_SATS} max: {MAX_WITHDRAWAL_PER_TXN_SATS}",
+                                            )
+                                        } else {
+                                            match (can_withdraw, is_claiming) {
+                                                (false, _) => "Not enough winnings".to_string(),
+                                                (_, true) => "Claiming...".to_string(),
+                                                (_, _) => "Withdraw Now!".to_string(),
+                                            }
+                                        };
                                         view! {
                                             // all of the money can be withdrawn
                                             <button
@@ -329,15 +357,18 @@ pub fn HonWithdrawal() -> impl IntoView {
                                             >
                                                 {message}
                                             </button>
-                                        },
-                                    )
-                                }}
-                            </Suspense>
-                        </div>
-                        <span class="text-sm">
-                            1 Sats = {crate::consts::SATS_TO_BTC_CONVERSION_RATIO}BTC
-                        </span>
-                    </div>
+                                        }
+                                    }}
+                                </div>
+                                <span class="text-sm">
+                                    "1 Sats = "{consts::SATS_TO_BTC_CONVERSION_RATIO}
+                                </span>
+                            </div>
+                        }.into_any()
+                    }
+
+                }}
+                </Suspense>
                 </div>
             </div>
         </div>

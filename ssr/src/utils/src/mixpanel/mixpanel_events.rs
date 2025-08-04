@@ -565,17 +565,24 @@ derive_event!(track_withdraw_tokens_clicked {
 });
 
 derive_event!(track_claim_airdrop_clicked {
-    token_type: StakeType
+    token_type: StakeType,
+    page: String
 });
 
 derive_event!(track_airdrop_claimed {
     token_type: StakeType,
     is_success: bool,
-    claimed_amount: u64
+    claimed_amount: u64,
+    page: String
 });
 
 derive_event!(track_referral_link_copied {
     referral_bonus: u64
+});
+
+derive_event!(track_refer_earn_clicked {
+    is_airdrop_eligible: bool,
+    page: String
 });
 
 derive_event!(track_share_invites_clicked {
@@ -595,7 +602,8 @@ derive_event!(track_file_selection_success { file_type: String });
 
 derive_event!(track_video_upload_initiated {
     caption_added: bool,
-    hashtags_added: bool
+    hashtags_added: bool,
+    upload_type: Option<String>
 });
 
 derive_event!(track_bottom_navigation_clicked {
@@ -635,6 +643,11 @@ derive_event!(track_sats_to_btc_converted {
 });
 
 derive_event!(track_enable_nsfw_popup_shown { page_name: String });
+
+derive_event!(track_low_on_sats_popup_shown {
+    is_airdrop_claimed: bool,
+    page_name: String
+});
 
 derive_event!(track_nsfw_enabled {
     publisher_user_id: String,
@@ -751,7 +764,8 @@ derive_event!(track_video_upload_success {
     video_id: String,
     creator_comission_percentage: u64,
     is_game_enabled: bool,
-    game_type: MixpanelPostGameType
+    game_type: MixpanelPostGameType,
+    upload_type: Option<String>
 });
 
 derive_event!(track_cents_to_dolr = "cents_to_DOLR" => {
@@ -777,6 +791,26 @@ derive_event!(track_how_to_play_clicked {
 });
 
 derive_event!(track_username_saved {});
+
+derive_event!(track_video_upload_type_selected {
+    upload_type: String
+});
+
+derive_event!(track_upload_type_continue_clicked {
+    upload_type: String
+});
+
+derive_event!(track_video_generation_model_selected { model: String });
+
+derive_event!(track_create_ai_video_clicked { model: String });
+
+derive_event!(track_ai_video_generated {
+    is_success: bool,
+    reason: Option<String>,
+    model: String
+});
+
+derive_event!(track_regenerate_video_clicked { model: String });
 
 impl MixPanelEvent {
     pub async fn track_login_success_async(
@@ -819,7 +853,7 @@ impl MixPanelEvent {
                     "/menu" => {
                         Self::track_menu_page_viewed(props);
                     }
-                    "/upload" => {
+                    "/upload-options" => {
                         Self::track_upload_page_viewed(props);
                     }
                     "/profile/edit" => {

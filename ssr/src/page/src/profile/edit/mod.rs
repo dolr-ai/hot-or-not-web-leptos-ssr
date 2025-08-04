@@ -77,7 +77,7 @@ fn ProfileEditInner(details: ProfileDetails) -> impl IntoView {
             <div class="flex flex-col gap-5 w-full px-4">
                 <EditField
                     name="User Name"
-                    value=format!("@{}", details.username_or_principal())
+                    value=format!("@{}", details.username_or_fallback())
                     icon=|| view! {
                         <a href="/profile/edit/username">
                             <Icon
