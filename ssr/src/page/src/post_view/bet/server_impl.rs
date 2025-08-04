@@ -72,7 +72,7 @@ mod alloydb {
         // and exists on cloudflare
         let query = format!(
             "select hot_or_not_evaluator.compare_videos_hot_or_not_v3('{}', {})",
-            post_info.uid, prev_uid_formatted,
+            prev_uid_formatted, post_info.uid
         );
 
         let alloydb: AlloyDbInstance = expect_context();
