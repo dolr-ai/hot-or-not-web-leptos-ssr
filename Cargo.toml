@@ -37,7 +37,7 @@ web-time = "1.0.0"
 axum = { version = "0.8.4", features = ["macros"] }
 console_error_panic_hook = "0.1"
 console_log = "1"
-leptos = { version = "0.8.5", features = ["nightly"] }
+leptos = { version = "0.8.6", features = ["nightly"] }
 leptos_axum = { version = "0.8.5" }
 leptos_meta = "0.8.5"
 leptos_router = { version = "0.8.5", features = ["nightly"] }

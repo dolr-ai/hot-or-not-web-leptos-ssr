@@ -4,6 +4,7 @@ use component::{base_route::BaseRoute, nav::NavBar};
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::hooks::use_location;
+use leptos_router::Lazy;
 use leptos_router::{components::*, path, MatchNestedRoutes};
 use page::about_us::AboutUs;
 use page::internal::clear_sats::ClearSats;
@@ -176,7 +177,7 @@ pub fn App() -> impl IntoView {
                             path=path!("/hot-or-not/withdraw/failure")
                             view=hon::withdrawal::result::Failure
                         />
-                        <Route path=path!("/hot-or-not/:canister_id/:post_id") view=PostView />
+                        <Route path=path!("/hot-or-not/:canister_id/:post_id") view={Lazy::<PostView>::new()} />
                         <Route path=path!("/post/:canister_id/:post_id") view=SinglePost />
                         <Route path=path!("/profile/:canister_id/post/:post_id") view=ProfilePost />
                         <Route path=path!("/upload") view=UploadPostPage />

@@ -13,6 +13,7 @@ use consts::{
 };
 use indexmap::IndexSet;
 use leptos_icons::*;
+use leptos_router::LazyRoute;
 use priority_queue::DoublePriorityQueue;
 use state::canisters::{auth_state, unauth_canisters};
 use std::{cmp::Reverse, collections::HashMap};
@@ -307,135 +308,168 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
     view! { <CommonPostViewWithUpdates initial_post fetch_video_action threshold_trigger_fetch=20 /> }.into_any()
 }
 
-#[component]
-pub fn PostView() -> impl IntoView {
-    let params = use_params::<PostParams>();
-    let initial_canister_and_post = RwSignal::new(params.get_untracked().ok());
-    let home_page_viewed_sent = RwSignal::new(false);
-    let show_nsfw_popup = RwSignal::new(false);
-    let nsfw_shown_idx: RwSignal<Vec<usize>> = RwSignal::new(Vec::new());
+pub struct PostView {
+    show_nsfw_popup: RwSignal<bool>,
+    ev_ctx: utils::event_streaming::events::EventCtx,
+    current_post: Signal<Option<PostDetails>>,
+    fetch_first_video_uid: Resource<Result<Option<PostDetails>, ()>>,
+    show_onboarding_popup: RwSignal<bool>,
+    close_onboarding_action: Action<(), ()>,
+}
 
-    let auth = auth_state();
-    let ev_ctx = auth.event_ctx();
-    let (nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
-    Effect::new(move |_| {
-        if home_page_viewed_sent.get_untracked() {
-            return;
-        }
-        if let Some(global) = MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(
-            auth.event_ctx(),
-            nsfw_enabled.get_untracked(),
-        ) {
-            MixPanelEvent::track_home_page_viewed(global);
-            home_page_viewed_sent.set(true);
-        }
-    });
-    Effect::new_isomorphic(move |_| {
-        if initial_canister_and_post.with_untracked(|p| p.is_some()) {
-            return None;
-        }
-        let p = params.get().ok()?;
-        initial_canister_and_post.set(Some(p));
-        Some(())
-    });
+impl LazyRoute for PostView {
+    fn data() -> Self {
+        let params: Memo<Result<PostParams, leptos_router::params::ParamsError>> =
+            use_params::<PostParams>();
+        let initial_canister_and_post: RwSignal<Option<PostParams>> =
+            RwSignal::new(params.get_untracked().ok());
+        let home_page_viewed_sent = RwSignal::new(false);
+        let show_nsfw_popup = RwSignal::new(false);
+        let nsfw_shown_idx: RwSignal<Vec<usize>> = RwSignal::new(Vec::new());
 
-    let PostViewCtx {
-        video_queue,
-        current_idx,
-        ..
-    } = expect_context();
-
-    let current_post = Signal::derive(move || {
-        let index = current_idx.get();
-        video_queue.with(|q| q.get_index(index).cloned())
-    });
-
-    Effect::new(move |_| {
-        let index = current_idx.get();
-        if (index == 2 || index == 8) && !nsfw_shown_idx.get_untracked().contains(&index) {
-            show_nsfw_popup.set(true);
-            nsfw_shown_idx.update(|f| f.push(index));
-        }
-    });
-
-    let canisters = unauth_canisters();
-    let post_details_cache: PostDetailsCacheCtx = expect_context();
-
-    let fetch_first_video_uid = Resource::new(initial_canister_and_post, move |params| {
-        let canisters = canisters.clone();
-        async move {
-            let Some(params) = params else {
-                return Err(());
-            };
-            let cached_post = video_queue
-                .with_untracked(|q| q.get_index(current_idx.get_untracked()).cloned())
-                .filter(|post| {
-                    post.canister_id == params.canister_id && post.post_id == params.post_id
-                });
-            if let Some(post) = cached_post {
-                return Ok(Some(post));
+        let auth: state::canisters::AuthState = auth_state();
+        let ev_ctx: utils::event_streaming::events::EventCtx = auth.event_ctx();
+        let (nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
+        Effect::new(move |_| {
+            if home_page_viewed_sent.get_untracked() {
+                return;
             }
-            let post_nsfw_prob = post_details_cache.post_details.with_untracked(|p| {
-                let item = p.get(&(params.canister_id, params.post_id));
-                if let Some(item) = item {
-                    if item.is_nsfw {
-                        1.0
-                    } else {
-                        0.0
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(
+                auth.event_ctx(),
+                nsfw_enabled.get_untracked(),
+            ) {
+                MixPanelEvent::track_home_page_viewed(global);
+                home_page_viewed_sent.set(true);
+            }
+        });
+        Effect::new_isomorphic(move |_| {
+            if initial_canister_and_post.with_untracked(|p| p.is_some()) {
+                return None;
+            }
+            let p = params.get().ok()?;
+            initial_canister_and_post.set(Some(p));
+            Some(())
+        });
+
+        let PostViewCtx {
+            video_queue,
+            current_idx,
+            ..
+        } = expect_context();
+
+        let current_post = Signal::derive(move || {
+            let index = current_idx.get();
+            video_queue.with(|q| q.get_index(index).cloned())
+        });
+
+        Effect::new(move |_| {
+            let index = current_idx.get();
+            if (index == 2 || index == 8) && !nsfw_shown_idx.get_untracked().contains(&index) {
+                show_nsfw_popup.set(true);
+                nsfw_shown_idx.update(|f| f.push(index));
+            }
+        });
+
+        let canisters: Canisters<false> = unauth_canisters();
+        let post_details_cache: PostDetailsCacheCtx = expect_context();
+
+        let fetch_first_video_uid: Resource<Result<Option<PostDetails>, ()>> =
+            Resource::new(initial_canister_and_post, move |params| {
+                let canisters = canisters.clone();
+                async move {
+                    let Some(params) = params else {
+                        return Err(());
+                    };
+                    let cached_post = video_queue
+                        .with_untracked(|q| q.get_index(current_idx.get_untracked()).cloned())
+                        .filter(|post| {
+                            post.canister_id == params.canister_id && post.post_id == params.post_id
+                        });
+                    if let Some(post) = cached_post {
+                        return Ok(Some(post));
                     }
-                } else {
-                    1.0 // TODO: handle this for when we don't have details (when user shares video)
+                    let post_nsfw_prob = post_details_cache.post_details.with_untracked(|p| {
+                        let item = p.get(&(params.canister_id, params.post_id));
+                        if let Some(item) = item {
+                            if item.is_nsfw {
+                                1.0
+                            } else {
+                                0.0
+                            }
+                        } else {
+                            1.0 // TODO: handle this for when we don't have details (when user shares video)
+                        }
+                    });
+
+                    match send_wrap(canisters.get_post_details_with_nsfw_info(
+                        params.canister_id,
+                        params.post_id,
+                        post_nsfw_prob,
+                    ))
+                    .await
+                    {
+                        Ok(post) => Ok(post),
+                        Err(e) => {
+                            failure_redirect(e);
+                            Err(())
+                        }
+                    }
                 }
             });
 
-            match send_wrap(canisters.get_post_details_with_nsfw_info(
-                params.canister_id,
-                params.post_id,
-                post_nsfw_prob,
-            ))
-            .await
-            {
-                Ok(post) => Ok(post),
-                Err(e) => {
-                    failure_redirect(e);
-                    Err(())
-                }
-            }
-        }
-    });
+        let (onboarding_store, set_onboarding_store, _) =
+            use_local_storage::<UserOnboardingStore, JsonSerdeCodec>(USER_ONBOARDING_STORE_KEY);
 
-    let (onboarding_store, set_onboarding_store, _) =
-        use_local_storage::<UserOnboardingStore, JsonSerdeCodec>(USER_ONBOARDING_STORE_KEY);
+        let show_onboarding_popup = RwSignal::new(false);
 
-    let show_onboarding_popup = RwSignal::new(false);
-
-    let close_onboarding_action = Action::new(move |_: &()| {
-        set_onboarding_store.update(|store| {
-            store.has_seen_onboarding = true;
+        let close_onboarding_action = Action::new(move |_: &()| {
+            set_onboarding_store.update(|store| {
+                store.has_seen_onboarding = true;
+            });
+            show_onboarding_popup.set(false);
+            async move {}
         });
-        show_onboarding_popup.set(false);
-        async move {}
-    });
 
-    Effect::new(move |_| {
-        if !(onboarding_store.get_untracked().has_seen_onboarding)
-            && !auth.is_logged_in_with_oauth().get_untracked()
-        {
-            show_onboarding_popup.set(true);
+        Effect::new(move |_| {
+            if !(onboarding_store.get_untracked().has_seen_onboarding)
+                && !auth.is_logged_in_with_oauth().get_untracked()
+            {
+                show_onboarding_popup.set(true);
+            }
+        });
+
+        Self {
+            show_nsfw_popup,
+            ev_ctx,
+            current_post,
+            fetch_first_video_uid,
+            show_onboarding_popup,
+            close_onboarding_action,
         }
-    });
-
-    view! {
-        <Suspense fallback=FullScreenSpinner>
-            {move || Suspend::new(async move {
-                let initial_post = fetch_first_video_uid.await.ok()?;
-                { Some(view! { <PostViewWithUpdatesMLFeed initial_post /> }.into_any()) }
-            })}
-        </Suspense>
-        <NsfwUnlockPopup show=show_nsfw_popup current_post ev_ctx />
-        <OnboardingWelcomePopup show=show_onboarding_popup close_action=close_onboarding_action />
     }
-    .into_any()
+
+    async fn view(this: Self) -> AnyView {
+        let Self {
+            show_nsfw_popup,
+            ev_ctx,
+            current_post,
+            fetch_first_video_uid,
+            show_onboarding_popup,
+            close_onboarding_action,
+        } = this;
+
+        view! {
+            <Suspense fallback=FullScreenSpinner>
+                {move || Suspend::new(async move {
+                    let initial_post = fetch_first_video_uid.await.ok()?;
+                    { Some(view! { <PostViewWithUpdatesMLFeed initial_post /> }.into_any()) }
+                })}
+            </Suspense>
+            <NsfwUnlockPopup show=show_nsfw_popup current_post ev_ctx />
+            <OnboardingWelcomePopup show=show_onboarding_popup close_action=close_onboarding_action />
+        }
+        .into_any()
+    }
 }
 
 #[component]
