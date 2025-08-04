@@ -74,7 +74,7 @@ pub fn send_wrap<Fut: Future>(t: Fut) -> impl Future<Output = <Fut as Future>::O
     send_wrapper::SendWrapper::new(t)
 }
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone, Serialize, Deserialize, Debug)]
 pub enum UsernameOrPrincipal {
     Username(String),
     Principal(Principal),
