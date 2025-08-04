@@ -64,7 +64,7 @@ mod alloydb {
             "NULL".to_string()
         };
         leptos::logging::log!(
-            "Comparing videos: current: {}, previous: {}",
+            "Comparing videos: hot_or_not_evaluator current: {}, previous: {}",
             post_info.uid,
             prev_uid_formatted
         );
