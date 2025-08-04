@@ -185,7 +185,7 @@ fn HNButtonOverlay(
                 let cans = auth.auth_cans(expect_context()).await.ok()?;
                 let is_logged_in = is_connected.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-                MixPanelEvent::track_game_clicked(
+                MixPanelEvent::track_game_voted(
                     global,
                     post_mix.poster_principal.to_text(),
                     post_mix.likes,

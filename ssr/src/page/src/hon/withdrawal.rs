@@ -21,6 +21,7 @@ use leptos_router::hooks::use_navigate;
 use log;
 use state::canisters::unauth_canisters;
 use state::{canisters::auth_state, kyc_state::KycState, server::HonWorkerJwt};
+use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, StakeType};
 use utils::send_wrap;
 use yral_canisters_client::individual_user_template::{Result7, SessionType};
 use yral_canisters_common::{utils::token::balance::TokenBalance, Canisters};
@@ -197,6 +198,14 @@ pub fn HonWithdrawal() -> impl IntoView {
 
     let auth = auth_state();
 
+    let ev_ctx = auth.event_ctx();
+
+    Effect::new(move |_| {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_withdraw_page_viewed(global, StakeType::Sats);
+        }
+    });
+
     let is_connected = auth.is_logged_in_with_oauth();
 
     let metadata = OnceResource::new(send_wrap(async move {
@@ -230,6 +239,12 @@ pub fn HonWithdrawal() -> impl IntoView {
 
     let send_claim = Action::new_local(move |&()| async move {
         let cans = auth.auth_cans(expect_context()).await?;
+        let global = MixpanelGlobalProps::try_get(&cans, true);
+        MixPanelEvent::track_withdraw_initiated(
+            global,
+            StakeType::Sats,
+            sats.get_untracked() as u64,
+        );
         handle_user_login(cans.clone(), auth.event_ctx(), None).await?;
 
         let req = hon_worker_common::WithdrawRequest {
@@ -398,7 +413,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                                                     </div>
 
                                                     <Show when=move || is_connected()>
-                                                        <StartKycPopup show=show_kyc_popup />
+                                                        <StartKycPopup show=show_kyc_popup ev_ctx=ev_ctx page_name="withdrawal".into() />
                                                     </Show>
 
                                                     <Show when=move || !kyc_completed() && is_connected()>

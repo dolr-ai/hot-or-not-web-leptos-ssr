@@ -160,6 +160,7 @@ pub fn Menu() -> impl IntoView {
     let is_authorized_to_seed_content: AuthorizedUserToSeedContent = expect_context();
     let show_popup = RwSignal::new(false);
     let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
     let is_connected = auth.is_logged_in_with_oauth();
 
     let metadata = OnceResource::new(send_wrap(async move {
@@ -317,7 +318,7 @@ pub fn Menu() -> impl IntoView {
                                 <StartVerificationButton show_popup/>
                             </Show>
                             <Show when=move||is_connected()>
-                                <StartKycPopup show=show_popup />
+                                <StartKycPopup show=show_popup ev_ctx=ev_ctx page_name="menu".into() />
                             </Show>
                         }))
                 }

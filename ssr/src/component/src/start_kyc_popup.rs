@@ -2,20 +2,42 @@ use crate::{buttons::HighlightedButton, overlay::ShadowOverlay};
 use candid::Principal;
 use codee::string::FromToStringCodec;
 use consts::USER_PRINCIPAL_STORE;
+use global_constants::MIN_WITHDRAWAL_PER_TXN_SATS;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::use_cookie;
 use state::kyc_state::{KycState, KycStatus, PersonaConfig};
+use utils::{
+    event_streaming::events::EventCtx,
+    mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, StakeType},
+};
 
 #[component]
-pub fn StartKycPopup(show: RwSignal<bool>) -> impl IntoView {
+pub fn StartKycPopup(show: RwSignal<bool>, ev_ctx: EventCtx, page_name: String) -> impl IntoView {
+    let page_name_event = page_name.clone();
+    Effect::new(move || {
+        if show.get() {
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                MixPanelEvent::track_verify_to_unlock_popup_shown(
+                    global,
+                    page_name_event.clone(),
+                    MIN_WITHDRAWAL_PER_TXN_SATS,
+                    StakeType::Sats,
+                );
+            }
+        }
+    });
+
+    let page = page_name.clone();
+
     view! {
         <ShadowOverlay show=show>
         {
+            let page = page.clone();
             move || match KycState::get().get() {
-                KycStatus::Pending => view! { <StartKyc show /> }.into_any(),
-                KycStatus::InProgress => view! { <VerificationStatusPopup show=show is_verified=RwSignal::new(false) /> }.into_any(),
-                KycStatus::Verified => view! { <VerificationStatusPopup show=show is_verified=RwSignal::new(true) /> }.into_any(),
+                KycStatus::Pending => view! { <StartKyc show ev_ctx page_name=page.clone() /> }.into_any(),
+                KycStatus::InProgress => view! { <VerificationStatusPopup show=show is_verified=RwSignal::new(false) ev_ctx page_name=page.clone()/> }.into_any(),
+                KycStatus::Verified => view! { <VerificationStatusPopup show=show is_verified=RwSignal::new(true) ev_ctx page_name=page.clone()/> }.into_any(),
             }
         }
         </ShadowOverlay>
@@ -23,7 +45,17 @@ pub fn StartKycPopup(show: RwSignal<bool>) -> impl IntoView {
 }
 
 #[component]
-fn StartKyc(show: RwSignal<bool>) -> impl IntoView {
+fn StartKyc(show: RwSignal<bool>, ev_ctx: EventCtx, page_name: String) -> impl IntoView {
+    let send_event_action = Action::new(move |_: &()| {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_start_verification_clicked(
+                global,
+                page_name.clone(),
+                StakeType::Sats,
+            );
+        }
+        async {}
+    });
     view! {
             <div class="w-full h-full flex items-center justify-center">
                 <div class="overflow-visible h-fit max-w-md items-center cursor-auto bg-[#171717] rounded-md w-full relative">
@@ -60,6 +92,7 @@ fn StartKyc(show: RwSignal<bool>) -> impl IntoView {
                             disabled=false
                             on_click=move || {
                                 KycState::toggle();
+                                send_event_action.dispatch(());
                             }
                         >
                             "Start Verification"
@@ -71,7 +104,12 @@ fn StartKyc(show: RwSignal<bool>) -> impl IntoView {
 }
 
 #[component]
-fn VerificationStatusPopup(show: RwSignal<bool>, is_verified: RwSignal<bool>) -> impl IntoView {
+fn VerificationStatusPopup(
+    show: RwSignal<bool>,
+    is_verified: RwSignal<bool>,
+    ev_ctx: EventCtx,
+    page_name: String,
+) -> impl IntoView {
     let (user_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
 
     let start = move |_: ()| {
@@ -80,9 +118,29 @@ fn VerificationStatusPopup(show: RwSignal<bool>, is_verified: RwSignal<bool>) ->
         }
     };
 
+    let send_event_action = Action::new(move |_: &()| {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_verification_done(global, true);
+        }
+        async {}
+    });
+
+    let send_event_action_for_withdraw_token = Action::new(move |_: &()| {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_withdraw_tokens_clicked(
+                global,
+                StakeType::Sats,
+                page_name.clone(),
+            );
+        }
+        async {}
+    });
+
     Effect::new(move || {
         if !is_verified.get() {
             start(());
+        } else {
+            send_event_action.dispatch(());
         }
     });
 
@@ -158,6 +216,7 @@ fn VerificationStatusPopup(show: RwSignal<bool>, is_verified: RwSignal<bool>) ->
                                 disabled=false
                                 on_click=move || {
                                     show.set(false);
+                                    send_event_action_for_withdraw_token.dispatch(());
                                 }
                             >
                                 Withdraw to BTC

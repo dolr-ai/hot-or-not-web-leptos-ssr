@@ -221,6 +221,7 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
     }));
 
     let auth = auth_state();
+    let ev_ctx = auth.event_ctx();
     let is_connected = auth.is_logged_in_with_oauth();
 
     let app_state = use_context::<AppState>();
@@ -297,7 +298,7 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
                                                     ></span>
                                                     { if kyc_completed { "Verified" } else { "Unverified" } }
                                                     <Show when=move||!kyc_completed>
-                                                        <StartKycPopup show=show_kyc_popup />
+                                                        <StartKycPopup show=show_kyc_popup ev_ctx=ev_ctx page_name="wallet".into() />
                                                     </Show>
                                                 </div>
                                             </Show>
