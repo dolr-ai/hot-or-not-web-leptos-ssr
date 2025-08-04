@@ -370,8 +370,7 @@ pub fn HonWithdrawal() -> impl IntoView {
                                                                     "Not enough balance".to_string()
                                                                 } else if invalid_input {
                                                                     format!(
-                                                                        "Enter valid amount, min: {} max: {}",
-                                                                        min_withdrawal, max_withdrawal
+                                                                        "Enter valid amount, min: {min_withdrawal} max: {max_withdrawal}",
                                                                     )
                                                                 } else {
                                                                     match (can_withdraw, is_claiming) {

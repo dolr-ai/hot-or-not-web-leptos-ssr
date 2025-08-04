@@ -1,11 +1,9 @@
-use candid::{types::principal, Principal};
-use codee::string::FromToStringCodec;
-use consts::{METADATA_API_BASE, USER_PRINCIPAL_STORE};
+use candid::Principal;
+use consts::METADATA_API_BASE;
 use gloo_utils::format::JsValueSerdeExt;
 use http::header::{AUTHORIZATION, CONTENT_TYPE};
 use js_sys::Reflect;
 use leptos::{prelude::*, task::spawn_local};
-use leptos_use::use_cookie;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
@@ -73,13 +71,25 @@ pub struct KycResult {
     pub fields: Value,
 }
 
-pub fn kyc_on_status_change(status: String) {
-    let parsed_status = match status.as_str() {
-        "InProgress" => KycStatus::InProgress,
-        _ => KycStatus::Pending,
-    };
+pub fn kyc_on_status_change(status: String, inquiry_id: Option<String>) {
+    if let Some(id) = inquiry_id {
+        // Check if the inquiry is completed
+        spawn_local(async move {
+            let completed = check_if_enquiry_completed(id).await;
+            if completed.is_ok() && completed.unwrap() {
+                KycState::set_status(KycStatus::Verified);
+            } else {
+                KycState::set_status(KycStatus::Pending);
+            }
+        });
+    } else {
+        let parsed_status = match status.as_str() {
+            "InProgress" => KycStatus::InProgress,
+            _ => KycStatus::Pending,
+        };
 
-    KycState::set_status(parsed_status);
+        KycState::set_status(parsed_status);
+    }
 }
 
 pub fn kyc_on_complete(kyc_result: JsValue) {
@@ -134,7 +144,8 @@ impl<'a> PersonaConfig<'a> {
 
         let js_config = JsValue::from_serde(&config).expect("Failed to serialize PersonaConfig");
 
-        let callback = Closure::wrap(Box::new(kyc_on_status_change) as Box<dyn Fn(String)>);
+        let callback =
+            Closure::wrap(Box::new(kyc_on_status_change) as Box<dyn Fn(String, Option<String>)>);
         let callback_completed = Closure::wrap(Box::new(kyc_on_complete) as Box<dyn Fn(JsValue)>);
 
         let window = window();
