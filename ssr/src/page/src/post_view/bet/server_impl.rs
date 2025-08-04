@@ -63,7 +63,11 @@ mod alloydb {
         } else {
             "NULL".to_string()
         };
-
+        leptos::logging::log!(
+            "Comparing videos: current: {}, previous: {}",
+            post_info.uid,
+            prev_uid_formatted
+        );
         // sanitization is not required here, as get_post_details verifies that the post is valid
         // and exists on cloudflare
         let query = format!(
