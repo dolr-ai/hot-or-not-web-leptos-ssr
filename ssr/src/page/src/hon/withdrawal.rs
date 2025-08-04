@@ -19,7 +19,6 @@ use hon_worker_common::{HoNGameWithdrawReq, SatsBalanceInfo};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use log;
-use rand::rand_core::le;
 use state::canisters::unauth_canisters;
 use state::{canisters::auth_state, kyc_state::KycState, server::HonWorkerJwt};
 use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, StakeType};
