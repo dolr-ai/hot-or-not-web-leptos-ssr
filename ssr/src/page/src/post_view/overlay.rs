@@ -1,3 +1,4 @@
+use candid::Principal;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::buttons::HighlightedButton;
 use component::icons::sound_off_icon::SoundOffIcon;
@@ -16,6 +17,7 @@ use leptos_icons::*;
 use leptos_router::hooks::{use_location, use_navigate};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
+use serde_json::json;
 use state::audio_state::AudioState;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::host::show_nsfw_content;
@@ -227,6 +229,39 @@ pub fn VideoDetailsOverlay(
     let track_video_report = track_video_clicked.clone();
     let track_video_report = move || track_video_report(MixpanelVideoClickedCTAType::Report);
 
+    let delete_video = Action::new_unsync(
+        move |(video_id, post_id, canister_id): &(String, u64, Principal)| {
+            let video_id = video_id.clone();
+            let post_id = *post_id;
+            let canister_id = *canister_id;
+            async move {
+                spawn_local(async move {
+                    use consts::OFF_CHAIN_AGENT_URL;
+
+                    let wire = auth.user_identity.await.unwrap().id_wire.clone();
+
+                    let reqwest_client = reqwest::Client::new();
+                    let res = reqwest_client
+                        .delete(format!("{}api/v1/posts", OFF_CHAIN_AGENT_URL.as_ref()))
+                        .json(&json!({
+                            "delegated_identity_wire": wire,
+                            "canister_id": canister_id,
+                            "post_id": post_id,
+                            "video_id": video_id,
+                        }))
+                        .send()
+                        .await
+                        .expect("Failed to send like video event");
+                    let body = res
+                        .text()
+                        .await
+                        .expect("Failed to get like video event response");
+                    println!("{body}");
+                });
+            }
+        },
+    );
+
     let share = move || {
         let post_details = post_details_share.clone();
         let url = video_url();
@@ -235,6 +270,11 @@ pub fn VideoDetailsOverlay(
             return;
         }
         show_share.set(true);
+        delete_video.dispatch((
+            post_details.uid.clone(),
+            post_details.post_id,
+            post_details.canister_id,
+        ));
         ShareVideo.send_event(ev_ctx, post_details);
     };
 
