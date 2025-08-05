@@ -198,6 +198,8 @@ pub fn LoginProviders(
 
             let _ = LoginSuccessful.send_event(canisters.clone());
 
+            set_auth_journey_page.set(None);
+
             if let Some(redir_loc) = redirect_to {
                 let nav = use_navigate();
                 nav(&redir_loc, Default::default());

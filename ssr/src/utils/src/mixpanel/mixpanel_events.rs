@@ -823,6 +823,7 @@ impl MixPanelEvent {
                     .path("/")
                     .max_age(REFRESH_MAX_AGE.as_millis() as i64),
             );
+        logging::log!("Clearing auth journey page");
         set_auth_journey_page.set(None);
     }
     pub async fn track_login_success_async(
