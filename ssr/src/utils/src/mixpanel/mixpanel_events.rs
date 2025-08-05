@@ -852,6 +852,33 @@ impl MixPanelEvent {
         send_event_to_server_async("signup_success", props).await;
         Self::clear_auth_journey_page();
     }
+    pub fn track_login_success_sync(
+        global: MixpanelGlobalProps,
+        auth_journey: String,
+        page_name: BottomNavigationCategory,
+    ) {
+        let props = track_login_success::new(global, auth_journey, page_name);
+        send_event_to_server("login_success", props);
+        Self::clear_auth_journey_page();
+    }
+
+    pub fn track_signup_success_sync(
+        global: MixpanelGlobalProps,
+        is_referral: bool,
+        referrer_user_id: Option<String>,
+        auth_journey: String,
+        page_name: BottomNavigationCategory,
+    ) {
+        let props = track_signup_success::new(
+            global,
+            is_referral,
+            referrer_user_id,
+            auth_journey,
+            page_name,
+        );
+        send_event_to_server("signup_success", props);
+        Self::clear_auth_journey_page();
+    }
 
     pub fn track_page_viewed(page: String, p: MixpanelGlobalProps) {
         let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
