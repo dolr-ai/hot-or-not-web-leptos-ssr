@@ -19,6 +19,7 @@ use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::hooks::use_params;
 use leptos_use::storage::use_local_storage;
+use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -295,9 +296,16 @@ fn HNButtonOverlay(
         }
     };
 
+    let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
+        move |_| {
+            let _ = window().location().set_href("/");
+        },
+        3000.0,
+    );
+
     Effect::new(move |_| {
         if !was_connected.get() && is_connected.get() && !show_login_popup.get() {
-            let _ = window().location().set_href("/");
+            start(());
         }
     });
 

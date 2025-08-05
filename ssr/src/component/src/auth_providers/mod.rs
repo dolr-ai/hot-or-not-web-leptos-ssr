@@ -183,6 +183,7 @@ pub fn LoginProviders(
                 .set_new_identity_and_wait_for_authentication(base_cans, new_id.clone(), true)
                 .await?;
 
+            set_auth_journey_page.set(None);
             // HACK: leptos can panic sometimes and reach an undefined state
             // while the panic is not fixed, we use this workaround
             if canisters.user_principal()
@@ -198,8 +199,6 @@ pub fn LoginProviders(
             }
 
             let _ = LoginSuccessful.send_event(canisters.clone());
-
-            set_auth_journey_page.set(None);
 
             if let Some(redir_loc) = redirect_to {
                 let nav = use_navigate();
