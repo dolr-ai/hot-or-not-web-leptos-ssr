@@ -61,7 +61,8 @@ pub async fn handle_user_login(
             referrer.map(|f| f.to_text()),
             auth_journey,
             page_name,
-        ).await;
+        )
+        .await;
     } else {
         let global = MixpanelGlobalProps::try_get(&canisters, true);
         MixPanelEvent::track_login_success_async(global, auth_journey, page_name).await;
