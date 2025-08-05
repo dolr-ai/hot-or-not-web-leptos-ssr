@@ -199,7 +199,6 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                         .and_then(|result| result.ok())
                                         .unwrap_or_default()
                                 }
-                                _generate_action=generate_action
                                 on_upload=move || {
                                     // Get the generated video URL and upload using Action
                                     if let Some(Ok(video_url)) = generate_action.value().get() {

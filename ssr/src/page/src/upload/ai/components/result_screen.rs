@@ -6,7 +6,6 @@ use leptos_icons::*;
 #[component]
 pub fn VideoResultScreen(
     video_url: String,
-    _generate_action: Action<VideoGenerationParams, Result<String, String>>,
     on_upload: impl Fn() + 'static,
     on_regenerate: impl Fn() + 'static,
 ) -> impl IntoView {

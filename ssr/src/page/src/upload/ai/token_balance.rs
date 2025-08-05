@@ -13,7 +13,7 @@ pub async fn load_token_balance(
 ) -> Result<TokenBalance, ServerFnError> {
     match token_type {
         TokenType::Sats => {
-            let balance_info = send_wrap(load_sats_balance(user_principal)).await?;
+            let balance_info = load_sats_balance(user_principal).await?;
             Ok(TokenBalance::new(balance_info.balance.into(), 0))
         }
         TokenType::Dolr => {
@@ -34,15 +34,13 @@ pub async fn load_token_balance(
     }
 }
 
-/// Create a resource for loading token balance
-pub fn create_token_balance_resource(
-    user_principal: Signal<Principal>,
-    token_type: Signal<TokenType>,
-) -> Resource<Result<TokenBalance, ServerFnError>> {
-    Resource::new(
-        move || (user_principal.get(), token_type.get()),
-        move |(principal, token)| async move {
-            send_wrap(load_token_balance(principal, token)).await
-        },
-    )
-}
+// Create a resource for loading token balance
+// pub fn create_token_balance_resource(
+//     user_principal: Signal<Principal>,
+//     token_type: Signal<TokenType>,
+// ) -> Resource<Result<TokenBalance, ServerFnError>> {
+//     Resource::new(
+//         move || (user_principal.get(), token_type.get()),
+//         move |(principal, token)| async move { send_wrap(load_token_balance(principal, token)).await },
+//     )
+// }

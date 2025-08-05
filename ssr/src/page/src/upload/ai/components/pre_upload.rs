@@ -181,7 +181,10 @@ pub fn PreUploadAiView(
                             // Check if user can use free generation
                             let can_use_free = match rate_limit_resource.await {
                                 Ok(can_use_free) => can_use_free,
-                                Err(_) => false, // Default to paid on error
+                                Err(e) => {
+                                    leptos::logging::error!("Failed to load rate limit status: {:?}", e);
+                                    false
+                                }, // Default to paid on error
                             };
 
                             // Set initial token based on rate limit
