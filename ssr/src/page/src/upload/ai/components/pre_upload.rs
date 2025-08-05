@@ -1,4 +1,5 @@
 use super::{ModelDropdown, TokenDropdown};
+use crate::upload::ai::token_balance::load_token_balance;
 use crate::upload::ai::types::VideoGenerationParams;
 use component::{back_btn::BackButton, buttons::GradientButton, login_modal::LoginModal};
 use leptos::{html::Input, prelude::*};
@@ -7,11 +8,10 @@ use state::canisters::auth_state;
 use utils::event_streaming::events::VideoUploadInitiated;
 use utils::host::show_preview_component;
 use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps};
-use videogen_common::{TokenType, VideoGenProvider, VideoModel};
-use videogen_common::token_costs::TOKEN_COST_CONFIG;
-use yral_canisters_common::utils::token::balance::TokenBalance;
-use crate::upload::ai::token_balance::load_token_balance;
 use utils::send_wrap;
+use videogen_common::token_costs::TOKEN_COST_CONFIG;
+use videogen_common::{TokenType, VideoGenProvider, VideoModel};
+use yral_canisters_common::utils::token::balance::TokenBalance;
 
 #[component]
 pub fn PreUploadAiView(
@@ -45,26 +45,47 @@ pub fn PreUploadAiView(
 
     // Get auth state
     let auth = auth_state();
-    let is_logged_in = auth.is_logged_in_with_oauth();
+    let is_logged_in = auth.is_logged_in_with_oauth(); // Signal::stored(true);
+
+    // Create rate limit resource to check if user can use free generation
+    // Returns true if user can use free generation (not rate limited)
+    let rate_limit_resource = auth.derive_resource(
+        move || is_logged_in.get(),
+        move |canisters, is_registered| {
+            send_wrap(async move {
+                let principal = canisters.user_principal();
+                let rate_limits = canisters.rate_limits().await;
+                let status = rate_limits
+                    .get_rate_limit_status(principal, "VIDEOGEN".to_string(), is_registered)
+                    .await
+                    .ok()
+                    .flatten();
+
+                // Return true if user is NOT rate limited (can use free)
+                Ok(match status {
+                    Some(s) => !s.is_limited,
+                    None => false, // Default to paid if status unknown
+                })
+            })
+        },
+    );
 
     // Create a resource that loads balance based on auth state and selected token
-    let balance_resource = Resource::new(
+    let balance_resource = auth.derive_resource(
         move || selected_token.get(),
-        move |token| {
-            let auth = auth_state();
-            async move {
-                let principal = auth.user_principal.await?;
-                send_wrap(load_token_balance(principal, token)).await
-            }
+        move |canisters, token| {
+            send_wrap(async move {
+                let principal = canisters.user_principal();
+                load_token_balance(principal, token).await
+            })
         },
     );
 
     // Form validation - only check non-async conditions
     let form_valid = Signal::derive(move || !prompt_text.get().trim().is_empty());
-    let base_can_generate = Signal::derive(move || {
-        form_valid.get() && !generate_action.pending().get()
-    });
-    
+    let base_can_generate =
+        Signal::derive(move || form_valid.get() && !generate_action.pending().get());
+
     // Create a signal for balance sufficiency that will be used inside Suspense
     let has_sufficient_balance = RwSignal::new(false);
 
@@ -148,7 +169,38 @@ pub fn PreUploadAiView(
                     <ModelDropdown selected_model=selected_model show_dropdown=show_dropdown />
 
                     // Token Selection Dropdown
-                    <TokenDropdown selected_token=selected_token show_dropdown=show_token_dropdown />
+                    <Suspense fallback=move || view! {
+                        <div class="w-full">
+                            <label class="block text-sm font-medium text-white mb-2">Token</label>
+                            <div class="p-4 bg-neutral-900 border border-neutral-800 rounded-lg text-neutral-400">
+                                "Checking rate limits..."
+                            </div>
+                        </div>
+                    }>
+                        {move || Suspend::new(async move {
+                            // Check if user can use free generation
+                            let can_use_free = match rate_limit_resource.await {
+                                Ok(can_use_free) => can_use_free,
+                                Err(_) => false, // Default to paid on error
+                            };
+
+                            // Set initial token based on rate limit
+                            let initial_token = if can_use_free {
+                                // User is not rate limited, can use free generation
+                                TokenType::Free
+                            } else {
+                                // User is rate limited or status unknown, default to paid
+                                TokenType::Sats
+                            };
+
+                            // Set the selected token
+                            selected_token.set(initial_token);
+
+                            view! {
+                                <TokenDropdown selected_token=selected_token show_dropdown=show_token_dropdown />
+                            }
+                        })}
+                    </Suspense>
 
                     // Image Upload Section (Optional) - Only show if model supports images
                     <Show when=move || selected_model.get().supports_image>
@@ -225,6 +277,7 @@ pub fn PreUploadAiView(
                                 {move || match selected_token.get() {
                                     TokenType::Sats => "SATS Required:",
                                     TokenType::Dolr => "DOLR Required:",
+                                    videogen_common::TokenType::Free => "FREE Generation:",
                                 }}
                             </span>
                             <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
@@ -234,6 +287,7 @@ pub fn PreUploadAiView(
                                 {move || match selected_token.get() {
                                     TokenType::Sats => "🪙",
                                     TokenType::Dolr => "💰",
+                                    videogen_common::TokenType::Free => "🎁",
                                 }}
                             </span>
                             <span class="text-orange-400 font-bold">
@@ -245,10 +299,12 @@ pub fn PreUploadAiView(
                                     let humanized = match token {
                                         TokenType::Sats => TokenBalance::new(cost.into(), 0).humanize_float_truncate_to_dp(0),
                                         TokenType::Dolr => TokenBalance::new(cost.into(), 8).humanize_float_truncate_to_dp(2),
+                                        videogen_common::TokenType::Free => "0".to_string(),
                                     };
                                     match token {
                                         TokenType::Sats => format!("{} SATS", humanized),
                                         TokenType::Dolr => format!("{} DOLR", humanized),
+                                        videogen_common::TokenType::Free => "FREE".to_string(),
                                     }
                                 }}
                             </span>
@@ -268,22 +324,29 @@ pub fn PreUploadAiView(
                                         let model_name = model.name.as_str();
                                         let token_type = selected_token.get();
                                         let required_amount = TOKEN_COST_CONFIG.get_model_cost(model_name, &token_type);
-                                        
+
                                         let is_sufficient = match token_type {
                                             TokenType::Sats => balance.e8s >= required_amount,
                                             TokenType::Dolr => balance.e8s >= required_amount,
+                                            videogen_common::TokenType::Free => true, // Free requests always have sufficient "balance"
                                         };
-                                        
+
                                         // Update the balance sufficiency signal
                                         has_sufficient_balance.set(is_sufficient);
-                                        
-                                        let formatted_balance = balance.humanize_float_truncate_to_dp(0);
-                                        let token_name = match token_type {
-                                            TokenType::Sats => "SATS",
-                                            TokenType::Dolr => "DOLR",
+
+                                        let balance_text = match token_type {
+                                            TokenType::Free => "(No balance required for FREE generation)".to_string(),
+                                            TokenType::Sats => {
+                                                let formatted_balance = balance.humanize_float_truncate_to_dp(0);
+                                                format!("(Current balance: {} SATS)", formatted_balance)
+                                            },
+                                            TokenType::Dolr => {
+                                                let formatted_balance = balance.humanize_float_truncate_to_dp(2);
+                                                format!("(Current balance: {} DOLR)", formatted_balance)
+                                            }
                                         };
                                         view! {
-                                            <span>{format!("(Current balance: {} {})", formatted_balance, token_name)}</span>
+                                            <span>{balance_text}</span>
                                         }
                                     }
                                     Err(_) => {

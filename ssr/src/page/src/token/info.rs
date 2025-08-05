@@ -12,6 +12,7 @@ use leptos_router::params::Params;
 use state::canisters::auth_state;
 use utils::send_wrap;
 use utils::web::copy_to_clipboard;
+use utils::UsernameOrPrincipal;
 
 use crate::wallet::transactions::Transactions;
 use candid::Principal;
@@ -61,14 +62,15 @@ fn TokenDetails(meta: TokenMetadata) -> impl IntoView {
     }
 }
 
-pub fn generate_share_link(root: &RootType, key_principal: Principal) -> String {
-    format!("/token/info/{root}/{key_principal}?airdrop_amt=100")
+pub fn generate_share_link(root: &RootType, id: UsernameOrPrincipal) -> String {
+    format!("/token/info/{root}/{id}?airdrop_amt=100")
 }
 
 #[component]
 fn TokenInfoInner(
     root: RootType,
     meta: TokenMetadata,
+    id: Option<UsernameOrPrincipal>,
     key_principal: Option<Principal>,
     is_user_principal: bool,
 ) -> impl IntoView {
@@ -82,7 +84,7 @@ fn TokenInfoInner(
             icondata::AiDownOutlined
         }
     });
-    let share_link = key_principal.map(|key_principal| generate_share_link(&root, key_principal));
+    let share_link = id.map(|id| generate_share_link(&root, id));
     let message = share_link.clone().map(|share_link|format!(
         "Hey! Check out the token: {} I created on YRAL 👇 {}. I just minted my own token—come see and create yours! 🚀 #YRAL #TokenMinter",
         meta.symbol,  share_link
@@ -199,7 +201,7 @@ fn TokenInfoInner(
 
 #[derive(Params, PartialEq, Clone, Serialize, Deserialize)]
 pub struct TokenKeyParam {
-    key_principal: Principal,
+    id: UsernameOrPrincipal,
 }
 
 #[derive(Params, PartialEq, Clone, Serialize, Deserialize, Debug)]
@@ -212,6 +214,8 @@ struct TokenInfoResponse {
     meta: TokenMetadata,
     root: RootType,
     #[serde(default)]
+    id: Option<UsernameOrPrincipal>,
+    #[serde(default)]
     key_principal: Option<Principal>,
     is_user_principal: bool,
     is_token_viewer_airdrop_claimed: bool,
@@ -220,19 +224,27 @@ struct TokenInfoResponse {
 #[component]
 pub fn TokenInfo() -> impl IntoView {
     let params = use_params::<TokenInfoParams>();
-    let key_principal = use_params::<TokenKeyParam>();
+    let id_param = use_params::<TokenKeyParam>();
     let airdrop_param = use_query::<AirdropParam>();
-    let key_principal = move || key_principal.with(|p| p.as_ref().map(|p| p.key_principal).ok());
+    let id = move || id_param.get().map(|p| p.id).ok();
 
     let auth = auth_state();
 
     let token_metadata_fetch = auth.derive_resource(
-        move || (params.get(), key_principal()),
-        move |cans, (params_result, key_principal)| {
+        move || (params.get(), id()),
+        move |cans, (params_result, id)| {
             send_wrap(async move {
                 let params = match params_result {
                     Ok(p) => p,
                     Err(_) => return Ok::<_, ServerFnError>(None),
+                };
+                let key_principal = match id.as_ref() {
+                    Some(UsernameOrPrincipal::Principal(p)) => Some(*p),
+                    Some(UsernameOrPrincipal::Username(u)) => {
+                        let meta = cans.get_user_metadata(u.clone()).await.ok().flatten();
+                        meta.map(|m| m.user_principal)
+                    }
+                    _ => None,
                 };
 
                 let meta = cans
@@ -248,6 +260,7 @@ pub fn TokenInfo() -> impl IntoView {
                             return Ok(Some(TokenInfoResponse {
                                 meta: m,
                                 root: token_root.clone(),
+                                id,
                                 key_principal,
                                 is_user_principal: Some(cans.user_principal()) == key_principal,
                                 is_token_viewer_airdrop_claimed: true,
@@ -265,6 +278,7 @@ pub fn TokenInfo() -> impl IntoView {
                         Some(TokenInfoResponse {
                             meta: m,
                             root: token_root.clone(),
+                            id,
                             key_principal,
                             is_user_principal: Some(cans.user_principal()) == key_principal,
                             is_token_viewer_airdrop_claimed: is_airdrop_claimed,
@@ -273,6 +287,7 @@ pub fn TokenInfo() -> impl IntoView {
                     (Some(m), _) => Some(TokenInfoResponse {
                         meta: m,
                         root: token_root.clone(),
+                        id,
                         key_principal,
                         is_user_principal: Some(cans.user_principal()) == key_principal,
                         is_token_viewer_airdrop_claimed: true,
@@ -298,11 +313,12 @@ pub fn TokenInfo() -> impl IntoView {
                                     TokenInfoResponse {
                                         meta,
                                         root,
+                                        id,
                                         key_principal,
                                         is_user_principal,
                                         is_token_viewer_airdrop_claimed,
-                                    },
-                                ),
+                                    }
+                                )
                             ) => {
                                 if let Ok(AirdropParam { airdrop_amt }) = airdrop_param.get() {
                                     if !is_token_viewer_airdrop_claimed
@@ -318,6 +334,7 @@ pub fn TokenInfo() -> impl IntoView {
                                 view! {
                                     <TokenInfoInner
                                         root
+                                        id
                                         key_principal
                                         meta
                                         is_user_principal=is_user_principal

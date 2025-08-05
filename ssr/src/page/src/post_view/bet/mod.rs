@@ -21,12 +21,12 @@ use leptos_use::storage::use_local_storage;
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
-use state::canisters::auth_state;
+use state::canisters::{auth_state, unauth_canisters};
 use state::hn_bet_state::{HnBetState, VideoComparisonResult};
 use utils::try_or_redirect_opt;
 use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
-    posts::PostDetails, token::balance::TokenBalance, vote::VoteKind,
+    posts::PostDetails, token::balance::TokenBalance, token::load_sats_balance, vote::VoteKind,
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -100,9 +100,12 @@ fn HNButtonOverlay(
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
     audio_ref: NodeRef<Audio>,
+    _show_low_balance_popup: RwSignal<bool>,
 ) -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
+    let (wallet_balance_store, _, _) =
+        use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
     fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
         #[cfg(not(feature = "hydrate"))]
@@ -156,6 +159,7 @@ fn HNButtonOverlay(
             let post_id = post.post_id;
             let bet_amount: u64 = coin.get_untracked().to_cents();
             let bet_direction = *bet_direction;
+
             // Create the original VoteRequest for the server function
             let req = hon_worker_common::VoteRequest {
                 post_canister,
@@ -194,6 +198,13 @@ fn HNButtonOverlay(
                     StakeType::Sats,
                     post.is_nsfw,
                 );
+
+                if bet_amount > wallet_balance_store.get() {
+                    log::warn!("Insufficient balance for bet amount: {bet_amount}");
+                    // show_low_balance_popup.set(true);
+                    // return None;
+                }
+
                 let identity = cans.identity();
                 let sender = identity.sender().unwrap();
                 let sig = sign_vote_request_v3(identity, req_v3).ok()?;
@@ -219,7 +230,7 @@ fn HNButtonOverlay(
                             } => TokenBalance::new((lose_amt + 0u64).into(), 0).humanize(),
                         };
 
-                        let (_, set_wallet_balalnce_store, _) =
+                        let (_, set_wallet_balance_store, _) =
                             use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
                         HnBetState::set(post_mix.uid.clone(), res.video_comparison_result);
@@ -235,7 +246,7 @@ fn HNButtonOverlay(
                             } => updated_balance.to_u64().unwrap_or(0),
                         };
                         HnBetState::set_balance(balance);
-                        set_wallet_balalnce_store.set(balance);
+                        set_wallet_balance_store.set(balance);
 
                         MixPanelEvent::track_game_played(
                             global,
@@ -629,6 +640,7 @@ pub fn HNGameOverlay(
     prev_post: Option<PostDetails>,
     win_audio_ref: NodeRef<Audio>,
     show_tutorial: RwSignal<bool>,
+    show_low_balance_popup: RwSignal<bool>,
 ) -> impl IntoView {
     let bet_direction = RwSignal::new(None::<VoteKind>);
 
@@ -641,6 +653,28 @@ pub fn HNGameOverlay(
     } else {
         DEFAULT_BET_COIN_FOR_LOGGED_OUT
     });
+
+    // Fetch and update wallet balance on initial load
+    let (_, set_wallet_balance_store, _) =
+        use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+
+    let fetch_balance_action = Action::new_local(move |_: &()| async move {
+        let cans = auth.auth_cans(unauth_canisters()).await.ok()?;
+        let user_principal = cans.user_principal();
+        let balance_info = load_sats_balance(user_principal).await.ok()?;
+        let balance = balance_info.balance.to_u64().unwrap_or(25);
+        set_wallet_balance_store.set(balance);
+        HnBetState::set_balance(balance);
+        Some(balance)
+    });
+
+    // Dispatch balance fetch when component loads (only once)
+    Effect::new(move |prev: Option<()>| {
+        if prev.is_none() {
+            fetch_balance_action.dispatch(());
+        }
+    });
+
     let create_game_info = auth.derive_resource(
         move || refetch_bet.track(),
         move |cans, _| {
@@ -690,6 +724,7 @@ pub fn HNGameOverlay(
                                         coin
                                         refetch_bet
                                         audio_ref=win_audio_ref
+                                        _show_low_balance_popup=show_low_balance_popup
                                     />
                                 }
                                     .into_any()

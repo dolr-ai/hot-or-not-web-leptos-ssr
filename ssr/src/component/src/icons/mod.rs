@@ -11,5 +11,6 @@ pub mod send_icon;
 pub mod share_icon;
 pub mod sound_off_icon;
 pub mod sound_on_icon;
+pub mod telegram_icon;
 pub mod volume_high_icon;
 pub mod volume_mute_icon;

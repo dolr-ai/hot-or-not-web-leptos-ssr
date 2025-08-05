@@ -26,6 +26,11 @@ pub async fn load_token_balance(
                 .await?;
             Ok(TokenBalance::new(balance, 8))
         }
+        videogen_common::TokenType::Free => {
+            // Free requests don't have a balance - return 0 as a placeholder
+            // The UI will handle displaying appropriate text for free generation
+            Ok(TokenBalance::new(0u64.into(), 0))
+        }
     }
 }
 
