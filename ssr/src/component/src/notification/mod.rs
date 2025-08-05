@@ -194,8 +194,6 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
     let app_state = use_context::<AppState>();
     let page_title = app_state.unwrap().name.to_owned() + " - Notifications";
 
-    let auth = auth_state();
-    let provider = NotificationProvider { auth };
     let is_desktop = use_media_query("(min-width: 1024px)");
 
     // Lock body scroll when popup is open on mobile
@@ -236,7 +234,7 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
                             </div>
                         </div>
                         <div class="flex-1 min-h-0 overflow-y-auto">
-                            <NotificationInfiniteScroller provider=provider />
+                            <NotificationInfiniteScroller />
                         </div>
                     </div>
                 </ShadowOverlay>
@@ -258,7 +256,7 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
                                     <span class="text-xl font-bold flex-1 text-center mr-10">Notifications</span>
                                 </div>
                             </div>
-                            <NotificationInfiniteScroller provider=provider />
+                            <NotificationInfiniteScroller />
                         </div>
                     </div>
                     </Show>
@@ -287,7 +285,13 @@ fn EmptyNotifications() -> impl IntoView {
 }
 
 #[component]
-fn NotificationInfiniteScroller(provider: NotificationProvider) -> impl IntoView {
+fn NotificationInfiniteScroller() -> impl IntoView {
+    let auth = auth_state();
+    let cans = unauth_canisters();
+    let provider = NotificationProvider {
+        auth,
+        canisters: cans.clone(),
+    };
     view! {
         <div class="flex flex-col px-4 pb-32 mx-auto w-full max-w-5xl h-full">
                 <InfiniteScroller

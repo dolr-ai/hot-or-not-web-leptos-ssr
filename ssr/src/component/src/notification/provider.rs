@@ -1,10 +1,13 @@
-use state::canisters::{unauth_canisters, AuthState};
+use state::canisters::AuthState;
 use thiserror::Error;
 use yral_canisters_client::{
     ic::NOTIFICATION_STORE_ID,
     notification_store::{NotificationData, NotificationStore},
 };
-use yral_canisters_common::cursored_data::{CursoredDataProvider, KeyedData, PageEntry};
+use yral_canisters_common::{
+    cursored_data::{CursoredDataProvider, KeyedData, PageEntry},
+    Canisters,
+};
 
 #[derive(Clone)]
 pub struct NotificationDataKeyed(pub NotificationData);
@@ -25,9 +28,10 @@ impl std::fmt::Display for NotificationError {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct NotificationProvider {
     pub auth: AuthState,
+    pub canisters: Canisters<false>,
 }
 
 impl CursoredDataProvider for NotificationProvider {
@@ -41,7 +45,7 @@ impl CursoredDataProvider for NotificationProvider {
     ) -> Result<PageEntry<Self::Data>, Self::Error> {
         let cans = self
             .auth
-            .auth_cans(unauth_canisters())
+            .auth_cans(self.canisters.clone())
             .await
             .map_err(|e| NotificationError(e.to_string()))?;
 
