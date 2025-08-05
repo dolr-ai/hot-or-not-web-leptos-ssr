@@ -58,7 +58,6 @@ impl CursoredDataProvider for NotificationProvider {
             .await
             .map_err(|e| NotificationError(e.to_string()))?;
 
-        log::debug!("len: {}", notifications.len());
         let list_end = notifications.len() < (_end - _start);
 
         Ok(PageEntry {
