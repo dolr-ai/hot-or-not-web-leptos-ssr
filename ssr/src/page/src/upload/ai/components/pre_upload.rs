@@ -168,42 +168,6 @@ pub fn PreUploadAiView(
                     // Model Selection Dropdown
                     <ModelDropdown selected_model=selected_model show_dropdown=show_dropdown />
 
-                    // Token Selection Dropdown
-                    <Suspense fallback=move || view! {
-                        <div class="w-full">
-                            <label class="block text-sm font-medium text-white mb-2">Token</label>
-                            <div class="p-4 bg-neutral-900 border border-neutral-800 rounded-lg text-neutral-400">
-                                "Checking rate limits..."
-                            </div>
-                        </div>
-                    }>
-                        {move || Suspend::new(async move {
-                            // Check if user can use free generation
-                            let can_use_free = match rate_limit_resource.await {
-                                Ok(can_use_free) => can_use_free,
-                                Err(e) => {
-                                    leptos::logging::error!("Failed to load rate limit status: {:?}", e);
-                                    false
-                                }, // Default to paid on error
-                            };
-
-                            // Set initial token based on rate limit
-                            let initial_token = if can_use_free {
-                                // User is not rate limited, can use free generation
-                                TokenType::Free
-                            } else {
-                                // User is rate limited or status unknown, default to paid
-                                TokenType::Sats
-                            };
-
-                            // Set the selected token
-                            selected_token.set(initial_token);
-
-                            view! {
-                                <TokenDropdown selected_token=selected_token show_dropdown=show_token_dropdown />
-                            }
-                        })}
-                    </Suspense>
 
                     // Image Upload Section (Optional) - Only show if model supports images
                     <Show when=move || selected_model.get().supports_image>
@@ -273,51 +237,77 @@ pub fn PreUploadAiView(
                         </div>
                     </div>
 
-                    // Token Required Section
-                    <div class="flex items-center justify-between p-4 bg-neutral-900 rounded-lg">
-                        <div class="flex items-center gap-2">
-                            <span class="text-white font-medium">
-                                {move || match selected_token.get() {
-                                    TokenType::Sats => "SATS Required:",
-                                    TokenType::Dolr => "DOLR Required:",
-                                    videogen_common::TokenType::Free => "FREE Generation:",
-                                }}
-                            </span>
-                            <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
-                        </div>
-                        <div class="flex items-center gap-1">
-                            <span class="text-orange-400">
-                                {move || match selected_token.get() {
-                                    TokenType::Sats => "🪙",
-                                    TokenType::Dolr => "💰",
-                                    videogen_common::TokenType::Free => "🎁",
-                                }}
-                            </span>
-                            <span class="text-orange-400 font-bold">
+                    // Credits Required Section
+                    <div class="flex flex-col gap-2">
+                        <span class="text-sm font-medium text-neutral-300">Credits Required</span>
+                        <div class="flex items-center justify-between px-2.5 py-2 bg-neutral-900 border border-neutral-800 rounded-lg">
+                            <div class="text-base font-semibold text-neutral-300">
                                 {move || {
                                     let token = selected_token.get();
-                                    let model = selected_model.get();
-                                    let model_name = model.name.as_str();
-                                    let cost = TOKEN_COST_CONFIG.get_model_cost(model_name, &token);
-                                    let humanized = match token {
-                                        TokenType::Sats => TokenBalance::new(cost.into(), 0).humanize_float_truncate_to_dp(0),
-                                        TokenType::Dolr => TokenBalance::new(cost.into(), 8).humanize_float_truncate_to_dp(2),
-                                        videogen_common::TokenType::Free => "0".to_string(),
-                                    };
-                                    match token {
-                                        TokenType::Sats => format!("{} SATS", humanized),
-                                        TokenType::Dolr => format!("{} DOLR", humanized),
-                                        videogen_common::TokenType::Free => "FREE".to_string(),
+                                    if token == TokenType::Free {
+                                        view! {
+                                            <div class="flex items-center gap-2">
+                                                <span>"0"</span>
+                                                <span class="line-through text-neutral-500">"500"</span>
+                                            </div>
+                                        }.into_any()
+                                    } else {
+                                        let model = selected_model.get();
+                                        let model_name = model.name.as_str();
+                                        let cost = TOKEN_COST_CONFIG.get_model_cost(model_name, &token);
+                                        let humanized = match token {
+                                            TokenType::Sats => TokenBalance::new(cost.into(), 0).humanize_float_truncate_to_dp(0),
+                                            TokenType::Dolr => TokenBalance::new(cost.into(), 8).humanize_float_truncate_to_dp(2),
+                                            _ => "0".to_string(),
+                                        };
+                                        view! { <span>{humanized}</span> }.into_any()
                                     }
                                 }}
-                            </span>
-                        </div>
-                    </div>
+                            </div>
+                            <Suspense fallback=move || view! {
+                                <div class="px-3 py-1 bg-neutral-700 rounded text-neutral-400">
+                                    "Loading..."
+                                </div>
+                            }>
+                                {move || Suspend::new(async move {
+                                    // Check if user can use free generation
+                                    let can_use_free = match rate_limit_resource.await {
+                                        Ok(can_use_free) => can_use_free,
+                                        Err(e) => {
+                                            leptos::logging::error!("Failed to load rate limit status: {:?}", e);
+                                            false
+                                        }, // Default to paid on error
+                                    };
 
-                    // Current Balance
-                    <div class="text-center text-sm text-neutral-400">
+                                    // Set initial token based on rate limit
+                                    let initial_token = if can_use_free {
+                                        // User is not rate limited, can use free generation
+                                        TokenType::Free
+                                    } else {
+                                        // User is rate limited or status unknown, default to paid
+                                        TokenType::Sats
+                                    };
+
+                                    // Set the selected token
+                                    selected_token.set(initial_token);
+
+                                    view! {
+                                        <TokenDropdown
+                                            selected_token=selected_token
+                                            show_dropdown=show_token_dropdown
+                                            show_free_option=can_use_free
+                                        />
+                                    }
+                                })}
+                            </Suspense>
+                        </div>
+
+                        // Current Balance
                         <Suspense fallback=move || view! {
-                            <span>"(Current balance: Loading...)"</span>
+                            <div class="flex items-center gap-2 text-xs text-neutral-400">
+                                <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
+                                <span>"Current balance: Loading..."</span>
+                            </div>
                         }>
                             {move || Suspend::new(async move {
                                 match balance_resource.await {
@@ -338,30 +328,45 @@ pub fn PreUploadAiView(
                                         has_sufficient_balance.set(is_sufficient);
 
                                         let balance_text = match token_type {
-                                            TokenType::Free => "(No balance required for FREE generation)".to_string(),
+                                            TokenType::Free => "Current balance: Not required for YRAL generation".to_string(),
                                             TokenType::Sats => {
                                                 let formatted_balance = balance.humanize_float_truncate_to_dp(0);
-                                                format!("(Current balance: {} SATS)", formatted_balance)
+                                                format!("Current balance: {}SATS", formatted_balance)
                                             },
                                             TokenType::Dolr => {
                                                 let formatted_balance = balance.humanize_float_truncate_to_dp(2);
-                                                format!("(Current balance: {} DOLR)", formatted_balance)
+                                                format!("Current balance: {}DOLR", formatted_balance)
                                             }
                                         };
                                         view! {
-                                            <span>{balance_text}</span>
+                                            <div class="flex items-center gap-2 text-xs text-neutral-400">
+                                                <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
+                                                <span>{balance_text}</span>
+                                            </div>
                                         }
                                     }
                                     Err(_) => {
                                         has_sufficient_balance.set(false);
                                         view! {
-                                            <span>{format!("(Current balance: Error loading)")}</span>
+                                            <div class="flex items-center gap-2 text-xs text-neutral-400">
+                                                <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
+                                                <span>{"Current balance: Error loading".to_string()}</span>
+                                            </div>
                                         }
                                     }
                                 }
                             })}
                         </Suspense>
                     </div>
+
+                    // Info message for YRAL token
+                    <Show when=move || selected_token.get() == TokenType::Free>
+                        <div class="flex items-center gap-2 text-sm text-emerald-400">
+                            <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-emerald-400" />
+                            <span>"Enjoy 1 free AI video per day. Use credits for more."</span>
+                        </div>
+                    </Show>
+
 
                     // Error display
                     <Show when=move || generation_error.get().is_some()>
@@ -372,7 +377,7 @@ pub fn PreUploadAiView(
                         </div>
                     </Show>
 
-                    // Create AI Video Button
+                    // Generate & Upload Video Button
                     <div class="mt-4">
                         <Suspense
                             fallback=move || view! {
@@ -425,14 +430,14 @@ pub fn PreUploadAiView(
                                                 }
                                             }
                                         }
-                                        classes="w-full h-12 rounded-lg font-bold".to_string()
+                                        classes="w-full h-[45px] rounded-lg font-bold text-base".to_string()
                                         disabled=Signal::derive(move || !base_can_generate.get() || !has_sufficient_balance.get())
                                     >
                                         {move || {
                                             if generate_action.pending().get() {
-                                                "Generating..."
+                                                "Generating & Uploading..."
                                             } else {
-                                                "Create AI Video"
+                                                "Generate & Upload Video"
                                             }
                                         }}
                                     </GradientButton>

@@ -1,7 +1,6 @@
 use candid::Principal;
 use leptos::prelude::*;
 use state::canisters::unauth_canisters;
-use utils::send_wrap;
 use videogen_common::TokenType;
 use yral_canisters_common::utils::token::balance::TokenBalance;
 use yral_canisters_common::utils::token::load_sats_balance;

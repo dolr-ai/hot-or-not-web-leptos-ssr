@@ -1,4 +1,3 @@
-use crate::upload::ai::types::VideoGenerationParams;
 use component::{back_btn::BackButton, buttons::GradientButton};
 use leptos::prelude::*;
 use leptos_icons::*;
