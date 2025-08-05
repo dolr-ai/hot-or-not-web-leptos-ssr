@@ -300,7 +300,7 @@ fn HNButtonOverlay(
         move |_| {
             let _ = window().location().set_href("/");
         },
-        3000.0,
+        5000.0,
     );
 
     Effect::new(move |_| {
