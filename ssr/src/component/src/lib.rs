@@ -21,6 +21,7 @@ pub mod login_nudge_popup;
 pub mod modal;
 pub mod nav;
 pub mod nav_icons;
+pub mod notification;
 pub mod notification_display;
 pub mod notification_nudge;
 pub mod nsfw_nudge_popup;
