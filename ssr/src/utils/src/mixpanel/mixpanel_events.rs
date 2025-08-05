@@ -1,13 +1,15 @@
 use candid::Principal;
-use codee::string::FromToStringCodec;
+use codee::string::{FromToStringCodec, JsonSerdeCodec};
+use consts::auth::REFRESH_MAX_AGE;
+use consts::AUTH_JOURNEY_PAGE;
 use consts::{AUTH_JOURNET, CUSTOM_DEVICE_ID, DEVICE_ID, NSFW_TOGGLE_STORE};
 use global_constants::REFERRAL_REWARD_SATS;
 use leptos::logging;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_use::storage::use_local_storage;
-use leptos_use::use_timeout_fn;
 use leptos_use::UseTimeoutFnReturn;
+use leptos_use::{use_cookie_with_options, use_timeout_fn, UseCookieOptions};
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
@@ -813,6 +815,16 @@ derive_event!(track_ai_video_generated {
 derive_event!(track_regenerate_video_clicked { model: String });
 
 impl MixPanelEvent {
+    fn clear_auth_journey_page() {
+        let (_, set_auth_journey_page) =
+            use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
+                AUTH_JOURNEY_PAGE,
+                UseCookieOptions::default()
+                    .path("/")
+                    .max_age(REFRESH_MAX_AGE.as_millis() as i64),
+            );
+        set_auth_journey_page.set(None);
+    }
     pub async fn track_login_success_async(
         global: MixpanelGlobalProps,
         auth_journey: String,
@@ -820,6 +832,7 @@ impl MixPanelEvent {
     ) {
         let props = track_login_success::new(global, auth_journey, page_name);
         send_event_to_server_async("login_success", props).await;
+        Self::clear_auth_journey_page();
     }
 
     pub async fn track_signup_success_async(
@@ -837,6 +850,7 @@ impl MixPanelEvent {
             page_name,
         );
         send_event_to_server_async("signup_success", props).await;
+        Self::clear_auth_journey_page();
     }
 
     pub fn track_page_viewed(page: String, p: MixpanelGlobalProps) {

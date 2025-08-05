@@ -84,7 +84,7 @@ pub fn YralAuthProvider() -> impl IntoView {
         let origin = window.origin();
 
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
-            let page_name = auth_journey_page.get().unwrap_or_default();
+            let page_name = auth_journey_page.get_untracked().unwrap_or_default();
             MixPanelEvent::track_auth_initiated(global, auth_journey.to_string(), page_name);
         }
         // open a target window
