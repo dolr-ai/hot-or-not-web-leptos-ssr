@@ -13,7 +13,11 @@ use indexmap::IndexSet;
 use leptos::{html, portal::Portal, prelude::*};
 use leptos_icons::*;
 use leptos_meta::*;
-use leptos_router::{components::Redirect, hooks::use_params, params::Params};
+use leptos_router::{
+    components::Redirect,
+    hooks::{use_navigate, use_params},
+    params::Params,
+};
 use posts::ProfilePosts;
 use speculation::ProfileSpeculations;
 use state::{
@@ -143,6 +147,17 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
 
     let edit_icon_mount_point = NodeRef::<html::Div>::new();
 
+    let ev_ctx = auth.event_ctx();
+    let on_edit_click = move |ev: leptos::web_sys::MouseEvent| {
+        ev.prevent_default();
+        if let Some(props) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_edit_profile_clicked(props, "profile".into());
+        }
+
+        let nav = use_navigate();
+        nav("/profile/edit", Default::default());
+    };
+
     view! {
         <div class="overflow-y-auto pt-10 pb-12 min-h-screen text-white bg-black">
             <div class="grid grid-cols-1 gap-5 justify-items-center w-full justify-normal">
@@ -187,7 +202,7 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                             <Show when=move || user_principal == authenticated_princ>
                                             {move || edit_icon_mount_point.get().map(|mount| view! {
                                                 <Portal mount>
-                                                    <a href="/profile/edit">
+                                                    <a on:click=on_edit_click href="/profile/edit">
                                                         <Icon
                                                             icon=EditIcon
                                                             attr:class="text-2xl text-neutral-300"
