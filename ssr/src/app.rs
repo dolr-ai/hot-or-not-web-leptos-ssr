@@ -198,7 +198,7 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/leaderboard") view=Leaderboard />
                         <Route path=path!("/logout") view=Logout />
                         <Route
-                            path=path!("/token/info/:token_root/:key_principal")
+                            path=path!("/token/info/:token_root/:id")
                             view=TokenInfo
                         />
                         <Route path=path!("/token/info/:token_root") view=TokenInfo />
