@@ -264,42 +264,59 @@ pub fn PreUploadAiView(
                                     }
                                 }}
                             </div>
-                            <Suspense fallback=move || view! {
-                                <div class="px-3 py-1 bg-neutral-700 rounded text-neutral-400">
-                                    "Loading..."
-                                </div>
-                            }>
-                                {move || Suspend::new(async move {
-                                    // Check if user can use free generation
-                                    let can_use_free = match rate_limit_resource.await {
-                                        Ok(can_use_free) => can_use_free,
-                                        Err(e) => {
-                                            leptos::logging::error!("Failed to load rate limit status: {:?}", e);
-                                            false
-                                        }, // Default to paid on error
-                                    };
-
-                                    // Set initial token based on rate limit
-                                    let initial_token = if can_use_free {
-                                        // User is not rate limited, can use free generation
-                                        TokenType::Free
-                                    } else {
-                                        // User is rate limited or status unknown, default to paid
-                                        TokenType::Sats
-                                    };
-
-                                    // Set the selected token
-                                    selected_token.set(initial_token);
-
+                            {move || {
+                                if !is_logged_in.get() {
+                                    // Non-logged-in users: skip rate limit check, default to FREE
+                                    selected_token.set(TokenType::Free);
                                     view! {
                                         <TokenDropdown
                                             selected_token=selected_token
                                             show_dropdown=show_token_dropdown
-                                            show_free_option=can_use_free
+                                            show_free_option=true
                                         />
-                                    }
-                                })}
-                            </Suspense>
+                                    }.into_any()
+                                } else {
+                                    // Logged-in users: check rate limits
+                                    view! {
+                                        <Suspense fallback=move || view! {
+                                            <div class="px-3 py-1 bg-neutral-700 rounded text-neutral-400">
+                                                "Loading..."
+                                            </div>
+                                        }>
+                                            {move || Suspend::new(async move {
+                                                // Check if user can use free generation
+                                                let can_use_free = match rate_limit_resource.await {
+                                                    Ok(can_use_free) => can_use_free,
+                                                    Err(e) => {
+                                                        leptos::logging::error!("Failed to load rate limit status: {:?}", e);
+                                                        false
+                                                    }, // Default to paid on error
+                                                };
+
+                                                // Set initial token based on rate limit
+                                                let initial_token = if can_use_free {
+                                                    // User is not rate limited, can use free generation
+                                                    TokenType::Free
+                                                } else {
+                                                    // User is rate limited, default to paid
+                                                    TokenType::Sats
+                                                };
+
+                                                // Set the selected token
+                                                selected_token.set(initial_token);
+
+                                                view! {
+                                                    <TokenDropdown
+                                                        selected_token=selected_token
+                                                        show_dropdown=show_token_dropdown
+                                                        show_free_option=can_use_free
+                                                    />
+                                                }
+                                            })}
+                                        </Suspense>
+                                    }.into_any()
+                                }
+                            }}
                         </div>
 
                         // Current Balance
@@ -357,7 +374,6 @@ pub fn PreUploadAiView(
                                 }
                             })}
                         </Suspense>
-                    </div>
 
                     // Info message for YRAL token
                     <Show when=move || selected_token.get() == TokenType::Free>
@@ -451,6 +467,6 @@ pub fn PreUploadAiView(
 
         // Login Modal
         <LoginModal show=show_login_modal redirect_to=None />
-
+    </div>
     }
 }
