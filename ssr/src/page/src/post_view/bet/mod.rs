@@ -288,7 +288,7 @@ fn HNButtonOverlay(
 
     let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
         move |_| {
-            let _ = nav("/", Default::default());
+            nav("/", Default::default());
         },
         5000.0,
     );
