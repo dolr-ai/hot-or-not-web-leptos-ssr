@@ -108,23 +108,21 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
         })
     });
 
-    let liked_fetch = auth.derive_resource(
+    let liked_fetch = auth.derive_local_resource(
         || (),
-        move |cans, _| {
-            send_wrap(async move {
-                let result = if let Some(liked) = initial_liked.0 {
-                    (liked, initial_liked.1)
-                } else {
-                    match cans.post_like_info(post_canister, post_id).await {
-                        Ok(liked) => liked,
-                        Err(e) => {
-                            log::warn!("faild to fetch likes {e}");
-                            (false, likes.try_get_untracked().unwrap_or_default())
-                        }
+        move |cans, _| async move {
+            let result = if let Some(liked) = initial_liked.0 {
+                (liked, initial_liked.1)
+            } else {
+                match cans.post_like_info(post_canister, post_id).await {
+                    Ok(liked) => liked,
+                    Err(e) => {
+                        log::warn!("faild to fetch likes {e}");
+                        (false, likes.try_get_untracked().unwrap_or_default())
                     }
-                };
-                Ok::<_, ServerFnError>(result)
-            })
+                }
+            };
+            Ok::<_, ServerFnError>(result)
         },
     );
 

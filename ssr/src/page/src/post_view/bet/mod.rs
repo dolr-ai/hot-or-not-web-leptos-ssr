@@ -675,7 +675,7 @@ pub fn HNGameOverlay(
         }
     });
 
-    let create_game_info = auth.derive_resource(
+    let create_game_info = auth.derive_local_resource(
         move || refetch_bet.track(),
         move |cans, _| {
             send_wrap(async move {

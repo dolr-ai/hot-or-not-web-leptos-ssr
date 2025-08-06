@@ -381,6 +381,30 @@ impl AuthState {
         self.event_ctx
     }
 
+    pub fn derive_local_resource<
+        S: Clone + 'static,
+        D: Serialize + for<'x> Deserialize<'x> + 'static,
+        DFut: Future<Output = Result<D, ServerFnError>> + 'static,
+    >(
+        &self,
+        tracker: impl Fn() -> S + 'static,
+        fetcher: impl Fn(Canisters<true>, S) -> DFut + 'static + Clone,
+    ) -> LocalResource<Result<D, ServerFnError>> {
+        let cans = self.canisters_resource;
+        let base = unauth_canisters();
+        LocalResource::new(move || {
+            cans.track();
+            let state = tracker();
+            let base = base.clone();
+            let fetcher = fetcher.clone();
+            async move {
+                let cans_wire = cans.await?;
+                let cans = Canisters::from_wire(cans_wire, base)?;
+                fetcher(cans, state).await
+            }
+        })
+    }
+
     /// Derive a new resource which uses the current user's canister
     /// WARN: The signals in tracker are not memoized
     pub fn derive_resource<

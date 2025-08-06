@@ -1,7 +1,7 @@
 #![recursion_limit = "256"]
 use axum::{
     body::Body as AxumBody,
-    extract::{Path, State},
+    extract::State,
     http::Request,
     response::{IntoResponse, Response},
 };
@@ -17,7 +17,6 @@ use utils::host::is_host_or_origin_from_preview_domain;
 use hot_or_not_web_leptos_ssr::app::shell;
 use hot_or_not_web_leptos_ssr::{app::App, init::AppStateBuilder};
 use http::{header, HeaderName, Method};
-use leptos::logging::log;
 use leptos::prelude::*;
 use leptos_axum::handle_server_fns_with_context;
 use leptos_axum::{generate_route_list, LeptosRoutes};
@@ -26,11 +25,8 @@ use tower_http::cors::{AllowOrigin, CorsLayer};
 #[instrument(skip(app_state))]
 pub async fn server_fn_handler(
     State(app_state): State<AppState>,
-    path: Path<String>,
     request: Request<AxumBody>,
 ) -> impl IntoResponse {
-    log!("{:?}", path);
-
     handle_server_fns_with_context(
         move || {
             provide_context(app_state.canisters.clone());

@@ -407,22 +407,16 @@ pub fn PostView() -> impl IntoView {
     let (onboarding_store, set_onboarding_store, _) =
         use_local_storage::<UserOnboardingStore, JsonSerdeCodec>(USER_ONBOARDING_STORE_KEY);
 
-    let show_onboarding_popup = RwSignal::new(false);
-
-    let close_onboarding_action = Action::new(move |_: &()| {
-        set_onboarding_store.update(|store| {
-            store.has_seen_onboarding = true;
-        });
-        show_onboarding_popup.set(false);
-        async move {}
-    });
-
-    Effect::new(move |_| {
-        if !(onboarding_store.get_untracked().has_seen_onboarding)
-            && !auth.is_logged_in_with_oauth().get_untracked()
-        {
-            show_onboarding_popup.set(true);
+    let show_onboarding_popup = Memo::new(move |prev| {
+        let stored_val = onboarding_store.get();
+        if prev.is_none() {
+            !stored_val.has_seen_onboarding && !auth.is_logged_in_with_oauth().get_untracked()
+        } else {
+            !stored_val.has_seen_onboarding
         }
+    });
+    let close_onboarding = SignalSetter::map(move |v: bool| {
+        set_onboarding_store.update(|st| st.has_seen_onboarding = v)
     });
 
     view! {
@@ -433,13 +427,16 @@ pub fn PostView() -> impl IntoView {
             })}
         </Suspense>
         <NsfwUnlockPopup show=show_nsfw_popup current_post ev_ctx />
-        <OnboardingWelcomePopup show=show_onboarding_popup close_action=close_onboarding_action />
+        <OnboardingWelcomePopup show=show_onboarding_popup close_onboarding />
     }
     .into_any()
 }
 
 #[component]
-pub fn OnboardingWelcomePopup(show: RwSignal<bool>, close_action: Action<(), ()>) -> impl IntoView {
+pub fn OnboardingWelcomePopup(
+    #[prop(into)] show: Signal<bool>,
+    #[prop(into)] close_onboarding: SignalSetter<bool>,
+) -> impl IntoView {
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
     const CREDITED_AMOUNT: u64 = global_constants::NEW_USER_SIGNUP_REWARD_SATS;
@@ -465,7 +462,7 @@ pub fn OnboardingWelcomePopup(show: RwSignal<bool>, close_action: Action<(), ()>
                     </div>
                     <button
                         on:click=move |_| {
-                            close_action.dispatch(());
+                           close_onboarding.set(true);
                         }
                         class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[2] top-4 right-4"
                     >
@@ -482,7 +479,7 @@ pub fn OnboardingWelcomePopup(show: RwSignal<bool>, close_action: Action<(), ()>
                         <HighlightedButton
                             alt_style=false
                             disabled=false
-                            on_click=move || { close_action.dispatch(()); }
+                            on_click=move || { close_onboarding.set(true) }
                         >
                             "Start Playing"
                         </HighlightedButton>
