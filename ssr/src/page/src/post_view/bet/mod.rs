@@ -17,6 +17,7 @@ use ic_agent::Identity;
 use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
+use leptos_router::hooks::use_navigate;
 use leptos_use::storage::use_local_storage;
 use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
@@ -283,9 +284,11 @@ fn HNButtonOverlay(
 
     let was_connected = RwSignal::new(is_connected.get_untracked());
 
+    let nav = use_navigate();
+
     let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
         move |_| {
-            let _ = window().location().set_href("/");
+            let _ = nav("/", Default::default());
         },
         5000.0,
     );
