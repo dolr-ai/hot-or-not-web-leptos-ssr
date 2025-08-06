@@ -63,11 +63,6 @@ mod alloydb {
         } else {
             "NULL".to_string()
         };
-        leptos::logging::log!(
-            "Comparing videos: hot_or_not_evaluator current: {}, previous: {}",
-            post_info.uid,
-            prev_uid_formatted
-        );
         // sanitization is not required here, as get_post_details verifies that the post is valid
         // and exists on cloudflare
         let query = format!(
@@ -77,18 +72,21 @@ mod alloydb {
 
         let alloydb: AlloyDbInstance = expect_context();
         let mut res = alloydb.execute_sql_raw(query).await?;
-        let mut res = res
-            .sql_results
-            .pop()
-            .expect("hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a result");
-        let mut res = res
-            .rows
-            .pop()
-            .expect("hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a row");
-        let res = res
-            .values
-            .pop()
-            .expect("hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a value");
+        let mut res = res.sql_results.pop().ok_or_else(|| {
+            ServerFnError::new(
+                "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a result",
+            )
+        })?;
+        let mut res = res.rows.pop().ok_or_else(|| {
+            ServerFnError::new(
+                "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a row",
+            )
+        })?;
+        let res = res.values.pop().ok_or_else(|| {
+            ServerFnError::new(
+                "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a value",
+            )
+        })?;
 
         let video_comparison_result = match res.value {
             Some(val) => VideoComparisonResult::parse_video_comparison_result(&val)
