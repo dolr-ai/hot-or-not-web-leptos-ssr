@@ -1,7 +1,7 @@
 use super::{PreUploadAiView, VideoGenerationLoadingScreen};
 use crate::upload::ai::components::PostUploadScreenAi;
 use crate::upload::ai::helpers::{
-    create_and_sign_request, execute_video_generation, get_auth_canisters,
+    create_video_request, execute_video_generation_with_identity, get_auth_canisters,
 };
 use crate::upload::ai::server::upload_ai_video_from_url;
 use crate::upload::ai::types::VideoGenerationParams;
@@ -60,11 +60,23 @@ pub fn UploadAiPostPage() -> impl IntoView {
                     // Get identity from canisters
                     let identity = canisters.identity();
 
-                    // Create and sign the request
-                    let signed_request = create_and_sign_request(identity, &params)?;
+                    // Always use delegated identity flow for all token types
+                    let request = create_video_request(
+                        params.user_principal,
+                        params.prompt.clone(),
+                        params.model.clone(),
+                        params.image_data.clone(),
+                        params.token_type,
+                    )
+                    .map_err(|e| e.to_string())?;
 
-                    // Execute video generation
-                    let result = execute_video_generation(signed_request, &canisters).await;
+                    let delegated_identity = delegate_short_lived_identity(identity);
+                    let result = execute_video_generation_with_identity(
+                        request,
+                        delegated_identity,
+                        &canisters,
+                    )
+                    .await;
 
                     // Track video generation result
                     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
