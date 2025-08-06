@@ -45,7 +45,7 @@ pub fn PreUploadAiView(
 
     // Get auth state
     let auth = auth_state();
-    let is_logged_in = Signal::stored(true); //auth.is_logged_in_with_oauth(); // Signal::stored(true); //
+    let is_logged_in = auth.is_logged_in_with_oauth(); // Signal::stored(true); //
 
     // Create rate limit resource to check if user can use free generation
     // Returns true if user can use free generation (not rate limited)
