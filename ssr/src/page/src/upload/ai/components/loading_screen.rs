@@ -4,7 +4,9 @@ use leptos_icons::*;
 use videogen_common::VideoModel;
 
 #[component]
-pub fn VideoGenerationLoadingScreen(prompt: String, model: VideoModel) -> impl IntoView {
+pub fn VideoGenerationLoadingScreen(prompt: String, model: VideoModel, loading_state: String) -> impl IntoView {
+    let loading_state_1 = loading_state.clone();
+    let loading_state_2 = loading_state;
     view! {
         <div class="flex flex-col bg-black min-w-dvw min-h-dvh">
             // Header with back button and title
@@ -92,8 +94,22 @@ pub fn VideoGenerationLoadingScreen(prompt: String, model: VideoModel) -> impl I
 
                     // Status text
                     <div class="text-center">
-                        <h2 class="text-xl font-bold text-white mb-2">"Generating video"</h2>
-                        <p class="text-sm text-neutral-400">"This may take a few minutes..."</p>
+                        <h2 class="text-xl font-bold text-white mb-2">
+                            {move || {
+                                match loading_state_1.as_str() {
+                                    "uploading" => "Uploading video",
+                                    _ => "Generating video"
+                                }
+                            }}
+                        </h2>
+                        <p class="text-sm text-neutral-400">
+                            {move || {
+                                match loading_state_2.as_str() {
+                                    "uploading" => "Almost there...",
+                                    _ => "This may take a few minutes..."
+                                }
+                            }}
+                        </p>
                     </div>
 
                     // Progress dots animation

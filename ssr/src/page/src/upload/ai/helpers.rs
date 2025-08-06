@@ -2,7 +2,7 @@ use crate::upload::ai::types::VideoGenerationParams;
 use crate::upload::ai::videogen_client::{generate_video_with_signature, sign_videogen_request};
 use candid::Principal;
 use state::canisters::AuthState;
-use videogen_common::{ImageInput, TokenType, VideoGenRequest, VideoGenRequestWithSignature, VideoModel};
+use videogen_common::{ImageData, ImageInput, TokenType, VideoGenRequest, VideoGenRequestWithSignature, VideoModel};
 use yral_canisters_common::Canisters;
 
 // Helper function to create video request
@@ -16,7 +16,7 @@ pub fn create_video_request(
     leptos::logging::log!("Starting video generation with prompt: {}", prompt);
 
     // Convert image data if provided
-    let image_input = if let Some(data) = image_data {
+    let image_data = if let Some(data) = image_data {
         // We expect data URLs from the file upload: data:image/png;base64,iVBORw0KGgo...
         if data.starts_with("data:") {
             // Parse data URL to extract mime type and base64 data
@@ -37,10 +37,10 @@ pub fn create_video_request(
 
                 leptos::logging::log!("Extracted mime type: {}", mime_type);
 
-                Some(ImageInput {
+                Some(ImageData::Base64(ImageInput {
                     data: parts[1].to_string(),
                     mime_type,
-                })
+                }))
             } else {
                 leptos::logging::warn!("Invalid data URL format");
                 None
@@ -48,17 +48,17 @@ pub fn create_video_request(
         } else {
             // If not a data URL, assume it's raw base64 with unknown type
             leptos::logging::warn!("Image data is not a data URL, defaulting to image/png");
-            Some(ImageInput {
+            Some(ImageData::Base64(ImageInput {
                 data,
                 mime_type: "image/png".to_string(),
-            })
+            }))
         }
     } else {
         None
     };
 
     // Create video generation input based on model
-    let input = model.to_video_gen_input(prompt, image_input)?;
+    let input = model.to_video_gen_input(prompt, image_data)?;
 
     // Create the request
     let request = VideoGenRequest {

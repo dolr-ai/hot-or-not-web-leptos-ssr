@@ -45,7 +45,7 @@ pub fn PreUploadAiView(
 
     // Get auth state
     let auth = auth_state();
-    let is_logged_in = auth.is_logged_in_with_oauth(); // Signal::stored(true);
+    let is_logged_in = auth.is_logged_in_with_oauth(); // Signal::stored(true); //
 
     // Create rate limit resource to check if user can use free generation
     // Returns true if user can use free generation (not rate limited)
@@ -331,11 +331,11 @@ pub fn PreUploadAiView(
                                             TokenType::Free => "Current balance: Not required for YRAL generation".to_string(),
                                             TokenType::Sats => {
                                                 let formatted_balance = balance.humanize_float_truncate_to_dp(0);
-                                                format!("Current balance: {}SATS", formatted_balance)
+                                                format!("Current balance: {formatted_balance} SATS")
                                             },
                                             TokenType::Dolr => {
                                                 let formatted_balance = balance.humanize_float_truncate_to_dp(2);
-                                                format!("Current balance: {}DOLR", formatted_balance)
+                                                format!("Current balance: {formatted_balance} DOLR")
                                             }
                                         };
                                         view! {
