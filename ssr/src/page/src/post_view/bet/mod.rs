@@ -17,7 +17,6 @@ use ic_agent::Identity;
 use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
-use leptos_router::hooks::use_params;
 use leptos_use::storage::use_local_storage;
 use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
@@ -30,8 +29,6 @@ use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
     posts::PostDetails, token::balance::TokenBalance, token::load_sats_balance, vote::VoteKind,
 };
-
-use crate::post_view::PostParams;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VoteAPIRes {
@@ -109,7 +106,6 @@ fn HNButtonOverlay(
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
     let ev_ctx = auth.event_ctx();
-    let params = use_params::<PostParams>();
     let (wallet_balance_store, _, _) =
         use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
@@ -143,7 +139,6 @@ fn HNButtonOverlay(
 
     let show_login_nudge = RwSignal::new(false);
     let show_login_popup = RwSignal::new(false);
-    let login_post = post.clone();
 
     let default_bet_coin = if is_connected.get_untracked() {
         DEFAULT_BET_COIN_FOR_LOGGED_IN
@@ -287,14 +282,6 @@ fn HNButtonOverlay(
     let running = place_bet_action.pending();
 
     let was_connected = RwSignal::new(is_connected.get_untracked());
-    let check_current_post = move || {
-        let post = params.get().ok();
-        if let Some(post) = post {
-            post.canister_id == login_post.canister_id && post.post_id == login_post.post_id
-        } else {
-            false
-        }
-    };
 
     let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
         move |_| {
