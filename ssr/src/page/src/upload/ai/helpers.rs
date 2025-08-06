@@ -2,7 +2,9 @@ use crate::upload::ai::types::VideoGenerationParams;
 use crate::upload::ai::videogen_client::{generate_video_with_signature, sign_videogen_request};
 use candid::Principal;
 use state::canisters::AuthState;
-use videogen_common::{ImageData, ImageInput, TokenType, VideoGenRequest, VideoGenRequestWithSignature, VideoModel};
+use videogen_common::{
+    ImageData, ImageInput, TokenType, VideoGenRequest, VideoGenRequestWithSignature, VideoModel,
+};
 use yral_canisters_common::Canisters;
 
 // Helper function to create video request

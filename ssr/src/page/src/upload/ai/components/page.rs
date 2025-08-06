@@ -1,11 +1,11 @@
 use super::{PreUploadAiView, VideoGenerationLoadingScreen};
+use crate::upload::ai::components::PostUploadScreenAi;
 use crate::upload::ai::helpers::{
     create_and_sign_request, execute_video_generation, get_auth_canisters,
 };
 use crate::upload::ai::server::upload_ai_video_from_url;
 use crate::upload::ai::types::VideoGenerationParams;
 use crate::upload::ai::types::{UploadActionParams, AI_VIDEO_PARAMS_STORE};
-use crate::upload::ai::components::PostUploadScreenAi;
 use auth::delegate_short_lived_identity;
 use codee::string::JsonSerdeCodec;
 use component::notification_nudge::NotificationNudge;
@@ -23,10 +23,10 @@ pub fn UploadAiPostPage() -> impl IntoView {
     // Notification and modal signals
     let notification_nudge = RwSignal::new(false);
     let show_success_modal = RwSignal::new(false);
-    
+
     // Loading state for different phases
     let loading_state = RwSignal::new("generating".to_string());
-    
+
     // Store generated video URL for upload
     let generated_video_url = RwSignal::new(None::<String>);
 
@@ -210,7 +210,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
 
         // Success screen
         <Show when=move || show_success_modal.get()>
-            <PostUploadScreenAi 
+            <PostUploadScreenAi
                 video_url=generated_video_url.get().unwrap_or_default()
             />
         </Show>

@@ -53,7 +53,7 @@ pub fn PostUploadScreenAi(video_url: String) -> impl IntoView {
                             </video>
                         </div>
                     </div>
-                    
+
                     // Text content and button
                     <div class="w-full max-w-[321px] flex flex-col items-center gap-[30px]">
                     <div class="flex flex-col items-center gap-2.5 text-center">

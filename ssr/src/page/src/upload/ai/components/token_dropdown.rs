@@ -13,11 +13,11 @@ pub fn TokenDropdown(
             (TokenType::Sats, "SATS", "/img/hotornot/sats.svg"),
             (TokenType::Dolr, "DOLR", "/img/common/dolr.svg"),
         ];
-        
+
         if show_free_option {
             token_list.push((TokenType::Free, "YRAL", "/img/yral/favicon.svg"));
         }
-        
+
         token_list
     };
 
@@ -35,10 +35,10 @@ pub fn TokenDropdown(
                             .find(|(t, _, _)| *t == token)
                             .cloned()
                             .unwrap_or((TokenType::Sats, "SATS", "/img/hotornot/sats.svg"));
-                        
+
                         view! {
                             <>
-                                <img 
+                                <img
                                     src=icon_path
                                     alt=name
                                     class="w-5 h-5 object-contain"
@@ -48,7 +48,7 @@ pub fn TokenDropdown(
                         }
                     }}
                 </div>
-                <Icon 
+                <Icon
                     icon=Signal::derive(move || if show_dropdown.get() { icondata::AiUpOutlined } else { icondata::AiDownOutlined })
                     attr:class="text-neutral-400 text-sm"
                 />
@@ -72,7 +72,7 @@ pub fn TokenDropdown(
                                         show_dropdown.set(false);
                                     }
                                 >
-                                    <img 
+                                    <img
                                         src=icon_path
                                         alt=name
                                         class="w-5 h-5 object-contain"

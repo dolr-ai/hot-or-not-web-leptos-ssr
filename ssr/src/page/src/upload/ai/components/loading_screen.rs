@@ -4,7 +4,11 @@ use leptos_icons::*;
 use videogen_common::VideoModel;
 
 #[component]
-pub fn VideoGenerationLoadingScreen(prompt: String, model: VideoModel, loading_state: String) -> impl IntoView {
+pub fn VideoGenerationLoadingScreen(
+    prompt: String,
+    model: VideoModel,
+    loading_state: String,
+) -> impl IntoView {
     let loading_state_1 = loading_state.clone();
     let loading_state_2 = loading_state;
     view! {
