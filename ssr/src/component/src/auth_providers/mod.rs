@@ -162,15 +162,13 @@ pub fn LoginProviders(
                 .max_age(REFRESH_MAX_AGE.as_millis() as i64),
         );
 
-    Effect::new(move || {
-        if show_modal.get() {
-            let path = loc.pathname.get();
-            let category: BottomNavigationCategory =
-                BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
-            logging::log!("Setting auth journey page to {:?}", category);
-            set_auth_journey_page.update(|f| *f = Some(category));
-        }
-    });
+    if show_modal.get() {
+        let path = loc.pathname.get();
+        let category: BottomNavigationCategory =
+            BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
+        logging::log!("Setting auth journey page to {:?}", category);
+        set_auth_journey_page.update(|f| *f = Some(category));
+    }
 
     let base_cans = unauth_canisters();
     let login_action = Action::new(move |new_id: &NewIdentity| {
@@ -188,8 +186,6 @@ pub fn LoginProviders(
                 .set_new_identity_and_wait_for_authentication(base_cans, new_id.clone(), true)
                 .await?;
 
-            let cookie = set_auth_journey_page.try_set(None);
-            logging::log!("Setting auth journey cookie: {:?}", cookie);
             // HACK: leptos can panic sometimes and reach an undefined state
             // while the panic is not fixed, we use this workaround
             if canisters.user_principal()
@@ -212,6 +208,9 @@ pub fn LoginProviders(
 
             // Update the context signal instead of writing directly
             show_modal.set(false);
+
+            let cookie = set_auth_journey_page.try_set(None);
+            logging::log!("Setting auth journey cookie: {:?}", cookie);
 
             Ok::<_, ServerFnError>(())
         })

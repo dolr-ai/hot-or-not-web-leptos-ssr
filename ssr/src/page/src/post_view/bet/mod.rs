@@ -4,7 +4,9 @@ use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
-use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
+use consts::{
+    UserOnboardingStore, AUTH_JOURNEY_PAGE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
+};
 use global_constants::{
     CoinState, CREATOR_COMMISSION_PERCENT, DEFAULT_BET_COIN_FOR_LOGGED_IN,
     DEFAULT_BET_COIN_FOR_LOGGED_OUT,
@@ -17,9 +19,8 @@ use ic_agent::Identity;
 use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
-use leptos_router::hooks::use_navigate;
 use leptos_use::storage::use_local_storage;
-use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
+use leptos_use::{use_cookie, use_timeout_fn, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -285,17 +286,19 @@ fn HNButtonOverlay(
 
     let was_connected = RwSignal::new(is_connected.get_untracked());
 
-    let nav = use_navigate();
+    let (auth_journey_page, _) =
+        use_cookie::<BottomNavigationCategory, JsonSerdeCodec>(AUTH_JOURNEY_PAGE);
 
     let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
         move |_| {
-            nav("/", Default::default());
+            let _ = window().location().reload();
         },
         5000.0,
     );
 
     Effect::new(move |_| {
-        if !was_connected.get() && is_connected.get() && !show_login_popup.get() {
+        let auth_journey_page_cookie = auth_journey_page.get();
+        if !was_connected.get() && is_connected.get() && auth_journey_page_cookie.is_none() {
             start(());
         }
     });
