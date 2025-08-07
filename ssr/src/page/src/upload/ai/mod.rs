@@ -1,6 +1,7 @@
 pub mod components;
 pub mod helpers;
 pub mod server;
+pub mod token_balance;
 pub mod types;
 pub mod videogen_client;
 
