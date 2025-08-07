@@ -37,14 +37,12 @@ pub fn TokenDropdown(
                             .unwrap_or((TokenType::Sats, "SATS", "/img/hotornot/sats.svg"));
 
                         view! {
-                            <>
-                                <img
-                                    src=icon_path
-                                    alt=name
-                                    class="w-5 h-5 object-contain"
-                                />
-                                <span class="font-bold text-sm">{name}</span>
-                            </>
+                            <img
+                                src=icon_path
+                                alt=name
+                                class="w-5 h-5 object-contain"
+                            />
+                            <span class="font-bold text-sm">{name}</span>
                         }
                     }}
                 </div>

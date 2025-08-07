@@ -32,14 +32,3 @@ pub async fn load_token_balance(
         }
     }
 }
-
-// Create a resource for loading token balance
-// pub fn create_token_balance_resource(
-//     user_principal: Signal<Principal>,
-//     token_type: Signal<TokenType>,
-// ) -> Resource<Result<TokenBalance, ServerFnError>> {
-//     Resource::new(
-//         move || (user_principal.get(), token_type.get()),
-//         move |(principal, token)| async move { send_wrap(load_token_balance(principal, token)).await },
-//     )
-// }

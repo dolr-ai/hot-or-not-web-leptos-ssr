@@ -5,9 +5,6 @@ use leptos_router::hooks::use_navigate;
 
 #[component]
 pub fn PostUploadScreenAi(video_url: String) -> impl IntoView {
-    let navigate = use_navigate();
-    let navigate_close = navigate.clone();
-
     view! {
         <div
             style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
@@ -24,15 +21,15 @@ pub fn PostUploadScreenAi(video_url: String) -> impl IntoView {
             <div class="relative z-50 flex flex-col items-center w-full max-w-[390px] h-full">
                 // Close button
                 <div class="absolute top-[48px] right-[20px] cursor-pointer z-50">
-                    <button
-                        on:click=move |_| navigate_close("/", Default::default())
+                    <a
+                        href = "/".to_string()
                         class="flex items-center justify-center w-8 h-8 text-white hover:opacity-80 transition-opacity"
                     >
                         <Icon
                             icon=icondata::AiCloseOutlined
                             attr:class="w-full h-full"
                         />
-                    </button>
+                    </a>
                 </div>
 
                 // Main content area - centered
