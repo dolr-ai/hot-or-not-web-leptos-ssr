@@ -280,14 +280,14 @@ pub fn ProfileView() -> impl IntoView {
         let cans = cans.clone();
         send_wrap(async move {
             let profile_id = profile_id.ok_or_else(|| ServerFnError::new("Invalid ID"))?;
-            if let Some(user_can) =
-                auth.auth_cans_if_available(cans.clone())
-                    .filter(|can| match &profile_id {
-                        UsernameOrPrincipal::Principal(princ) => *princ == can.user_principal(),
-                        UsernameOrPrincipal::Username(u) => {
-                            Some(u) == can.profile_details().username.as_ref()
-                        }
-                    })
+            if let Some(user_can) = auth
+                .auth_cans_if_available()
+                .filter(|can| match &profile_id {
+                    UsernameOrPrincipal::Principal(princ) => *princ == can.user_principal(),
+                    UsernameOrPrincipal::Username(u) => {
+                        Some(u) == can.profile_details().username.as_ref()
+                    }
+                })
             {
                 return Ok::<_, ServerFnError>(user_can.profile_details());
             }

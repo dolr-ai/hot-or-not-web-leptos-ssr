@@ -8,7 +8,7 @@ use component::{
 use leptos::prelude::*;
 use leptos_icons::Icon;
 use serde::{Deserialize, Serialize};
-use state::canisters::{auth_state, unauth_canisters};
+use state::canisters::auth_state;
 use utils::event_streaming::events::CentsAdded;
 use yral_canisters_common::utils::token::{TokenMetadata, TokenOwner};
 
@@ -69,18 +69,16 @@ fn AirdropButton(
     let name_for_action = name.clone();
 
     let auth = auth_state();
-    let base = unauth_canisters();
     let airdrop_action = Action::new_local(move |&()| {
         let token_owner_cans_id = token_owner.clone().unwrap().canister_id;
         let name_c = name_for_action.clone();
-        let base = base.clone();
 
         async move {
             if claimed.get() && !buffer_signal.get() {
                 return Ok(());
             }
             buffer_signal.set(true);
-            let cans = auth.auth_cans(base).await?;
+            let cans = auth.auth_cans().await?;
             let token_owner = cans.individual_user(token_owner_cans_id).await;
 
             token_owner

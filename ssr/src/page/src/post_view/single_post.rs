@@ -81,8 +81,7 @@ pub fn SinglePost() -> impl IntoView {
         send_wrap(async move {
             let params = params.map_err(|_| PostFetchError::Invalid)?;
             let unauth_cans = unauth_canisters();
-            let post_uid = if let Some(canisters) = auth.auth_cans_if_available(unauth_cans.clone())
-            {
+            let post_uid = if let Some(canisters) = auth.auth_cans_if_available() {
                 canisters
                     .get_post_details(params.canister_id, params.post_id)
                     .await

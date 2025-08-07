@@ -53,17 +53,11 @@ pub fn PostViewWithUpdatesProfile(
     let overlay = move || {
         view! {
             <Suspense>
-                {move || {
-                    auth.user_canister
-                        .get()
-                        .map(|canister| {
-                            if canister == Ok(initial_post.canister_id) {
-                                Some(view! { <YourProfileOverlay /> }.into_any())
-                            } else {
-                                None
-                            }
-                        })
-                }}
+                {move || Suspend::new(async move {
+                    let canister = auth.user_canister().await.ok()?;
+                    (canister == initial_post.canister_id)
+                        .then(|| view! { <YourProfileOverlay />  }.into_any())
+                })}
             </Suspense>
         }
     };
@@ -86,8 +80,7 @@ pub fn PostViewWithUpdatesProfile(
         async move {
             let cursor = fetch_cursor.get_untracked();
             let canisters = unauth_canisters();
-            let posts_res = if let Some(canisters) = auth.auth_cans_if_available(canisters.clone())
-            {
+            let posts_res = if let Some(canisters) = auth.auth_cans_if_available() {
                 DefProfileVidStream::fetch_next_posts(cursor, &canisters, user_canister).await
             } else {
                 DefProfileVidStream::fetch_next_posts(cursor, &canisters, user_canister).await

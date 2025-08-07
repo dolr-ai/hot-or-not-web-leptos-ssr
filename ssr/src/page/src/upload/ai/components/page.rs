@@ -14,7 +14,7 @@ use component::spinner::SpinnerCircleStyled;
 use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_use::storage::use_local_storage;
-use state::canisters::{auth_state, unauth_canisters};
+use state::canisters::auth_state;
 use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, MixpanelPostGameType};
 
 #[component]
@@ -34,24 +34,19 @@ pub fn UploadAiPostPage() -> impl IntoView {
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
 
-    // Get unauth_canisters at component level to preserve reactive context
-    let unauth_cans = unauth_canisters();
-    let unauth_cans_for_upload = unauth_cans.clone();
-
     // Video generation action - cleaned up with helper functions
     let generate_action: Action<VideoGenerationParams, Result<String, String>> =
         Action::new_unsync({
             move |params: &VideoGenerationParams| {
                 let params = params.clone();
                 let show_form = show_form;
-                let unauth_cans = unauth_cans.clone();
 
                 async move {
                     // Store model name for tracking
                     let model_name = params.model.name.clone();
 
                     // Get auth canisters
-                    let canisters = get_auth_canisters(&auth, unauth_cans).await?;
+                    let canisters = get_auth_canisters(&auth).await?;
 
                     // Get identity from canisters
                     let identity = canisters.identity();
@@ -97,7 +92,6 @@ pub fn UploadAiPostPage() -> impl IntoView {
             let params = params.clone();
             let notification_nudge = notification_nudge;
             let show_success_modal = show_success_modal;
-            let unauth_cans = unauth_cans_for_upload.clone();
             async move {
                 // Show notification nudge when starting upload
                 notification_nudge.set(true);
@@ -113,7 +107,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                 }
 
                 // Get delegated identity within the Action
-                match auth.auth_cans(unauth_cans).await {
+                match auth.auth_cans().await {
                     Ok(canisters) => {
                         let id = canisters.identity();
                         let delegated_identity = delegate_short_lived_identity(id);

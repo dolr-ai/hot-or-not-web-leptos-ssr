@@ -3,7 +3,6 @@ pub mod tokens;
 pub mod transactions;
 pub mod txn;
 
-use candid::Principal;
 use codee::string::FromToStringCodec;
 use component::connect::ConnectLogin;
 use component::icons::notification_icon::NotificationIcon;
@@ -238,12 +237,12 @@ pub fn WalletImpl(id: UsernameOrPrincipal) -> impl IntoView {
             }>
                 {move || Suspend::new(async move {
                     let profile_details = profile_info_res.await;
-                    let logged_in_user = auth.cans_wire().await;
+                    let logged_in_user = auth.auth_cans().await;
                     match profile_details.and_then(|c| Ok((c, logged_in_user?))) {
                         Ok((profile_details, logged_in_user)) => {
                             let is_own_account = match id.get_value() {
-                                UsernameOrPrincipal::Principal(p) => p == Principal::self_authenticating(logged_in_user.id.from_key),
-                                UsernameOrPrincipal::Username(u) => Some(u) == logged_in_user.profile_details.username,
+                                UsernameOrPrincipal::Principal(p) => p == logged_in_user.user_principal(),
+                                UsernameOrPrincipal::Username(u) => Some(u) == logged_in_user.profile_details().username,
                             };
                             Either::Left(
                                 view! { <Header details=profile_details is_own_account /> },
@@ -259,12 +258,12 @@ pub fn WalletImpl(id: UsernameOrPrincipal) -> impl IntoView {
                 <Suspense fallback=ProfileCardLoading>
                     {move || Suspend::new(async move {
                         let profile_details = profile_info_res.await;
-                        let logged_in_user = auth.cans_wire().await;
+                        let logged_in_user = auth.auth_cans().await;
                         match profile_details.and_then(|c| Ok((c, logged_in_user?))) {
                             Ok((profile_details, logged_in_user)) => {
                                 let is_own_account = match id.get_value() {
-                                    UsernameOrPrincipal::Principal(p) => p == Principal::self_authenticating(logged_in_user.id.from_key),
-                                    UsernameOrPrincipal::Username(u) => Some(u) == logged_in_user.profile_details.username,
+                                    UsernameOrPrincipal::Principal(p) => p == logged_in_user.user_principal(),
+                                    UsernameOrPrincipal::Username(u) => Some(u) == logged_in_user.profile_details().username,
                                 };
                                 Either::Left(
                                     view! {
@@ -337,7 +336,7 @@ pub fn NotificationWalletImpl() -> impl IntoView {
     let on_token_click: Action<(), ()> = Action::new_unsync(move |()| async move {
         let metaclient: MetadataClient<false> = MetadataClient::default();
 
-        let cans = auth.auth_cans(expect_context()).await.unwrap();
+        let cans = auth.auth_cans().await.unwrap();
 
         let token = get_device_registeration_token().await.unwrap();
 

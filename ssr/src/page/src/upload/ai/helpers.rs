@@ -69,11 +69,8 @@ pub fn create_video_request(
 }
 
 /// Get authenticated canisters
-pub async fn get_auth_canisters(
-    auth: &AuthState,
-    unauth_cans: Canisters<false>,
-) -> Result<Canisters<true>, String> {
-    auth.auth_cans(unauth_cans).await.map_err(|err| {
+pub async fn get_auth_canisters(auth: &AuthState) -> Result<Canisters<true>, String> {
+    auth.auth_cans().await.map_err(|err| {
         leptos::logging::error!("Failed to get auth canisters: {:?}", err);
         format!("Failed to get auth canisters: {err:?}")
     })

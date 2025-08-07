@@ -241,7 +241,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                 };
                 leptos::logging::log!("fetching ml feed");
                 let cans_false: Canisters<false> = unauth_canisters();
-                let cans_true = auth.auth_cans_if_available(cans_false.clone());
+                let cans_true = auth.auth_cans_if_available();
 
                 let video_queue_c = video_queue.get_untracked().iter().cloned().collect();
                 let chunks = if let Some(cans_true) = cans_true.as_ref() {
@@ -260,6 +260,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                 let mut chunks = res.posts_stream;
                 let mut cnt = 0usize;
                 while let Some(chunk) = chunks.next().await {
+                    leptos::logging::log!("recv a chunk");
                     for uid in chunk {
                         let post_detail = try_or_redirect!(uid);
                         if video_queue
