@@ -19,9 +19,9 @@ use leptos_icons::Icon;
 use leptos_router::hooks::use_location;
 use leptos_router::hooks::use_navigate;
 use leptos_use::use_cookie_with_options;
-use leptos_use::use_timeout_fn;
+// use leptos_use::use_timeout_fn;
 use leptos_use::UseCookieOptions;
-use leptos_use::UseTimeoutFnReturn;
+// use leptos_use::UseTimeoutFnReturn;
 use state::canisters::auth_state;
 use state::canisters::unauth_canisters;
 use utils::event_streaming::events::CentsAdded;
@@ -158,7 +158,7 @@ pub fn LoginProviders(
         MixPanelEvent::track_auth_screen_viewed(global, page_name);
     }
 
-    let (auth_journey_page, set_auth_journey_page) =
+    let (_, set_auth_journey_page) =
         use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
             AUTH_JOURNEY_PAGE,
             UseCookieOptions::default()
@@ -166,15 +166,15 @@ pub fn LoginProviders(
                 .max_age(REFRESH_MAX_AGE.as_millis() as i64),
         );
 
-    let _ = Effect::new(move |_| {
-        if show_modal.get() {
-            let path = loc.pathname.get();
-            let category: BottomNavigationCategory =
-                BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
-            logging::log!("Setting auth journey page to {:?}", category);
-            set_auth_journey_page.set(Some(category));
-        }
-    });
+    // let _ = Effect::new(move |_| {
+    //     if show_modal.get() {
+    //         let path = loc.pathname.get();
+    //         let category: BottomNavigationCategory =
+    //             BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
+    //         logging::log!("Setting auth journey page to {:?}", category);
+    //         set_auth_journey_page.set(Some(category));
+    //     }
+    // });
 
     // let is_logged_in_with_oauth = use_cookie_with_options::<bool, FromToStringCodec>(
     //         ACCOUNT_CONNECTED_STORE,
@@ -183,13 +183,13 @@ pub fn LoginProviders(
     //             .max_age(REFRESH_MAX_AGE.as_millis() as i64),
     //     );
 
-    let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
-        move |_| {
-            set_auth_journey_page.set(None);
-            logging::log!("Clearing auth journey cookie");
-        },
-        1000.0,
-    );
+    // let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
+    //     move |_| {
+    //         set_auth_journey_page.set(None);
+    //         logging::log!("Clearing auth journey cookie");
+    //     },
+    //     1000.0,
+    // );
 
     // Effect::new(move |_| {
     //     start(());
@@ -201,9 +201,13 @@ pub fn LoginProviders(
         let new_id = new_id.clone();
         let redirect_to = redirect_to.clone();
         let base_cans = base_cans.clone();
-        let page_name = auth_journey_page.get_untracked();
+        let path = loc.pathname.get();
+        let page_name = BottomNavigationCategory::try_from(path.clone()).ok();
+        let category = page_name.clone().unwrap_or_default();
+        set_auth_journey_page.set(Some(category));
+
         let nav = nav.clone();
-        let start = start.clone();
+        // let start = start.clone();
         // Capture the context signal setter
         send_wrap(async move {
             let referrer = auth.referrer_store.get_untracked();
@@ -228,7 +232,8 @@ pub fn LoginProviders(
 
             let _ = LoginSuccessful.send_event(canisters.clone());
 
-            start(());
+            set_auth_journey_page.set(None);
+            logging::log!("Clearing auth journey cookie");
 
             if let Some(redir_loc) = redirect_to {
                 nav(&redir_loc, Default::default());
