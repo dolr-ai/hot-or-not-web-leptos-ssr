@@ -142,6 +142,7 @@ pub fn LoginProviders(
     show_modal: RwSignal<bool>,
     lock_closing: RwSignal<bool>,
     redirect_to: Option<String>,
+    #[prop(optional, into)] reload_window: bool,
 ) -> impl IntoView {
     let auth = auth_state();
 
@@ -166,16 +167,6 @@ pub fn LoginProviders(
                 .max_age(REFRESH_MAX_AGE.as_millis() as i64),
         );
 
-    let _ = Effect::new(move |_| {
-        if show_modal.get() {
-            let path = loc.pathname.get();
-            let category: BottomNavigationCategory =
-                BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
-            logging::log!("Setting auth journey page to {:?}", category);
-            set_auth_journey_page.set(Some(category));
-        }
-    });
-
     // let is_logged_in_with_oauth = use_cookie_with_options::<bool, FromToStringCodec>(
     //         ACCOUNT_CONNECTED_STORE,
     //         UseCookieOptions::default()
@@ -185,15 +176,27 @@ pub fn LoginProviders(
 
     // let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
     //     move |_| {
-    //         set_auth_journey_page.set(None);
+    //         set_auth_journey_page.update_untracked(|f| *f =  None);
     //         logging::log!("Clearing auth journey cookie");
+    //         show_modal.set(false);
     //     },
-    //     1000.0,
+    //     5000.0,
     // );
 
-    // Effect::new(move |_| {
-    //     start(());
-    // });
+    let cookie_action = Action::new_local(move |_| {
+        let path = loc.pathname.get();
+        let category: BottomNavigationCategory =
+            BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
+        logging::log!("Setting auth journey page to {:?}", category);
+        set_auth_journey_page.set(Some(category));
+        async {}
+    });
+
+    let _ = Effect::new(move |_| {
+        if show_modal.get() {
+            cookie_action.dispatch(());
+        }
+    });
 
     let base_cans = unauth_canisters();
     let login_action = Action::new(move |new_id: &NewIdentity| {
@@ -230,18 +233,22 @@ pub fn LoginProviders(
 
             let _ = LoginSuccessful.send_event(canisters.clone());
 
-            // Update the context signal instead of writing directly
-            show_modal.set(false);
-
-            set_auth_journey_page.set(None);
-            logging::log!("Clearing auth journey cookie");
-
             if let Some(redir_loc) = redirect_to {
                 nav(&redir_loc, Default::default());
             }
 
             Ok::<_, ServerFnError>(())
         })
+    });
+
+    Effect::new(move |_| {
+        if login_action.value().get().is_some() {
+            if reload_window {
+                window().location().reload().unwrap_or_default();
+            }
+            set_auth_journey_page.set(None);
+            show_modal.set(false);
+        }
     });
 
     let ctx = LoginProvCtx {
