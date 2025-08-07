@@ -172,7 +172,7 @@ pub fn LoginProviders(
             let category: BottomNavigationCategory =
                 BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
             logging::log!("Setting auth journey page to {:?}", category);
-            set_auth_journey_page.update_untracked(|f| *f = Some(category));
+            set_auth_journey_page.set(Some(category));
         }
     });
 
