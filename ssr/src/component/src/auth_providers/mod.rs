@@ -10,6 +10,7 @@ use consts::AUTH_JOURNEY_PAGE;
 use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
+use leptos::logging;
 use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
 use leptos_icons::Icon;
@@ -146,6 +147,8 @@ pub fn LoginProviders(
 
     let loc = use_location();
 
+    let nav = use_navigate();
+
     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
         let page_name = global.page_name();
         MixPanelEvent::track_auth_screen_viewed(global, page_name);
@@ -175,6 +178,7 @@ pub fn LoginProviders(
         let redirect_to = redirect_to.clone();
         let base_cans = base_cans.clone();
         let page_name = auth_journey_page.get_untracked();
+        let nav = nav.clone();
         // Capture the context signal setter
         send_wrap(async move {
             let referrer = auth.referrer_store.get_untracked();
@@ -183,7 +187,8 @@ pub fn LoginProviders(
                 .set_new_identity_and_wait_for_authentication(base_cans, new_id.clone(), true)
                 .await?;
 
-            set_auth_journey_page.set(None);
+            let cookie = set_auth_journey_page.try_set(None).unwrap();
+            logging::log!("Setting auth journey cookie: {:?}", cookie);
             // HACK: leptos can panic sometimes and reach an undefined state
             // while the panic is not fixed, we use this workaround
             if canisters.user_principal()
@@ -201,7 +206,6 @@ pub fn LoginProviders(
             let _ = LoginSuccessful.send_event(canisters.clone());
 
             if let Some(redir_loc) = redirect_to {
-                let nav = use_navigate();
                 nav(&redir_loc, Default::default());
             }
 
