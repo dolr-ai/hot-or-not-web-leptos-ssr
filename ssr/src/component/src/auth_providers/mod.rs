@@ -167,6 +167,7 @@ pub fn LoginProviders(
             let path = loc.pathname.get();
             let category: BottomNavigationCategory =
                 BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
+            logging::log!("Setting auth journey page to {:?}", category);
             set_auth_journey_page.update(|f| *f = Some(category));
         }
     });
@@ -187,7 +188,7 @@ pub fn LoginProviders(
                 .set_new_identity_and_wait_for_authentication(base_cans, new_id.clone(), true)
                 .await?;
 
-            let cookie = set_auth_journey_page.try_set(None).unwrap();
+            let cookie = set_auth_journey_page.try_set(None);
             logging::log!("Setting auth journey cookie: {:?}", cookie);
             // HACK: leptos can panic sometimes and reach an undefined state
             // while the panic is not fixed, we use this workaround
