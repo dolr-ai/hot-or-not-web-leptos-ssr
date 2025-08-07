@@ -4,7 +4,10 @@ use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
-use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
+use consts::auth::REFRESH_MAX_AGE;
+use consts::{
+    UserOnboardingStore, AUTH_JOURNEY_PAGE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
+};
 use global_constants::{
     CoinState, CREATOR_COMMISSION_PERCENT, DEFAULT_BET_COIN_FOR_LOGGED_IN,
     DEFAULT_BET_COIN_FOR_LOGGED_OUT,
@@ -18,6 +21,7 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
+use leptos_use::{use_cookie_with_options, use_timeout_fn, UseCookieOptions, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -279,6 +283,29 @@ fn HNButtonOverlay(
         });
 
     let running = place_bet_action.pending();
+
+    let was_connected = RwSignal::new(is_connected.get_untracked());
+
+    let (auth_journey_page, _) = use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
+        AUTH_JOURNEY_PAGE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(REFRESH_MAX_AGE.as_millis() as i64),
+    );
+
+    let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
+        move |_| {
+            let _ = window().location().reload();
+        },
+        50.0,
+    );
+
+    Effect::new(move |_| {
+        let auth_journey_page_cookie = auth_journey_page.get();
+        if !was_connected.get() && is_connected.get() && auth_journey_page_cookie.is_none() {
+            start(());
+        }
+    });
 
     view! {
         <div class="flex justify-center w-full touch-manipulation">
