@@ -166,9 +166,8 @@ fn CreditsSection(
                                     },
                                 }
                             } else {
-                                // Non-logged in users don't get free generation
                                 locked_rate_limit_status.set(Some(false));
-                                false
+                                true // Default to true if not logged in
                             };
 
                             if can_use_free {
