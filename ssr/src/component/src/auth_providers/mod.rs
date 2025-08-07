@@ -19,9 +19,9 @@ use leptos_icons::Icon;
 use leptos_router::hooks::use_location;
 use leptos_router::hooks::use_navigate;
 use leptos_use::use_cookie_with_options;
-// use leptos_use::use_timeout_fn;
+use leptos_use::use_timeout_fn;
 use leptos_use::UseCookieOptions;
-// use leptos_use::UseTimeoutFnReturn;
+use leptos_use::UseTimeoutFnReturn;
 use state::canisters::auth_state;
 use state::canisters::unauth_canisters;
 use utils::event_streaming::events::CentsAdded;
@@ -183,14 +183,13 @@ pub fn LoginProviders(
     //             .max_age(REFRESH_MAX_AGE.as_millis() as i64),
     //     );
 
-    // let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
-    //     move |_| {
-    //         is_logged_in_with_oauth.1.set(Some(true));
-    //         show_modal.set(false);
-    //         set_auth_journey_page.set(None);
-    //     },
-    //     5000.0,
-    // );
+    let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
+        move |_| {
+            set_auth_journey_page.set(None);
+            logging::log!("Clearing auth journey cookie");
+        },
+        1000.0,
+    );
 
     // Effect::new(move |_| {
     //     start(());
@@ -204,6 +203,7 @@ pub fn LoginProviders(
         let base_cans = base_cans.clone();
         let page_name = auth_journey_page.get_untracked();
         let nav = nav.clone();
+        let start = start.clone();
         // Capture the context signal setter
         send_wrap(async move {
             let referrer = auth.referrer_store.get_untracked();
@@ -228,8 +228,7 @@ pub fn LoginProviders(
 
             let _ = LoginSuccessful.send_event(canisters.clone());
 
-            set_auth_journey_page.set(None);
-            logging::log!("Clearing auth journey cookie",);
+            start(());
 
             if let Some(redir_loc) = redirect_to {
                 nav(&redir_loc, Default::default());
