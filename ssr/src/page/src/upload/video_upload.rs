@@ -425,6 +425,7 @@ pub fn VideoUploader(
                         true,
                         MixpanelPostGameType::HotOrNot,
                         Some("upload_video".to_string()),
+                        "".to_string(), // Regular uploads don't use tokens
                     );
                     published.set(true)
                 }

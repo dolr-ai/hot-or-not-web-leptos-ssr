@@ -166,8 +166,9 @@ fn CreditsSection(
                                     },
                                 }
                             } else {
-                                locked_rate_limit_status.set(Some(false));
-                                true // Default to true if not logged in
+                                // Non-logged-in users get free tier
+                                locked_rate_limit_status.set(Some(true));
+                                true
                             };
 
                             if can_use_free {
@@ -225,7 +226,11 @@ fn CreditsSection(
                             let required_amount = TOKEN_COST_CONFIG.get_model_cost(model_id, &token_type);
 
                             // Check if user can use free generation (use locked status if available)
-                            let can_use_free = locked_rate_limit_status.get().unwrap_or(false);
+                            let can_use_free = if !is_logged_in.get() {
+                                true // Non-logged-in users always see free tier message
+                            } else {
+                                locked_rate_limit_status.get().unwrap_or(false)
+                            };
 
                             let is_sufficient = if can_use_free {
                                 true // Free generation always has sufficient "balance"
@@ -460,14 +465,6 @@ pub fn PreUploadAiView(
                                                         let model = selected_model.get_untracked();
                                                         let image_data = uploaded_image.get_untracked();
 
-                                                        // Track Create AI Video clicked
-                                                        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                                                            MixPanelEvent::track_create_ai_video_clicked(
-                                                                global,
-                                                                model.name.clone()
-                                                            );
-                                                        }
-
                                                         // Use locked rate limit status to determine if user can use free generation
                                                         let can_use_free = locked_rate_limit_status.get_untracked()
                                                             .unwrap_or(false);
@@ -478,6 +475,15 @@ pub fn PreUploadAiView(
                                                         } else {
                                                             selected_token.get_untracked()  // Send actual selected token
                                                         };
+
+                                                        // Track Create AI Video clicked
+                                                        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                                                            MixPanelEvent::track_create_ai_video_clicked(
+                                                                global,
+                                                                model.name.clone(),
+                                                                format!("{api_token_type:?}")
+                                                            );
+                                                        }
 
                                                         // Create params struct and dispatch the action
                                                         let params = VideoGenerationParams {
@@ -499,7 +505,15 @@ pub fn PreUploadAiView(
                                             }
                                         }
                                         classes="w-full h-[45px] rounded-lg font-bold text-base".to_string()
-                                        disabled=Signal::derive(move || !base_can_generate.get() || !has_sufficient_balance.get())
+                                        disabled=Signal::derive(move || {
+                                            if !is_logged_in.get() {
+                                                // Non-logged-in users can always click to trigger login (only need valid form)
+                                                !base_can_generate.get()
+                                            } else {
+                                                // Logged-in users need sufficient balance
+                                                !base_can_generate.get() || !has_sufficient_balance.get()
+                                            }
+                                        })
                                     >
                                         {move || {
                                             if generate_action.pending().get() {
