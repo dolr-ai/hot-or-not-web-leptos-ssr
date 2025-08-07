@@ -223,10 +223,10 @@ pub fn LoginProviders(
 
     Effect::new(move |_| {
         if login_action.value().get().is_some() {
-            set_auth_journey_page.set(None);
             if reload_window {
                 window().location().reload().unwrap_or_default();
             }
+            set_auth_journey_page.set(None);
             show_modal.set(false);
         }
     });
