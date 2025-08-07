@@ -166,15 +166,15 @@ pub fn LoginProviders(
                 .max_age(REFRESH_MAX_AGE.as_millis() as i64),
         );
 
-    // let _ = Effect::new(move |_| {
-    //     if show_modal.get() {
-    //         let path = loc.pathname.get();
-    //         let category: BottomNavigationCategory =
-    //             BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
-    //         logging::log!("Setting auth journey page to {:?}", category);
-    //         set_auth_journey_page.set(Some(category));
-    //     }
-    // });
+    let _ = Effect::new(move |_| {
+        if show_modal.get() {
+            let path = loc.pathname.get();
+            let category: BottomNavigationCategory =
+                BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
+            logging::log!("Setting auth journey page to {:?}", category);
+            set_auth_journey_page.set(Some(category));
+        }
+    });
 
     // let is_logged_in_with_oauth = use_cookie_with_options::<bool, FromToStringCodec>(
     //         ACCOUNT_CONNECTED_STORE,
@@ -203,8 +203,6 @@ pub fn LoginProviders(
         let base_cans = base_cans.clone();
         let path = loc.pathname.get();
         let page_name = BottomNavigationCategory::try_from(path.clone()).ok();
-        let category = page_name.clone().unwrap_or_default();
-        set_auth_journey_page.set(Some(category));
 
         let nav = nav.clone();
         // let start = start.clone();
@@ -232,15 +230,15 @@ pub fn LoginProviders(
 
             let _ = LoginSuccessful.send_event(canisters.clone());
 
+            // Update the context signal instead of writing directly
+            show_modal.set(false);
+
             set_auth_journey_page.set(None);
             logging::log!("Clearing auth journey cookie");
 
             if let Some(redir_loc) = redirect_to {
                 nav(&redir_loc, Default::default());
             }
-
-            // Update the context signal instead of writing directly
-            show_modal.set(false);
 
             Ok::<_, ServerFnError>(())
         })
