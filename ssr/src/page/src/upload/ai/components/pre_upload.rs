@@ -139,87 +139,74 @@ fn CreditsSection(
     rate_limit_resource: Resource<Result<bool, ServerFnError>>,
     balance_resource: Resource<Result<TokenBalance, ServerFnError>>,
     has_sufficient_balance: RwSignal<bool>,
+    locked_rate_limit_status: RwSignal<Option<bool>>,
 ) -> impl IntoView {
     view! {
         <div class="flex flex-col gap-2">
             <span class="text-sm font-medium text-neutral-300">Credits Required</span>
             <div class="flex items-center justify-between px-2.5 py-2 bg-neutral-900 border border-neutral-800 rounded-lg">
                 <div class="text-base font-semibold text-neutral-300">
-                    {move || {
-                        let token = selected_token.get();
-                        if token == TokenType::Free {
-                            view! {
-                                <div class="flex items-center gap-2">
-                                    <span>"0"</span>
-                                    <span class="line-through text-neutral-500">"500"</span>
-                                </div>
-                            }.into_any()
-                        } else {
+                    <Suspense fallback=move || view! { <span>"..."</span> }>
+                        {move || Suspend::new(async move {
+                            let token = selected_token.get();
                             let model = selected_model.get();
-                            let model_name = model.name.as_str();
-                            let cost = TOKEN_COST_CONFIG.get_model_cost(model_name, &token);
-                            let humanized = match token {
-                                TokenType::Sats => TokenBalance::new(cost.into(), 0).humanize_float_truncate_to_dp(0),
-                                TokenType::Dolr => TokenBalance::new(cost.into(), 8).humanize_float_truncate_to_dp(2),
-                                _ => "0".to_string(),
+                            let model_id = model.id.as_str();
+
+                            // Check if user can use free generation and lock in the status
+                            let can_use_free = if is_logged_in.get() {
+                                match rate_limit_resource.await {
+                                    Ok(can_use) => {
+                                        // Lock in the rate limit status for consistency
+                                        locked_rate_limit_status.set(Some(can_use));
+                                        can_use
+                                    },
+                                    Err(_) => {
+                                        locked_rate_limit_status.set(Some(false));
+                                        false
+                                    },
+                                }
+                            } else {
+                                // Non-logged in users don't get free generation
+                                locked_rate_limit_status.set(Some(false));
+                                false
                             };
-                            view! { <span>{humanized}</span> }.into_any()
-                        }
-                    }}
+
+                            if can_use_free {
+                                // Show 0 with strikethrough original price
+                                let original_cost = TOKEN_COST_CONFIG.get_model_cost(model_id, &token);
+                                let formatted_original = match token {
+                                    TokenType::Sats => TokenBalance::new(original_cost.into(), 0).humanize_float_truncate_to_dp(0),
+                                    TokenType::Dolr => TokenBalance::new(original_cost.into(), 8).humanize_float_truncate_to_dp(2),
+                                    _ => "0".to_string(),
+                                };
+                                view! {
+                                    <div class="flex items-center gap-2">
+                                        <span>"0"</span>
+                                        <span class="line-through text-neutral-500">{formatted_original}</span>
+                                    </div>
+                                }.into_any()
+                            } else {
+                                // Show regular price
+                                let cost = TOKEN_COST_CONFIG.get_model_cost(model_id, &token);
+                                let humanized = match token {
+                                    TokenType::Sats => TokenBalance::new(cost.into(), 0).humanize_float_truncate_to_dp(0),
+                                    TokenType::Dolr => TokenBalance::new(cost.into(), 8).humanize_float_truncate_to_dp(2),
+                                    _ => "0".to_string(),
+                                };
+                                view! {
+                                    <div class="flex items-center gap-2">
+                                        <span>{humanized}</span>
+                                    </div>
+                                }.into_any()
+                            }
+                        })}
+                    </Suspense>
                 </div>
-                {move || {
-                    if !is_logged_in.get() {
-                        // Non-logged-in users: skip rate limit check, default to FREE
-                        selected_token.set(TokenType::Free);
-                        view! {
-                            <TokenDropdown
-                                selected_token=selected_token
-                                show_dropdown=show_token_dropdown
-                                show_free_option=true
-                            />
-                        }.into_any()
-                    } else {
-                        // Logged-in users: check rate limits
-                        view! {
-                            <Suspense fallback=move || view! {
-                                <div class="px-3 py-1 bg-neutral-700 rounded text-neutral-400">
-                                    "Loading..."
-                                </div>
-                            }>
-                                {move || Suspend::new(async move {
-                                    // Check if user can use free generation
-                                    let can_use_free = match rate_limit_resource.await {
-                                        Ok(can_use_free) => can_use_free,
-                                        Err(e) => {
-                                            leptos::logging::error!("Failed to load rate limit status: {:?}", e);
-                                            false
-                                        }, // Default to paid on error
-                                    };
-
-                                    // Set initial token based on rate limit
-                                    let initial_token = if can_use_free {
-                                        // User is not rate limited, can use free generation
-                                        TokenType::Free
-                                    } else {
-                                        // User is rate limited, default to paid
-                                        TokenType::Sats
-                                    };
-
-                                    // Set the selected token
-                                    selected_token.set(initial_token);
-
-                                    view! {
-                                        <TokenDropdown
-                                            selected_token=selected_token
-                                            show_dropdown=show_token_dropdown
-                                            show_free_option=can_use_free
-                                        />
-                                    }
-                                })}
-                            </Suspense>
-                        }.into_any()
-                    }
-                }}
+                // Always show SATS/DOLR dropdown
+                <TokenDropdown
+                    selected_token=selected_token
+                    show_dropdown=show_token_dropdown
+                />
             </div>
 
             // Current Balance
@@ -234,35 +221,53 @@ fn CreditsSection(
                         Ok(balance) => {
                             // Check balance sufficiency
                             let model = selected_model.get();
-                            let model_name = model.name.as_str();
+                            let model_id = model.id.as_str();
                             let token_type = selected_token.get();
-                            let required_amount = TOKEN_COST_CONFIG.get_model_cost(model_name, &token_type);
+                            let required_amount = TOKEN_COST_CONFIG.get_model_cost(model_id, &token_type);
 
-                            let is_sufficient = match token_type {
-                                TokenType::Sats => balance.e8s >= required_amount,
-                                TokenType::Dolr => balance.e8s >= required_amount,
-                                videogen_common::TokenType::Free => true, // Free requests always have sufficient "balance"
+                            // Check if user can use free generation (use locked status if available)
+                            let can_use_free = locked_rate_limit_status.get().unwrap_or(false);
+
+                            let is_sufficient = if can_use_free {
+                                true // Free generation always has sufficient "balance"
+                            } else {
+                                match token_type {
+                                    TokenType::Sats => balance.e8s >= required_amount,
+                                    TokenType::Dolr => balance.e8s >= required_amount,
+                                    _ => false,
+                                }
                             };
 
                             // Update the balance sufficiency signal
                             has_sufficient_balance.set(is_sufficient);
 
-                            let balance_text = match token_type {
-                                TokenType::Free => "Current balance: Not required for YRAL generation".to_string(),
-                                TokenType::Sats => {
-                                    let formatted_balance = balance.humanize_float_truncate_to_dp(0);
-                                    format!("Current balance: {formatted_balance} SATS")
-                                },
-                                TokenType::Dolr => {
-                                    let formatted_balance = balance.humanize_float_truncate_to_dp(2);
-                                    format!("Current balance: {formatted_balance} DOLR")
-                                }
-                            };
-                            view! {
-                                <div class="flex items-center gap-2 text-xs text-neutral-400">
-                                    <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
-                                    <span>{balance_text}</span>
-                                </div>
+                            if can_use_free {
+                                // Show green message for free generation
+                                view! {
+                                    <div class="flex items-center gap-2 text-xs" style="color: #1ec981;">
+                                        <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-sm" attr:style="color: #1ec981;" />
+                                        <span>"Enjoy 1 free AI video per day. Use credits for more."</span>
+                                    </div>
+                                }.into_any()
+                            } else {
+                                // Show regular balance for paid generation
+                                let balance_text = match token_type {
+                                    TokenType::Sats => {
+                                        let formatted_balance = balance.humanize_float_truncate_to_dp(0);
+                                        format!("Current balance: {formatted_balance} SATS")
+                                    },
+                                    TokenType::Dolr => {
+                                        let formatted_balance = balance.humanize_float_truncate_to_dp(2);
+                                        format!("Current balance: {formatted_balance} DOLR")
+                                    },
+                                    _ => "Current balance: Unknown token type".to_string(),
+                                };
+                                view! {
+                                    <div class="flex items-center gap-2 text-xs text-neutral-400">
+                                        <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
+                                        <span>{balance_text}</span>
+                                    </div>
+                                }.into_any()
                             }
                         }
                         Err(_) => {
@@ -272,7 +277,7 @@ fn CreditsSection(
                                     <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
                                     <span>{"Current balance: Error loading".to_string()}</span>
                                 </div>
-                            }
+                            }.into_any()
                         }
                     }
                 })}
@@ -311,9 +316,19 @@ pub fn PreUploadAiView(
     // Login modal state
     let show_login_modal = RwSignal::new(false);
 
+    // Lock in rate limit status to prevent race conditions
+    let locked_rate_limit_status = RwSignal::new(None::<bool>);
+
     // Get auth state
     let auth = auth_state();
     let is_logged_in = auth.is_logged_in_with_oauth(); // Signal::stored(true); //
+
+    // Reset locked status when token or model changes to force a fresh check
+    Effect::new(move |_| {
+        selected_token.get();
+        selected_model.get();
+        locked_rate_limit_status.set(None);
+    });
 
     // Create rate limit resource to check if user can use free generation
     // Returns true if user can use free generation (not rate limited)
@@ -412,15 +427,9 @@ pub fn PreUploadAiView(
                         rate_limit_resource=rate_limit_resource
                         balance_resource=balance_resource
                         has_sufficient_balance=has_sufficient_balance
+                        locked_rate_limit_status=locked_rate_limit_status
                     />
 
-                    // Info message for YRAL token
-                    <Show when=move || selected_token.get() == TokenType::Free>
-                        <div class="flex items-center gap-2 text-sm text-emerald-400">
-                            <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-emerald-400" />
-                            <span>"Enjoy 1 free AI video per day. Use credits for more."</span>
-                        </div>
-                    </Show>
 
 
                     // Error display
@@ -460,13 +469,24 @@ pub fn PreUploadAiView(
                                                             );
                                                         }
 
+                                                        // Use locked rate limit status to determine if user can use free generation
+                                                        let can_use_free = locked_rate_limit_status.get_untracked()
+                                                            .unwrap_or(false);
+
+                                                        // Determine which token type to send to API
+                                                        let api_token_type = if can_use_free {
+                                                            TokenType::Free  // Send Free to API for free generation
+                                                        } else {
+                                                            selected_token.get_untracked()  // Send actual selected token
+                                                        };
+
                                                         // Create params struct and dispatch the action
                                                         let params = VideoGenerationParams {
                                                             user_principal: *user_principal,
                                                             prompt,
                                                             model,
                                                             image_data,
-                                                            token_type: selected_token.get_untracked(),
+                                                            token_type: api_token_type,  // Use the determined token type
                                                         };
                                                         // Store parameters before dispatching
                                                         set_stored_params.set(params.clone());
