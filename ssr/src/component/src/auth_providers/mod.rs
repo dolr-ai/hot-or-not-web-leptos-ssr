@@ -4,8 +4,10 @@ mod server_impl;
 pub mod yral;
 
 use candid::Principal;
+// use codee::string::FromToStringCodec;
 use codee::string::JsonSerdeCodec;
 use consts::auth::REFRESH_MAX_AGE;
+// use consts::ACCOUNT_CONNECTED_STORE;
 use consts::AUTH_JOURNEY_PAGE;
 use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use hon_worker_common::sign_referral_request;
@@ -17,7 +19,9 @@ use leptos_icons::Icon;
 use leptos_router::hooks::use_location;
 use leptos_router::hooks::use_navigate;
 use leptos_use::use_cookie_with_options;
+// use leptos_use::use_timeout_fn;
 use leptos_use::UseCookieOptions;
+// use leptos_use::UseTimeoutFnReturn;
 use state::canisters::auth_state;
 use state::canisters::unauth_canisters;
 use utils::event_streaming::events::CentsAdded;
@@ -162,13 +166,35 @@ pub fn LoginProviders(
                 .max_age(REFRESH_MAX_AGE.as_millis() as i64),
         );
 
-    if show_modal.get() {
-        let path = loc.pathname.get();
-        let category: BottomNavigationCategory =
-            BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
-        logging::log!("Setting auth journey page to {:?}", category);
-        set_auth_journey_page.update(|f| *f = Some(category));
-    }
+    let _ = Effect::new(move |_| {
+        if show_modal.get() {
+            let path = loc.pathname.get();
+            let category: BottomNavigationCategory =
+                BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
+            logging::log!("Setting auth journey page to {:?}", category);
+            set_auth_journey_page.update_untracked(|f| *f = Some(category));
+        }
+    });
+
+    // let is_logged_in_with_oauth = use_cookie_with_options::<bool, FromToStringCodec>(
+    //         ACCOUNT_CONNECTED_STORE,
+    //         UseCookieOptions::default()
+    //             .path("/")
+    //             .max_age(REFRESH_MAX_AGE.as_millis() as i64),
+    //     );
+
+    // let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
+    //     move |_| {
+    //         is_logged_in_with_oauth.1.set(Some(true));
+    //         show_modal.set(false);
+    //         set_auth_journey_page.set(None);
+    //     },
+    //     5000.0,
+    // );
+
+    // Effect::new(move |_| {
+    //     start(());
+    // });
 
     let base_cans = unauth_canisters();
     let login_action = Action::new(move |new_id: &NewIdentity| {
@@ -194,9 +220,6 @@ pub fn LoginProviders(
                 canisters = Canisters::authenticate_with_network(new_id.id_wire, referrer).await?;
             }
 
-            set_auth_journey_page.set(None);
-            logging::log!("Clearing auth journey cookie",);
-
             if let Err(e) =
                 handle_user_login(canisters.clone(), auth.event_ctx(), referrer, page_name).await
             {
@@ -204,6 +227,9 @@ pub fn LoginProviders(
             }
 
             let _ = LoginSuccessful.send_event(canisters.clone());
+
+            set_auth_journey_page.set(None);
+            logging::log!("Clearing auth journey cookie",);
 
             if let Some(redir_loc) = redirect_to {
                 nav(&redir_loc, Default::default());

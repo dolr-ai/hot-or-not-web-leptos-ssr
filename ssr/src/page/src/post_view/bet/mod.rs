@@ -297,7 +297,7 @@ fn HNButtonOverlay(
         move |_| {
             let _ = window().location().reload();
         },
-        5000.0,
+        50.0,
     );
 
     Effect::new(move |_| {
