@@ -109,7 +109,6 @@ fn HNButtonOverlay(
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
     let ev_ctx = auth.event_ctx();
-    let login_post = post.clone();
     let (wallet_balance_store, _, _) =
         use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
@@ -318,7 +317,7 @@ fn HNButtonOverlay(
             </button>
         </div>
         <LoginNudgePopup show=show_login_nudge show_login_popup  ev_ctx coin/>
-        <LoginModal show=show_login_popup redirect_to=Some(format!("/hot-or-not/{}/{}", login_post.canister_id, login_post.post_id)) />
+        <LoginModal show=show_login_popup redirect_to=None />
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
