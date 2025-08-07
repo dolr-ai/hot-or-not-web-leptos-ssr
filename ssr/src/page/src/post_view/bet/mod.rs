@@ -21,7 +21,7 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
-use leptos_use::{use_cookie_with_options, use_timeout_fn, UseCookieOptions, UseTimeoutFnReturn};
+use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -293,17 +293,10 @@ fn HNButtonOverlay(
             .max_age(REFRESH_MAX_AGE.as_millis() as i64),
     );
 
-    let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
-        move |_| {
-            let _ = window().location().reload();
-        },
-        50.0,
-    );
-
     Effect::new(move |_| {
         let auth_journey_page_cookie = auth_journey_page.get();
         if !was_connected.get() && is_connected.get() && auth_journey_page_cookie.is_none() {
-            start(());
+            let _ = window().location().reload();
         }
     });
 
