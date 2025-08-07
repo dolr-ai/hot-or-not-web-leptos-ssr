@@ -194,6 +194,9 @@ pub fn LoginProviders(
                 canisters = Canisters::authenticate_with_network(new_id.id_wire, referrer).await?;
             }
 
+            set_auth_journey_page.set(None);
+            logging::log!("Clearing auth journey cookie",);
+
             if let Err(e) =
                 handle_user_login(canisters.clone(), auth.event_ctx(), referrer, page_name).await
             {
@@ -208,9 +211,6 @@ pub fn LoginProviders(
 
             // Update the context signal instead of writing directly
             show_modal.set(false);
-
-            let cookie = set_auth_journey_page.try_set(None);
-            logging::log!("Setting auth journey cookie: {:?}", cookie);
 
             Ok::<_, ServerFnError>(())
         })
