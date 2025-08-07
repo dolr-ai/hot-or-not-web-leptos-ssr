@@ -1,7 +1,6 @@
 use component::buttons::HighlightedLinkButton;
 use leptos::prelude::*;
 use leptos_icons::*;
-use leptos_router::hooks::use_navigate;
 
 #[component]
 pub fn PostUploadScreenAi(video_url: String) -> impl IntoView {
