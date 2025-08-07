@@ -4,10 +4,8 @@ mod server_impl;
 pub mod yral;
 
 use candid::Principal;
-// use codee::string::FromToStringCodec;
 use codee::string::JsonSerdeCodec;
 use consts::auth::REFRESH_MAX_AGE;
-// use consts::ACCOUNT_CONNECTED_STORE;
 use consts::AUTH_JOURNEY_PAGE;
 use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use hon_worker_common::sign_referral_request;
@@ -19,9 +17,7 @@ use leptos_icons::Icon;
 use leptos_router::hooks::use_location;
 use leptos_router::hooks::use_navigate;
 use leptos_use::use_cookie_with_options;
-// use leptos_use::use_timeout_fn;
 use leptos_use::UseCookieOptions;
-// use leptos_use::UseTimeoutFnReturn;
 use state::canisters::auth_state;
 use state::canisters::unauth_canisters;
 use utils::event_streaming::events::CentsAdded;
@@ -167,22 +163,6 @@ pub fn LoginProviders(
                 .max_age(REFRESH_MAX_AGE.as_millis() as i64),
         );
 
-    // let is_logged_in_with_oauth = use_cookie_with_options::<bool, FromToStringCodec>(
-    //         ACCOUNT_CONNECTED_STORE,
-    //         UseCookieOptions::default()
-    //             .path("/")
-    //             .max_age(REFRESH_MAX_AGE.as_millis() as i64),
-    //     );
-
-    // let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
-    //     move |_| {
-    //         set_auth_journey_page.update_untracked(|f| *f =  None);
-    //         logging::log!("Clearing auth journey cookie");
-    //         show_modal.set(false);
-    //     },
-    //     5000.0,
-    // );
-
     let cookie_action = Action::new_local(move |_| {
         let path = loc.pathname.get();
         let category: BottomNavigationCategory =
@@ -243,10 +223,10 @@ pub fn LoginProviders(
 
     Effect::new(move |_| {
         if login_action.value().get().is_some() {
+            set_auth_journey_page.set(None);
             if reload_window {
                 window().location().reload().unwrap_or_default();
             }
-            set_auth_journey_page.set(None);
             show_modal.set(false);
         }
     });
