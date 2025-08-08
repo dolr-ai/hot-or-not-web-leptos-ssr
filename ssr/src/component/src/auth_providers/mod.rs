@@ -223,9 +223,10 @@ pub fn LoginProviders(
         if login_action.value().get().is_some() {
             if reload_window {
                 window().location().reload().unwrap_or_default();
+            } else {
+                set_auth_journey_page.set(None);
+                show_modal.set(false);
             }
-            set_auth_journey_page.set(None);
-            show_modal.set(false);
         }
     });
 
