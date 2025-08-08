@@ -198,23 +198,19 @@ pub fn LoginProviders(
 
             let _ = LoginSuccessful.send_event(canisters.clone());
 
-            if let Some(redir_loc) = redirect_to {
-                nav(&redir_loc, Default::default());
-            }
-
-            Ok::<_, ServerFnError>(())
-        })
-    });
-
-    Effect::new(move |_| {
-        if login_action.value().get().is_some() {
             if reload_window {
                 let res = window().location().reload();
                 logging::log!("Reloading window after login: {:#?}", res);
             }
             set_auth_journey_page.set(None);
             show_modal.set(false);
-        }
+
+            if let Some(redir_loc) = redirect_to {
+                nav(&redir_loc, Default::default());
+            }
+
+            Ok::<_, ServerFnError>(())
+        })
     });
 
     let ctx = LoginProvCtx {
