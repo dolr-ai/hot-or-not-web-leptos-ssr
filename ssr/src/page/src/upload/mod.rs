@@ -78,6 +78,7 @@ fn PreUploadView(
                 !description.is_empty(),
                 !hashtags.is_empty(),
                 Some("upload_video".to_string()),
+                "".to_string(), // Regular uploads don't use tokens
             );
         }
         trigger_upload.set(Some(UploadParams {

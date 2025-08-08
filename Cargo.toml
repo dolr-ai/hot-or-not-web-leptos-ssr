@@ -180,7 +180,7 @@ base64 = "0.22"
 # Uncomment the below lines for testing out yral-common changes locally
 # ===
 # sns-validation = { path = "../yral-common/sns-validation" }
-# yral-types = { path = "../yral-common/types" }
+# yral-types = { path = "../yral-common/types" }    
 # yral-canisters-client = { path = "../yral-common/canisters-client", features = [
 #     "full",
 # ] }

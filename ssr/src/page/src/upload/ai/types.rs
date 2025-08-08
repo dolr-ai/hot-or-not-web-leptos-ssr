@@ -41,6 +41,7 @@ pub struct SerializablePostDetailsFromFrontend {
 #[derive(Clone)]
 pub struct UploadActionParams {
     pub video_url: String,
+    pub token_type: TokenType,
 }
 
 // Video generation parameters

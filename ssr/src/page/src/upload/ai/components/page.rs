@@ -78,7 +78,11 @@ pub fn UploadAiPostPage() -> impl IntoView {
                         match &result {
                             Ok(_) => {
                                 MixPanelEvent::track_ai_video_generated(
-                                    global, true, None, model_name,
+                                    global,
+                                    true,
+                                    None,
+                                    model_name,
+                                    format!("{:?}", params.token_type).to_lowercase(),
                                 );
                             }
                             Err(error) => {
@@ -87,6 +91,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                     false,
                                     Some(error.clone()),
                                     model_name,
+                                    format!("{:?}", params.token_type).to_lowercase(),
                                 );
                             }
                         }
@@ -123,6 +128,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                         false, // caption_added - we're not using captions for AI videos
                         false, // hashtags_added - we're not using hashtags for AI videos
                         Some("ai_video".to_string()),
+                        format!("{:?}", params.token_type).to_lowercase(),
                     );
                 }
 
@@ -158,6 +164,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                         false, // is_game_enabled - AI videos don't have game enabled
                                         MixpanelPostGameType::HotOrNot,
                                         Some("ai_video".to_string()),
+                                        format!("{:?}", params.token_type).to_lowercase(),
                                     );
                                 }
 
@@ -186,7 +193,11 @@ pub fn UploadAiPostPage() -> impl IntoView {
         if let Some(video_url) = generated_video_url.get() {
             if !upload_action.pending().get() && !show_success_modal.get() {
                 leptos::logging::log!("Auto-uploading generated video: {}", video_url);
-                upload_action.dispatch(UploadActionParams { video_url });
+                let token_type = stored_params.get().token_type;
+                upload_action.dispatch(UploadActionParams {
+                    video_url,
+                    token_type,
+                });
             }
         }
     });
