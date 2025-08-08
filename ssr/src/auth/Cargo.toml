@@ -35,6 +35,7 @@ jsonwebtoken = { workspace = true, optional = true }
 yral-canisters-client = { workspace = true, optional = true }
 global-constants = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
+hex = { workspace = true, optional = true }
 
 [features]
 ssr = [
@@ -51,7 +52,8 @@ ssr = [
     "bb8-redis",
     "consts/ssr",
     "dep:regex",
-    "dep:global-constants"
+    "dep:global-constants",
+    "dep:hex"
 ]
 oauth-ssr = ["dep:openidconnect", "dep:jsonwebtoken", "dep:yral-canisters-client", "consts/oauth-ssr"]
 # use ic_agent::{
