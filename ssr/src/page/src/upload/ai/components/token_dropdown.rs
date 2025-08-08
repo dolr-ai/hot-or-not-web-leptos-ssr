@@ -6,19 +6,14 @@ use videogen_common::TokenType;
 pub fn TokenDropdown(
     selected_token: RwSignal<TokenType>,
     show_dropdown: RwSignal<bool>,
-    show_free_option: bool,
 ) -> impl IntoView {
     let tokens = move || {
-        let mut token_list = vec![
+        // Only show SATS and DOLR options
+        vec![
             (TokenType::Sats, "SATS", "/img/hotornot/sats.svg"),
-            (TokenType::Dolr, "DOLR", "/img/common/dolr.svg"),
-        ];
-
-        if show_free_option {
-            token_list.push((TokenType::Free, "YRAL", "/img/yral/favicon.svg"));
-        }
-
-        token_list
+            (TokenType::Dolr, "DOLR", "/img/common/dolr-circle.svg"),
+        ]
+        // YRAL/Free option removed - will be added back in the future
     };
 
     view! {

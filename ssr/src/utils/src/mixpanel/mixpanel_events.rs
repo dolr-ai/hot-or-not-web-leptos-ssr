@@ -604,7 +604,8 @@ derive_event!(track_file_selection_success { file_type: String });
 derive_event!(track_video_upload_initiated {
     caption_added: bool,
     hashtags_added: bool,
-    upload_type: Option<String>
+    upload_type: Option<String>,
+    token_type: String
 });
 
 derive_event!(track_bottom_navigation_clicked {
@@ -766,7 +767,8 @@ derive_event!(track_video_upload_success {
     creator_comission_percentage: u64,
     is_game_enabled: bool,
     game_type: MixpanelPostGameType,
-    upload_type: Option<String>
+    upload_type: Option<String>,
+    token_type: String
 });
 
 derive_event!(track_cents_to_dolr = "cents_to_DOLR" => {
@@ -803,12 +805,16 @@ derive_event!(track_upload_type_continue_clicked {
 
 derive_event!(track_video_generation_model_selected { model: String });
 
-derive_event!(track_create_ai_video_clicked { model: String });
+derive_event!(track_create_ai_video_clicked {
+    model: String,
+    token_type: String
+});
 
 derive_event!(track_ai_video_generated {
     is_success: bool,
     reason: Option<String>,
-    model: String
+    model: String,
+    token_type: String
 });
 
 derive_event!(track_regenerate_video_clicked { model: String });
