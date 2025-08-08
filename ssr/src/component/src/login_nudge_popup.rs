@@ -1,9 +1,15 @@
+use codee::string::JsonSerdeCodec;
+use consts::{auth::REFRESH_MAX_AGE, AUTH_JOURNEY_PAGE};
 use global_constants::CoinState;
 use leptos::prelude::*;
 use leptos_icons::*;
+use leptos_router::hooks::use_location;
+use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use utils::{
     event_streaming::events::EventCtx,
-    mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, StakeType},
+    mixpanel::mixpanel_events::{
+        BottomNavigationCategory, MixPanelEvent, MixpanelGlobalProps, StakeType,
+    },
 };
 
 use crate::{buttons::HighlightedButton, login_icons::*, overlay::ShadowOverlay};
@@ -28,7 +34,23 @@ pub fn LoginNudgePopup(
         }
     });
 
-    let analytics_action = Action::new(move |_: &()| {
+    let loc = use_location();
+
+    let (_, set_auth_journey_page) =
+        use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
+            AUTH_JOURNEY_PAGE,
+            UseCookieOptions::default()
+                .path("/")
+                .max_age(REFRESH_MAX_AGE.as_millis() as i64),
+        );
+
+    let login_click_action = Action::new(move |_: &()| {
+        show.set(false);
+        show_login_popup.set(true);
+        let path = loc.pathname.get_untracked();
+        let category: BottomNavigationCategory =
+            BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
+        set_auth_journey_page.set(Some(category));
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
             let page_name = global.page_name();
             MixPanelEvent::track_signup_clicked(global, page_name);
@@ -85,9 +107,7 @@ pub fn LoginNudgePopup(
                             alt_style=false
                             disabled=false
                             on_click=move || {
-                                show.set(false);
-                                show_login_popup.set(true);
-                                analytics_action.dispatch(());
+                                login_click_action.dispatch(());
                             }
                         >
                             "Login Now"

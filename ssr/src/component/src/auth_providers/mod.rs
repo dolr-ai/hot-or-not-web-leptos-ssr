@@ -10,6 +10,7 @@ use consts::AUTH_JOURNEY_PAGE;
 use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
+use leptos::logging;
 use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
 use leptos_icons::Icon;
@@ -162,20 +163,6 @@ pub fn LoginProviders(
                 .max_age(REFRESH_MAX_AGE.as_millis() as i64),
         );
 
-    let cookie_action = Action::new_local(move |_| {
-        let path = loc.pathname.get();
-        let category: BottomNavigationCategory =
-            BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
-        set_auth_journey_page.set(Some(category));
-        async {}
-    });
-
-    let _ = Effect::new(move |_| {
-        if show_modal.get() {
-            cookie_action.dispatch(());
-        }
-    });
-
     let base_cans = unauth_canisters();
     let login_action = Action::new(move |new_id: &NewIdentity| {
         // Clone the necessary parts
@@ -222,7 +209,8 @@ pub fn LoginProviders(
     Effect::new(move |_| {
         if login_action.value().get().is_some() {
             if reload_window {
-                window().location().reload().unwrap_or_default();
+                let res = window().location().reload();
+                logging::log!("Reloading window after login: {:#?}", res);
             }
             set_auth_journey_page.set(None);
             show_modal.set(false);
