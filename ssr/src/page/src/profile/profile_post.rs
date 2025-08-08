@@ -41,6 +41,8 @@ pub fn PostViewWithUpdatesProfile(
     let recovering_state = RwSignal::new(false);
     let hard_refresh_target = RwSignal::new("/".to_string());
 
+    let username = StoredValue::new(initial_post.username.clone());
+
     // Initialize cursor to fetch posts after the ones already in video_queue
     let initial_cursor_start =
         start_index.get_untracked() + video_queue.with_untracked(|vq| vq.len());
@@ -81,9 +83,21 @@ pub fn PostViewWithUpdatesProfile(
             let cursor = fetch_cursor.get_untracked();
             let canisters = unauth_canisters();
             let posts_res = if let Some(canisters) = auth.auth_cans_if_available() {
-                DefProfileVidStream::fetch_next_posts(cursor, &canisters, user_canister).await
+                DefProfileVidStream::fetch_next_posts(
+                    cursor,
+                    &canisters,
+                    user_canister,
+                    username.get_value(),
+                )
+                .await
             } else {
-                DefProfileVidStream::fetch_next_posts(cursor, &canisters, user_canister).await
+                DefProfileVidStream::fetch_next_posts(
+                    cursor,
+                    &canisters,
+                    user_canister,
+                    username.get_value(),
+                )
+                .await
             };
 
             let res = try_or_redirect!(posts_res);
