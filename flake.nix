@@ -29,6 +29,7 @@
                             protobuf_21
                             mold
                             tailwindcss_4
+                            pkg-config
                         ];
                         shellHook = ''
                                 git submodule update --init --recursive

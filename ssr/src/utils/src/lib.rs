@@ -1,3 +1,4 @@
+use candid::Principal;
 use futures::Future;
 use serde::{Deserialize, Serialize};
 
@@ -32,7 +33,11 @@ impl<T> PartialEq for MockPartialEq<T> {
     }
 }
 
-use std::fmt::Display;
+use std::{
+    convert::Infallible,
+    fmt::{self, Display, Formatter},
+    str::FromStr,
+};
 
 use consts::CF_STREAM_BASE;
 
@@ -68,4 +73,30 @@ pub fn send_wrap<Fut: Future + Send>(
 #[cfg(feature = "hydrate")]
 pub fn send_wrap<Fut: Future>(t: Fut) -> impl Future<Output = <Fut as Future>::Output> + Send {
     send_wrapper::SendWrapper::new(t)
+}
+
+#[derive(PartialEq, Eq, Clone, Serialize, Deserialize, Debug)]
+pub enum UsernameOrPrincipal {
+    Username(String),
+    Principal(Principal),
+}
+
+impl FromStr for UsernameOrPrincipal {
+    type Err = Infallible;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Ok(p) = Principal::from_text(s) {
+            return Ok(Self::Principal(p));
+        }
+        Ok(Self::Username(s.to_string()))
+    }
+}
+
+impl Display for UsernameOrPrincipal {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Username(u) => u.fmt(f),
+            Self::Principal(p) => p.fmt(f),
+        }
+    }
 }

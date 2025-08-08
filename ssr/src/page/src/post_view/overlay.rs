@@ -174,6 +174,7 @@ pub fn VideoDetailsOverlay(
             .map(|b| format!("{b}/hot-or-not/{}/{}", post.canister_id, post.post_id))
             .unwrap_or_default()
     };
+    let display_name = post.display_name_or_fallback();
 
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
@@ -237,7 +238,7 @@ pub fn VideoDetailsOverlay(
         ShareVideo.send_event(ev_ctx, post_details);
     };
 
-    let profile_url = format!("/profile/{}/tokens", post.poster_principal.to_text());
+    let profile_url = format!("/profile/{}/tokens", post.username_or_principal());
     let post_c = post.clone();
 
     let click_copy = move |text: String| {
@@ -505,7 +506,7 @@ pub fn VideoDetailsOverlay(
                                     on:click=move |_| mixpanel_track_profile_click()
                                     href=profile_url
                                 >
-                                    {post.display_name}
+                                    {display_name}
                                 </a>
                             </span>
                             <span class="font-semibold">"|"</span>
