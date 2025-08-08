@@ -289,13 +289,10 @@ pub fn ProfileView() -> impl IntoView {
                     }
                 })
             {
-                return Ok::<_, ServerFnError>(user_can.profile_details());
+                return Ok::<_, ServerFnError>(Some(user_can.profile_details()));
             }
 
-            let user_details = cans
-                .get_profile_details(profile_id.to_string())
-                .await?
-                .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
+            let user_details = cans.get_profile_details(profile_id.to_string()).await?;
 
             Ok::<_, ServerFnError>(user_details)
         })
@@ -305,12 +302,34 @@ pub fn ProfileView() -> impl IntoView {
         <ProfilePageTitle />
         <Suspense fallback=FullScreenSpinner>
             {move || Suspend::new(async move {
-                let res = user_details.await;
-                match res {
-                    Ok(user) => {
-                        view! { <ProfileComponent user /> }.into_any()
+                let res = async {
+                    let maybe_user = user_details.await?;
+                    if let Some(user) = maybe_user {
+                        return Ok::<_, ServerFnError>(user);
                     }
-                    _ => view! { <Redirect path="/" /> }.into_any(),
+                    // edge case: user is not logged in
+                    let auth = auth_state();
+                    let cans = auth.auth_cans().await?;
+                    let my_details = cans.profile_details();
+                    let id = untrack(param_id).expect("ID should be available");
+                    match id {
+                        UsernameOrPrincipal::Principal(princ) if princ == cans.user_principal() => {
+                            Ok(my_details)
+                        },
+                        UsernameOrPrincipal::Username(username) if Some(&username) == my_details.username.as_ref() => {
+                            Ok(my_details)
+                        }
+                        _ => Err(ServerFnError::new("User not found")),
+                    }
+                };
+
+                match res.await {
+                    Ok(user) => view! {
+                        <ProfileComponent user />
+                    }.into_any(),
+                    _ => view! {
+                        <Redirect path="/" />
+                    }.into_any(),
                 }
             })}
         </Suspense>

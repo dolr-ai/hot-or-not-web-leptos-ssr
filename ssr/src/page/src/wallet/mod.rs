@@ -203,25 +203,68 @@ pub fn WalletImpl(id: UsernameOrPrincipal) -> impl IntoView {
     let id = StoredValue::new(id);
 
     let cans2 = cans.clone();
+    let auth = auth_state();
+
     let metadata = OnceResource::new(send_wrap(async move {
         let canisters = cans2;
         let user_canister = canisters
             .get_user_metadata(id.with_value(|id| id.to_string()))
-            .await?
-            .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
+            .await?;
         Ok::<_, ServerFnError>(user_canister)
     }));
 
     let profile_info_res = OnceResource::new(send_wrap(async move {
-        let meta = metadata.await?;
+        let Some(meta) = metadata.await? else {
+            return Ok(None);
+        };
         let user = cans.individual_user(meta.user_canister_id).await;
         let user_details = user.get_profile_details_v_2().await?;
-        Ok::<ProfileDetails, ServerFnError>(ProfileDetails::from_canister(
+        Ok::<_, ServerFnError>(Some(ProfileDetails::from_canister(
             meta.user_canister_id,
             Some(meta.user_name),
             user_details,
-        ))
+        )))
     }));
+
+    // Edge Case: unauthenticated user navigates to wallet page
+    let metadata = Callback::new(move |()| async move {
+        if let Some(meta) = metadata.await? {
+            return Ok::<_, ServerFnError>((meta.user_principal, meta.user_canister_id));
+        }
+        let logged_in_user = auth.auth_cans().await?;
+        let is_own_account = match id.get_value() {
+            UsernameOrPrincipal::Principal(p) => p == logged_in_user.user_principal(),
+            UsernameOrPrincipal::Username(u) => {
+                Some(u) == logged_in_user.profile_details().username
+            }
+        };
+        if is_own_account {
+            Ok((
+                logged_in_user.user_principal(),
+                logged_in_user.user_canister(),
+            ))
+        } else {
+            Err(ServerFnError::new("User canister not found"))
+        }
+    });
+
+    // Edge Case: unauthenticated user navigates to wallet page
+    let profile_details = Callback::new(move |()| async move {
+        let logged_in_user = auth.auth_cans().await?;
+        let is_own_account = match id.get_value() {
+            UsernameOrPrincipal::Principal(p) => p == logged_in_user.user_principal(),
+            UsernameOrPrincipal::Username(u) => {
+                Some(u) == logged_in_user.profile_details().username
+            }
+        };
+        let profile_details = if is_own_account {
+            logged_in_user.profile_details()
+        } else {
+            let profile_details = profile_info_res.await?;
+            profile_details.ok_or_else(|| ServerFnError::new("User canister not found"))?
+        };
+        Ok::<_, ServerFnError>((profile_details, is_own_account))
+    });
 
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
@@ -236,18 +279,12 @@ pub fn WalletImpl(id: UsernameOrPrincipal) -> impl IntoView {
                 view! { <HeaderLoading /> }
             }>
                 {move || Suspend::new(async move {
-                    let profile_details = profile_info_res.await;
-                    let logged_in_user = auth.auth_cans().await;
-                    match profile_details.and_then(|c| Ok((c, logged_in_user?))) {
-                        Ok((profile_details, logged_in_user)) => {
-                            let is_own_account = match id.get_value() {
-                                UsernameOrPrincipal::Principal(p) => p == logged_in_user.user_principal(),
-                                UsernameOrPrincipal::Username(u) => Some(u) == logged_in_user.profile_details().username,
-                            };
+                    match profile_details.run(()).await {
+                        Ok((profile_details, is_own_account)) => {
                             Either::Left(
                                 view! { <Header details=profile_details is_own_account /> },
                             )
-                        }
+                        },
                         Err(e) => {
                             Either::Right(view! { <Redirect path=format!("/error?err={e}") /> })
                         }
@@ -257,14 +294,8 @@ pub fn WalletImpl(id: UsernameOrPrincipal) -> impl IntoView {
             <div class="flex flex-col gap-4 justify-center items-center px-4 mx-auto w-full max-w-md h-full">
                 <Suspense fallback=ProfileCardLoading>
                     {move || Suspend::new(async move {
-                        let profile_details = profile_info_res.await;
-                        let logged_in_user = auth.auth_cans().await;
-                        match profile_details.and_then(|c| Ok((c, logged_in_user?))) {
-                            Ok((profile_details, logged_in_user)) => {
-                                let is_own_account = match id.get_value() {
-                                    UsernameOrPrincipal::Principal(p) => p == logged_in_user.user_principal(),
-                                    UsernameOrPrincipal::Username(u) => Some(u) == logged_in_user.profile_details().username,
-                                };
+                        match profile_details.run(()).await {
+                            Ok((profile_details, is_own_account)) => {
                                 Either::Left(
                                     view! {
                                         <ProfileCard
@@ -283,17 +314,17 @@ pub fn WalletImpl(id: UsernameOrPrincipal) -> impl IntoView {
                 </Suspense>
                 <Suspense>
                     {move || Suspend::new(async move {
-                        let meta = metadata.await;
+                        let meta = metadata.run(()).await;
                         match meta {
-                            Ok(meta) => {
+                            Ok((user_principal, user_canister)) => {
                                 Either::Left(
                                     view! {
                                         <div class="self-start pt-3 text-lg font-bold text-white font-kumbh">
                                             My tokens
                                         </div>
                                         <TokenList
-                                            user_principal=meta.user_principal
-                                            user_canister=meta.user_canister_id
+                                            user_principal
+                                            user_canister
                                         />
                                     },
                                 )
