@@ -171,28 +171,24 @@ fn CreditsSection(
                                 true
                             };
 
+                            // Calculate cost and humanized string once, before the if block
+                            let cost = TOKEN_COST_CONFIG.get_model_cost(model_id, &token);
+                            let humanized = match token {
+                                TokenType::Sats => TokenBalance::new(cost.into(), 0).humanize_float_truncate_to_dp(0),
+                                TokenType::Dolr => TokenBalance::new(cost.into(), 8).humanize_float_truncate_to_dp(2),
+                                _ => "0".to_string(),
+                            };
+
                             if can_use_free {
                                 // Show 0 with strikethrough original price
-                                let original_cost = TOKEN_COST_CONFIG.get_model_cost(model_id, &token);
-                                let formatted_original = match token {
-                                    TokenType::Sats => TokenBalance::new(original_cost.into(), 0).humanize_float_truncate_to_dp(0),
-                                    TokenType::Dolr => TokenBalance::new(original_cost.into(), 8).humanize_float_truncate_to_dp(2),
-                                    _ => "0".to_string(),
-                                };
                                 view! {
                                     <div class="flex items-center gap-2">
                                         <span>"0"</span>
-                                        <span class="line-through text-neutral-500">{formatted_original}</span>
+                                        <span class="line-through text-neutral-500">{humanized}</span>
                                     </div>
                                 }.into_any()
                             } else {
                                 // Show regular price
-                                let cost = TOKEN_COST_CONFIG.get_model_cost(model_id, &token);
-                                let humanized = match token {
-                                    TokenType::Sats => TokenBalance::new(cost.into(), 0).humanize_float_truncate_to_dp(0),
-                                    TokenType::Dolr => TokenBalance::new(cost.into(), 8).humanize_float_truncate_to_dp(2),
-                                    _ => "0".to_string(),
-                                };
                                 view! {
                                     <div class="flex items-center gap-2">
                                         <span>{humanized}</span>
