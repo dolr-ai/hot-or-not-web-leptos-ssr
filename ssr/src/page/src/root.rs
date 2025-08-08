@@ -10,7 +10,11 @@ use yral_types::post::PostItemV2;
 
 #[server]
 async fn get_top_post_id_global_clean_feed() -> Result<Option<PostItemV2>, ServerFnError> {
-    let posts = get_ml_feed_coldstart_clean(Principal::anonymous(), 1, vec![])
+    use utils::client_ip::get_client_ip;
+
+    let ip_address = get_client_ip().await;
+
+    let posts = get_ml_feed_coldstart_clean(Principal::anonymous(), 1, vec![], ip_address)
         .await
         .map_err(|e| {
             log::error!("Error getting top post id global clean feed: {e:?}");
@@ -25,7 +29,11 @@ async fn get_top_post_id_global_clean_feed() -> Result<Option<PostItemV2>, Serve
 
 #[server]
 async fn get_top_post_id_global_nsfw_feed() -> Result<Option<PostItemV2>, ServerFnError> {
-    let posts = get_ml_feed_coldstart_nsfw(Principal::anonymous(), 1, vec![])
+    use utils::client_ip::get_client_ip;
+
+    let ip_address = get_client_ip().await;
+
+    let posts = get_ml_feed_coldstart_nsfw(Principal::anonymous(), 1, vec![], ip_address)
         .await
         .map_err(|e| {
             log::error!("Error getting top post id global nsfw feed: {e:?}");
