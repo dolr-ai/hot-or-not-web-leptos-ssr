@@ -21,7 +21,7 @@ use leptos_use::storage::use_local_storage;
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
-use state::canisters::{auth_state, unauth_canisters};
+use state::canisters::auth_state;
 use state::hn_bet_state::{HnBetState, VideoComparisonResult};
 use utils::try_or_redirect_opt;
 use utils::{mixpanel::mixpanel_events::*, send_wrap};
@@ -182,7 +182,7 @@ fn HNButtonOverlay(
                 if res.is_err() {
                     return None;
                 }
-                let cans = auth.auth_cans(expect_context()).await.ok()?;
+                let cans = auth.auth_cans().await.ok()?;
                 let is_logged_in = is_connected.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
                 MixPanelEvent::track_game_clicked(
@@ -659,7 +659,7 @@ pub fn HNGameOverlay(
         use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
     let fetch_balance_action = Action::new_local(move |_: &()| async move {
-        let cans = auth.auth_cans(unauth_canisters()).await.ok()?;
+        let cans = auth.auth_cans().await.ok()?;
         let user_principal = cans.user_principal();
         let balance_info = load_sats_balance(user_principal).await.ok()?;
         let balance = balance_info.balance.to_u64().unwrap_or(25);

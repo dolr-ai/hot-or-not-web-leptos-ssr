@@ -50,8 +50,8 @@ async fn user_principal_unauth(
         return Ok(user_principal_id);
     }
 
-    let cans = auth.cans_wire().await?;
-    Ok(cans.profile_details.principal)
+    let cans = auth.auth_cans().await?;
+    Ok(cans.user_principal())
 }
 
 async fn user_principal_auth(

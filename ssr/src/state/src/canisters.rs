@@ -17,7 +17,7 @@ use leptos_router::{hooks::use_query, params::Params};
 use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use rand::{distr::Alphanumeric, rngs::SmallRng, Rng, SeedableRng};
 use serde::{Deserialize, Serialize};
-use yral_canisters_common::{utils::time::current_epoch, Canisters, CanistersAuthWire};
+use yral_canisters_common::{utils::time::current_epoch, Canisters};
 
 use utils::{
     event_streaming::events::{EventCtx, EventUserDetails},
@@ -66,21 +66,21 @@ async fn do_canister_auth(
     auth: DelegatedIdentityWire,
     referrer: Option<Principal>,
     fallback_username: Option<String>,
-) -> Result<CanistersAuthWire, ServerFnError> {
+) -> Result<Canisters<true>, ServerFnError> {
     let auth_fut = Canisters::authenticate_with_network(auth, referrer);
     let mut canisters = send_wrap(auth_fut).await?;
     if canisters.profile_details().username.is_some() {
-        return Ok(canisters.into());
+        return Ok(canisters);
     }
     let Some(username) = fallback_username else {
-        return Ok(canisters.into());
+        return Ok(canisters);
     };
 
     set_fallback_username(&mut canisters, username).await;
 
-    Ok(canisters.into())
+    Ok(canisters)
 }
-type AuthCansResource = Resource<Result<CanistersAuthWire, ServerFnError>>;
+type AuthCansResource = LocalResource<Result<Canisters<true>, ServerFnError>>;
 
 /// The Authenticated Canisters helper resource
 /// prefer using helpers from [crate::component::canisters_prov]
@@ -101,14 +101,13 @@ pub struct AuthState {
     pub referrer_store: Signal<Option<Principal>>,
     is_logged_in_with_oauth: (Signal<Option<bool>>, WriteSignal<Option<bool>>),
     new_identity_setter: RwSignal<Option<NewIdentity>>,
-    canisters_resource: AuthCansResource,
-    pub user_canister: Resource<Result<Principal, ServerFnError>>,
+    pub canisters_resource: AuthCansResource,
     user_canister_id_cookie: (Signal<Option<Principal>>, WriteSignal<Option<Principal>>),
     pub user_principal: Resource<Result<Principal, ServerFnError>>,
     user_principal_cookie: (Signal<Option<Principal>>, WriteSignal<Option<Principal>>),
     event_ctx: EventCtx,
     pub user_identity: Resource<Result<NewIdentity, ServerFnError>>,
-    new_cans_setter: RwSignal<Option<CanistersAuthWire>>,
+    new_cans_setter: RwSignal<Option<Canisters<true>>>,
 }
 
 impl Default for AuthState {
@@ -190,35 +189,33 @@ impl Default for AuthState {
             },
         );
 
-        let new_cans_setter = RwSignal::new(None::<CanistersAuthWire>);
+        let new_cans_setter = RwSignal::new(None::<Canisters<true>>);
 
-        let canisters_resource: AuthCansResource = Resource::new(
-            move || {
-                user_identity_resource.track();
-                MockPartialEq(new_cans_setter())
-            },
-            move |new_cans| {
-                send_wrap(async move {
-                    let new_id = user_identity_resource.await?;
-                    match new_cans.0 {
-                        Some(cans) if cans.id.from_key == new_id.id_wire.from_key => {
-                            return Ok::<_, ServerFnError>(cans);
-                        }
-                        // this means that the user did the following:
-                        // 1. Changed their username, then
-                        // 2. Logged in with oauth (or logged out)
-                        _ => {}
-                    };
-                    let ref_principal = referrer_principal.get_untracked();
+        let canisters_resource: AuthCansResource = LocalResource::new(move || {
+            user_identity_resource.track();
+            let new_cans = new_cans_setter();
+            async move {
+                let new_id = user_identity_resource.await?;
+                match new_cans {
+                    Some(cans)
+                        if cans.user_principal()
+                            == Principal::self_authenticating(&new_id.id_wire.from_key) =>
+                    {
+                        return Ok::<_, ServerFnError>(cans);
+                    }
+                    // this means that the user did the following:
+                    // 1. Changed their username, then
+                    // 2. Logged in with oauth (or logged out)
+                    _ => {}
+                };
+                let ref_principal = referrer_principal.get_untracked();
 
-                    let res =
-                        do_canister_auth(new_id.id_wire, ref_principal, new_id.fallback_username)
-                            .await?;
+                let res = do_canister_auth(new_id.id_wire, ref_principal, new_id.fallback_username)
+                    .await?;
 
-                    Ok::<_, ServerFnError>(res)
-                })
-            },
-        );
+                Ok::<_, ServerFnError>(res)
+            }
+        });
 
         let user_principal_cookie = use_cookie_with_options::<Principal, FromToStringCodec>(
             USER_PRINCIPAL_STORE,
@@ -250,24 +247,6 @@ impl Default for AuthState {
                 .path("/")
                 .max_age(AUTH_UTIL_COOKIES_MAX_AGE_MS),
         );
-        let user_canister = Resource::new(
-            move || {
-                canisters_resource.track();
-                MockPartialEq(())
-            },
-            move |_| async move {
-                if let Some(canister_id) = user_canister_id_cookie.0.get_untracked() {
-                    return Ok(canister_id);
-                }
-
-                let cans_wire = canisters_resource.await?;
-
-                let canister_id = cans_wire.user_canister;
-                user_canister_id_cookie.1.set(Some(canister_id));
-
-                Ok(canister_id)
-            },
-        );
 
         let event_ctx = EventCtx {
             is_connected: StoredValue::new(Box::new(move || {
@@ -277,14 +256,20 @@ impl Default for AuthState {
                     .unwrap_or_default()
             })),
             user_details: StoredValue::new(Box::new(move || {
+                #[cfg(not(feature = "hydrate"))]
+                {
+                    None
+                }
+
+                #[cfg(feature = "hydrate")]
                 canisters_resource
                     .into_future()
                     .now_or_never()
                     .and_then(|c| {
-                        let cans_wire = c.ok()?;
+                        let cans = c.ok()?;
                         Some(EventUserDetails {
-                            details: cans_wire.profile_details.clone(),
-                            canister_id: cans_wire.user_canister,
+                            details: cans.profile_details(),
+                            canister_id: cans.user_canister(),
                         })
                     })
             })),
@@ -299,7 +284,6 @@ impl Default for AuthState {
             canisters_resource,
             user_principal,
             user_principal_cookie,
-            user_canister,
             user_canister_id_cookie,
             event_ctx,
             user_identity: user_identity_resource,
@@ -333,32 +317,19 @@ impl AuthState {
 
     pub async fn set_new_identity_and_wait_for_authentication(
         &self,
-        base: Canisters<false>,
         new_identity: NewIdentity,
         is_logged_in_with_oauth: bool,
     ) -> Result<Canisters<true>, ServerFnError> {
         self.set_new_identity(new_identity, is_logged_in_with_oauth);
         self.canisters_resource.ready().await;
 
-        self.auth_cans(base).await
+        self.auth_cans().await
     }
 
     /// WARN: This function MUST be used with `<Suspense>`, if used inside view! {}
     /// this also tracks any changes made to user's identity, if used with <Suspend>
-    pub async fn auth_cans(
-        &self,
-        base: Canisters<false>,
-    ) -> Result<Canisters<true>, ServerFnError> {
-        let cans_wire = self.canisters_resource.await?;
-        let cans = Canisters::from_wire(cans_wire, base)?;
-        Ok(cans)
-    }
-
-    /// WARN: This function MUST be used with `<Suspense>`, if used inside view! {}
-    /// this also tracks any changes made to user's identity, if used with <Suspend>
-    pub async fn cans_wire(&self) -> Result<CanistersAuthWire, ServerFnError> {
-        let cans_wire = self.canisters_resource.await?;
-        Ok(cans_wire)
+    pub async fn auth_cans(&self) -> Result<Canisters<true>, ServerFnError> {
+        self.canisters_resource.await
     }
 
     /// Get the user principal if loaded
@@ -366,6 +337,21 @@ impl AuthState {
     /// NOT RECOMMENDED TO BE USED IN DOM
     pub fn user_principal_if_available(&self) -> Option<Principal> {
         self.user_principal_cookie.0.get_untracked()
+    }
+
+    /// WARN: This function MUST be used with `<Suspense>`, if used inside view! {}
+    /// this also tracks any changes made to user's identity, if used with <Suspend>
+    pub async fn user_canister(&self) -> Result<Principal, ServerFnError> {
+        if let Some(canister_id) = self.user_canister_id_cookie.0.get_untracked() {
+            return Ok(canister_id);
+        }
+
+        let cans_wire = self.canisters_resource.await?;
+
+        let canister_id = cans_wire.user_canister();
+        self.user_canister_id_cookie.1.set(Some(canister_id));
+
+        Ok(canister_id)
     }
 
     /// Get the user canister if loaded
@@ -381,49 +367,42 @@ impl AuthState {
         self.event_ctx
     }
 
-    /// Derive a new resource which uses the current user's canister
-    /// WARN: The signals in tracker are not memoized
     pub fn derive_resource<
-        S: Clone + Send + Sync + 'static,
-        D: Send + Sync + Serialize + for<'x> Deserialize<'x>,
-        DFut: Future<Output = Result<D, ServerFnError>> + 'static + Send,
+        S: Clone + 'static,
+        D: Serialize + for<'x> Deserialize<'x> + 'static,
+        DFut: Future<Output = Result<D, ServerFnError>> + 'static,
     >(
         &self,
-        tracker: impl Fn() -> S + Send + Sync + 'static,
-        fetcher: impl Fn(Canisters<true>, S) -> DFut + Send + Sync + 'static + Clone,
-    ) -> Resource<Result<D, ServerFnError>> {
+        tracker: impl Fn() -> S + 'static,
+        fetcher: impl Fn(Canisters<true>, S) -> DFut + 'static + Clone,
+    ) -> LocalResource<Result<D, ServerFnError>> {
         let cans = self.canisters_resource;
-        let base = unauth_canisters();
-        Resource::new(
-            move || {
-                // MockPartialEq is necessary
-                // See: https://github.com/leptos-rs/leptos/issues/2661
-                cans.track();
-                MockPartialEq(tracker())
-            },
-            move |s| {
-                let base = base.clone();
-                let fetcher = fetcher.clone();
-                async move {
-                    let cans_wire = cans.await?;
-                    let cans = Canisters::from_wire(cans_wire, base)?;
-                    fetcher(cans, s.0).await
-                }
-            },
-        )
+        LocalResource::new(move || {
+            cans.track();
+            let state = tracker();
+            let fetcher = fetcher.clone();
+            async move {
+                let cans = cans.await?;
+                fetcher(cans, state).await
+            }
+        })
     }
 
     /// WARN: Use this very carefully, this function only exists for very fine-tuned optimizations
     /// for critical pages
     /// this definitely must not be used in DOM
-    pub fn auth_cans_if_available(&self, base: Canisters<false>) -> Option<Canisters<true>> {
+    /// this always be `None` for ssr
+    pub fn auth_cans_if_available(&self) -> Option<Canisters<true>> {
+        #[cfg(not(feature = "hydrate"))]
+        {
+            None
+        }
+
+        #[cfg(feature = "hydrate")]
         self.canisters_resource
             .into_future()
             .now_or_never()
-            .and_then(|c| {
-                let cans_wire = c.ok()?;
-                Canisters::from_wire(cans_wire, base).ok()
-            })
+            .and_then(|c| c.ok())
     }
 
     /// Update the username of the user
@@ -434,7 +413,7 @@ impl AuthState {
         new_username: String,
     ) -> yral_canisters_common::Result<()> {
         cans.set_username(new_username).await?;
-        self.new_cans_setter.set(Some(cans.into()));
+        self.new_cans_setter.set(Some(cans));
 
         Ok(())
     }

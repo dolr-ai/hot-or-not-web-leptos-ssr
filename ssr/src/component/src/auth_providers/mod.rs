@@ -12,7 +12,6 @@ use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
 use leptos_icons::Icon;
 use leptos_router::hooks::use_navigate;
 use state::canisters::auth_state;
-use state::canisters::unauth_canisters;
 use utils::event_streaming::events::CentsAdded;
 use utils::event_streaming::events::EventCtx;
 use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, ProviderKind};
@@ -136,18 +135,16 @@ pub fn LoginProviders(
         MixPanelEvent::track_auth_screen_viewed(global);
     }
 
-    let base_cans = unauth_canisters();
     let login_action = Action::new(move |new_id: &NewIdentity| {
         // Clone the necessary parts
         let new_id = new_id.clone();
         let redirect_to = redirect_to.clone();
-        let base_cans = base_cans.clone();
         // Capture the context signal setter
         send_wrap(async move {
             let referrer = auth.referrer_store.get_untracked();
 
             let mut canisters = auth
-                .set_new_identity_and_wait_for_authentication(base_cans, new_id.clone(), true)
+                .set_new_identity_and_wait_for_authentication(new_id.clone(), true)
                 .await?;
             // HACK: leptos can panic sometimes and reach an undefined state
             // while the panic is not fixed, we use this workaround

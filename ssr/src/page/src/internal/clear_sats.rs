@@ -81,7 +81,7 @@ pub fn ClearSats() -> impl IntoView {
         || (),
         move |_| async move {
             let fetcher = BalanceFetcherType::Sats;
-            let cans = send_wrap(auth.auth_cans(Default::default())).await?;
+            let cans = send_wrap(auth.auth_cans()).await?;
             let user_canister = cans.user_canister();
             let user_principal = cans.user_principal();
             if !WHITELIST_FOR_SATS_CLEARING.contains(user_principal.to_text().as_str()) {
