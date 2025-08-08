@@ -87,7 +87,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                     true,
                                     None,
                                     model_name,
-                                    format!("{:?}", params.token_type),
+                                    format!("{:?}", params.token_type).to_lowercase(),
                                 );
                             }
                             Err(error) => {
@@ -96,7 +96,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                     false,
                                     Some(error.clone()),
                                     model_name,
-                                    format!("{:?}", params.token_type),
+                                    format!("{:?}", params.token_type).to_lowercase(),
                                 );
                             }
                         }
@@ -134,7 +134,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                         false, // caption_added - we're not using captions for AI videos
                         false, // hashtags_added - we're not using hashtags for AI videos
                         Some("ai_video".to_string()),
-                        format!("{:?}", params.token_type),
+                        format!("{:?}", params.token_type).to_lowercase(),
                     );
                 }
 
@@ -170,7 +170,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                         false, // is_game_enabled - AI videos don't have game enabled
                                         MixpanelPostGameType::HotOrNot,
                                         Some("ai_video".to_string()),
-                                        format!("{:?}", params.token_type),
+                                        format!("{:?}", params.token_type).to_lowercase(),
                                     );
                                 }
 

@@ -481,7 +481,7 @@ pub fn PreUploadAiView(
                                                             MixPanelEvent::track_create_ai_video_clicked(
                                                                 global,
                                                                 model.name.clone(),
-                                                                format!("{api_token_type:?}")
+                                                                format!("{api_token_type:?}").to_lowercase()
                                                             );
                                                         }
 
