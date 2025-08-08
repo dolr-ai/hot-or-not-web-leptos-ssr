@@ -1,13 +1,22 @@
 use super::{ModelDropdown, TokenDropdown};
 use crate::upload::ai::token_balance::load_token_balance;
 use crate::upload::ai::types::VideoGenerationParams;
+use codee::string::JsonSerdeCodec;
 use component::{back_btn::BackButton, buttons::GradientButton, login_modal::LoginModal};
-use leptos::{ev::Event, html::Input, prelude::*, web_sys};
+use consts::auth::REFRESH_MAX_AGE;
+use consts::AUTH_JOURNEY_PAGE;
+use leptos::{html::Input, prelude::*};
+
+use leptos::{ev::Event, web_sys};
 use leptos_icons::*;
+use leptos_router::hooks::use_location;
+use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use state::canisters::auth_state;
 use utils::event_streaming::events::VideoUploadInitiated;
 use utils::host::show_preview_component;
-use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps};
+use utils::mixpanel::mixpanel_events::{
+    BottomNavigationCategory, MixPanelEvent, MixpanelGlobalProps,
+};
 use utils::send_wrap;
 use videogen_common::token_costs::TOKEN_COST_CONFIG;
 use videogen_common::{TokenType, VideoGenProvider, VideoModel};
@@ -316,6 +325,15 @@ pub fn PreUploadAiView(
     // Login modal state
     let show_login_modal = RwSignal::new(false);
 
+    let loc = use_location();
+
+    let (_, set_auth_journey_page) =
+        use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
+            AUTH_JOURNEY_PAGE,
+            UseCookieOptions::default()
+                .path("/")
+                .max_age(REFRESH_MAX_AGE.as_millis() as i64),
+        );
     // Lock in rate limit status to prevent race conditions
     let locked_rate_limit_status = RwSignal::new(None::<bool>);
 
@@ -386,6 +404,19 @@ pub fn PreUploadAiView(
     let ev_ctx = auth.event_ctx();
     VideoUploadInitiated.send_event(ev_ctx);
 
+    let login_click_action = Action::new(move |_: &()| {
+        show_login_modal.set(true);
+        let path = loc.pathname.get_untracked();
+        let category: BottomNavigationCategory =
+            BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
+        set_auth_journey_page.set(Some(category));
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            let page_name = global.page_name();
+            MixPanelEvent::track_signup_clicked(global, page_name);
+        }
+        async {}
+    });
+
     view! {
         <div class="flex flex-col bg-black min-w-dvw min-h-dvh">
             // Header with back button and title
@@ -452,7 +483,7 @@ pub fn PreUploadAiView(
                                             // Check if user is logged in
                                             if !is_logged_in.get_untracked() {
                                                 // Show login modal if not logged in
-                                                show_login_modal.set(true);
+                                                login_click_action.dispatch(());
                                             } else {
                                                 match &principal_result {
                                                     Ok(user_principal) => {
