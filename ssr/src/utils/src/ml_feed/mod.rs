@@ -62,9 +62,9 @@ pub async fn get_ml_feed_coldstart_clean(
     user_id: Principal,
     num_results: u32,
     filter_results: Vec<PostDetails>,
+    ip_address: Option<String>,
 ) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let ip_address = crate::client_ip::get_client_ip().await;
     let recommendation_request = RecommendationRequest {
         user_id: user_id.to_string(),
         exclude_items: post_details_to_video_ids(filter_results),
@@ -94,9 +94,9 @@ pub async fn get_ml_feed_coldstart_nsfw(
     user_id: Principal,
     num_results: u32,
     filter_results: Vec<PostDetails>,
+    ip_address: Option<String>,
 ) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let ip_address = crate::client_ip::get_client_ip().await;
     let recommendation_request = RecommendationRequest {
         user_id: user_id.to_string(),
         exclude_items: post_details_to_video_ids(filter_results),
@@ -126,9 +126,9 @@ pub async fn get_ml_feed_clean(
     user_id: Principal,
     num_results: u32,
     filter_results: Vec<PostDetails>,
+    ip_address: Option<String>,
 ) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let ip_address = crate::client_ip::get_client_ip().await;
     let recommendation_request = RecommendationRequest {
         user_id: user_id.to_string(),
         exclude_items: post_details_to_video_ids(filter_results),
@@ -157,9 +157,9 @@ pub async fn get_ml_feed_nsfw(
     user_id: Principal,
     num_results: u32,
     filter_results: Vec<PostDetails>,
+    ip_address: Option<String>,
 ) -> Result<Vec<PostItemV2>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let ip_address = crate::client_ip::get_client_ip().await;
     let recommendation_request = RecommendationRequest {
         user_id: user_id.to_string(),
         exclude_items: post_details_to_video_ids(filter_results),

@@ -121,6 +121,7 @@ impl<
                 user_principal_id,
                 self.cursor.limit as u32,
                 video_queue.clone(),
+                None,
             )
             .await
             .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
@@ -129,6 +130,7 @@ impl<
                 user_principal_id,
                 self.cursor.limit as u32,
                 video_queue.clone(),
+                None,
             )
             .await
             .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
@@ -170,6 +172,7 @@ impl<
                 user_principal_id,
                 self.cursor.limit as u32,
                 video_queue.clone(),
+                None,
             )
             .await
             .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
@@ -178,6 +181,7 @@ impl<
                 user_principal_id,
                 self.cursor.limit as u32,
                 video_queue.clone(),
+                None,
             )
             .await
             .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
