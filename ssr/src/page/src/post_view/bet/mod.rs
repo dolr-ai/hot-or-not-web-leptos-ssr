@@ -295,7 +295,7 @@ fn HNButtonOverlay(
 
     let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
         move |_| {
-            let _ = window().location().reload();
+            let _ = window().location().set_href("/");
         },
         50.0,
     );
