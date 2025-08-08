@@ -35,8 +35,8 @@ pub struct UploadParams {
 
 #[component]
 fn PreUploadView(
-    trigger_upload: WriteSignal<Option<UploadParams>, LocalStorage>,
-    uid: RwSignal<Option<String>, LocalStorage>,
+    trigger_upload: WriteSignal<Option<UploadParams>>,
+    uid: RwSignal<Option<String>>,
     upload_file_actual_progress: WriteSignal<f64>,
 ) -> impl IntoView {
     let description_err = RwSignal::new(String::new());
@@ -44,7 +44,7 @@ fn PreUploadView(
     let hashtags = RwSignal::new(Vec::new());
     let hashtags_err = RwSignal::new(String::new());
     let hashtags_err_memo = Memo::new(move |_| hashtags_err());
-    let file_blob = RwSignal::new_local(None::<FileWithUrl>);
+    let file_blob = RwSignal::new(None::<FileWithUrl>);
     let desc = NodeRef::<Textarea>::new();
     let invalid_form = Memo::new(move |_| {
         // Description error
@@ -188,8 +188,8 @@ fn PreUploadView(
 
 #[component]
 pub fn UploadPostPage() -> impl IntoView {
-    let trigger_upload = RwSignal::new_local(None::<UploadParams>);
-    let uid = RwSignal::new_local(None);
+    let trigger_upload = RwSignal::new(None::<UploadParams>);
+    let uid = RwSignal::new(None);
     let upload_file_actual_progress = RwSignal::new(0.0f64);
 
     view! {

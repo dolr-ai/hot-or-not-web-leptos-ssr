@@ -79,13 +79,11 @@ pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView 
         move |(canister_id, post_id)| {
             send_wrap(async move {
                 let canister = unauth_canisters();
-                let user = canister.individual_user(canister_id).await;
-                let post_details = user.get_individual_post_details_by_id(post_id).await.ok()?;
-                Some(PostDetails::from_canister_post(
-                    false,
-                    canister_id,
-                    post_details,
-                ))
+                canister
+                    .get_post_details(canister_id, post_id)
+                    .await
+                    .ok()
+                    .flatten()
             })
         },
     );

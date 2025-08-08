@@ -136,8 +136,8 @@ fn CreditsSection(
     selected_token: RwSignal<TokenType>,
     show_token_dropdown: RwSignal<bool>,
     is_logged_in: Signal<bool>,
-    rate_limit_resource: Resource<Result<bool, ServerFnError>>,
-    balance_resource: Resource<Result<TokenBalance, ServerFnError>>,
+    rate_limit_resource: LocalResource<Result<bool, ServerFnError>>,
+    balance_resource: LocalResource<Result<TokenBalance, ServerFnError>>,
     has_sufficient_balance: RwSignal<bool>,
     locked_rate_limit_status: RwSignal<Option<bool>>,
 ) -> impl IntoView {

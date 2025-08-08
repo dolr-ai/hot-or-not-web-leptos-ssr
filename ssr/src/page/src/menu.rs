@@ -17,7 +17,6 @@ use leptos_use::storage::use_local_storage;
 use leptos_use::use_event_listener;
 use state::app_state::AppState;
 use state::canisters::auth_state;
-use state::canisters::unauth_canisters;
 use state::content_seed_client::ContentSeedClient;
 use utils::mixpanel::mixpanel_events::*;
 use utils::send_wrap;
@@ -260,7 +259,7 @@ pub fn Menu() -> impl IntoView {
                     <a on:click=move |_| view_profile_clicked() href="/profile/posts" class="flex flex-row gap-4 justify-center items-center p-4 w-full bg-neutral-900 rounded-lg">
                         <Suspense fallback=ProfileLoading>
                             {move || Suspend::new(async move {
-                                let cans = auth.auth_cans(unauth_canisters()).await;
+                                let cans = auth.auth_cans().await;
                                 cans.map(|c| {
                                     view! { <ProfileLoaded user_details=c.profile_details() /> }
                                 })

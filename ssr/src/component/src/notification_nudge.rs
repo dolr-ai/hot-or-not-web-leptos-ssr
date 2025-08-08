@@ -31,7 +31,7 @@ pub fn NotificationNudge(pop_up: RwSignal<bool>) -> impl IntoView {
     let notification_action: Action<(), ()> = Action::new_unsync(move |()| async move {
         let metaclient: MetadataClient<false> = MetadataClient::default();
 
-        let cans = auth.auth_cans(expect_context()).await.unwrap();
+        let cans = auth.auth_cans().await.unwrap();
 
         let browser_permission = Notification::permission();
         let notifs_enabled_val = notifs_enabled.get_untracked();
