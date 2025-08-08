@@ -891,9 +891,6 @@ impl MixPanelEvent {
                     "/upload-options" => {
                         Self::track_upload_page_viewed(props);
                     }
-                    "/profile/edit" => {
-                        Self::track_edit_profile_clicked(props, "profile".to_string());
-                    }
                     "/profile/edit/username" => {
                         Self::track_edit_username_clicked(props);
                     }

@@ -2,47 +2,33 @@ use consts::OFF_CHAIN_AGENT_URL;
 use gloo::timers::future::TimeoutFuture;
 use videogen_common::{
     VideoGenClient, VideoGenError, VideoGenQueuedResponse, VideoGenRequest, VideoGenRequestStatus,
-    VideoGenRequestWithSignature, VideoGenResponse,
+    VideoGenRequestWithIdentity, VideoGenResponse,
 };
 use yral_canisters_client::rate_limits::RateLimits;
+use yral_types::delegated_identity::DelegatedIdentityWire;
 
-/// Create a message for videogen request signing
-pub fn videogen_request_msg(request: VideoGenRequest) -> yral_identity::msg_builder::Message {
-    yral_identity::msg_builder::Message::default()
-        .method_name("videogen_generate".into())
-        .args((request,))
-        .expect("VideoGen request should serialize")
-}
-
-/// Sign a videogen request with the sender's identity
-pub fn sign_videogen_request(
-    sender: &impl ic_agent::Identity,
+/// Generate video using the delegated identity flow (for DOLR payments)
+/// The off-chain agent will use the user's identity to make direct transfers
+pub async fn generate_video_with_identity(
     request: VideoGenRequest,
-) -> yral_identity::Result<VideoGenRequestWithSignature> {
-    use yral_identity::ic_agent::sign_message;
-    let msg = videogen_request_msg(request.clone());
-    let signature = sign_message(sender, msg)?;
-
-    Ok(VideoGenRequestWithSignature::new_with_signature(
-        request, signature,
-    ))
-}
-
-/// Generate video using the signature-based flow
-/// The off-chain agent will handle signature verification and balance deduction
-pub async fn generate_video_with_signature(
-    signed_request: VideoGenRequestWithSignature,
+    delegated_identity: DelegatedIdentityWire,
     rate_limits: &RateLimits<'_>,
 ) -> Result<VideoGenResponse, VideoGenError> {
-    // Create client and call the signed endpoint
+    // Create client
     let client = VideoGenClient::new(OFF_CHAIN_AGENT_URL.clone());
+
+    // Create request with identity
+    let identity_request = VideoGenRequestWithIdentity {
+        request,
+        delegated_identity,
+    };
 
     // Get the queued response with request_key
     let queued_response: VideoGenQueuedResponse = client
-        .generate_with_signature(signed_request)
+        .generate_with_identity(identity_request)
         .await
         .map_err(|e| {
-            leptos::logging::log!("Error generating video: {}", e);
+            leptos::logging::log!("Error generating video with identity: {}", e);
             e
         })?;
 
