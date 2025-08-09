@@ -116,7 +116,7 @@ pub fn post_details_to_post_item(post_details: Vec<PostDetails>) -> Vec<PostItem
         .into_iter()
         .map(|post_detail| PostItemV2 {
             publisher_user_id: post_detail.poster_principal.to_text(),
-            post_id: post_detail.post_id,
+            post_id: post_detail.post_id.clone().parse::<u64>().unwrap(),
             canister_id: post_detail.canister_id.to_text(),
             video_id: post_detail.uid,
             is_nsfw: post_detail.is_nsfw,

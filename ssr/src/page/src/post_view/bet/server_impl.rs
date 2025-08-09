@@ -10,7 +10,7 @@ pub async fn vote_with_cents_on_post(
     sender: Principal,
     req: VoteRequest,
     sig: Signature,
-    prev_video_info: Option<(Principal, u64)>,
+    prev_video_info: Option<(Principal, String)>,
 ) -> Result<VoteAPIRes, ServerFnError> {
     #[cfg(feature = "alloydb")]
     use alloydb::vote_with_cents_on_post;
@@ -41,7 +41,7 @@ mod alloydb {
         sender: Principal,
         req: VoteRequest,
         sig: Signature,
-        prev_video_info: Option<(Principal, u64)>,
+        prev_video_info: Option<(Principal, String)>,
     ) -> Result<VoteAPIRes, ServerFnError> {
         use state::alloydb::AlloyDbInstance;
         use state::server::HonWorkerJwt;
@@ -49,7 +49,7 @@ mod alloydb {
 
         let cans: Canisters<false> = expect_context();
         let Some(post_info) = cans
-            .get_post_details(req.post_canister, req.post_id)
+            .get_post_details(req.post_canister, req.post_id.to_string())
             .await?
         else {
             return Err(ServerFnError::new("post not found"));
@@ -153,7 +153,7 @@ mod mock {
         _sender: Principal,
         _req: VoteRequest,
         _sig: Signature,
-        _prev_video_info: Option<(Principal, u64)>,
+        _prev_video_info: Option<(Principal, String)>,
     ) -> Result<VoteAPIRes, ServerFnError> {
         let game_result = VoteResV2 {
             game_result: GameResultV2::Win {

@@ -99,7 +99,7 @@ pub fn YralRootPage() -> impl IntoView {
                             post_details_cache
                                 .post_details
                                 .update(|post_details| {
-                                    post_details.insert((Principal::from_text(publisher_user_id).unwrap(), post_id), post_item.clone());
+                                    post_details.insert((Principal::from_text(publisher_user_id).unwrap(), post_id.to_string()), post_item.clone());
                                 });
                             format!("/hot-or-not/{canister_id}/{post_id}")
                         }

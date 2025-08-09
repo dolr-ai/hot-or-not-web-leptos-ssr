@@ -38,10 +38,10 @@ use utils::{
 use video_iter::{new_video_fetch_stream, new_video_fetch_stream_auth, FeedResultType};
 use yral_canisters_common::{utils::posts::PostDetails, Canisters};
 
-#[derive(Params, PartialEq, Clone, Copy)]
+#[derive(Params, PartialEq, Clone)]
 struct PostParams {
     canister_id: Principal,
-    post_id: u64,
+    post_id: String,
 }
 
 #[derive(Clone, Default)]
@@ -145,7 +145,7 @@ pub fn CommonPostViewWithUpdates(
         video_queue.with(|q| {
             let cur_idx = current_idx();
             let details = q.get_index(cur_idx)?;
-            Some((details.canister_id, details.post_id))
+            Some((details.canister_id, details.post_id.clone()))
         })
     });
 
@@ -155,7 +155,7 @@ pub fn CommonPostViewWithUpdates(
         };
         current_post_params.set(Some(utils::types::PostParams {
             canister_id,
-            post_id,
+            post_id: post_id.clone(),
         }));
         use_navigate()(
             &format!("/hot-or-not/{canister_id}/{post_id}",),
@@ -376,7 +376,7 @@ pub fn PostView() -> impl IntoView {
                 return Ok(Some(post));
             }
             let post_nsfw_prob = post_details_cache.post_details.with_untracked(|p| {
-                let item = p.get(&(params.canister_id, params.post_id));
+                let item = p.get(&(params.canister_id, params.post_id.clone()));
                 if let Some(item) = item {
                     if item.is_nsfw {
                         1.0

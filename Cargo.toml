@@ -8,6 +8,8 @@ members = [
     "ssr/src/utils",
     "ssr/src/page",
 ]
+
+exclude = ["./yral-common"]
 resolver = "2"
 
 
@@ -223,3 +225,13 @@ videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch =
     "client",
     "ic",
 ] }
+
+[patch."https://github.com/dolr-ai/yral-common"]
+yral-canisters-common = {path = "./yral-common/canisters-common"}
+yral-canisters-client = {path = "./yral-common/canisters-client"}
+yral-pump-n-dump-common = { path = "./yral-common/pump-n-dump-common" }
+sns-validation = { path = "./yral-common/sns-validation" }
+yral-types = { path = "./yral-common/types" }
+hon-worker-common = { path = "./yral-common/hon-worker-common" }
+global-constants = { path = "./yral-common/global-constants" }
+yral-identity = { path = "./yral-common/identity"}

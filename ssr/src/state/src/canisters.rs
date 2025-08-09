@@ -67,8 +67,15 @@ async fn do_canister_auth(
     referrer: Option<Principal>,
     fallback_username: Option<String>,
 ) -> Result<CanistersAuthWire, ServerFnError> {
-    let auth_fut = Canisters::authenticate_with_network(auth, referrer);
+    let auth_fut = Canisters::authenticate_with_network(auth);
+
     let mut canisters = send_wrap(auth_fut).await?;
+
+    leptos::logging::log!(
+        "registered new user with principal {}",
+        canisters.user_principal().to_text()
+    );
+
     if canisters.profile_details().username.is_some() {
         return Ok(canisters.into());
     }

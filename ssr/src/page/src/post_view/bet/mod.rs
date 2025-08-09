@@ -156,25 +156,27 @@ fn HNButtonOverlay(
     let place_bet_action: Action<VoteKind, Option<()>> =
         Action::new(move |bet_direction: &VoteKind| {
             let post_canister = post.canister_id;
-            let post_id = post.post_id;
+            let post_id = &post.post_id;
             let bet_amount: u64 = coin.get_untracked().to_cents();
             let bet_direction = *bet_direction;
 
             // Create the original VoteRequest for the server function
             let req = hon_worker_common::VoteRequest {
+                post_id: post_id.parse().unwrap(),
                 post_canister,
-                post_id,
                 vote_amount: bet_amount as u128,
                 direction: bet_direction.into(),
             };
             // Create VoteRequestV3 for signing
             let req_v3 = VoteRequestV3 {
                 publisher_principal: post.poster_principal,
-                post_id,
+                post_id: post_id.parse().unwrap(),
                 vote_amount: bet_amount as u128,
                 direction: bet_direction.into(),
             };
-            let prev_post = prev_post.as_ref().map(|p| (p.canister_id, p.post_id));
+            let prev_post = prev_post
+                .as_ref()
+                .map(|p| (p.canister_id, p.post_id.clone()));
 
             let post_mix = post.clone();
             send_wrap(async move {
@@ -282,12 +284,14 @@ fn HNButtonOverlay(
 
     let was_connected = RwSignal::new(is_connected.get_untracked());
 
+    let login_post_clone = login_post.clone();
     Effect::new(move |_| {
         if !was_connected.get_untracked() && is_connected.get() {
             let window = window();
             let url = format!(
                 "/hot-or-not/{}/{}",
-                login_post.canister_id, login_post.post_id
+                login_post_clone.canister_id,
+                login_post_clone.post_id.as_str()
             );
             let _ = window.location().set_href(&url);
         }
@@ -303,7 +307,7 @@ fn HNButtonOverlay(
             </button>
         </div>
         <LoginNudgePopup show=show_login_nudge show_login_popup />
-        <LoginModal show=show_login_popup redirect_to=Some(format!("/hot-or-not/{}/{}", login_post.canister_id, login_post.post_id)) />
+        <LoginModal show=show_login_popup redirect_to=Some(format!("/hot-or-not/{}/{}", login_post.canister_id, login_post.post_id.as_str())) />
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
@@ -682,7 +686,7 @@ pub fn HNGameOverlay(
                 let post = post.get_value();
                 let game_info_req = GameInfoReqV3 {
                     publisher_principal: post.poster_principal,
-                    post_id: post.post_id,
+                    post_id: post.post_id.parse::<u64>().unwrap(),
                 };
                 let game_info = cans
                     .fetch_game_with_sats_info_v3(

@@ -139,7 +139,7 @@ impl<
                 // TODO: not changing now since this will be replaced with new post canister service
                 self.canisters.get_post_details_with_nsfw_info(
                     Principal::from_text(item.canister_id).unwrap(),
-                    item.post_id,
+                    item.post_id.to_string(),
                     if item.is_nsfw { 1.0 } else { 0.0 },
                 )
             })
@@ -187,7 +187,7 @@ impl<
             .map(move |item| {
                 self.canisters.get_post_details_with_nsfw_info(
                     Principal::from_text(item.canister_id).unwrap(),
-                    item.post_id,
+                    item.post_id.to_string(),
                     if item.is_nsfw { 1.0 } else { 0.0 },
                 )
             })

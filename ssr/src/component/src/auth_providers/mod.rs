@@ -154,7 +154,7 @@ pub fn LoginProviders(
             if canisters.user_principal()
                 != Principal::self_authenticating(&new_id.id_wire.from_key)
             {
-                canisters = Canisters::authenticate_with_network(new_id.id_wire, referrer).await?;
+                canisters = Canisters::authenticate_with_network(new_id.id_wire).await?;
             }
 
             if let Err(e) = handle_user_login(canisters.clone(), auth.event_ctx(), referrer).await {
