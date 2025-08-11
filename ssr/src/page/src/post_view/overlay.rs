@@ -829,7 +829,6 @@ pub fn HotOrNotTutorialOverlay(
         </ShadowOverlay>
     }
 }
-
 #[component]
 pub fn LowSatsBalancePopup(
     show: RwSignal<bool>,
@@ -861,7 +860,7 @@ pub fn LowSatsBalancePopup(
     view! {
         <ShadowOverlay show=show >
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
-                <div style="min-height: 40vh;" class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
+                <div style="min-height: 62vh;" class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
                     <button
                         on:click=move |_| {
                             show.set(false);
@@ -870,31 +869,33 @@ pub fn LowSatsBalancePopup(
                     >
                         <Icon icon=icondata::ChCross />
                     </button>
-                    <Suspense
-                        fallback=move || view! {
-                            <div style="padding-top:50%" class="flex flex-col items-center justify-center w-full">
-                                <div class="size-12">
-                                    <SpinnerFit />
-                                </div>
-                             </div>
-                        }
-                    >
-                        {move || Suspend::new(async move {
-                            let airdrop_status = status_resource.await;
-                            let is_airdrop_eligible = matches!(airdrop_status, AirdropStatus::Available);
 
-                            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                                MixPanelEvent::track_low_on_sats_popup_shown(
-                                    global,
-                                    is_airdrop_eligible,
-                                    "home".to_string(),
-                                );
+                    <div class="flex z-[2] relative flex-col items-center gap-5 text-white justify-center p-12">
+                        <img src="/img/hotornot/sad.webp" class="size-14" />
+                        <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on Bitcoin (SATS)"</div>
+
+                        <Suspense
+                            fallback=move || view! {
+                                <div class="flex flex-col items-center justify-center w-full py-16">
+                                    <div class="size-12">
+                                        <SpinnerFit />
+                                    </div>
+                                 </div>
                             }
+                        >
+                            {move || Suspend::new(async move {
+                                let airdrop_status = status_resource.await;
+                                let is_airdrop_eligible = matches!(airdrop_status, AirdropStatus::Available);
 
-                            view! {
-                                <div class="flex z-[2] relative flex-col items-center gap-5 text-white justify-center p-12">
-                                    <img src="/img/hotornot/sad.webp" class="size-14" />
-                                    <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on Bitcoin (SATS)"</div>
+                                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                                    MixPanelEvent::track_low_on_sats_popup_shown(
+                                        global,
+                                        is_airdrop_eligible,
+                                        "home".to_string(),
+                                    );
+                                }
+
+                                view! {
                                     {
                                         let refer_reward_text = format!("Bitcoin ({REFERRAL_REWARD_SATS} SATS)");
                                         match airdrop_status {
@@ -965,10 +966,10 @@ pub fn LowSatsBalancePopup(
                                             }.into_any()
                                         }
                                     }
-                                </div>
-                            }
-                        })}
-                    </Suspense>
+                                }
+                            })}
+                        </Suspense>
+                    </div>
                 </div>
             </div>
         </ShadowOverlay>
