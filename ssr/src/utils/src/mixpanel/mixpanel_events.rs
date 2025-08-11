@@ -418,6 +418,7 @@ pub enum StakeType {
     DolrAi,
     Btc,
     Usdc,
+    Yral,
 }
 
 #[derive(Serialize, Debug)]

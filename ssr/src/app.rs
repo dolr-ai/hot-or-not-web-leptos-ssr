@@ -9,6 +9,7 @@ use page::about_us::AboutUs;
 use page::internal::clear_sats::ClearSats;
 use page::leaderboard::Leaderboard;
 use page::post_view::PostDetailsCacheCtx;
+use page::pumpdump;
 use page::root::YralRootPage;
 use page::terms_android::TermsAndroid;
 use page::terms_ios::TermsIos;
@@ -30,7 +31,6 @@ use page::{
     upload::{UploadAiPostPage, UploadOptionsPage, UploadPostPage},
     wallet::Wallet,
 };
-use page::{hon, pumpdump};
 use state::app_state::AppState;
 use state::app_type::AppType;
 use state::hn_bet_state::HnBetState;
@@ -163,18 +163,19 @@ pub fn App() -> impl IntoView {
                     <GoogleAuthRedirectHandlerRoute />
                     <Route path=path!("/") view=YralRootPage />
                     <ParentRoute path=path!("") view=BaseRoute>
-                        <Route
-                            path=path!("/hot-or-not/withdraw")
-                            view=hon::withdrawal::HonWithdrawal
-                        />
-                        <Route
-                            path=path!("/hot-or-not/withdraw/success")
-                            view=hon::withdrawal::result::Success
-                        />
-                        <Route
-                            path=path!("/hot-or-not/withdraw/failure")
-                            view=hon::withdrawal::result::Failure
-                        />
+                        // TODO: enable when SATS are added back
+                        // <Route
+                        //     path=path!("/hot-or-not/withdraw")
+                        //     view=hon::withdrawal::HonWithdrawal
+                        // />
+                        // <Route
+                        //     path=path!("/hot-or-not/withdraw/success")
+                        //     view=hon::withdrawal::result::Success
+                        // />
+                        // <Route
+                        //     path=path!("/hot-or-not/withdraw/failure")
+                        //     view=hon::withdrawal::result::Failure
+                        // />
                         <Route path=path!("/hot-or-not/:canister_id/:post_id") view=PostView />
                         <Route path=path!("/post/:canister_id/:post_id") view=SinglePost />
                         <Route path=path!("/profile/:canister_id/post/:post_id") view=ProfilePost />
