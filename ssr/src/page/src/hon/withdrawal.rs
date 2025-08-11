@@ -242,7 +242,7 @@ pub fn HonWithdrawal() -> impl IntoView {
 
             send_wrap(async move {
                 let fetched_balance = cans.icrc1_balance_of(treasury, ledger).await;
-                log::info!("Fetched treasury balance {fetched_balance}");
+                log::info!("Fetched treasury balance {fetched_balance:?}");
                 match fetched_balance {
                     Ok(balance) => balance,
                     Err(_) => Nat::from(0_usize),

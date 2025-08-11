@@ -844,22 +844,19 @@ pub fn LowSatsBalancePopup(
 
     let status_resource = Resource::new(
         move || show.get(),
-        move |showing| {
-            let cans = unauth_canisters();
-            async move {
-                if !showing {
-                    return AirdropStatus::Available;
-                }
-                let Ok(auth_cans) = auth.auth_cans(cans).await else {
-                    log::warn!("Failed to get authenticated canisters");
-                    return AirdropStatus::Available;
-                };
-                let user_canister = auth_cans.user_canister();
-                let user_principal = auth_cans.user_principal();
-                match get_sats_airdrop_status(user_canister, user_principal).await {
-                    Ok(status) => status,
-                    Err(_) => AirdropStatus::Available,
-                }
+        move |showing| async move {
+            if !showing {
+                return AirdropStatus::Available;
+            }
+            let Ok(auth_cans) = auth.auth_cans().await else {
+                log::warn!("Failed to get authenticated canisters");
+                return AirdropStatus::Available;
+            };
+            let user_canister = auth_cans.user_canister();
+            let user_principal = auth_cans.user_principal();
+            match get_sats_airdrop_status(user_canister, user_principal).await {
+                Ok(status) => status,
+                Err(_) => AirdropStatus::Available,
             }
         },
     );

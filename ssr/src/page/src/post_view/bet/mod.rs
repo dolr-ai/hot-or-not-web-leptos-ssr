@@ -200,35 +200,37 @@ fn HNButtonOverlay(
                     post.is_nsfw,
                 );
 
-                async fn fetch_and_update_balance() {
+                let fetch_and_update_balance = || async {
+                    log::info!("Fetching latest wallet balance for user");
                     let cans = auth.auth_cans().await.ok()?;
                     let user_principal = cans.user_principal();
                     let balance_info = load_sats_balance(user_principal).await.ok()?;
                     let balance = balance_info.balance.to_u64().unwrap_or(25);
+                    log::info!("Fetched wallet balance: {balance}");
                     set_wallet_balance_store.set(balance);
                     HnBetState::set_balance(balance);
                     Some(balance)
-                }
+                };
 
                 // Check balance and refetch if insufficient
                 let current_balance = wallet_balance_store.get_untracked();
                 if bet_amount > current_balance {
                     log::info!("Current balance ({current_balance}) might be insufficient for bet amount ({bet_amount}), checking latest balance...");
 
-                    fetch_and_update_balance.await;
+                    fetch_and_update_balance().await;
 
                     let current_balance = wallet_balance_store.get_untracked();
 
                     // Check again with updated balance
-                    if bet_amount > updated_balance {
+                    if bet_amount > current_balance {
                         log::warn!(
-                            "Insufficient balance for bet amount: {bet_amount} > {updated_balance}"
+                            "Insufficient balance for bet amount: {bet_amount} > {current_balance}"
                         );
                         show_low_balance_popup.set(true);
                         return None;
                     }
                     log::info!(
-                        "Balance sufficient after update ({updated_balance}), proceeding with bet"
+                        "Balance sufficient after update ({current_balance}), proceeding with bet"
                     );
                 }
 
@@ -682,10 +684,6 @@ pub fn HNGameOverlay(
     } else {
         DEFAULT_BET_COIN_FOR_LOGGED_OUT
     });
-
-    // Fetch and update wallet balance on initial load
-    let (_, set_wallet_balance_store, _) =
-        use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
     let create_game_info = auth.derive_resource(
         move || refetch_bet.track(),
