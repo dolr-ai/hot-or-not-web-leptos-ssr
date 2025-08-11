@@ -479,7 +479,7 @@ pub fn VideoDetailsOverlay(
                 return;
             };
             if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                MixPanelEvent::refer_friend_clicked(
+                MixPanelEvent::track_refer_friend_clicked(
                     global,
                     is_airdrop_eligible,
                     "low_sats_popup",

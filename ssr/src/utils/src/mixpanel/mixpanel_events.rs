@@ -542,7 +542,7 @@ derive_event!(track_referral_link_copied {
     referral_bonus: u64
 });
 
-derive_event!(refer_friend_clicked {
+derive_event!(track_refer_friend_clicked {
     is_airdrop_eligible: bool,
     cta_type: String,
     page_name: String
