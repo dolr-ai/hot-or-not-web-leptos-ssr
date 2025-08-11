@@ -182,6 +182,22 @@ mock-referral-history = [
 ]
 
 
+local-bin = [
+    "ssr",
+    "redis-kv",
+    "backend-admin",
+    "dep:testcontainers",
+    "dep:yral-testcontainers",
+    "yral-canisters-common/local",
+    "dep:yral-metadata-client",
+    "dep:yral-metadata-types",
+    "dep:rand_chacha",
+    "consts/local-bin",
+    "utils/local-bin",
+    "state/local-bin",
+    "component/local-bin",
+    "page/local-bin",
+]
 mock-history = [
     "mock-referral-history",
     "mock-wallet-history",
@@ -296,22 +312,6 @@ release-lib = [
     "state/release-lib",
     "component/release-lib",
     "page/release-lib",
-]
-local-bin = [
-    "ssr",
-    "redis-kv",
-    "backend-admin",
-    "dep:testcontainers",
-    "dep:yral-testcontainers",
-    "yral-canisters-common/local",
-    "dep:yral-metadata-client",
-    "dep:yral-metadata-types",
-    "dep:rand_chacha",
-    "consts/local-bin",
-    "utils/local-bin",
-    "state/local-bin",
-    "component/local-bin",
-    "page/local-bin",
 ]
 local-lib = [
     "hydrate",
