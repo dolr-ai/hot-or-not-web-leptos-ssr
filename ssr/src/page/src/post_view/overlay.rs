@@ -17,7 +17,7 @@ use leptos_router::hooks::{use_location, use_navigate};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
 use state::audio_state::AudioState;
-use state::canisters::{auth_state, unauth_canisters};
+use state::canisters::auth_state;
 use utils::host::show_nsfw_content;
 use utils::{
     event_streaming::events::{LikeVideo, ShareVideo},
@@ -60,7 +60,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
         let post_details = post.clone();
         let video_id = post.uid.clone();
         send_wrap(async move {
-            let Ok(canisters) = auth.auth_cans(unauth_canisters()).await else {
+            let Ok(canisters) = auth.auth_cans().await else {
                 log::warn!("Trying to toggle like without auth");
                 return;
             };
@@ -110,21 +110,19 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
 
     let liked_fetch = auth.derive_resource(
         || (),
-        move |cans, _| {
-            send_wrap(async move {
-                let result = if let Some(liked) = initial_liked.0 {
-                    (liked, initial_liked.1)
-                } else {
-                    match cans.post_like_info(post_canister, post_id).await {
-                        Ok(liked) => liked,
-                        Err(e) => {
-                            log::warn!("faild to fetch likes {e}");
-                            (false, likes.try_get_untracked().unwrap_or_default())
-                        }
+        move |cans, _| async move {
+            let result = if let Some(liked) = initial_liked.0 {
+                (liked, initial_liked.1)
+            } else {
+                match cans.post_like_info(post_canister, post_id).await {
+                    Ok(liked) => liked,
+                    Err(e) => {
+                        log::warn!("faild to fetch likes {e}");
+                        (false, likes.try_get_untracked().unwrap_or_default())
                     }
-                };
-                Ok::<_, ServerFnError>(result)
-            })
+                }
+            };
+            Ok::<_, ServerFnError>(result)
         },
     );
 
@@ -267,10 +265,9 @@ pub fn VideoDetailsOverlay(
             use utils::report::send_report_offchain;
 
             let post_details = post_details_report.clone();
-            let base = unauth_canisters();
 
             spawn_local(async move {
-                let cans = auth.auth_cans(base).await.unwrap();
+                let cans = auth.auth_cans().await.unwrap();
                 let details = cans.profile_details();
                 send_report_offchain(
                     details.principal(),
@@ -410,9 +407,8 @@ pub fn VideoDetailsOverlay(
         show_sats_airdrop_popup.set(true);
         sats_airdrop_claimed.set(false);
         sats_airdrop_error.set(false);
-        let cans = unauth_canisters();
 
-        let Ok(auth_cans) = auth.auth_cans(cans).await else {
+        let Ok(auth_cans) = auth.auth_cans().await else {
             if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                 MixPanelEvent::track_claim_airdrop_clicked(
                     global,
@@ -470,8 +466,7 @@ pub fn VideoDetailsOverlay(
         let navigate = navigate.clone();
         let is_airdrop_eligible = *is_airdrop_eligible;
         async move {
-            let cans = unauth_canisters();
-            let Ok(_) = auth.auth_cans(cans).await else {
+            let Ok(_) = auth.auth_cans().await else {
                 return;
             };
             if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
@@ -834,24 +829,15 @@ pub fn LowSatsBalancePopup(
 ) -> impl IntoView {
     let ev_ctx = auth.event_ctx();
 
-    let eligibility_resource = Resource::new(
+    let eligibility_resource = auth.derive_resource(
         move || show.get(),
-        move |showing| {
-            let cans = unauth_canisters();
-            async move {
-                if !showing {
-                    return false;
-                }
-                let Ok(auth_cans) = auth.auth_cans(cans).await else {
-                    log::warn!("Failed to get authenticated canisters");
-                    return false;
-                };
-                let user_canister = auth_cans.user_canister();
-                let user_principal = auth_cans.user_principal();
-                is_user_eligible_for_sats_airdrop(user_canister, user_principal)
-                    .await
-                    .unwrap_or_default()
+        move |cans, showing| async move {
+            if !showing {
+                return Ok(false);
             }
+            let user_canister = cans.user_canister();
+            let user_principal = cans.user_principal();
+            is_user_eligible_for_sats_airdrop(user_canister, user_principal).await
         },
     );
 
@@ -877,7 +863,7 @@ pub fn LowSatsBalancePopup(
                         }
                     >
                         {move || Suspend::new(async move {
-                            let is_airdrop_eligible = eligibility_resource.await;
+                            let is_airdrop_eligible = eligibility_resource.await.unwrap_or_default();
 
                             if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                                 MixPanelEvent::track_low_on_sats_popup_shown(

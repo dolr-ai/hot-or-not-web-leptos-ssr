@@ -195,7 +195,7 @@ pub fn HonWithdrawal() -> impl IntoView {
 
     let send_claim = Action::new_local(move |&()| {
         async move {
-            let cans = auth.auth_cans(expect_context()).await?;
+            let cans = auth.auth_cans().await?;
 
             // TODO: do we still need this?
             handle_user_login(cans.clone(), auth.event_ctx(), None, None).await?;

@@ -19,7 +19,6 @@ use leptos_router::hooks::use_navigate;
 use leptos_use::use_cookie_with_options;
 use leptos_use::UseCookieOptions;
 use state::canisters::auth_state;
-use state::canisters::unauth_canisters;
 use utils::event_streaming::events::CentsAdded;
 use utils::event_streaming::events::EventCtx;
 use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, ProviderKind};
@@ -155,6 +154,7 @@ pub fn LoginProviders(
         MixPanelEvent::track_auth_screen_viewed(global, page_name);
     }
 
+
     let (_, set_auth_journey_page) =
         use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
             AUTH_JOURNEY_PAGE,
@@ -164,6 +164,7 @@ pub fn LoginProviders(
         );
 
     let base_cans = unauth_canisters();
+
     let login_action = Action::new(move |new_id: &NewIdentity| {
         // Clone the necessary parts
         let new_id = new_id.clone();
@@ -179,7 +180,7 @@ pub fn LoginProviders(
             let referrer = auth.referrer_store.get_untracked();
 
             let mut canisters = auth
-                .set_new_identity_and_wait_for_authentication(base_cans, new_id.clone(), true)
+                .set_new_identity_and_wait_for_authentication(new_id.clone(), true)
                 .await?;
 
             // HACK: leptos can panic sometimes and reach an undefined state

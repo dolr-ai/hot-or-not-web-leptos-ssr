@@ -143,8 +143,8 @@ pub fn PndWithdrawal() -> impl IntoView {
     let is_connected = auth.is_logged_in_with_oauth();
 
     let send_claim = Action::new_local(move |&()| async move {
-        let cans = auth.auth_cans(expect_context()).await?;
-        handle_user_login(cans.clone(), ev_ctx, None, None).await?;
+        let cans = auth.auth_cans().await?;
+        handle_user_login(cans.clone(), ev_ctx, None).await?;
 
         let req = ClaimReq::new(cans.identity(), dolrs()).map_err(ServerFnError::new)?;
         let claim_url = PUMP_AND_DUMP_WORKER_URL

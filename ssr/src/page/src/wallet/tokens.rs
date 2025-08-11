@@ -812,13 +812,11 @@ pub fn FastWalletCard(
     let airdrop_popup = RwSignal::new(false);
 
     let auth = auth_state();
-    let base = unauth_canisters();
     let show_login = use_context()
         .map(|ShowLoginSignal(show_login)| show_login)
         .unwrap_or_else(|| RwSignal::new(false));
     // action to claim airdrop
-    let claim_airdrop = Action::new_local(move |&is_connected: &bool| {
-        let base = base.clone();
+    let claim_airdrop = Action::new_unsync(move |&is_connected: &bool| {
         let airdrop_amount_claimed = airdrop_amount_claimed;
         let error_claiming_airdrop = error_claiming_airdrop;
         let airdropper = airdropper_c2.clone();
@@ -829,7 +827,7 @@ pub fn FastWalletCard(
                 return Err(ServerFnError::new("login required"));
             }
 
-            let cans = auth.auth_cans(base).await?;
+            let cans = auth.auth_cans().await?;
             let global = MixpanelGlobalProps::try_get(&cans.clone(), is_connected);
             let global_dispatched = MixpanelGlobalProps::try_get(&cans.clone(), is_connected);
             MixPanelEvent::track_claim_airdrop_clicked(

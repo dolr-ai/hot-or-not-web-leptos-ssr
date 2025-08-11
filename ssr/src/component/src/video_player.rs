@@ -8,6 +8,8 @@ pub fn VideoPlayer(
     #[prop(optional)] node_ref: NodeRef<Video>,
     #[prop(into)] view_bg_url: Signal<Option<String>>,
     #[prop(into)] view_video_url: Signal<Option<String>>,
+    #[prop(into)] muted: Signal<bool>,
+    #[prop(into)] autoplay: Signal<bool>,
 ) -> impl IntoView {
     view! {
         <label class="grid absolute top-0 left-0 grid-cols-1 justify-items-center items-center w-full h-full cursor-pointer z-3">
@@ -23,7 +25,8 @@ pub fn VideoPlayer(
                 poster=view_bg_url
                 src=view_video_url
                 loop
-                muted
+                autoplay=autoplay
+                muted=muted
                 playsinline
                 disablepictureinpicture
                 disableremoteplayback

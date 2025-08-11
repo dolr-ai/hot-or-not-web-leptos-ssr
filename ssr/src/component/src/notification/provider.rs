@@ -45,7 +45,7 @@ impl CursoredDataProvider for NotificationProvider {
     ) -> Result<PageEntry<Self::Data>, Self::Error> {
         let cans = self
             .auth
-            .auth_cans(self.canisters.clone())
+            .auth_cans()
             .await
             .map_err(|e| NotificationError(e.to_string()))?;
 

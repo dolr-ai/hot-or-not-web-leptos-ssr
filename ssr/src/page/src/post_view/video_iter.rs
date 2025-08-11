@@ -50,8 +50,8 @@ async fn user_principal_unauth(
         return Ok(user_principal_id);
     }
 
-    let cans = auth.cans_wire().await?;
-    Ok(cans.profile_details.principal)
+    let cans = auth.auth_cans().await?;
+    Ok(cans.user_principal())
 }
 
 async fn user_principal_auth(
@@ -61,6 +61,7 @@ async fn user_principal_auth(
     Ok(canisters.user_principal())
 }
 
+#[allow(clippy::type_complexity)]
 pub fn new_video_fetch_stream(
     canisters: &Canisters<false>,
     auth: AuthState,
@@ -78,6 +79,7 @@ pub fn new_video_fetch_stream(
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub fn new_video_fetch_stream_auth(
     canisters: &Canisters<true>,
     auth: AuthState,
@@ -119,6 +121,7 @@ impl<
                 user_principal_id,
                 self.cursor.limit as u32,
                 video_queue.clone(),
+                None,
             )
             .await
             .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
@@ -127,6 +130,7 @@ impl<
                 user_principal_id,
                 self.cursor.limit as u32,
                 video_queue.clone(),
+                None,
             )
             .await
             .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
@@ -168,6 +172,7 @@ impl<
                 user_principal_id,
                 self.cursor.limit as u32,
                 video_queue.clone(),
+                None,
             )
             .await
             .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
@@ -176,6 +181,7 @@ impl<
                 user_principal_id,
                 self.cursor.limit as u32,
                 video_queue.clone(),
+                None,
             )
             .await
             .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?

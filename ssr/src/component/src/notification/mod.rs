@@ -87,7 +87,7 @@ fn NotificationItem(notif: NotificationData) -> impl IntoView {
     );
 
     let set_read = Action::new(move |()| async move {
-        let cans = send_wrap(auth.auth_cans(unauth_canisters()))
+        let cans = send_wrap(auth.auth_cans())
             .await
             .map_err(|e| NotificationError(e.to_string()))
             .unwrap();
