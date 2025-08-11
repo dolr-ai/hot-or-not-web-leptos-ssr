@@ -4,6 +4,7 @@ mod server_impl;
 pub mod yral;
 
 use candid::Principal;
+use consts::METADATA_API_BASE;
 use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
@@ -20,6 +21,7 @@ use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
 use utils::send_wrap;
 use utils::types::NewIdentity;
 use yral_canisters_common::Canisters;
+use yral_metadata_client::MetadataClient;
 
 #[server]
 async fn issue_referral_rewards(worker_req: ReferralReqWithSignature) -> Result<(), ServerFnError> {
@@ -50,6 +52,7 @@ pub async fn handle_user_login(
             referrer.map(|f| f.to_text()),
             auth_journey,
         );
+        MetadataClient::with_base_url(METADATA_API_BASE).set_signup_datetime(user_principal).await;
     } else {
         let global = MixpanelGlobalProps::try_get(&canisters, true);
         MixPanelEvent::track_login_success(global, auth_journey);
