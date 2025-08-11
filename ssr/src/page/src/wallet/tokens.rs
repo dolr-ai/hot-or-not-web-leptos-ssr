@@ -197,6 +197,7 @@ impl From<TokenType> for AirdropStatusFetcherType {
         match value {
             TokenType::Sats => Self::Sats,
             TokenType::Dolr => Self::Dolr,
+            TokenType::Yral => Self::Yral,
             _ => Self::NonAirdropable,
         }
     }
