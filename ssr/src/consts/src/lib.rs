@@ -49,8 +49,6 @@ pub static OFF_CHAIN_AGENT_GRPC_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev:443").unwrap());
 pub static DOWNLOAD_UPLOAD_SERVICE: Lazy<Url> =
     Lazy::new(|| Url::parse("https://download-upload-service.fly.dev").unwrap());
-pub static ML_FEED_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://yral-ml-feed-server.fly.dev").unwrap());
 
 pub static FALLBACK_USER_INDEX: Lazy<Principal> =
     Lazy::new(|| Principal::from_text("rimrc-piaaa-aaaao-aaljq-cai").unwrap());
