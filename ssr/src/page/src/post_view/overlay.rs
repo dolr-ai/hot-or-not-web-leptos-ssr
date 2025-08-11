@@ -417,7 +417,7 @@ pub fn VideoDetailsOverlay(
                 MixPanelEvent::track_claim_airdrop_clicked(
                     global,
                     StakeType::Sats,
-                    "home_low_sats".to_string(),
+                    "home".to_string(),
                 );
             }
             log::warn!("Failed to get authenticated canisters");
@@ -425,11 +425,7 @@ pub fn VideoDetailsOverlay(
             return Err(ServerFnError::new("Failed to get authenticated canisters"));
         };
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_claim_airdrop_clicked(
-                global,
-                StakeType::Sats,
-                "home_low_sats".to_string(),
-            );
+            MixPanelEvent::track_claim_airdrop_clicked(global, StakeType::Sats, "home".to_string());
         }
         let user_canister = auth_cans.user_canister();
         let user_principal = auth_cans.user_principal();
@@ -455,7 +451,7 @@ pub fn VideoDetailsOverlay(
                         StakeType::Sats,
                         true,
                         amount,
-                        "home_low_sats".to_string(),
+                        "home".to_string(),
                     );
                 }
             })
@@ -468,7 +464,7 @@ pub fn VideoDetailsOverlay(
                         StakeType::Sats,
                         false,
                         0,
-                        "home_low_sats".to_string(),
+                        "home".to_string(),
                     );
                 }
             })
@@ -483,10 +479,11 @@ pub fn VideoDetailsOverlay(
                 return;
             };
             if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                MixPanelEvent::track_refer_earn_clicked(
+                MixPanelEvent::refer_friend_clicked(
                     global,
                     is_airdrop_eligible,
-                    "home_low_sats".to_string(),
+                    "low_sats_popup",
+                    "home".to_string(),
                 );
             }
             navigate("/refer-earn", Default::default());
@@ -890,7 +887,7 @@ pub fn LowSatsBalancePopup(
                                 MixPanelEvent::track_low_on_sats_popup_shown(
                                     global,
                                     is_airdrop_eligible,
-                                    "home_low_sats".to_string(),
+                                    "home".to_string(),
                                 );
                             }
 
