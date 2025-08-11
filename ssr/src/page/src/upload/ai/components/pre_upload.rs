@@ -254,7 +254,7 @@ fn CreditsSection(
                                 let balance_text = match token_type {
                                     TokenType::Sats => {
                                         let formatted_balance = balance.humanize_float_truncate_to_dp(0);
-                                        format!("Current balance: {formatted_balance} SATS")
+                                        format!("Current balance: {formatted_balance} YRAL")
                                     },
                                     TokenType::Dolr => {
                                         let formatted_balance = balance.humanize_float_truncate_to_dp(2);

@@ -10,7 +10,7 @@ pub fn TokenDropdown(
     let tokens = move || {
         // Only show SATS and DOLR options
         vec![
-            (TokenType::Sats, "SATS", "/img/hotornot/sats.svg"),
+            (TokenType::Sats, "YRAL", "/img/yral/yral-token.webp"),
             (TokenType::Dolr, "DOLR", "/img/common/dolr-circle.svg"),
         ]
         // YRAL/Free option removed - will be added back in the future
@@ -29,7 +29,7 @@ pub fn TokenDropdown(
                         let (_, name, icon_path) = tokens().iter()
                             .find(|(t, _, _)| *t == token)
                             .cloned()
-                            .unwrap_or((TokenType::Sats, "SATS", "/img/hotornot/sats.svg"));
+                            .unwrap_or((TokenType::Sats, "YRAL", "/img/yral/yral-token.webp"));
 
                         view! {
                             <img
