@@ -39,7 +39,6 @@ pub const USER_CANISTER_ID_STORE: &str = "user-canister-id";
 pub const USER_PRINCIPAL_STORE: &str = "user-principal";
 pub const USER_INTERNAL_STORE: &str = "user-internal";
 pub const WALLET_BALANCE_STORE_KEY: &str = "wallet-balance-sats";
-pub const CLIENT_IP_STORE: &str = "client-ip";
 
 pub static OFF_CHAIN_AGENT_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev").unwrap());
@@ -50,8 +49,6 @@ pub static OFF_CHAIN_AGENT_GRPC_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev:443").unwrap());
 pub static DOWNLOAD_UPLOAD_SERVICE: Lazy<Url> =
     Lazy::new(|| Url::parse("https://download-upload-service.fly.dev").unwrap());
-pub static ML_FEED_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://yral-ml-feed-server.fly.dev").unwrap());
 
 pub static FALLBACK_USER_INDEX: Lazy<Principal> =
     Lazy::new(|| Principal::from_text("rimrc-piaaa-aaaao-aaljq-cai").unwrap());
