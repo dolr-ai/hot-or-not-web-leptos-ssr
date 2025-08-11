@@ -1,6 +1,7 @@
 use consts::OFF_CHAIN_AGENT_URL;
 use gloo::timers::future::TimeoutFuture;
 use videogen_common::{
+    types_v2::{ProvidersResponse, VideoGenQueuedResponseV2, VideoGenRequestWithIdentityV2},
     VideoGenClient, VideoGenError, VideoGenQueuedResponse, VideoGenRequest, VideoGenRequestStatus,
     VideoGenRequestWithIdentity, VideoGenResponse,
 };
@@ -88,4 +89,55 @@ async fn poll_video_status(
     Err(VideoGenError::NetworkError(
         "Video generation timed out after 5 minutes".to_string(),
     ))
+}
+
+/// Generate video using the V2 API with unified request structure
+pub async fn generate_video_with_identity_v2(
+    request: videogen_common::types_v2::VideoGenRequestV2,
+    delegated_identity: DelegatedIdentityWire,
+    rate_limits: &RateLimits<'_>,
+) -> Result<VideoGenResponse, VideoGenError> {
+    // Create client
+    let client = VideoGenClient::new(OFF_CHAIN_AGENT_URL.clone());
+
+    // Create request with identity
+    let identity_request = VideoGenRequestWithIdentityV2 {
+        request,
+        delegated_identity,
+    };
+
+    // Get the queued response with request_key
+    let queued_response: VideoGenQueuedResponseV2 = client
+        .generate_with_identity_v2(identity_request)
+        .await
+        .map_err(|e| {
+            leptos::logging::log!("Error generating video with identity v2: {}", e);
+            e
+        })?;
+
+    // Extract request_key from the response
+    let request_key = queued_response.request_key;
+
+    // Start polling for status
+    poll_video_status(&client, &request_key, rate_limits).await
+}
+
+/// Fetch available video generation providers from the V2 API (production only)
+pub async fn get_providers() -> Result<ProvidersResponse, VideoGenError> {
+    let client = VideoGenClient::new(OFF_CHAIN_AGENT_URL.clone());
+    
+    client.get_providers().await.map_err(|e| {
+        leptos::logging::log!("Error fetching providers: {}", e);
+        e
+    })
+}
+
+/// Fetch all video generation providers including internal/test models from the V2 API
+pub async fn get_providers_all() -> Result<ProvidersResponse, VideoGenError> {
+    let client = VideoGenClient::new(OFF_CHAIN_AGENT_URL.clone());
+    
+    client.get_providers_all().await.map_err(|e| {
+        leptos::logging::log!("Error fetching all providers: {}", e);
+        e
+    })
 }

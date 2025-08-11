@@ -1,8 +1,10 @@
 use super::types::{SerializablePostDetailsFromFrontend, UploadUrlResponse, VideoMetadata};
+use super::videogen_client;
 use consts::UPLOAD_URL;
 use leptos::prelude::*;
 use leptos::server_fn::codec::Json;
 use serde_json::json;
+use videogen_common::types_v2::ProviderInfo;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
 // Server function to download AI video and upload using existing worker flow
@@ -143,4 +145,34 @@ pub async fn upload_ai_video_from_url(
     leptos::logging::log!("Successfully updated metadata for video: {}", video_uid);
 
     Ok(video_uid)
+}
+
+/// Server function to fetch available video generation providers
+#[server(input = Json, output = Json)]
+pub async fn fetch_video_providers(
+    include_internal: bool,
+) -> Result<Vec<ProviderInfo>, ServerFnError> {
+    leptos::logging::log!("Fetching video providers from v2 API (include_internal: {})", include_internal);
+    
+    // Fetch all providers including internal models from the v2 API
+    let providers_response = videogen_client::get_providers_all()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to fetch providers: {e}")))?;
+    
+    // Filter based on include_internal flag
+    let providers: Vec<ProviderInfo> = if include_internal {
+        // Include all providers (including internal)
+        providers_response.providers
+    } else {
+        // Filter out internal models
+        providers_response
+            .providers
+            .into_iter()
+            .filter(|p| !p.is_internal)
+            .collect()
+    };
+    
+    leptos::logging::log!("Fetched {} providers", providers.len());
+    
+    Ok(providers)
 }
