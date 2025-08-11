@@ -100,11 +100,11 @@ fn HNButtonOverlay(
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
     audio_ref: NodeRef<Audio>,
-    _show_low_balance_popup: RwSignal<bool>,
+    show_low_balance_popup: RwSignal<bool>,
 ) -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
-    let (wallet_balance_store, _, _) =
+    let (wallet_balance_store, set_wallet_balance_store, _) =
         use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
     fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
@@ -153,8 +153,8 @@ fn HNButtonOverlay(
             Ok(())
         }
     };
-    let place_bet_action: Action<VoteKind, Option<()>> =
-        Action::new(move |bet_direction: &VoteKind| {
+    let place_bet_action: Action<VoteKind, Option<()>> = Action::new(
+        move |bet_direction: &VoteKind| {
             let post_canister = post.canister_id;
             let post_id = post.post_id;
             let bet_amount: u64 = coin.get_untracked().to_cents();
@@ -183,6 +183,7 @@ fn HNButtonOverlay(
                     return None;
                 }
                 let cans = auth.auth_cans().await.ok()?;
+
                 let is_logged_in = is_connected.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
                 MixPanelEvent::track_game_clicked(
@@ -199,10 +200,36 @@ fn HNButtonOverlay(
                     post.is_nsfw,
                 );
 
-                if bet_amount > wallet_balance_store.get() {
-                    log::warn!("Insufficient balance for bet amount: {bet_amount}");
-                    // show_low_balance_popup.set(true);
-                    // return None;
+                async fn fetch_and_update_balance() {
+                    let cans = auth.auth_cans().await.ok()?;
+                    let user_principal = cans.user_principal();
+                    let balance_info = load_sats_balance(user_principal).await.ok()?;
+                    let balance = balance_info.balance.to_u64().unwrap_or(25);
+                    set_wallet_balance_store.set(balance);
+                    HnBetState::set_balance(balance);
+                    Some(balance)
+                }
+
+                // Check balance and refetch if insufficient
+                let current_balance = wallet_balance_store.get_untracked();
+                if bet_amount > current_balance {
+                    log::info!("Current balance ({current_balance}) might be insufficient for bet amount ({bet_amount}), checking latest balance...");
+
+                    fetch_and_update_balance.await;
+
+                    let current_balance = wallet_balance_store.get_untracked();
+
+                    // Check again with updated balance
+                    if bet_amount > updated_balance {
+                        log::warn!(
+                            "Insufficient balance for bet amount: {bet_amount} > {updated_balance}"
+                        );
+                        show_low_balance_popup.set(true);
+                        return None;
+                    }
+                    log::info!(
+                        "Balance sufficient after update ({updated_balance}), proceeding with bet"
+                    );
                 }
 
                 let identity = cans.identity();
@@ -230,20 +257,21 @@ fn HNButtonOverlay(
                             } => TokenBalance::new((lose_amt + 0u64).into(), 0).humanize(),
                         };
 
-                        let (_, set_wallet_balance_store, _) =
-                            use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
-
                         HnBetState::set(post_mix.uid.clone(), res.video_comparison_result);
+
+                        let (wallet_balance_store, set_wallet_balance_store, _) =
+                            use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+                        let current_balance = wallet_balance_store.get_untracked() - bet_amount;
 
                         let balance = match res.game_result.game_result.clone() {
                             GameResultV2::Win {
                                 win_amt: _,
                                 updated_balance,
-                            } => updated_balance.to_u64().unwrap_or(0),
+                            } => updated_balance.to_u64().unwrap_or(current_balance),
                             GameResultV2::Loss {
                                 lose_amt: _,
                                 updated_balance,
-                            } => updated_balance.to_u64().unwrap_or(0),
+                            } => updated_balance.to_u64().unwrap_or(current_balance),
                         };
                         HnBetState::set_balance(balance);
                         set_wallet_balance_store.set(balance);
@@ -276,7 +304,8 @@ fn HNButtonOverlay(
                     }
                 }
             })
-        });
+        },
+    );
 
     let running = place_bet_action.pending();
 
@@ -658,23 +687,6 @@ pub fn HNGameOverlay(
     let (_, set_wallet_balance_store, _) =
         use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
-    let fetch_balance_action = Action::new_local(move |_: &()| async move {
-        let cans = auth.auth_cans().await.ok()?;
-        let user_principal = cans.user_principal();
-        let balance_info = load_sats_balance(user_principal).await.ok()?;
-        let balance = balance_info.balance.to_u64().unwrap_or(25);
-        set_wallet_balance_store.set(balance);
-        HnBetState::set_balance(balance);
-        Some(balance)
-    });
-
-    // Dispatch balance fetch when component loads (only once)
-    Effect::new(move |prev: Option<()>| {
-        if prev.is_none() {
-            fetch_balance_action.dispatch(());
-        }
-    });
-
     let create_game_info = auth.derive_resource(
         move || refetch_bet.track(),
         move |cans, _| {
@@ -724,7 +736,7 @@ pub fn HNGameOverlay(
                                         coin
                                         refetch_bet
                                         audio_ref=win_audio_ref
-                                        _show_low_balance_popup=show_low_balance_popup
+                                        show_low_balance_popup
                                     />
                                 }
                                     .into_any()
