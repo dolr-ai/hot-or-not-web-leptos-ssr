@@ -241,7 +241,9 @@ pub fn HonWithdrawal() -> impl IntoView {
             let treasury = SATS_CKBTC_CANISTER.parse().unwrap();
 
             send_wrap(async move {
-                match cans.icrc1_balance_of(treasury, ledger).await {
+                let fetched_balance = cans.icrc1_balance_of(treasury, ledger).await;
+                log::info!("Fetched treasury balance {fetched_balance}");
+                match fetched_balance {
                     Ok(balance) => balance,
                     Err(_) => Nat::from(0_usize),
                 }
