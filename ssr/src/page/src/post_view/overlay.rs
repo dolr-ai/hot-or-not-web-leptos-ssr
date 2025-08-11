@@ -482,7 +482,7 @@ pub fn VideoDetailsOverlay(
                 MixPanelEvent::track_refer_friend_clicked(
                     global,
                     is_airdrop_eligible,
-                    "low_sats_popup",
+                    "low_sats_popup".to_string(),
                     "home".to_string(),
                 );
             }
