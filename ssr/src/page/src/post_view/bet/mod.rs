@@ -218,23 +218,14 @@ fn HNButtonOverlay(
                 // Check balance and refetch if insufficient
                 let current_balance = wallet_balance_store.get_untracked();
                 if bet_amount > current_balance {
-                    log::info!("Current balance ({current_balance}) might be insufficient for bet amount ({bet_amount}), checking latest balance...");
-
                     fetch_and_update_balance(&auth, set_wallet_balance_store).await;
 
                     let current_balance = wallet_balance_store.get_untracked();
 
-                    // Check again with updated balance
                     if bet_amount > current_balance {
-                        log::warn!(
-                            "Insufficient balance for bet amount: {bet_amount} > {current_balance}"
-                        );
                         show_low_balance_popup.set(true);
                         return None;
                     }
-                    log::info!(
-                        "Balance sufficient after update ({current_balance}), proceeding with bet"
-                    );
                 }
 
                 let identity = cans.identity();
