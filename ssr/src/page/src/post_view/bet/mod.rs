@@ -168,8 +168,8 @@ fn HNButtonOverlay(
         Some(balance)
     }
 
-    let place_bet_action: Action<VoteKind, Option<()>> = Action::new(
-        move |bet_direction: &VoteKind| {
+    let place_bet_action: Action<VoteKind, Option<()>> =
+        Action::new(move |bet_direction: &VoteKind| {
             let post_canister = post.canister_id;
             let post_id = post.post_id;
             let bet_amount: u64 = coin.get_untracked().to_cents();
@@ -300,8 +300,7 @@ fn HNButtonOverlay(
                     }
                 }
             })
-        },
-    );
+        });
 
     let running = place_bet_action.pending();
 
