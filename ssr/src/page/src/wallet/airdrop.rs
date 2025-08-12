@@ -480,11 +480,11 @@ pub fn SatsAirdropPopup(
 ) -> impl IntoView {
     let img_src = move || {
         if claimed.get() {
-            "/img/airdrop/sats-airdrop-success.webp"
+            "/img/airdrop/yral-airdrop-success.webp"
         } else if error.get() {
-            "/img/airdrop/sats-airdrop-failed.webp"
+            "/img/airdrop/yral-airdrop-failed.webp"
         } else {
-            "/img/airdrop/sats-airdrop.webp"
+            "/img/airdrop/yral-airdrop.webp"
         }
     };
 
