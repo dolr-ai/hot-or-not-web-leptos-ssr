@@ -92,6 +92,21 @@ fn HNButton(
     }
 }
 
+async fn fetch_and_update_balance(
+    auth: &state::canisters::AuthState,
+    set_wallet_balance_store: WriteSignal<u64>,
+) -> Option<u64> {
+    log::info!("Fetching latest wallet balance for user");
+    let cans = auth.auth_cans().await.ok()?;
+    let user_principal = cans.user_principal();
+    let balance_info = load_sats_balance(user_principal).await.ok()?;
+    let balance = balance_info.balance.to_u64().unwrap_or(25);
+    log::info!("Fetched wallet balance: {balance}");
+    set_wallet_balance_store.set(balance);
+    HnBetState::set_balance(balance);
+    Some(balance)
+}
+
 #[component]
 fn HNButtonOverlay(
     post: PostDetails,
@@ -153,20 +168,6 @@ fn HNButtonOverlay(
             Ok(())
         }
     };
-    async fn fetch_and_update_balance(
-        auth: &state::canisters::AuthState,
-        set_wallet_balance_store: WriteSignal<u64>,
-    ) -> Option<u64> {
-        log::info!("Fetching latest wallet balance for user");
-        let cans = auth.auth_cans().await.ok()?;
-        let user_principal = cans.user_principal();
-        let balance_info = load_sats_balance(user_principal).await.ok()?;
-        let balance = balance_info.balance.to_u64().unwrap_or(25);
-        log::info!("Fetched wallet balance: {balance}");
-        set_wallet_balance_store.set(balance);
-        HnBetState::set_balance(balance);
-        Some(balance)
-    }
 
     let place_bet_action: Action<VoteKind, Option<()>> =
         Action::new(move |bet_direction: &VoteKind| {
