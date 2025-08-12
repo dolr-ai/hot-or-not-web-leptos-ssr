@@ -526,7 +526,7 @@ pub fn SatsAirdropPopup(
                                     view! {
                                         <div class="text-center">
                                             <span class="font-semibold">
-                                                {amount_claimed} " Bitcoin (SATS)"
+                                                {amount_claimed} " YRAL"
                                             </span>
                                             " credited in your wallet"
                                         </div>
@@ -543,7 +543,7 @@ pub fn SatsAirdropPopup(
                                     view! {
                                         <div class="text-center">
                                             "Claim for "
-                                            <span class="font-semibold">"Bitcoin (SATS)"</span>
+                                            <span class="font-semibold">"YRAL"</span>
                                             " failed"
                                         </div>
                                         <HighlightedButton
@@ -561,7 +561,7 @@ pub fn SatsAirdropPopup(
                                     view! {
                                         <div class="text-center">
                                             "Claim for "
-                                            <span class="font-semibold">"Bitcoin (SATS)"</span>
+                                            <span class="font-semibold">"YRAL"</span>
                                             " is being processed"
                                         </div>
                                         <div class="w-12 h-12">

@@ -865,7 +865,7 @@ pub fn LowSatsBalancePopup(
 
                     <div class="flex z-[2] relative flex-col items-center gap-5 text-white justify-center p-12">
                         <img src="/img/hotornot/sad.webp" class="size-14" />
-                        <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on Bitcoin (SATS)"</div>
+                        <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on YRAL"</div>
 
                         <Suspense
                             fallback=move || view! {
@@ -890,12 +890,12 @@ pub fn LowSatsBalancePopup(
 
                                 view! {
                                     {
-                                        let refer_reward_text = format!("Bitcoin ({REFERRAL_REWARD_SATS} SATS)");
+                                        let refer_reward_text = format!("{REFERRAL_REWARD_SATS} YRAL");
                                         match airdrop_status {
                                             AirdropStatus::Available => view! {
                                                     <div class="text-neutral-300 text-center">"Earn more in two easy ways:"</div>
                                                     <ul class="flex list-disc flex-col gap-5 text-neutral-300">
-                                                        <li>"Unlock your daily"<span class="font-semibold">" Bitcoin (SATS) "</span>"loot every 24 hours!"</li>
+                                                        <li>"Unlock your daily"<span class="font-semibold">" YRAL "</span>"loot every 24 hours!"</li>
                                                         <li>"Refer & earn "<span class="font-semibold">{refer_reward_text.clone()}</span>" for every friend you invite."</li>
                                                         <li class="font-semibold">"Upload Videos to earn commissions."</li>
                                                     </ul>
@@ -923,7 +923,7 @@ pub fn LowSatsBalancePopup(
                                                     claim_airdrop.dispatch(());
                                                 }
                                                 >
-                                                "Claim Bitcoin Airdrop"
+                                                "Claim YRAL Airdrop"
                                                 </HighlightedButton>
                                                 <HighlightedButton
                                                 alt_style=true
