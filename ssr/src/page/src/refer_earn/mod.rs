@@ -167,28 +167,12 @@ fn ReferView() -> impl IntoView {
                 class="absolute inset-x-0 top-0 z-0 mx-auto w-full max-w-md"
                 style="filter: blur(1.5px);"
             >
-                <img src="/img/common/refer-bg.webp" class="object-cover w-full" />
             </div>
             <div
                 style="height: 14rem;"
                 class="flex overflow-visible relative gap-4 justify-center items-center w-full z-[1]"
             >
-                <img class="h-32 select-none shrink-0" src="/img/common/wallet.webp" />
-                <img
-                    src="/img/common/bitcoin.webp"
-                    class="absolute left-5 top-8 size-6"
-                    style="filter: blur(1px); transform: rotate(30deg);"
-                />
-                <img
-                    src="/img/common/bitcoin.webp"
-                    class="absolute right-3 top-16 size-6"
-                    style="filter: blur(1px); transform: rotate(40deg);"
-                />
-                <img
-                    src="/img/common/bitcoin.webp"
-                    class="absolute bottom-4 left-6 size-9"
-                    style="filter: blur(0.3px); transform: rotate(-60deg);"
-                />
+                <img class="select-none shrink-0" src="/img/common/wallet.svg" />
             </div>
             <div
                 style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%); height:29rem"
@@ -198,7 +182,7 @@ fn ReferView() -> impl IntoView {
             <div class="flex flex-col gap-4 items-center w-full text-center z-[1]">
                 <span class="text-xl font-bold md:text-2xl">
                     Invite & get YRAL
-                    <span style="color: #A3A3A3">"("{REFERRAL_REWARD_SATS} " YRAL)"</span>
+                    <span>"("{REFERRAL_REWARD_SATS} " YRAL)"</span>
                 </span>
             </div>
             <div class="flex flex-col gap-2 items-center px-4 w-full text-white z-[1]">

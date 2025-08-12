@@ -337,7 +337,7 @@ fn HNButtonOverlay(
         <div class="flex justify-center w-full touch-manipulation">
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
                 <Icon
-                    attr:class="justify-self-end text-2xl text-white"
+                    attr:class="justify-self-end text-2xl text-[#F8D75E]"
                     icon=icondata::AiUpOutlined
                 />
             </button>
@@ -362,7 +362,7 @@ fn HNButtonOverlay(
             <p class="w-14 md:w-16 lg:w-18">Hot</p>
             <div class="flex justify-center w-12 md:w-14 lg:w-16">
                 <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_prev())>
-                    <Icon attr:class="text-2xl text-white" icon=icondata::AiDownOutlined />
+                    <Icon attr:class="text-2xl text-[#F8D75E]" icon=icondata::AiDownOutlined />
                 </button>
             </div>
             <p class="w-14 md:w-16 lg:w-18">Not</p>

@@ -777,7 +777,6 @@ pub fn HotOrNotTutorialOverlay(
         <ShadowOverlay show=show >
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
                 <div style="max-height: 90vh;" class="overflow-hidden overflow-y-auto h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
-                    <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
                     <div
                         style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
                         class="absolute z-[1] -left-1/2 top-0 size-[32rem]" >
