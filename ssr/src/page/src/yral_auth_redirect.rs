@@ -16,10 +16,12 @@ async fn perform_yral_oauth(oauth: OAuthQuery) -> Result<NewIdentity, ServerFnEr
     use auth::server_impl::yral::YralOAuthClient;
 
     let oauth2: YralOAuthClient = expect_context();
-    let (id, fallback_username) = perform_yral_auth_impl(oauth.state, oauth.code, oauth2).await?;
+    let (id, fallback_username, email) =
+        perform_yral_auth_impl(oauth.state, oauth.code, oauth2).await?;
     Ok(NewIdentity {
         id_wire: id,
         fallback_username,
+        email,
     })
 }
 

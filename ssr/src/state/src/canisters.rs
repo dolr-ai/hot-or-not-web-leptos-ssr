@@ -179,12 +179,14 @@ impl Default for AuthState {
                     return Ok(NewIdentity {
                         id_wire,
                         fallback_username: None,
+                        email: None,
                     });
                 };
 
                 Ok(NewIdentity {
                     id_wire: id.identity,
                     fallback_username: None,
+                    email: None,
                 })
             },
         );

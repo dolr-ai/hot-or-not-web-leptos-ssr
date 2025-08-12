@@ -8,6 +8,7 @@ use consts::METADATA_API_BASE;
 use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
+use leptos::logging;
 use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
 use leptos_icons::Icon;
@@ -42,6 +43,10 @@ pub async fn handle_user_login(
     let first_time_login = mark_user_registered(user_principal).await?;
 
     let auth_journey = MixpanelGlobalProps::get_auth_journey();
+    // TODO: Move for first_time_login only
+    let url = METADATA_API_BASE.clone();
+    let metadata_client: MetadataClient<false> = MetadataClient::with_base_url(url);
+    let _ = metadata_client.set_signup_datetime(user_principal).await;
 
     if first_time_login {
         CentsAdded.send_event(event_ctx, "signup".to_string(), NEW_USER_SIGNUP_REWARD_SATS);
@@ -52,7 +57,6 @@ pub async fn handle_user_login(
             referrer.map(|f| f.to_text()),
             auth_journey,
         );
-        MetadataClient::with_base_url(METADATA_API_BASE).set_signup_datetime(user_principal).await;
     } else {
         let global = MixpanelGlobalProps::try_get(&canisters, true);
         MixPanelEvent::track_login_success(global, auth_journey);
@@ -157,6 +161,13 @@ pub fn LoginProviders(
                 canisters = Canisters::authenticate_with_network(new_id.id_wire, referrer).await?;
             }
 
+            if let Some(email) = new_id.email {
+                let url = METADATA_API_BASE.clone();
+                let user_principal = canisters.user_principal();
+                let metadata_client: MetadataClient<false> = MetadataClient::with_base_url(url);
+                let _ = metadata_client.set_user_email(user_principal, email).await;
+            }
+
             if let Err(e) = handle_user_login(canisters.clone(), auth.event_ctx(), referrer).await {
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
@@ -183,6 +194,7 @@ pub fn LoginProviders(
         }),
         login_complete: SignalSetter::map(move |val: NewIdentity| {
             // Dispatch just the DelegatedIdentityWire
+            logging::log!("email: {:?}", val.email);
             login_action.dispatch(val);
         }),
     };
