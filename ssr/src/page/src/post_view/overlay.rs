@@ -838,22 +838,15 @@ pub fn LowSatsBalancePopup(
 ) -> impl IntoView {
     let ev_ctx = auth.event_ctx();
 
-    let status_resource = Resource::new(
+    let status_resource = auth.derive_resource(
         move || show.get(),
-        move |showing| async move {
+        move |auth_cans, showing| async move {
             if !showing {
-                return AirdropStatus::Available;
+                return Ok(AirdropStatus::Available);
             }
-            let Ok(auth_cans) = auth.auth_cans().await else {
-                log::warn!("Failed to get authenticated canisters");
-                return AirdropStatus::Available;
-            };
             let user_canister = auth_cans.user_canister();
             let user_principal = auth_cans.user_principal();
-            match get_sats_airdrop_status(user_canister, user_principal).await {
-                Ok(status) => status,
-                Err(_) => AirdropStatus::Available,
-            }
+            get_sats_airdrop_status(user_canister, user_principal).await
         },
     );
 
@@ -884,7 +877,7 @@ pub fn LowSatsBalancePopup(
                             }
                         >
                             {move || Suspend::new(async move {
-                                let airdrop_status = status_resource.await;
+                                let airdrop_status = status_resource.await.unwrap_or(AirdropStatus::Available);
                                 let is_airdrop_eligible = matches!(airdrop_status, AirdropStatus::Available);
 
                                 if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
