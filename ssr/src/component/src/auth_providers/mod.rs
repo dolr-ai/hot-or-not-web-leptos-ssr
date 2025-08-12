@@ -4,10 +4,10 @@ mod server_impl;
 pub mod yral;
 
 use candid::Principal;
-use consts::METADATA_API_BASE;
 use codee::string::JsonSerdeCodec;
 use consts::auth::REFRESH_MAX_AGE;
 use consts::AUTH_JOURNEY_PAGE;
+use consts::METADATA_API_BASE;
 use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
@@ -199,7 +199,7 @@ pub fn LoginProviders(
                 let metadata_client: MetadataClient<false> = MetadataClient::with_base_url(url);
                 let _ = metadata_client.set_user_email(user_principal, email).await;
             }
-          
+
             if let Err(e) =
                 handle_user_login(canisters.clone(), auth.event_ctx(), referrer, page_name).await
             {
