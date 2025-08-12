@@ -153,6 +153,21 @@ fn HNButtonOverlay(
             Ok(())
         }
     };
+    async fn fetch_and_update_balance(
+        auth: &state::canisters::AuthState,
+        set_wallet_balance_store: WriteSignal<u64>,
+    ) -> Option<u64> {
+        log::info!("Fetching latest wallet balance for user");
+        let cans = auth.auth_cans().await.ok()?;
+        let user_principal = cans.user_principal();
+        let balance_info = load_sats_balance(user_principal).await.ok()?;
+        let balance = balance_info.balance.to_u64().unwrap_or(25);
+        log::info!("Fetched wallet balance: {balance}");
+        set_wallet_balance_store.set(balance);
+        HnBetState::set_balance(balance);
+        Some(balance)
+    }
+
     let place_bet_action: Action<VoteKind, Option<()>> = Action::new(
         move |bet_direction: &VoteKind| {
             let post_canister = post.canister_id;
@@ -200,24 +215,12 @@ fn HNButtonOverlay(
                     post.is_nsfw,
                 );
 
-                let fetch_and_update_balance = || async {
-                    log::info!("Fetching latest wallet balance for user");
-                    let cans = auth.auth_cans().await.ok()?;
-                    let user_principal = cans.user_principal();
-                    let balance_info = load_sats_balance(user_principal).await.ok()?;
-                    let balance = balance_info.balance.to_u64().unwrap_or(25);
-                    log::info!("Fetched wallet balance: {balance}");
-                    set_wallet_balance_store.set(balance);
-                    HnBetState::set_balance(balance);
-                    Some(balance)
-                };
-
                 // Check balance and refetch if insufficient
                 let current_balance = wallet_balance_store.get_untracked();
                 if bet_amount > current_balance {
                     log::info!("Current balance ({current_balance}) might be insufficient for bet amount ({bet_amount}), checking latest balance...");
 
-                    fetch_and_update_balance().await;
+                    fetch_and_update_balance(&auth, set_wallet_balance_store).await;
 
                     let current_balance = wallet_balance_store.get_untracked();
 
