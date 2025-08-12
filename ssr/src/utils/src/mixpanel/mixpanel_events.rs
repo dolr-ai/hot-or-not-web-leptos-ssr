@@ -1,5 +1,6 @@
 use candid::Principal;
-use codee::string::FromToStringCodec;
+use codee::string::{FromToStringCodec, JsonSerdeCodec};
+use consts::AUTH_JOURNEY_PAGE;
 use consts::{AUTH_JOURNET, CUSTOM_DEVICE_ID, DEVICE_ID, NSFW_TOGGLE_STORE};
 use global_constants::REFERRAL_REWARD_SATS;
 use leptos::logging;
@@ -7,7 +8,8 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_timeout_fn;
-use leptos_use::UseTimeoutFnReturn;
+use leptos_use::{use_cookie, UseTimeoutFnReturn};
+use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
 use yral_canisters_common::utils::vote::VoteKind;
@@ -93,6 +95,32 @@ pub(super) fn send_event_to_server<T>(event_name: &str, props: T)
 where
     T: Serialize,
 {
+    let payload = get_event_payload(event_name, props);
+    spawn_local(async {
+        let res = track_event_server_fn(payload).await;
+        match res {
+            Ok(_) => {}
+            Err(e) => logging::error!("Error tracking Mixpanel event: {}", e),
+        }
+    });
+}
+
+pub(super) async fn send_event_to_server_async<T>(event_name: &str, props: T)
+where
+    T: Serialize,
+{
+    let payload = get_event_payload(event_name, props);
+    let res = track_event_server_fn(payload).await;
+    match res {
+        Ok(_) => {}
+        Err(e) => logging::error!("Error tracking Mixpanel event: {}", e),
+    }
+}
+
+fn get_event_payload<T>(event_name: &str, props: T) -> Value
+where
+    T: Serialize,
+{
     let mut props = serde_json::to_value(&props).unwrap();
     props["event"] = event_name.into();
     props["time"] = chrono::Utc::now().timestamp().into();
@@ -132,13 +160,7 @@ where
     } else {
         logging::error!("HistoryCtx not found. Gracefully continuing");
     }
-    spawn_local(async {
-        let res = track_event_server_fn(props).await;
-        match res {
-            Ok(_) => {}
-            Err(e) => logging::error!("Error tracking Mixpanel event: {}", e),
-        }
-    });
+    props
 }
 
 /// Global properties for Mixpanel events
@@ -329,6 +351,8 @@ impl TryFrom<String> for BottomNavigationCategory {
             return Ok(BottomNavigationCategory::Profile);
         } else if value.contains("/wallet/") {
             return Ok(BottomNavigationCategory::Wallet);
+        } else if value.contains("/hot-or-not/") {
+            return Ok(BottomNavigationCategory::Home);
         }
 
         match value.as_str() {
@@ -418,13 +442,15 @@ pub enum StakeType {
     DolrAi,
     Btc,
     Usdc,
+    Yral,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum BottomNavigationCategory {
     UploadVideo,
     Profile,
+    #[default]
     Menu,
     Home,
     Wallet,
@@ -444,6 +470,32 @@ macro_rules! derive_event {
             is_nsfw_enabled: bool,
             $($prop: $typ),*
         }
+
+        impl $name {
+            #[allow(clippy::too_many_arguments)]
+            pub fn new(
+                global: MixpanelGlobalProps,
+                $($prop: $typ),*
+            ) -> Self {
+                let MixpanelGlobalProps {
+                    user_id,
+                    visitor_id,
+                    username,
+                    is_logged_in,
+                    canister_id,
+                    is_nsfw_enabled,
+                } = global;
+                Self {
+                    user_id,
+                    visitor_id,
+                    username,
+                    is_logged_in,
+                    canister_id,
+                    is_nsfw_enabled,
+                    $($prop),*
+                }
+            }
+        }
         // static assert to ensure $name begins with track_
         const _: () = {
             assert!(matches!(stringify!($name).as_bytes().split_at(6), (b"track_", _)));
@@ -455,26 +507,8 @@ macro_rules! derive_event {
                 global: MixpanelGlobalProps,
                 $($prop: $typ),*
             ) {
-                let MixpanelGlobalProps {
-                    user_id,
-                    visitor_id,
-                    username,
-                    is_logged_in,
-                    canister_id,
-                    is_nsfw_enabled,
-                } = global;
-                send_event_to_server(
-                    $ev,
-                    $name {
-                        user_id,
-                        visitor_id,
-                        username,
-                        is_logged_in,
-                        canister_id,
-                        is_nsfw_enabled,
-                        $($prop),*
-                    }
-                );
+                let event = $name::new(global, $($prop),*);
+                send_event_to_server($ev, event);
             }
         }
     };
@@ -496,6 +530,12 @@ derive_event!(track_menu_page_viewed {});
 derive_event!(track_upload_page_viewed {});
 
 derive_event!(track_edit_profile_clicked { page_name: String });
+
+derive_event!(track_unlock_higher_bets_popup_shown {
+    page_name: String,
+    stake_amount: u64,
+    stake_type: StakeType
+});
 
 derive_event!(track_edit_username_clicked {});
 
@@ -580,20 +620,25 @@ derive_event!(track_signup_clicked {
     page_name: BottomNavigationCategory
 });
 
-derive_event!(track_auth_screen_viewed {});
+derive_event!(track_auth_screen_viewed {
+    page_name: BottomNavigationCategory
+});
 
-derive_event!(track_auth_initiated {
-    auth_journey: String
+derive_event!(track_auth_initiated = "signup_journey_selected" => {
+    auth_journey: String,
+    page_name: BottomNavigationCategory
 });
 
 derive_event!(track_signup_success {
     is_referral: bool,
     referrer_user_id: Option<String>,
-    auth_journey: String
+    auth_journey: String,
+    page_name: BottomNavigationCategory
 });
 
 derive_event!(track_login_success {
-    auth_journey: String
+    auth_journey: String,
+    page_name: BottomNavigationCategory
 });
 
 derive_event!(track_sats_to_btc_converted {
@@ -777,6 +822,66 @@ derive_event!(track_ai_video_generated {
 derive_event!(track_regenerate_video_clicked { model: String });
 
 impl MixPanelEvent {
+    fn clear_auth_journey_page() {
+        let (_, set_auth_journey_page) =
+            use_cookie::<BottomNavigationCategory, JsonSerdeCodec>(AUTH_JOURNEY_PAGE);
+        logging::log!("Clearing auth journey page");
+        set_auth_journey_page.set(None);
+    }
+    pub async fn track_login_success_async(
+        global: MixpanelGlobalProps,
+        auth_journey: String,
+        page_name: BottomNavigationCategory,
+    ) {
+        let props = track_login_success::new(global, auth_journey, page_name);
+        send_event_to_server_async("login_success", props).await;
+    }
+
+    pub async fn track_signup_success_async(
+        global: MixpanelGlobalProps,
+        is_referral: bool,
+        referrer_user_id: Option<String>,
+        auth_journey: String,
+        page_name: BottomNavigationCategory,
+    ) {
+        let props = track_signup_success::new(
+            global,
+            is_referral,
+            referrer_user_id,
+            auth_journey,
+            page_name,
+        );
+        send_event_to_server_async("signup_success", props).await;
+        Self::clear_auth_journey_page();
+    }
+    pub fn track_login_success_sync(
+        global: MixpanelGlobalProps,
+        auth_journey: String,
+        page_name: BottomNavigationCategory,
+    ) {
+        let props = track_login_success::new(global, auth_journey, page_name);
+        send_event_to_server("login_success", props);
+        Self::clear_auth_journey_page();
+    }
+
+    pub fn track_signup_success_sync(
+        global: MixpanelGlobalProps,
+        is_referral: bool,
+        referrer_user_id: Option<String>,
+        auth_journey: String,
+        page_name: BottomNavigationCategory,
+    ) {
+        let props = track_signup_success::new(
+            global,
+            is_referral,
+            referrer_user_id,
+            auth_journey,
+            page_name,
+        );
+        send_event_to_server("signup_success", props);
+        Self::clear_auth_journey_page();
+    }
+
     pub fn track_page_viewed(page: String, p: MixpanelGlobalProps) {
         let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
             move |_| {
