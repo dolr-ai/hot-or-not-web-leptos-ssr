@@ -3128,7 +3128,7 @@ checksum = "a8d1add55171497b4705a648c6b583acafb01d58050a51727785f0b2c8e0a2b2"
 [[package]]
 name = "global-constants"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#579bd3a6913c6c6f5ceeec231dea91caef47376e"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#26a2513ee4ef0498cbe4745afe94ded0af348183"
 dependencies = [
  "candid",
  "num-bigint",
@@ -3773,7 +3773,7 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#579bd3a6913c6c6f5ceeec231dea91caef47376e"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#26a2513ee4ef0498cbe4745afe94ded0af348183"
 dependencies = [
  "candid",
  "global-constants",
@@ -8897,7 +8897,7 @@ dependencies = [
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#579bd3a6913c6c6f5ceeec231dea91caef47376e"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#26a2513ee4ef0498cbe4745afe94ded0af348183"
 dependencies = [
  "candid",
  "humantime",
@@ -10503,7 +10503,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 [[package]]
 name = "videogen-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#579bd3a6913c6c6f5ceeec231dea91caef47376e"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#26a2513ee4ef0498cbe4745afe94ded0af348183"
 dependencies = [
  "candid",
  "enum_dispatch",
@@ -11143,7 +11143,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#579bd3a6913c6c6f5ceeec231dea91caef47376e"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#26a2513ee4ef0498cbe4745afe94ded0af348183"
 dependencies = [
  "anyhow",
  "candid",
@@ -11163,7 +11163,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#579bd3a6913c6c6f5ceeec231dea91caef47376e"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#26a2513ee4ef0498cbe4745afe94ded0af348183"
 dependencies = [
  "async-trait",
  "candid",
@@ -11200,7 +11200,7 @@ dependencies = [
 [[package]]
 name = "yral-identity"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#579bd3a6913c6c6f5ceeec231dea91caef47376e"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#26a2513ee4ef0498cbe4745afe94ded0af348183"
 dependencies = [
  "candid",
  "getrandom 0.2.16",
@@ -11227,7 +11227,7 @@ dependencies = [
 [[package]]
 name = "yral-metadata-client"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-metadata?branch=990-feature-request-new-vs-repeat-user-tracking#2054d04d335f72c5adae6e37f5840d508ee05074"
+source = "git+https://github.com/yral-dapp/yral-metadata?branch=990-feature-request-new-vs-repeat-user-tracking#c570aadc7ff92c051c0c4f9f0e08ae6ea03efeb7"
 dependencies = [
  "ic-agent",
  "reqwest 0.12.22",
@@ -11239,7 +11239,7 @@ dependencies = [
 [[package]]
 name = "yral-metadata-types"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-metadata?branch=990-feature-request-new-vs-repeat-user-tracking#2054d04d335f72c5adae6e37f5840d508ee05074"
+source = "git+https://github.com/yral-dapp/yral-metadata?branch=990-feature-request-new-vs-repeat-user-tracking#c570aadc7ff92c051c0c4f9f0e08ae6ea03efeb7"
 dependencies = [
  "candid",
  "chrono",
@@ -11254,7 +11254,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#579bd3a6913c6c6f5ceeec231dea91caef47376e"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#26a2513ee4ef0498cbe4745afe94ded0af348183"
 dependencies = [
  "candid",
  "ic-agent",
@@ -11280,7 +11280,7 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#579bd3a6913c6c6f5ceeec231dea91caef47376e"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#26a2513ee4ef0498cbe4745afe94ded0af348183"
 dependencies = [
  "ic-agent",
  "k256",
@@ -11293,7 +11293,7 @@ dependencies = [
 [[package]]
 name = "yral-username-gen"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#579bd3a6913c6c6f5ceeec231dea91caef47376e"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=990-feature-request-new-vs-repeat-user-tracking#26a2513ee4ef0498cbe4745afe94ded0af348183"
 dependencies = [
  "candid",
  "rand 0.9.2",

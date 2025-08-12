@@ -1,16 +1,23 @@
 use leptos::prelude::*;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct MixpanelState {
     pub device_id: RwSignal<Option<String>>,
     pub custom_device_id: RwSignal<Option<String>>,
+    pub metadata: RwSignal<Option<UserMetadata>>,
+}
+
+#[derive(Clone, Default)]
+pub struct UserMetadata {
+    pub email: Option<String>,
+    pub signup_at: Option<i64>,
+    pub user_principal: String,
 }
 
 impl MixpanelState {
     pub fn init() -> Self {
         let this = Self {
-            device_id: RwSignal::new(None),
-            custom_device_id: RwSignal::new(None),
+            ..Default::default()
         };
         provide_context(this.clone());
         this
@@ -27,5 +34,11 @@ impl MixpanelState {
     pub fn reset_device_id(device_id: String) {
         let this = use_context::<Self>().unwrap_or_else(Self::init);
         this.device_id.set(Some(device_id));
+        this.metadata.set(None);
+    }
+
+    pub fn get_metadata() -> RwSignal<Option<UserMetadata>> {
+        let this = use_context::<Self>().unwrap_or_else(Self::init);
+        this.metadata
     }
 }
