@@ -85,7 +85,7 @@ fn ReferLoaded(user_principal: Principal) -> impl IntoView {
     });
     let refer_link_share = refer_link.clone();
     let handle_share = move || {
-        let text = format!("Join YRAL—the world's 1st social platform on BITCOIN\nGet FREE BITCOIN ({NEW_USER_SIGNUP_REWARD_SATS} SATS) Instantly\nAdditional BITCOIN ({REFERRAL_REWARD_SATS} SATS) when you log in using the link.");
+        let text = format!("Join YRAL—the world's 1st social platform on BITCOIN\nGet FREE {NEW_USER_SIGNUP_REWARD_SATS} YRAL Instantly\nAdditional {REFERRAL_REWARD_SATS} YRAL when you log in using the link.");
         let global = MixpanelGlobalProps::from_ev_ctx(ev_ctx);
         if let Some(global) = global {
             MixPanelEvent::track_share_invites_clicked(global, REFERRAL_REWARD_SATS);
@@ -197,8 +197,8 @@ fn ReferView() -> impl IntoView {
 
             <div class="flex flex-col gap-4 items-center w-full text-center z-[1]">
                 <span class="text-xl font-bold md:text-2xl">
-                    Invite & get Bitcoin
-                    <span style="color: #A3A3A3">"("{REFERRAL_REWARD_SATS} " SATS)"</span>
+                    Invite & get YRAL
+                    <span style="color: #A3A3A3">"("{REFERRAL_REWARD_SATS} " YRAL)"</span>
                 </span>
             </div>
             <div class="flex flex-col gap-2 items-center px-4 w-full text-white z-[1]">
@@ -220,7 +220,7 @@ fn ReferView() -> impl IntoView {
                         head="STEP 2"
                     />
                     <WorkButton
-                        text=format!("You both earn Bitcoin ({REFERRAL_REWARD_SATS} SATS)")
+                        text=format!("You both earn YRAL ({REFERRAL_REWARD_SATS} YRAL)")
                         head="STEP 3"
                     />
                 </div>

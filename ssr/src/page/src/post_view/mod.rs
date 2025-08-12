@@ -5,21 +5,17 @@ pub mod single_post;
 pub mod video_iter;
 pub mod video_loader;
 use crate::scrolling_post_view::ScrollingPostView;
-use component::overlay::ShadowOverlay;
+use component::nsfw_nudge_popup::NsfwUnlockPopup;
 use component::spinner::FullScreenSpinner;
-use component::{buttons::HighlightedButton, nsfw_nudge_popup::NsfwUnlockPopup};
-use consts::{
-    UserOnboardingStore, MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY,
-};
+use consts::{MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_TOGGLE_STORE};
 use indexmap::IndexSet;
-use leptos_icons::*;
 use priority_queue::DoublePriorityQueue;
 use state::canisters::{auth_state, unauth_canisters};
 use std::{cmp::Reverse, collections::HashMap};
 use yral_types::post::PostItemV2;
 
 use candid::Principal;
-use codee::string::{FromToStringCodec, JsonSerdeCodec};
+use codee::string::FromToStringCodec;
 use futures::StreamExt;
 use leptos::prelude::*;
 use leptos_router::{
@@ -405,21 +401,6 @@ pub fn PostView() -> impl IntoView {
         }
     });
 
-    let (onboarding_store, set_onboarding_store, _) =
-        use_local_storage::<UserOnboardingStore, JsonSerdeCodec>(USER_ONBOARDING_STORE_KEY);
-
-    let show_onboarding_popup = Memo::new(move |prev| {
-        let stored_val = onboarding_store.get();
-        if prev.is_none() {
-            !stored_val.has_seen_onboarding && !auth.is_logged_in_with_oauth().get_untracked()
-        } else {
-            !stored_val.has_seen_onboarding
-        }
-    });
-    let close_onboarding = SignalSetter::map(move |v: bool| {
-        set_onboarding_store.update(|st| st.has_seen_onboarding = v)
-    });
-
     view! {
         <Suspense fallback=FullScreenSpinner>
             {move || Suspend::new(async move {
@@ -428,65 +409,6 @@ pub fn PostView() -> impl IntoView {
             })}
         </Suspense>
         <NsfwUnlockPopup show=show_nsfw_popup current_post ev_ctx />
-        <OnboardingWelcomePopup show=show_onboarding_popup close_onboarding />
     }
     .into_any()
-}
-
-#[component]
-pub fn OnboardingWelcomePopup(
-    #[prop(into)] show: Signal<bool>,
-    #[prop(into)] close_onboarding: SignalSetter<bool>,
-) -> impl IntoView {
-    let auth = auth_state();
-    let ev_ctx = auth.event_ctx();
-    const CREDITED_AMOUNT: u64 = global_constants::NEW_USER_SIGNUP_REWARD_SATS;
-    Effect::new(move || {
-        if show.get() {
-            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                MixPanelEvent::track_onboarding_popup_shown(
-                    global,
-                    CREDITED_AMOUNT,
-                    MixpanelOnboardingPopupType::SatsCreditPopup,
-                );
-            }
-        }
-    });
-    view! {
-        <ShadowOverlay show=show >
-            <div class="px-4 py-6 w-full h-full flex items-center justify-center">
-                <div class="overflow-hidden h-fit max-w-md items-center pt-16 cursor-auto bg-neutral-950 rounded-md w-full relative">
-                    <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
-                    <div
-                        style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
-                        class="absolute z-[1] -left-1/2 bottom-1/3 size-[32rem]" >
-                    </div>
-                    <button
-                        on:click=move |_| {
-                           close_onboarding.set(true);
-                        }
-                        class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[2] top-4 right-4"
-                    >
-                        <Icon icon=icondata::ChCross />
-                    </button>
-                    <div class="flex z-[2] relative flex-col items-center gap-4 text-white justify-center p-12">
-                        <img src="/img/hotornot/onboarding-welcome.webp" class="h-60" />
-                        <div class="text-center text-2xl font-semibold">Bitcoin credited to<br/> your wallet!</div>
-                        <div class="text-center">
-                            "You've got free "<span class="font-semibold">{format!("Bitcoin ({CREDITED_AMOUNT} SATS)")}</span>.
-                            <br/>
-                            "Here's how to make it grow"
-                        </div>
-                        <HighlightedButton
-                            alt_style=false
-                            disabled=false
-                            on_click=move || { close_onboarding.set(true) }
-                        >
-                            "Start Playing"
-                        </HighlightedButton>
-                    </div>
-                </div>
-            </div>
-        </ShadowOverlay>
-    }
 }

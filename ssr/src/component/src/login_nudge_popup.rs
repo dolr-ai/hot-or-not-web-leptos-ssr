@@ -30,7 +30,7 @@ pub fn LoginNudgePopup(show: RwSignal<bool>, show_login_popup: RwSignal<bool>) -
 
                         <div class="text-center text-sm text-neutral-300">
                             "You're just 1 step away from high-stake fun."<br />
-                            Log in to unlock 5 SATS bets!
+                            Log in to unlock 5 YRAL bets!
                         </div>
 
                         <div class="flex flex-col px-8 items-start gap-4 w-full max-w-xs text-sm">
@@ -46,7 +46,7 @@ pub fn LoginNudgePopup(show: RwSignal<bool>, show_login_popup: RwSignal<bool>) -
                             </div>
                             <div class="flex items-center gap-2 text-neutral-200">
                                 <Icon icon=Airdrop />
-                                <span>Daily DOLR / SATS airdrops</span>
+                                <span>Daily DOLR / YRAL airdrops</span>
                             </div>
                         </div>
 
