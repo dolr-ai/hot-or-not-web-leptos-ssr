@@ -783,7 +783,7 @@ pub fn HotOrNotTutorialOverlay(
                     </button>
                     <div class="flex z-[2] relative flex-col items-center gap-2 text-white justify-center p-12">
                         <div class="text-lg font-bold">"How to play?"</div>
-                        <div class="font-bold text-yellow-500 pb-4 text-center">"Stake Bitcoin (SATS) to vote HOT or NOT."</div>
+                        <div class="font-bold text-yellow-500 pb-4 text-center">"Stake YRAL to vote HOT or NOT."</div>
                         <div class="border rounded-md border-neutral-800 bg-neutral-950 flex p-3 gap-4 items-center">
                             <img src="/img/hotornot/hot-circular.svg" class="size-12 shrink-0" />
                             <div class="text-neutral-400"><span class="font-bold text-white">"'Hot'"</span>" = Higher engagement score than the previous"</div>
@@ -798,12 +798,12 @@ pub fn HotOrNotTutorialOverlay(
                                 <div>"Previous video score: 36"</div>
                                 <div>"Your vote on the current video: HOT 🔥"</div>
                                 <div>"Current video score: 42"</div>
-                                <div class="font-semibold">"You scored it right. Bitcoin coming your way!"</div>
+                                <div class="font-semibold">"You scored it right. YRAL coming your way!"</div>
                             </div>
                             <div class="text-sm text-neutral-400"><span class="font-bold text-neutral-300">"Note: "</span>"First video results are random."</div>
                         </div>
                         <div class="text-yellow-500 font-bold text-center py-4">
-                            "You make the content, you take the cut — 10% of all SATS staked!"
+                            "You make the content, you take the cut — 10% of all YRAL staked!"
                         </div>
 
                         <HighlightedButton
@@ -876,21 +876,21 @@ pub fn LowSatsBalancePopup(
                             view! {
                                   <div class="flex z-[2] relative flex-col items-center gap-5 text-white justify-center p-12">
                                     <img src="/img/hotornot/sad.webp" class="size-14" />
-                                    <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on Bitcoin (SATS)"</div>
+                                    <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on YRAL"</div>
                                     {
                                         if is_airdrop_eligible {
                                             view! {
                                                 <div class="text-neutral-300 text-center">"Earn more in two easy ways:"</div>
                                                 <ul class="flex list-disc flex-col gap-5 text-neutral-300">
-                                                    <li>"Unlock your daily"<span class="font-semibold">" Bitcoin (SATS) "</span>"loot every 24 hours!"</li>
-                                                    <li>"Refer & earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you invite."</li>
+                                                    <li>"Unlock your daily"<span class="font-semibold">" YRAL "</span>"loot every 24 hours!"</li>
+                                                    <li>"Refer & earn"<span class="font-semibold">" 10 YRAL "</span>"for every friend you invite."</li>
                                                     <li class="font-semibold">"Upload Videos to earn comissions."</li>
                                                 </ul>
                                             }.into_any()
                                         } else {
                                             view! {
                                                 <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
-                                                <div class="text-neutral-300 text-center">"Meanwhile, earn"<span class="font-semibold">" Bitcoin (10 SATS) "</span>"for every friend you refer!"</div>
+                                                <div class="text-neutral-300 text-center">"Meanwhile, earn"<span class="font-semibold">" 10 YRAL "</span>"for every friend you refer!"</div>
                                             }.into_any()
                                         }
                                     }

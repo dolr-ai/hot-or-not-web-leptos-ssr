@@ -4,7 +4,10 @@ use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
 use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
-use consts::{UserOnboardingStore, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY};
+use consts::auth::REFRESH_MAX_AGE;
+use consts::{
+    UserOnboardingStore, AUTH_JOURNEY_PAGE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
+};
 use global_constants::{
     CoinState, CREATOR_COMMISSION_PERCENT, DEFAULT_BET_COIN_FOR_LOGGED_IN,
     DEFAULT_BET_COIN_FOR_LOGGED_OUT,
@@ -18,6 +21,7 @@ use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::storage::use_local_storage;
+use leptos_use::{use_cookie_with_options, use_timeout_fn, UseCookieOptions, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use server_impl::vote_with_cents_on_post;
@@ -104,6 +108,7 @@ fn HNButtonOverlay(
 ) -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
+    let ev_ctx = auth.event_ctx();
     let (wallet_balance_store, _, _) =
         use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
@@ -137,7 +142,6 @@ fn HNButtonOverlay(
 
     let show_login_nudge = RwSignal::new(false);
     let show_login_popup = RwSignal::new(false);
-    let login_post = post.clone();
 
     let default_bet_coin = if is_connected.get_untracked() {
         DEFAULT_BET_COIN_FOR_LOGGED_IN
@@ -282,14 +286,24 @@ fn HNButtonOverlay(
 
     let was_connected = RwSignal::new(is_connected.get_untracked());
 
+    let (auth_journey_page, _) = use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
+        AUTH_JOURNEY_PAGE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(REFRESH_MAX_AGE.as_millis() as i64),
+    );
+
+    let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
+        move |_| {
+            let _ = window().location().set_href("/");
+        },
+        50.0,
+    );
+
     Effect::new(move |_| {
-        if !was_connected.get_untracked() && is_connected.get() {
-            let window = window();
-            let url = format!(
-                "/hot-or-not/{}/{}",
-                login_post.canister_id, login_post.post_id
-            );
-            let _ = window.location().set_href(&url);
+        let auth_journey_page_cookie = auth_journey_page.get();
+        if !was_connected.get() && is_connected.get() && auth_journey_page_cookie.is_none() {
+            start(());
         }
     });
 
@@ -302,8 +316,8 @@ fn HNButtonOverlay(
                 />
             </button>
         </div>
-        <LoginNudgePopup show=show_login_nudge show_login_popup />
-        <LoginModal show=show_login_popup redirect_to=Some(format!("/hot-or-not/{}/{}", login_post.canister_id, login_post.post_id)) />
+        <LoginNudgePopup show=show_login_nudge show_login_popup  ev_ctx coin/>
+        <LoginModal show=show_login_popup redirect_to=None reload_window=true/>
         <div class="flex flex-row gap-6 justify-center items-center w-full touch-manipulation">
             <HNButton disabled=running bet_direction kind=VoteKind::Hot place_bet_action />
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
@@ -382,7 +396,7 @@ fn HNWonLost(
         None => "",
     };
     let creator_reward_text = if creator_reward_rounded > 0 {
-        format!(", creator gets {creator_reward_rounded} SATS")
+        format!(", creator gets {creator_reward_rounded} YRAL")
     } else {
         String::new()
     };
@@ -391,13 +405,13 @@ fn HNWonLost(
             let total_win = TokenBalance::new((win_amt + vote_amount).into(), 0).humanize();
             if bet_direction_text.is_empty() {
                 (
-                    format!("You won {total_win} SATS",),
+                    format!("You won {total_win} YRAL",),
                     "Tap ? to see how it works".into(),
                 )
             } else {
                 (
                     format!("You voted \"{bet_direction_text}\" - Spot on!"),
-                    format!("You won {total_win} SATS{creator_reward_text}",),
+                    format!("You won {total_win} YRAL{creator_reward_text}",),
                 )
             }
         }
@@ -405,13 +419,13 @@ fn HNWonLost(
             let total_loss = TokenBalance::new(lose_amt.into(), 0).humanize();
             if bet_direction_text.is_empty() {
                 (
-                    format!("You lost {total_loss} SATS"),
+                    format!("You lost {total_loss} YRAL"),
                     "Tap ? to see how it works".into(),
                 )
             } else {
                 (
                     format!("You voted \"{bet_direction_text}\" - wrong vote."),
-                    format!("You lost {total_loss} SATS{creator_reward_text}"),
+                    format!("You lost {total_loss} YRAL{creator_reward_text}"),
                 )
             }
         }
@@ -525,7 +539,7 @@ fn TotalBalance(won: bool) -> impl IntoView {
 
     let total_balance_text = move || {
         let balance = HnBetState::get_balance().unwrap_or(0);
-        format!("Total balance: {balance} SATS")
+        format!("Total balance: {balance} YRAL")
     };
 
     Effect::new(move |_| {

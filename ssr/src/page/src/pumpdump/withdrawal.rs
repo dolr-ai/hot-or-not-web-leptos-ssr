@@ -11,7 +11,7 @@ use consts::PUMP_AND_DUMP_WORKER_URL;
 use futures::TryFutureExt;
 use http::StatusCode;
 use leptos::prelude::*;
-use leptos_router::hooks::use_navigate;
+use leptos_router::hooks::{use_location, use_navigate};
 use log;
 use state::canisters::auth_state;
 use utils::{mixpanel::mixpanel_events::*, send_wrap, try_or_redirect_opt};
@@ -141,10 +141,13 @@ pub fn PndWithdrawal() -> impl IntoView {
 
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
+    let loc = use_location();
 
     let send_claim = Action::new_local(move |&()| async move {
         let cans = auth.auth_cans().await?;
-        handle_user_login(cans.clone(), ev_ctx, None).await?;
+        let path = loc.pathname.get();
+        let page_name = BottomNavigationCategory::try_from(path.clone()).ok();
+        handle_user_login(cans.clone(), ev_ctx, None, page_name).await?;
 
         let req = ClaimReq::new(cans.identity(), dolrs()).map_err(ServerFnError::new)?;
         let claim_url = PUMP_AND_DUMP_WORKER_URL
