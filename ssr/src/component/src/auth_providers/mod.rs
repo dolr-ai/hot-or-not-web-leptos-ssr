@@ -26,6 +26,8 @@ use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, Provi
 use utils::mixpanel::mixpanel_events::BottomNavigationCategory;
 use utils::mixpanel::mixpanel_events::MixPanelEvent;
 use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
+use utils::mixpanel::state::MixpanelState;
+use utils::mixpanel::state::MixpanelUserMetadata;
 use utils::send_wrap;
 use utils::types::NewIdentity;
 use yral_canisters_common::Canisters;
@@ -197,7 +199,14 @@ pub fn LoginProviders(
                 let url = METADATA_API_BASE.clone();
                 let user_principal = canisters.user_principal();
                 let metadata_client: MetadataClient<false> = MetadataClient::with_base_url(url);
-                let _ = metadata_client.set_user_email(user_principal, email).await;
+                let res = metadata_client.set_user_email(user_principal, email).await;
+                if let Ok(metadata) = res {
+                    MixpanelState::get_metadata().set(Some(MixpanelUserMetadata {
+                        email: metadata.email,
+                        signup_at: metadata.signup_at,
+                        user_principal: metadata.user_principal.to_text(),
+                    }));
+                }
             }
 
             if let Err(e) =

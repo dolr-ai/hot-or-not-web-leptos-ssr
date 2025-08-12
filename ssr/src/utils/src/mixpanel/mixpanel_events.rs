@@ -18,7 +18,7 @@ use yral_metadata_client::MetadataClient;
 
 use crate::event_streaming::events::EventCtx;
 use crate::event_streaming::events::HistoryCtx;
-use crate::mixpanel::state::{MixpanelState, UserMetadata};
+use crate::mixpanel::state::{MixpanelState, MixpanelUserMetadata};
 
 #[server]
 async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
@@ -131,7 +131,8 @@ where
     } else {
         visitor_id.to_owned()
     };
-    if MixpanelState::get_metadata().get_untracked().is_none() {
+    let metadata = MixpanelState::get_metadata();
+    if metadata.get_untracked().is_none() {
         // clone principal into something owned
         let principal_owned = principal.map(|p| p.to_string());
 
@@ -143,13 +144,14 @@ where
 
                 let user_principal_clone = user_principal.clone();
 
-                if let Ok(metadata) = metadata_client
+                let metadata = metadata_client
                     .set_signup_datetime(
                         Principal::from_text(user_principal).expect("Invalid principal"),
                     )
-                    .await
-                {
-                    MixpanelState::get_metadata().set(Some(UserMetadata {
+                    .await;
+
+                if let Ok(metadata) = metadata {
+                    MixpanelState::get_metadata().set(Some(MixpanelUserMetadata {
                         email: metadata.email,
                         signup_at: metadata.signup_at,
                         user_principal: metadata.user_principal.to_text(),
@@ -164,9 +166,7 @@ where
         });
     }
 
-    let metadata = MixpanelState::get_metadata().get_untracked();
-
-    if let Some(metadata) = metadata {
+    if let Some(metadata) = metadata.get_untracked() {
         // if signup_at is 24 hours or more ago, set it to "old"
         if let Some(signup_at) = metadata.signup_at {
             let now = chrono::Utc::now().timestamp();
