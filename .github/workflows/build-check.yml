@@ -5,134 +5,99 @@ on:
     inputs:
       publish-artifact:
         default: false
-        required: false
         type: boolean
       erase_components:
-        description: "Enable type erasure. Default is false."
-        required: false
         default: false
         type: boolean
-  workflow_dispatch:
-    inputs:
-      erase_components:
-        description: "Enable type erasure."
-        required: false
+      mode:
+        default: full
+        type: string
+      skip-musl-build:
         default: false
         type: boolean
 
 jobs:
   build_check:
     runs-on: warp-ubuntu-latest-x64-32x
-    steps:
-      - name: Set Swap Space # Needed to fix OOM error in runner
-        uses: pierotofy/set-swap-space@master
-        with:
-          swap-size-gb: 8
 
+    steps:
       - name: Checkout repo and submodules
         uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - name: Install mold linker
-        uses: rui314/setup-mold@v1
-
       - name: Rust Setup
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "nightly-2025-06-15"
-          targets: "x86_64-unknown-linux-musl,wasm32-unknown-unknown"
+          targets: "x86_64-unknown-linux-musl${{ inputs.mode == 'full' && ',wasm32-unknown-unknown' || '' }}"
           components: "clippy,rustfmt"
           override: true
 
       - uses: cargo-bins/cargo-binstall@main
-      - name: cargo-leptos setup
-        run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked
-
-      - name: Cache rust dependencies and build output
-        uses: Swatinem/rust-cache@v2
+      - run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked
 
       - name: Install Node.js
+        if: ${{ inputs.mode == 'full' }}
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - uses: pnpm/action-setup@v3
-        name: Install pnpm
+        if: ${{ inputs.mode == 'full' }}
         with:
           version: 8
           run_install: false
 
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - uses: actions/cache@v4
-        name: Setup pnpm cache
+      # Cache pnpm store for instant installs
+      - name: Cache pnpm store
+        if: ${{ inputs.mode == 'full' }}
+        uses: actions/cache@v4
         with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          path: ~/.pnpm-store
+          key: pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+            pnpm-store-
 
       - name: Install npm deps
-        run: pnpm install
-
-      - uses: awalsh128/cache-apt-pkgs-action@v1
-        with:
-          packages: musl-tools protobuf-compiler
-          version: 1.0
-
-      - name: Install clippy
-        run: |
-          rustup component add clippy
-          rustup component add rustfmt
+        if: ${{ inputs.mode == 'full' }}
+        run: pnpm install --frozen-lockfile
 
       - name: lint check
+        if: ${{ inputs.mode == 'full' }}
         run: |
           cargo fmt --check
           cargo clippy --no-deps --all-features --release -- -D warnings
         env:
           RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
 
-      - name: Print Rust and Cargo version
-        run: |
-          rustc --version
-          cargo --version
+      - name: Download MUSL artifact (if skipping musl build)
+        if: ${{ inputs.skip-musl-build }}
+        uses: actions/download-artifact@v4
+        with:
+          name: build-musl
+          path: target/x86_64-unknown-linux-musl/prod-release
 
       - name: Build the Leptos project to `musl` output
+        if: ${{ !inputs.skip-musl-build }}
         run: |
           RUSTFLAGS_VALUE=""
           if [[ "${{ inputs.erase_components }}" == "true" ]]; then
             RUSTFLAGS_VALUE="--cfg=erase_components"
           fi
-          echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
           RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release --lib-features release-lib --bin-features release-bin
         env:
           RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
           LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
           LEPTOS_HASH_FILES: true
           LEPTOS_TAILWIND_VERSION: v4.1.7
-      - name: Strip debug symbols
-        run: |
-          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
-          objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
-      - run: touch .empty
-      - name: Archive production artifacts
-        uses: actions/upload-artifact@v4
+
+      - name: Archive MUSL artifacts
         if: ${{ inputs.publish-artifact }}
+        uses: actions/upload-artifact@v4
         with:
           name: build-musl
           path: |
             target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
             target/x86_64-unknown-linux-musl/prod-release/hash.txt
             target/site
-            .empty
-
-      - name: Find and display hash file
-        run: |
-          find . -name "hash.txt" -type f
-      # - name: Tree files
-      #   run: |
-      #     tree
