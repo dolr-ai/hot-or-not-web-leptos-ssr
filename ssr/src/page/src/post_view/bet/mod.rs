@@ -77,9 +77,9 @@ fn HNButton(
     let grayscale = Memo::new(move |_| bet_direction() != Some(kind) && disabled());
     let show_spinner = move || disabled() && bet_direction() == Some(kind);
     let icon = if kind == VoteKind::Hot {
-        HotIcon
+        "/img/hotornot/hot-icon.svg"
     } else {
-        NotIcon
+        "/img/hotornot/not-icon.svg"
     };
 
     view! {
@@ -90,10 +90,25 @@ fn HNButton(
             on:click=move |_| {bet_direction.set(Some(kind)); place_bet_action.dispatch(kind);}
         >
             <Show when=move || !show_spinner() fallback=SpinnerFit>
-                <Icon attr:class="w-full h-full drop-shadow-lg" icon=icon />
+                <img src=icon alt="Icons..." />
             </Show>
         </button>
     }
+}
+
+async fn fetch_and_update_balance(
+    auth: &state::canisters::AuthState,
+    set_wallet_balance_store: WriteSignal<u64>,
+) -> Option<u64> {
+    log::info!("Fetching latest wallet balance for user");
+    let cans = auth.auth_cans().await.ok()?;
+    let user_principal = cans.user_principal();
+    let balance_info = load_sats_balance(user_principal).await.ok()?;
+    let balance = balance_info.balance.to_u64().unwrap_or(25);
+    log::info!("Fetched wallet balance: {balance}");
+    set_wallet_balance_store.set(balance);
+    HnBetState::set_balance(balance);
+    Some(balance)
 }
 
 #[component]
@@ -104,12 +119,13 @@ fn HNButtonOverlay(
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
     audio_ref: NodeRef<Audio>,
-    _show_low_balance_popup: RwSignal<bool>,
+    show_low_balance_popup: RwSignal<bool>,
 ) -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
     let ev_ctx = auth.event_ctx();
-    let (wallet_balance_store, _, _) =
+
+    let (wallet_balance_store, set_wallet_balance_store, _) =
         use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
     fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
@@ -157,6 +173,7 @@ fn HNButtonOverlay(
             Ok(())
         }
     };
+
     let place_bet_action: Action<VoteKind, Option<()>> =
         Action::new(move |bet_direction: &VoteKind| {
             let post_canister = post.canister_id;
@@ -187,6 +204,7 @@ fn HNButtonOverlay(
                     return None;
                 }
                 let cans = auth.auth_cans().await.ok()?;
+
                 let is_logged_in = is_connected.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
                 MixPanelEvent::track_game_clicked(
@@ -203,10 +221,17 @@ fn HNButtonOverlay(
                     post.is_nsfw,
                 );
 
-                if bet_amount > wallet_balance_store.get() {
-                    log::warn!("Insufficient balance for bet amount: {bet_amount}");
-                    // show_low_balance_popup.set(true);
-                    // return None;
+                // Check balance and refetch if insufficient
+                let current_balance = wallet_balance_store.get_untracked();
+                if bet_amount > current_balance {
+                    fetch_and_update_balance(&auth, set_wallet_balance_store).await;
+
+                    let current_balance = wallet_balance_store.get_untracked();
+
+                    if bet_amount > current_balance {
+                        show_low_balance_popup.set(true);
+                        return None;
+                    }
                 }
 
                 let identity = cans.identity();
@@ -234,20 +259,21 @@ fn HNButtonOverlay(
                             } => TokenBalance::new((lose_amt + 0u64).into(), 0).humanize(),
                         };
 
-                        let (_, set_wallet_balance_store, _) =
-                            use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
-
                         HnBetState::set(post_mix.uid.clone(), res.video_comparison_result);
+
+                        let (wallet_balance_store, set_wallet_balance_store, _) =
+                            use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+                        let current_balance = wallet_balance_store.get_untracked() - bet_amount;
 
                         let balance = match res.game_result.game_result.clone() {
                             GameResultV2::Win {
                                 win_amt: _,
                                 updated_balance,
-                            } => updated_balance.to_u64().unwrap_or(0),
+                            } => updated_balance.to_u64().unwrap_or(current_balance),
                             GameResultV2::Loss {
                                 lose_amt: _,
                                 updated_balance,
-                            } => updated_balance.to_u64().unwrap_or(0),
+                            } => updated_balance.to_u64().unwrap_or(current_balance),
                         };
                         HnBetState::set_balance(balance);
                         set_wallet_balance_store.set(balance);
@@ -311,7 +337,7 @@ fn HNButtonOverlay(
         <div class="flex justify-center w-full touch-manipulation">
             <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
                 <Icon
-                    attr:class="justify-self-end text-2xl text-white"
+                    attr:class="justify-self-end text-2xl text-[#F8D75E]"
                     icon=icondata::AiUpOutlined
                 />
             </button>
@@ -336,7 +362,7 @@ fn HNButtonOverlay(
             <p class="w-14 md:w-16 lg:w-18">Hot</p>
             <div class="flex justify-center w-12 md:w-14 lg:w-16">
                 <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_prev())>
-                    <Icon attr:class="text-2xl text-white" icon=icondata::AiDownOutlined />
+                    <Icon attr:class="text-2xl text-[#F8D75E]" icon=icondata::AiDownOutlined />
                 </button>
             </div>
             <p class="w-14 md:w-16 lg:w-18">Not</p>
@@ -524,6 +550,7 @@ fn HNWonLost(
                             current_score=bet_res.current_video_score
                             previous_score=bet_res.previous_video_score
                             won
+                            show_score=coin==CoinState::C1
                         />
                     }})
             }
@@ -559,7 +586,12 @@ fn TotalBalance(won: bool) -> impl IntoView {
 }
 
 #[component]
-fn VideoScoreComparison(current_score: f32, previous_score: f32, won: bool) -> impl IntoView {
+fn VideoScoreComparison(
+    current_score: f32,
+    previous_score: f32,
+    won: bool,
+    show_score: bool,
+) -> impl IntoView {
     let is_current_higher = current_score > previous_score;
     let comparison_symbol = if is_current_higher { ">" } else { "<" };
     let comparison_color = if won {
@@ -582,7 +614,7 @@ fn VideoScoreComparison(current_score: f32, previous_score: f32, won: bool) -> i
     view! {
         <div class="flex justify-center items-center gap-6 bg-black/40 rounded-full px-6 py-2 text-white text-sm font-semibold">
             <div class="flex gap-2 items-center text-start">
-                <span class="text-lg">{current_score_int}</span>
+                <Show when=move||show_score><span class="text-lg">{current_score_int}</span></Show>
                 <span class="text-xs">Current Video<br/>Engagement Score</span>
             </div>
 
@@ -591,7 +623,7 @@ fn VideoScoreComparison(current_score: f32, previous_score: f32, won: bool) -> i
             </span>
 
             <div class="flex gap-2 items-center text-start">
-                <span class="text-lg">{previous_score_int}</span>
+                <Show when=move||show_score><span class="text-lg">{previous_score_int}</span></Show>
                 <span class="text-xs">Previous Video<br/>Engagement Score</span>
             </div>
         </div>
@@ -662,31 +694,13 @@ pub fn HNGameOverlay(
     let post = StoredValue::new(post);
 
     let auth = auth_state();
-    let coin = RwSignal::new(if auth.is_logged_in_with_oauth().get_untracked() {
-        DEFAULT_BET_COIN_FOR_LOGGED_IN
-    } else {
-        DEFAULT_BET_COIN_FOR_LOGGED_OUT
-    });
 
-    // Fetch and update wallet balance on initial load
-    let (_, set_wallet_balance_store, _) =
-        use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
-
-    let fetch_balance_action = Action::new_local(move |_: &()| async move {
-        let cans = auth.auth_cans().await.ok()?;
-        let user_principal = cans.user_principal();
-        let balance_info = load_sats_balance(user_principal).await.ok()?;
-        let balance = balance_info.balance.to_u64().unwrap_or(25);
-        set_wallet_balance_store.set(balance);
-        HnBetState::set_balance(balance);
-        Some(balance)
-    });
-
-    // Dispatch balance fetch when component loads (only once)
-    Effect::new(move |prev: Option<()>| {
-        if prev.is_none() {
-            fetch_balance_action.dispatch(());
-        }
+    let coin: RwSignal<CoinState> = use_context().unwrap_or_else(|| {
+        RwSignal::new(if auth.is_logged_in_with_oauth().get_untracked() {
+            DEFAULT_BET_COIN_FOR_LOGGED_IN
+        } else {
+            DEFAULT_BET_COIN_FOR_LOGGED_OUT
+        })
     });
 
     let create_game_info = auth.derive_resource(
@@ -738,7 +752,7 @@ pub fn HNGameOverlay(
                                         coin
                                         refetch_bet
                                         audio_ref=win_audio_ref
-                                        _show_low_balance_popup=show_low_balance_popup
+                                        show_low_balance_popup
                                     />
                                 }
                                     .into_any()

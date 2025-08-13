@@ -7,8 +7,11 @@ use component::icons::volume_mute_icon::VolumeMuteIcon;
 use component::overlay::ShadowOverlay;
 use component::spinner::SpinnerFit;
 use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption};
+use global_constants::REFERRAL_REWARD_SATS;
 
-use consts::{UserOnboardingStore, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY};
+use consts::{
+    UserOnboardingStore, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
+};
 use gloo::timers::callback::Timeout;
 use leptos::html::Audio;
 use leptos::{prelude::*, task::spawn_local};
@@ -16,6 +19,7 @@ use leptos_icons::*;
 use leptos_router::hooks::{use_location, use_navigate};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
+use leptos_use::{use_interval_fn_with_options, UseIntervalFnOptions};
 use state::audio_state::AudioState;
 use state::canisters::auth_state;
 use utils::host::show_nsfw_content;
@@ -29,8 +33,8 @@ use utils::{
 use utils::mixpanel::mixpanel_events::*;
 use yral_canisters_common::utils::posts::PostDetails;
 
-use crate::wallet::airdrop::sats_airdrop::{claim_sats_airdrop, is_user_eligible_for_sats_airdrop};
-use crate::wallet::airdrop::SatsAirdropPopup;
+use crate::wallet::airdrop::sats_airdrop::{claim_sats_airdrop, get_sats_airdrop_status};
+use crate::wallet::airdrop::{AirdropStatus, SatsAirdropPopup};
 use leptos::prelude::ServerFnError;
 
 use super::bet::HNGameOverlay;
@@ -413,18 +417,15 @@ pub fn VideoDetailsOverlay(
                 MixPanelEvent::track_claim_airdrop_clicked(
                     global,
                     StakeType::Sats,
-                    "home_low_sats".to_string(),
+                    "home".to_string(),
                 );
             }
+            log::warn!("Failed to get authenticated canisters");
             sats_airdrop_error.set(true);
             return Err(ServerFnError::new("Failed to get authenticated canisters"));
         };
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_claim_airdrop_clicked(
-                global,
-                StakeType::Sats,
-                "home_low_sats".to_string(),
-            );
+            MixPanelEvent::track_claim_airdrop_clicked(global, StakeType::Sats, "home".to_string());
         }
         let user_canister = auth_cans.user_canister();
         let user_principal = auth_cans.user_principal();
@@ -436,13 +437,21 @@ pub fn VideoDetailsOverlay(
             .inspect(|&amount| {
                 sats_airdrop_claimed.set(true);
                 sats_airdrop_amount.set(amount);
+
+                let (_, set_wallet_balance_store, _) =
+                    use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+
+                set_wallet_balance_store.update(|balance| {
+                    *balance += amount;
+                });
+
                 if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                     MixPanelEvent::track_airdrop_claimed(
                         global,
                         StakeType::Sats,
                         true,
                         amount,
-                        "home_low_sats".to_string(),
+                        "home".to_string(),
                     );
                 }
             })
@@ -455,7 +464,7 @@ pub fn VideoDetailsOverlay(
                         StakeType::Sats,
                         false,
                         0,
-                        "home_low_sats".to_string(),
+                        "home".to_string(),
                     );
                 }
             })
@@ -470,10 +479,11 @@ pub fn VideoDetailsOverlay(
                 return;
             };
             if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                MixPanelEvent::track_refer_earn_clicked(
+                MixPanelEvent::track_refer_friend_clicked(
                     global,
                     is_airdrop_eligible,
-                    "home_low_sats".to_string(),
+                    "low_sats_popup".to_string(),
+                    "home".to_string(),
                 );
             }
             navigate("/refer-earn", Default::default());
@@ -767,7 +777,6 @@ pub fn HotOrNotTutorialOverlay(
         <ShadowOverlay show=show >
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
                 <div style="max-height: 90vh;" class="overflow-hidden overflow-y-auto h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
-                    <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
                     <div
                         style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
                         class="absolute z-[1] -left-1/2 top-0 size-[32rem]" >
@@ -819,7 +828,6 @@ pub fn HotOrNotTutorialOverlay(
         </ShadowOverlay>
     }
 }
-
 #[component]
 pub fn LowSatsBalancePopup(
     show: RwSignal<bool>,
@@ -829,22 +837,22 @@ pub fn LowSatsBalancePopup(
 ) -> impl IntoView {
     let ev_ctx = auth.event_ctx();
 
-    let eligibility_resource = auth.derive_resource(
+    let status_resource = auth.derive_resource(
         move || show.get(),
-        move |cans, showing| async move {
+        move |auth_cans, showing| async move {
             if !showing {
-                return Ok(false);
+                return Ok(AirdropStatus::Available);
             }
-            let user_canister = cans.user_canister();
-            let user_principal = cans.user_principal();
-            is_user_eligible_for_sats_airdrop(user_canister, user_principal).await
+            let user_canister = auth_cans.user_canister();
+            let user_principal = auth_cans.user_principal();
+            get_sats_airdrop_status(user_canister, user_principal).await
         },
     );
 
     view! {
         <ShadowOverlay show=show >
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
-                <div style="min-height: 40vh;" class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
+                <div style="min-height: 62vh;" class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
                     <button
                         on:click=move |_| {
                             show.set(false);
@@ -853,74 +861,136 @@ pub fn LowSatsBalancePopup(
                     >
                         <Icon icon=icondata::ChCross />
                     </button>
-                    <Suspense
-                        fallback=move || view! {
-                            <div style="padding-top:50%" class="flex flex-col items-center justify-center w-full">
-                                <div class="size-12">
-                                    <SpinnerFit />
-                                </div>
-                             </div>
-                        }
-                    >
-                        {move || Suspend::new(async move {
-                            let is_airdrop_eligible = eligibility_resource.await.unwrap_or_default();
 
-                            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                                MixPanelEvent::track_low_on_sats_popup_shown(
-                                    global,
-                                    is_airdrop_eligible,
-                                    "home_low_sats".to_string(),
-                                );
+                    <div class="flex z-[2] relative flex-col items-center gap-5 text-white justify-center p-12">
+                        <img src="/img/hotornot/sad.webp" class="size-14" />
+                        <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on YRAL"</div>
+
+                        <Suspense
+                            fallback=move || view! {
+                                <div class="flex flex-col items-center justify-center w-full py-16">
+                                    <div class="size-12">
+                                        <SpinnerFit />
+                                    </div>
+                                 </div>
                             }
+                        >
+                            {move || Suspend::new(async move {
+                                let airdrop_status = status_resource.await.unwrap_or(AirdropStatus::Available);
+                                let is_airdrop_eligible = matches!(airdrop_status, AirdropStatus::Available);
 
-                            view! {
-                                  <div class="flex z-[2] relative flex-col items-center gap-5 text-white justify-center p-12">
-                                    <img src="/img/hotornot/sad.webp" class="size-14" />
-                                    <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on YRAL"</div>
+                                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                                    MixPanelEvent::track_low_on_sats_popup_shown(
+                                        global,
+                                        is_airdrop_eligible,
+                                        "home".to_string(),
+                                    );
+                                }
+
+                                view! {
                                     {
-                                        if is_airdrop_eligible {
-                                            view! {
-                                                <div class="text-neutral-300 text-center">"Earn more in two easy ways:"</div>
-                                                <ul class="flex list-disc flex-col gap-5 text-neutral-300">
-                                                    <li>"Unlock your daily"<span class="font-semibold">" YRAL "</span>"loot every 24 hours!"</li>
-                                                    <li>"Refer & earn"<span class="font-semibold">" 10 YRAL "</span>"for every friend you invite."</li>
-                                                    <li class="font-semibold">"Upload Videos to earn comissions."</li>
-                                                </ul>
-                                            }.into_any()
-                                        } else {
-                                            view! {
-                                                <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
-                                                <div class="text-neutral-300 text-center">"Meanwhile, earn"<span class="font-semibold">" 10 YRAL "</span>"for every friend you refer!"</div>
-                                            }.into_any()
+                                        let refer_reward_text = format!("{REFERRAL_REWARD_SATS} YRAL");
+                                        match airdrop_status {
+                                            AirdropStatus::Available => view! {
+                                                    <div class="text-neutral-300 text-center">"Earn more in two easy ways:"</div>
+                                                    <ul class="flex list-disc flex-col gap-5 text-neutral-300">
+                                                        <li>"Unlock your daily"<span class="font-semibold">" YRAL "</span>"loot every 24 hours!"</li>
+                                                        <li>"Refer & earn "<span class="font-semibold">{refer_reward_text.clone()}</span>" for every friend you invite."</li>
+                                                        <li class="font-semibold">"Upload Videos to earn commissions."</li>
+                                                    </ul>
+                                                }.into_any(),
+                                            AirdropStatus::WaitFor(duration) => view! {
+                                                    <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
+                                                    <AirdropCountdown duration=duration />
+                                                    <div class="text-neutral-300 text-center">"Meanwhile, earn "<span class="font-semibold">{refer_reward_text.clone()}</span>" for every friend you refer!"</div>
+                                                }.into_any(),
+                                            AirdropStatus::Claimed => view! {
+                                                    <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
+                                                    <div class="text-neutral-300 text-center">"Meanwhile, earn "<span class="font-semibold">{refer_reward_text.clone()}</span>" for every friend you refer!"</div>
+                                                }.into_any(),
                                         }
                                     }
 
-                                    <HighlightedButton
-                                        alt_style=false
-                                        disabled=false
-                                        on_click=move || {
-                                            show.set(false);
-                                            claim_airdrop.dispatch(());
+                                    {
+                                        match airdrop_status {
+                                            AirdropStatus::Available => view! {
+                                                <HighlightedButton
+                                                alt_style=false
+                                                disabled=false
+                                                on_click=move || {
+                                                    show.set(false);
+                                                    claim_airdrop.dispatch(());
+                                                }
+                                                >
+                                                "Claim YRAL Airdrop"
+                                                </HighlightedButton>
+                                                <HighlightedButton
+                                                alt_style=true
+                                                disabled=false
+                                                on_click=move || {
+                                                    show.set(false);
+                                                    navigate_refer_page.dispatch(is_airdrop_eligible);
+                                                }
+                                                >
+                                                "Refer a friend"
+                                                </HighlightedButton>
+                                            }.into_any(),
+                                            _ => view! {
+                                                <HighlightedButton
+                                                    alt_style=false
+                                                    disabled=false
+                                                    on_click=move || {
+                                                        show.set(false);
+                                                        navigate_refer_page.dispatch(is_airdrop_eligible);
+                                                    }
+                                                    >
+                                                    "Refer a friend"
+                                                </HighlightedButton>
+                                                <HighlightedButton
+                                                    alt_style=true
+                                                    disabled=false
+                                                    on_click=move || {
+                                                        show.set(false);
+                                                    }
+                                                    >
+                                                    "Back to Game"
+                                                </HighlightedButton>
+                                            }.into_any()
                                         }
-                                    >
-                                        "Claim airdrop"
-                                    </HighlightedButton>
-                                    <HighlightedButton
-                                        alt_style=true
-                                        disabled=false
-                                        on_click=move || {
-                                            show.set(false);
-                                            navigate_refer_page.dispatch(is_airdrop_eligible);
-                                        }
-                                    >
-                                        "Refer a friend"
-                                    </HighlightedButton>
-                                </div>
-                            }
-                        })}
-                    </Suspense>
+                                    }
+                                }
+                            })}
+                        </Suspense>
+                    </div>
                 </div>
             </div>
         </ShadowOverlay>
+    }
+}
+
+#[component]
+fn AirdropCountdown(duration: web_time::Duration) -> impl IntoView {
+    use utils::time::to_hh_mm_ss;
+    use web_time::Instant;
+
+    let end_time = Instant::now() + duration;
+    let (remaining_duration, set_remaining_duration) = signal(duration);
+
+    let _ = use_interval_fn_with_options(
+        move || {
+            let now = Instant::now();
+            let remaining = end_time.saturating_duration_since(now);
+            set_remaining_duration(remaining);
+        },
+        1000,
+        UseIntervalFnOptions::default().immediate(true),
+    );
+
+    view! {
+        <div class="bg-[#444444] rounded-md px-3 py-2">
+            <span class="text-white text-sm font-medium">
+                "Next Airdrop: "{move || to_hh_mm_ss(remaining_duration())}
+            </span>
+        </div>
     }
 }

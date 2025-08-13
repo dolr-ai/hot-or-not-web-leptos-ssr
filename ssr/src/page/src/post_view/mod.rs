@@ -5,9 +5,9 @@ pub mod single_post;
 pub mod video_iter;
 pub mod video_loader;
 use crate::scrolling_post_view::ScrollingPostView;
-use component::nsfw_nudge_popup::NsfwUnlockPopup;
 use component::spinner::FullScreenSpinner;
 use consts::{MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_TOGGLE_STORE};
+use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
 use indexmap::IndexSet;
 use priority_queue::DoublePriorityQueue;
 use state::canisters::{auth_state, unauth_canisters};
@@ -309,11 +309,8 @@ pub fn PostView() -> impl IntoView {
     let params = use_params::<PostParams>();
     let initial_canister_and_post = RwSignal::new(params.get_untracked().ok());
     let home_page_viewed_sent = RwSignal::new(false);
-    let show_nsfw_popup = RwSignal::new(false);
-    let nsfw_shown_idx: RwSignal<Vec<usize>> = RwSignal::new(Vec::new());
 
     let auth = auth_state();
-    let ev_ctx = auth.event_ctx();
     let (nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
     Effect::new(move |_| {
         if home_page_viewed_sent.get_untracked() {
@@ -342,18 +339,13 @@ pub fn PostView() -> impl IntoView {
         ..
     } = expect_context();
 
-    let current_post = Signal::derive(move || {
-        let index = current_idx.get();
-        video_queue.with(|q| q.get_index(index).cloned())
-    });
-
-    Effect::new(move |_| {
-        let index = current_idx.get();
-        if (index == 2 || index == 8) && !nsfw_shown_idx.get_untracked().contains(&index) {
-            show_nsfw_popup.set(true);
-            nsfw_shown_idx.update(|f| f.push(index));
-        }
-    });
+    provide_context(RwSignal::new(
+        if auth.is_logged_in_with_oauth().get_untracked() {
+            DEFAULT_BET_COIN_FOR_LOGGED_IN
+        } else {
+            DEFAULT_BET_COIN_FOR_LOGGED_OUT
+        },
+    ));
 
     let canisters = unauth_canisters();
     let post_details_cache: PostDetailsCacheCtx = expect_context();
@@ -408,7 +400,6 @@ pub fn PostView() -> impl IntoView {
                 { Some(view! { <PostViewWithUpdatesMLFeed initial_post /> }.into_any()) }
             })}
         </Suspense>
-        <NsfwUnlockPopup show=show_nsfw_popup current_post ev_ctx />
     }
     .into_any()
 }

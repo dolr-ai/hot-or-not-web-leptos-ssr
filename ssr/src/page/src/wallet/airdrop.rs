@@ -480,11 +480,11 @@ pub fn SatsAirdropPopup(
 ) -> impl IntoView {
     let img_src = move || {
         if claimed.get() {
-            "/img/airdrop/sats-airdrop-success.webp"
+            "/img/airdrop/yral-airdrop-success.svg"
         } else if error.get() {
-            "/img/airdrop/sats-airdrop-failed.webp"
+            "/img/airdrop/yral-airdrop-failed.svg"
         } else {
-            "/img/airdrop/sats-airdrop.webp"
+            "/img/airdrop/yral-airdrop.svg"
         }
     };
 
@@ -494,10 +494,6 @@ pub fn SatsAirdropPopup(
         <ShadowOverlay show=show>
             <div class="flex justify-center items-center py-6 px-4 w-full h-full">
                 <div class="overflow-hidden relative items-center pt-16 w-full max-w-md rounded-md cursor-auto h-fit bg-neutral-950">
-                    <img
-                        src="/img/common/refer-bg.webp"
-                        class="object-cover absolute inset-0 z-0 w-full h-full opacity-40"
-                    />
                     <div
                         style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
                         class=format!(
@@ -526,7 +522,7 @@ pub fn SatsAirdropPopup(
                                     view! {
                                         <div class="text-center">
                                             <span class="font-semibold">
-                                                {amount_claimed} " Bitcoin (SATS)"
+                                                {amount_claimed} " YRAL"
                                             </span>
                                             " credited in your wallet"
                                         </div>
@@ -543,7 +539,7 @@ pub fn SatsAirdropPopup(
                                     view! {
                                         <div class="text-center">
                                             "Claim for "
-                                            <span class="font-semibold">"Bitcoin (SATS)"</span>
+                                            <span class="font-semibold">"YRAL"</span>
                                             " failed"
                                         </div>
                                         <HighlightedButton
@@ -561,7 +557,7 @@ pub fn SatsAirdropPopup(
                                     view! {
                                         <div class="text-center">
                                             "Claim for "
-                                            <span class="font-semibold">"Bitcoin (SATS)"</span>
+                                            <span class="font-semibold">"YRAL"</span>
                                             " is being processed"
                                         </div>
                                         <div class="w-12 h-12">
