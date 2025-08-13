@@ -1,4 +1,5 @@
 use candid::Principal;
+use chrono::{DateTime, NaiveDate, Utc};
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use consts::{AUTH_JOURNET, CUSTOM_DEVICE_ID, DEVICE_ID, NSFW_TOGGLE_STORE};
 use consts::{AUTH_JOURNEY_PAGE, METADATA_API_BASE};
@@ -58,19 +59,31 @@ async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
             .get("principal")
             .and_then(Value::as_str)
             .and_then(|f| Principal::from_text(f).ok());
+        let is_logged_in = props
+            .get("is_logged_in")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
         if let Some(user_principal) = principal {
             let base_url = METADATA_API_BASE.clone();
             let metadata_client: MetadataClient<false> = MetadataClient::with_base_url(base_url);
-            let metadata = metadata_client.set_signup_datetime(user_principal).await;
+            let metadata = metadata_client
+                .set_signup_datetime(user_principal, is_logged_in)
+                .await;
             if let Ok(metadata) = metadata {
                 if let Some(signup_at) = metadata.signup_at {
-                    let now = chrono::Utc::now().timestamp();
-                    if now - signup_at >= 24 * 60 * 60 {
-                        props["user_type"] = "repeat".into();
-                    } else {
-                        props["user_type"] = "new".into();
+                    if let Some(signup_date) =
+                        DateTime::<Utc>::from_timestamp(signup_at, 0).map(|dt| dt.date_naive())
+                    {
+                        let today_date: NaiveDate = Utc::now().date_naive();
+
+                        props["user_type"] = if today_date > signup_date {
+                            "repeat".into()
+                        } else {
+                            "new".into()
+                        };
                     }
                 }
+
                 if let Some(email) = metadata.email {
                     props["email"] = email.into();
                 }
@@ -158,6 +171,12 @@ where
         visitor_id.to_owned()
     };
     let metadata = MixpanelState::get_metadata();
+
+    let is_logged_in = props
+        .get("is_logged_in")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+
     if metadata.get_untracked().is_none() {
         // clone principal into something owned
         let principal_owned = principal.map(|p| p.to_string());
@@ -173,6 +192,7 @@ where
                 let metadata = metadata_client
                     .set_signup_datetime(
                         Principal::from_text(user_principal).expect("Invalid principal"),
+                        is_logged_in,
                     )
                     .await;
 
@@ -195,11 +215,16 @@ where
     if let Some(metadata) = metadata.get_untracked() {
         // if signup_at is 24 hours or more ago, set it to "old"
         if let Some(signup_at) = metadata.signup_at {
-            let now = chrono::Utc::now().timestamp();
-            if now - signup_at >= 24 * 60 * 60 {
-                props["user_type"] = "repeat".into();
-            } else {
-                props["user_type"] = "new".into();
+            if let Some(signup_date) =
+                DateTime::<Utc>::from_timestamp(signup_at, 0).map(|dt| dt.date_naive())
+            {
+                let today_date = Utc::now().date_naive();
+
+                props["user_type"] = if today_date > signup_date {
+                    "repeat".into()
+                } else {
+                    "new".into()
+                };
             }
         }
         if let Some(email) = metadata.email {

@@ -56,7 +56,9 @@ pub async fn handle_user_login(
     // TODO: Move for first_time_login only
     let url = METADATA_API_BASE.clone();
     let metadata_client: MetadataClient<false> = MetadataClient::with_base_url(url);
-    let _ = metadata_client.set_signup_datetime(user_principal).await;
+    let _ = metadata_client
+        .set_signup_datetime(user_principal, !first_time_login)
+        .await;
 
     let page_name = page_name.unwrap_or_default();
 
