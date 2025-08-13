@@ -237,7 +237,7 @@ impl LikeVideo {
                     "view_count": view_count,
                     "like_count": likes.get(),
                     "share_count": 0,
-                    "post_id": post_id,
+                    "post_id": post_id.to_string(),
                     "publisher_canister_id": publisher_canister_id,
                     "nsfw_probability": nsfw_probability,
                 })
@@ -464,7 +464,7 @@ impl VideoUploadSuccessful {
                     "is_hotorNot": enable_hot_or_not,
                     "is_filter_used": false,
                     "video_id": video_id,
-                    "post_id": post_id,
+                    "post_id": post_id.to_string(),
                 })
                 .to_string(),
             );
