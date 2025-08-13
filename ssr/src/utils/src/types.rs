@@ -40,6 +40,7 @@ impl From<&PostStatusCandid> for PostStatus {
 pub struct NewIdentity {
     pub id_wire: DelegatedIdentityWire,
     pub fallback_username: Option<String>,
+    pub email: Option<String>,
 }
 
 impl NewIdentity {
@@ -47,6 +48,7 @@ impl NewIdentity {
         Self {
             id_wire: id,
             fallback_username: None,
+            email: None,
         }
     }
 }

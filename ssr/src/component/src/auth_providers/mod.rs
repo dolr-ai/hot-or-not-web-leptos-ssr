@@ -7,6 +7,7 @@ use candid::Principal;
 use codee::string::JsonSerdeCodec;
 use consts::auth::REFRESH_MAX_AGE;
 use consts::AUTH_JOURNEY_PAGE;
+use consts::METADATA_API_BASE;
 use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
@@ -25,9 +26,12 @@ use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, Provi
 use utils::mixpanel::mixpanel_events::BottomNavigationCategory;
 use utils::mixpanel::mixpanel_events::MixPanelEvent;
 use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
+use utils::mixpanel::state::MixpanelState;
+use utils::mixpanel::state::MixpanelUserMetadata;
 use utils::send_wrap;
 use utils::types::NewIdentity;
 use yral_canisters_common::Canisters;
+use yral_metadata_client::MetadataClient;
 
 #[server]
 async fn issue_referral_rewards(worker_req: ReferralReqWithSignature) -> Result<(), ServerFnError> {
@@ -49,6 +53,12 @@ pub async fn handle_user_login(
     let first_time_login = mark_user_registered(user_principal).await?;
 
     let auth_journey = MixpanelGlobalProps::get_auth_journey();
+    // TODO: Move for first_time_login only
+    let url = METADATA_API_BASE.clone();
+    let metadata_client: MetadataClient<false> = MetadataClient::with_base_url(url);
+    let _ = metadata_client
+        .set_signup_datetime(user_principal, !first_time_login)
+        .await;
 
     let page_name = page_name.unwrap_or_default();
 
@@ -187,6 +197,20 @@ pub fn LoginProviders(
                 canisters = Canisters::authenticate_with_network(new_id.id_wire, referrer).await?;
             }
 
+            if let Some(email) = new_id.email {
+                let url = METADATA_API_BASE.clone();
+                let user_principal = canisters.user_principal();
+                let metadata_client: MetadataClient<false> = MetadataClient::with_base_url(url);
+                let res = metadata_client.set_user_email(user_principal, email).await;
+                if let Ok(metadata) = res {
+                    MixpanelState::get_metadata().set(Some(MixpanelUserMetadata {
+                        email: metadata.email,
+                        signup_at: metadata.signup_at,
+                        user_principal: metadata.user_principal.to_text(),
+                    }));
+                }
+            }
+
             if let Err(e) =
                 handle_user_login(canisters.clone(), auth.event_ctx(), referrer, page_name).await
             {
@@ -218,6 +242,7 @@ pub fn LoginProviders(
         }),
         login_complete: SignalSetter::map(move |val: NewIdentity| {
             // Dispatch just the DelegatedIdentityWire
+            logging::log!("email: {:?}", val.email);
             login_action.dispatch(val);
         }),
     };

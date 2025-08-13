@@ -156,7 +156,7 @@ pub async fn perform_yral_auth_impl(
     provided_csrf: String,
     auth_code: String,
     oauth2: YralOAuthClient,
-) -> Result<(DelegatedIdentityWire, Option<String>), ServerFnError> {
+) -> Result<(DelegatedIdentityWire, Option<String>, Option<String>), ServerFnError> {
     let key: Key = expect_context();
     let mut jar: PrivateCookieJar = extract_with_state(&key).await?;
 
@@ -194,6 +194,7 @@ pub async fn perform_yral_auth_impl(
 
     static USERNAME_REGEX: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"^([a-zA-Z0-9]){3,15}$").unwrap());
+    let email = claims.email().map(|f| f.deref().clone());
 
     let username = claims.email().and_then(|e| {
         let mail: String = e.deref().clone();
@@ -217,5 +218,5 @@ pub async fn perform_yral_auth_impl(
 
     update_user_identity(&resp, jar, refresh_token.secret().clone())?;
 
-    Ok((identity, username))
+    Ok((identity, username, email))
 }
