@@ -19,9 +19,11 @@ use utils::web::copy_to_clipboard;
 #[component]
 fn WorkButton(#[prop(into)] text: String, #[prop(into)] head: String) -> impl IntoView {
     view! {
-        <div class="flex flex-col flex-1 gap-3 justify-center items-center py-4 px-3 text-xs rounded-md lg:flex-row lg:py-5 lg:px-4 bg-neutral-900 lg:text-md">
-            <div class="font-bold whitespace-nowrap text-neutral-50">{head}</div>
-            <span class="text-neutral-400">{text}</span>
+        <div class="basis-1/3 flex flex-col gap-3 justify-center items-center
+                    py-4 px-2 text-xs rounded-md bg-neutral-900
+                    lg:flex-row lg:py-5 lg:px-4 lg:text-sm">
+            <div class="font-bold text-neutral-50 lg:whitespace-nowrap">{head}</div>
+            <span class="text-neutral-400 text-center lg:whitespace-nowrap">{text}</span>
         </div>
     }
 }
@@ -158,55 +160,49 @@ fn ReferCode() -> impl IntoView {
 fn ReferView() -> impl IntoView {
     let auth_state = auth_state();
     let logged_in = auth_state.is_logged_in_with_oauth();
-
     Refer.send_event(auth_state.event_ctx());
 
     view! {
-        <div class="flex flex-col gap-5 items-center w-full h-full text-white">
-            <div
-                class="absolute inset-x-0 top-0 z-0 mx-auto w-full max-w-md"
-                style="filter: blur(1.5px);"
-            >
+        <div class="relative isolate flex flex-col gap-6 items-center w-full text-white">
+            <div class="pointer-events-none absolute inset-0 -z-10 overflow-visible">
+                <div
+                    class="absolute left-1/2 top-40 -translate-x-1/2 -translate-y-1/2
+                           w-[min(60rem,90vw)] aspect-square
+                           blur-3xl"
+                    style="
+                        background: radial-gradient(
+                            circle,
+                            hsla(327, 99%, 45%, 0.35) 0%,
+                            transparent 68%
+                        );
+                    "
+                />
             </div>
-            <div
-                style="height: 14rem;"
-                class="flex overflow-visible relative gap-4 justify-center items-center w-full z-[1]"
-            >
+
+            <div class="relative z-10 flex gap-4 justify-center items-center w-full" style="height: 14rem;">
                 <img class="select-none shrink-0" src="/img/common/wallet.svg" />
             </div>
-            <div
-                style="background: radial-gradient(circle, hsla(327, 99%, 45%, 0.3) 0%, transparent 70%); height:29rem"
-                class="absolute inset-x-0 top-16 z-0"
-            ></div>
 
-            <div class="flex flex-col gap-4 items-center w-full text-center z-[1]">
+            <div class="relative z-10 flex flex-col gap-4 items-center w-full text-center">
                 <span class="text-xl font-bold md:text-2xl">
-                    Invite & get YRAL
-                    <span>"("{REFERRAL_REWARD_SATS} " YRAL)"</span>
+                    {"Invite & get "} {REFERRAL_REWARD_SATS} {" YRAL"}
                 </span>
             </div>
-            <div class="flex flex-col gap-2 items-center px-4 w-full text-white z-[1]">
+
+            <div class="relative z-10 flex flex-col gap-2 items-center px-4 w-full">
                 <Show when=logged_in fallback=|| view! { <ConnectLogin cta_location="refer" /> }>
                     <ReferCode />
                 </Show>
             </div>
-            <div class="flex flex-col gap-6 items-center pb-5 mt-2 w-full z-[1]">
-                <span class="font-semibold font-xl">How it works?</span>
-                <div class="flex flex-row gap-4 text-center">
-                    <WorkButton
-                        text="Share your link
-                        with a friend"
-                        head="STEP 1"
-                    />
-                    <WorkButton
-                        text="Your friend logs
-                        in from the link"
-                        head="STEP 2"
-                    />
-                    <WorkButton
-                        text=format!("You both earn YRAL ({REFERRAL_REWARD_SATS} YRAL)")
-                        head="STEP 3"
-                    />
+
+            <div class="relative z-10 flex flex-col gap-6 items-center pb-5 mt-2 w-full">
+                <span class="font-semibold font-xl">{"How it works?"}</span>
+
+                <div class="flex w-full max-w-4xl flex-row flex-nowrap items-stretch justify-center gap-3
+                            sm:gap-4">
+                    <WorkButton head="STEP 1" text="Share your link with a friend" />
+                    <WorkButton head="STEP 2" text="Your friend logs in from the link" />
+                    <WorkButton head="STEP 3" text=format!("You both earn {} YRAL", REFERRAL_REWARD_SATS) />
                 </div>
             </div>
         </div>
@@ -219,16 +215,15 @@ pub fn ReferEarn() -> impl IntoView {
     let page_title = app_state.unwrap().name.to_owned() + " - Refer & Earn";
     view! {
         <Title text=page_title.clone() />
-
         <div class="flex flex-col items-center pt-2 pb-12 bg-black min-w-dvw min-h-dvh">
             <TitleText justify_center=false>
-                <div class="flex flex-row justify-between">
+                <div class="flex flex-row justify-between bg-transparent">
                     <BackButton fallback="/menu".to_string() />
                     <span class="text-lg font-bold text-white">Refer & Earn</span>
                     <div></div>
                 </div>
             </TitleText>
-            <div class="px-8 w-full sm:w-7/12">
+            <div class="px-8 w-full lg:w-10/12 xl:w-8/12 2xl:w-7/12">
                 <div class="flex flex-row justify-center">
                     <ReferView />
                 </div>
