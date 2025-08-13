@@ -7,6 +7,7 @@ pub mod video_loader;
 use crate::scrolling_post_view::ScrollingPostView;
 use component::spinner::FullScreenSpinner;
 use consts::{MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_TOGGLE_STORE};
+use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
 use indexmap::IndexSet;
 use priority_queue::DoublePriorityQueue;
 use state::canisters::{auth_state, unauth_canisters};
@@ -337,6 +338,14 @@ pub fn PostView() -> impl IntoView {
         current_idx,
         ..
     } = expect_context();
+
+    provide_context(RwSignal::new(
+        if auth.is_logged_in_with_oauth().get_untracked() {
+            DEFAULT_BET_COIN_FOR_LOGGED_IN
+        } else {
+            DEFAULT_BET_COIN_FOR_LOGGED_OUT
+        },
+    ));
 
     let canisters = unauth_canisters();
     let post_details_cache: PostDetailsCacheCtx = expect_context();
