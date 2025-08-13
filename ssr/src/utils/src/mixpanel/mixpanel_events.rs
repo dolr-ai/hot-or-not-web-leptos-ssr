@@ -52,6 +52,32 @@ async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
     props["ip_addr"] = ip.clone().into();
     props["user_agent"] = ua.clone().into();
 
+    // check if user_type is present or not, if not get principal and fetch from metadata client
+    if props.get("user_type").is_none() {
+        let principal = props
+            .get("principal")
+            .and_then(Value::as_str)
+            .and_then(|f| Principal::from_text(f).ok());
+        if let Some(user_principal) = principal {
+            let base_url = METADATA_API_BASE.clone();
+            let metadata_client: MetadataClient<false> = MetadataClient::with_base_url(base_url);
+            let metadata = metadata_client.set_signup_datetime(user_principal).await;
+            if let Ok(metadata) = metadata {
+                if let Some(signup_at) = metadata.signup_at {
+                    let now = chrono::Utc::now().timestamp();
+                    if now - signup_at >= 24 * 60 * 60 {
+                        props["user_type"] = "repeat".into();
+                    } else {
+                        props["user_type"] = "new".into();
+                    }
+                }
+                if let Some(email) = metadata.email {
+                    props["email"] = email.into();
+                }
+            }
+        }
+    }
+
     #[cfg(feature = "qstash")]
     {
         let qstash_client = use_context::<crate::qstash::QStashClient>();
