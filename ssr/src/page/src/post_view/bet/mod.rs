@@ -77,9 +77,9 @@ fn HNButton(
     let grayscale = Memo::new(move |_| bet_direction() != Some(kind) && disabled());
     let show_spinner = move || disabled() && bet_direction() == Some(kind);
     let icon = if kind == VoteKind::Hot {
-        HotIcon
+        "/img/hotornot/hot-icon.svg"
     } else {
-        NotIcon
+        "/img/hotornot/not-icon.svg"
     };
 
     view! {
@@ -90,7 +90,7 @@ fn HNButton(
             on:click=move |_| {bet_direction.set(Some(kind)); place_bet_action.dispatch(kind);}
         >
             <Show when=move || !show_spinner() fallback=SpinnerFit>
-                <Icon attr:class="w-full h-full drop-shadow-lg" icon=icon />
+                <img src=icon alt="Icons..." />
             </Show>
         </button>
     }
@@ -550,6 +550,7 @@ fn HNWonLost(
                             current_score=bet_res.current_video_score
                             previous_score=bet_res.previous_video_score
                             won
+                            show_score=coin==CoinState::C1
                         />
                     }})
             }
@@ -585,7 +586,12 @@ fn TotalBalance(won: bool) -> impl IntoView {
 }
 
 #[component]
-fn VideoScoreComparison(current_score: f32, previous_score: f32, won: bool) -> impl IntoView {
+fn VideoScoreComparison(
+    current_score: f32,
+    previous_score: f32,
+    won: bool,
+    show_score: bool,
+) -> impl IntoView {
     let is_current_higher = current_score > previous_score;
     let comparison_symbol = if is_current_higher { ">" } else { "<" };
     let comparison_color = if won {
@@ -608,7 +614,7 @@ fn VideoScoreComparison(current_score: f32, previous_score: f32, won: bool) -> i
     view! {
         <div class="flex justify-center items-center gap-6 bg-black/40 rounded-full px-6 py-2 text-white text-sm font-semibold">
             <div class="flex gap-2 items-center text-start">
-                <span class="text-lg">{current_score_int}</span>
+                <Show when=move||show_score><span class="text-lg">{current_score_int}</span></Show>
                 <span class="text-xs">Current Video<br/>Engagement Score</span>
             </div>
 
@@ -617,7 +623,7 @@ fn VideoScoreComparison(current_score: f32, previous_score: f32, won: bool) -> i
             </span>
 
             <div class="flex gap-2 items-center text-start">
-                <span class="text-lg">{previous_score_int}</span>
+                <Show when=move||show_score><span class="text-lg">{previous_score_int}</span></Show>
                 <span class="text-xs">Previous Video<br/>Engagement Score</span>
             </div>
         </div>
@@ -688,10 +694,13 @@ pub fn HNGameOverlay(
     let post = StoredValue::new(post);
 
     let auth = auth_state();
-    let coin = RwSignal::new(if auth.is_logged_in_with_oauth().get_untracked() {
-        DEFAULT_BET_COIN_FOR_LOGGED_IN
-    } else {
-        DEFAULT_BET_COIN_FOR_LOGGED_OUT
+
+    let coin: RwSignal<CoinState> = use_context().unwrap_or_else(|| {
+        RwSignal::new(if auth.is_logged_in_with_oauth().get_untracked() {
+            DEFAULT_BET_COIN_FOR_LOGGED_IN
+        } else {
+            DEFAULT_BET_COIN_FOR_LOGGED_OUT
+        })
     });
 
     let create_game_info = auth.derive_resource(
