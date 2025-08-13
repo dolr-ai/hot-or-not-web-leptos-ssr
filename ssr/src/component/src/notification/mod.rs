@@ -5,8 +5,6 @@ use leptos::prelude::*;
 use leptos_icons::Icon;
 use leptos_meta::*;
 use leptos_router::components::Redirect;
-use leptos_router::hooks::use_navigate;
-use leptos_router::NavigateOptions;
 use leptos_use::use_media_query;
 use state::canisters::unauth_canisters;
 use state::{app_state::AppState, canisters::auth_state};
@@ -92,7 +90,6 @@ fn NotificationItem(notif: NotificationData, is_read: bool) -> impl IntoView {
                 match href_icon.get() {
                     Some(Ok((href_value, icon))) => {
                         let href_value_clone = href_value.clone();
-                        let nav = use_navigate();
 
                         view! {
                             <div class="w-full p-4 border-b border-neutral-800">
@@ -331,7 +328,7 @@ fn NotificationInfiniteScroller(last_viewed_time: u64) -> impl IntoView {
     let provider = NotificationProvider {
         auth,
         canisters: cans.clone(),
-        last_viewed_time: last_viewed_time,
+        last_viewed_time,
     };
     view! {
         <div class="flex flex-col px-4 pb-32 mx-auto w-full max-w-5xl h-full">
