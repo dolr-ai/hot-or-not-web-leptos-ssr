@@ -215,18 +215,18 @@ pub fn ReferEarn() -> impl IntoView {
     let page_title = app_state.unwrap().name.to_owned() + " - Refer & Earn";
     view! {
         <Title text=page_title.clone() />
-        <div class="flex flex-col items-center pt-2 pb-12 bg-black min-w-dvw min-h-dvh">
-            <TitleText justify_center=false>
-                <div class="flex flex-row justify-between bg-transparent">
-                    <BackButton fallback="/menu".to_string() />
-                    <span class="text-lg font-bold text-white">Refer & Earn</span>
-                    <div></div>
-                </div>
-            </TitleText>
-            <div class="px-8 w-full lg:w-10/12 xl:w-8/12 2xl:w-7/12">
-                <div class="flex flex-row justify-center">
-                    <ReferView />
-                </div>
+        <div class="flex flex-col mb-8 min-w-dvw min-h-screen  bg-black text-white">
+            <div class="flex-none pt-2 pb-4 px-2">
+                <TitleText justify_center=false>
+                    <div class="flex flex-row justify-between bg-transparent">
+                        <BackButton fallback="/menu".to_string() />
+                        <span class="text-lg font-bold text-white">Refer & Earn</span>
+                        <div></div>
+                    </div>
+                </TitleText>
+            </div>
+            <div class="flex-1 flex items-center justify-center px-8 w-full lg:w-10/12 xl:w-8/12 2xl:w-7/12 mx-auto">
+                <ReferView />
             </div>
         </div>
     }
