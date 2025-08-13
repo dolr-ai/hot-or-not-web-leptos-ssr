@@ -12,6 +12,16 @@ on:
         required: false
         default: false
         type: boolean
+      mode:
+        description: "Choose 'fast' for minimal deploy build, 'full' for lint/build/test."
+        required: false
+        default: full
+        type: string
+      skip-musl-build:
+        description: "If true, download MUSL artifact instead of rebuilding."
+        required: false
+        default: false
+        type: boolean
   workflow_dispatch:
     inputs:
       erase_components:
@@ -19,10 +29,24 @@ on:
         required: false
         default: false
         type: boolean
+      mode:
+        description: "Choose 'fast' for minimal deploy build, 'full' for lint/build/test."
+        required: false
+        default: full
+        type: choice
+        options:
+          - fast
+          - full
+      skip-musl-build:
+        description: "If true, download MUSL artifact instead of rebuilding."
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   build_check:
     runs-on: warp-ubuntu-latest-x64-32x
+
     steps:
       - name: Set Swap Space # Needed to fix OOM error in runner
         uses: pierotofy/set-swap-space@master
@@ -41,17 +65,20 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "nightly-2025-06-15"
+          # Keep BOTH targets in both modes because cargo-leptos builds client wasm as well
           targets: "x86_64-unknown-linux-musl,wasm32-unknown-unknown"
           components: "clippy,rustfmt"
           override: true
 
       - uses: cargo-bins/cargo-binstall@main
+
       - name: cargo-leptos setup
         run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked
 
       - name: Cache rust dependencies and build output
         uses: Swatinem/rust-cache@v2
 
+      # --- Node + pnpm are needed in BOTH modes (tailwind/vite pipeline) ---
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
@@ -77,19 +104,23 @@ jobs:
             ${{ runner.os }}-pnpm-store-
 
       - name: Install npm deps
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
+      # Tools needed by your build scripts (e.g., utils/build.rs uses protoc)
       - uses: awalsh128/cache-apt-pkgs-action@v1
         with:
           packages: musl-tools protobuf-compiler
           version: 1.0
 
+      # Lint only in FULL mode
       - name: Install clippy
+        if: ${{ inputs.mode == 'full' }}
         run: |
           rustup component add clippy
           rustup component add rustfmt
 
       - name: lint check
+        if: ${{ inputs.mode == 'full' }}
         run: |
           cargo fmt --check
           cargo clippy --no-deps --all-features --release -- -D warnings
@@ -101,7 +132,16 @@ jobs:
           rustc --version
           cargo --version
 
+      # Reuse artifact in full_check if requested
+      - name: Download MUSL artifact (if skipping musl build)
+        if: ${{ inputs.skip-musl-build }}
+        uses: actions/download-artifact@v4
+        with:
+          name: build-musl
+          path: target/x86_64-unknown-linux-musl/prod-release
+
       - name: Build the Leptos project to `musl` output
+        if: ${{ !inputs.skip-musl-build }}
         run: |
           RUSTFLAGS_VALUE=""
           if [[ "${{ inputs.erase_components }}" == "true" ]]; then
@@ -114,14 +154,18 @@ jobs:
           LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
           LEPTOS_HASH_FILES: true
           LEPTOS_TAILWIND_VERSION: v4.1.7
+
       - name: Strip debug symbols
+        if: ${{ !inputs.skip-musl-build }}
         run: |
           objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
           objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
+
       - run: touch .empty
+
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
-        if: ${{ inputs.publish-artifact }}
+        if: ${{ inputs.publish-artifact && !inputs.skip-musl-build }}
         with:
           name: build-musl
           path: |
@@ -133,6 +177,3 @@ jobs:
       - name: Find and display hash file
         run: |
           find . -name "hash.txt" -type f
-      # - name: Tree files
-      #   run: |
-      #     tree
