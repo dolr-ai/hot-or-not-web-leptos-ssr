@@ -65,6 +65,7 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
       - name: Download build
         uses: actions/download-artifact@v4
         with:
@@ -82,6 +83,7 @@ jobs:
           project_id: lively-bush-60037718
           branch_name: ${{ steps.branch-names.outputs.current_branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
+
       - name: Create Neon Branch (sats airdrop)
         id: neon-sats-airdrop
         uses: neondatabase/create-branch-action@v6
@@ -140,7 +142,7 @@ jobs:
           YRAL_METADATA_NOTIFICATION_API_KEY: ${{ secrets.YRAL_METADATA_NOTIFICATION_API_KEY }}
           DOLR_AIRDROP_NEON_DB_URL: ${{ steps.neon-dolr-airdrop.outputs.db_url_pooled }}
           SATS_AIRDROP_NEON_DB_URL: ${{ steps.neon-sats-airdrop.outputs.db_url_pooled }}
-  
+
   full_check:
     needs: fast_build
     uses: ./.github/workflows/build-check.yml
