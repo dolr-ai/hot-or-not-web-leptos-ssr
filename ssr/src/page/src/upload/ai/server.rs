@@ -7,7 +7,7 @@ use yral_types::delegated_identity::DelegatedIdentityWire;
 
 // Server function to download AI video and upload using existing worker flow
 // TODO: shift to direct URL upload to Cloudflare Stream
-#[server(input = Json, output = Json)]
+#[server(endpoint = "upload_ai_video_from_url", input = Json, output = Json)]
 pub async fn upload_ai_video_from_url(
     video_url: String,
     hashtags: Vec<String>,
