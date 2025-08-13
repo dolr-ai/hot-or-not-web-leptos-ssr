@@ -23,7 +23,7 @@ pub fn TermsOfService() -> impl IntoView {
                     <div class="text-xs whitespace-pre-line">
                         {r#"Thanks for choosing Yral, an online social platform. This is an agreement between "you", a "user" of “Yral”, and GoBazzinga Inc., a company incorporated in the United States of America ("we", "us", "our''). The platform “Yral” has been developed by GoBazzinga Inc. and we operate all features of Yral and tokens in the application.
                         
-                        "CENT token" refers to the blockchain-based unit known as 'CENT' built upon the Internet Computer protocol.
+                        "YRAL token" refers to the blockchain-based unit known as 'YRAL' built upon the Internet Computer protocol.
                         
                         Subject to the foregoing, we are pleased to make our services available to you, which include the Yral Web App, website, social and interactive features, which include image posting, video posting and other associated services ("Services"). These images, videos, clips, interactions etc. on Yral posted by the users shall be the "Content".
                         
