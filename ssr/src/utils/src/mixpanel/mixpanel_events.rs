@@ -197,11 +197,13 @@ where
                     .await;
 
                 if let Ok(metadata) = metadata {
-                    MixpanelState::get_metadata().set(Some(MixpanelUserMetadata {
-                        email: metadata.email,
-                        signup_at: metadata.signup_at,
-                        user_principal: metadata.user_principal.to_text(),
-                    }));
+                    if metadata.user_principal.to_text() == user_principal_clone {
+                        MixpanelState::get_metadata().set(Some(MixpanelUserMetadata {
+                            email: metadata.email,
+                            signup_at: metadata.signup_at,
+                            user_principal: metadata.user_principal.to_text(),
+                        }));
+                    }
                 } else {
                     logging::error!(
                         "Failed to fetch metadata for principal: {}",
