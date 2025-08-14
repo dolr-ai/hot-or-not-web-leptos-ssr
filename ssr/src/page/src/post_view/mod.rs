@@ -207,7 +207,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                     video_queue.update(|vq| {
                         if vq.insert(next.clone()) {
                             let len_vq = vq.len();
-                            if len_vq > MAX_VIDEO_ELEMENTS_FOR_FEED {
+                            if len_vq >= video_queue_for_feed.with_untracked(|vqf| vqf.len()) {
                                 return;
                             }
 
@@ -267,7 +267,8 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                             video_queue.update(|vq| {
                                 if vq.insert(post_detail.clone()) {
                                     let len_vq = vq.len();
-                                    if len_vq > MAX_VIDEO_ELEMENTS_FOR_FEED {
+                                    if len_vq > video_queue_for_feed.with_untracked(|vqf| vqf.len())
+                                    {
                                         return;
                                     }
                                     video_queue_for_feed.update(|vqf| {

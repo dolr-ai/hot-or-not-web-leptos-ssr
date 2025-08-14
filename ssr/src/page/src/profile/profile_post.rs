@@ -1,6 +1,5 @@
 use candid::Principal;
 use component::{back_btn::BackButton, spinner::FullScreenSpinner};
-use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
 use leptos::prelude::*;
 use leptos_router::params::Params;
 use leptos_router::{
@@ -107,7 +106,7 @@ pub fn PostViewWithUpdatesProfile(
                 video_queue.try_update(|q| {
                     if q.insert(p.clone()) {
                         let len_vq = q.len();
-                        if len_vq <= MAX_VIDEO_ELEMENTS_FOR_FEED {
+                        if len_vq <= video_queue_for_feed.with_untracked(|vqf| vqf.len()) {
                             video_queue_for_feed.update(|vqf| {
                                 vqf[len_vq - 1].value.set(Some(p.clone()));
                             });
@@ -236,7 +235,7 @@ fn ProfilePostBase<
                     // Always update video_queue_for_feed to reflect the new state
                     video_queue_for_feed.update(|vqf| {
                         // Re-populate from the updated video_queue
-                        for (i, post) in vq.iter().take(MAX_VIDEO_ELEMENTS_FOR_FEED).enumerate() {
+                        for (i, post) in vq.iter().take(vqf.len()).enumerate() {
                             vqf[i].value.set(Some(post.clone()));
                         }
                     });

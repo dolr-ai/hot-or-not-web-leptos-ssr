@@ -11,9 +11,8 @@ use leptos_router::hooks::use_location;
 use leptos_use::{
     storage::use_local_storage, use_cookie, use_cookie_with_options, UseCookieOptions,
 };
-use utils::{
-    mixpanel::mixpanel_events::{BottomNavigationCategory, MixPanelEvent, MixpanelGlobalProps},
-    types::PostParams,
+use utils::mixpanel::mixpanel_events::{
+    BottomNavigationCategory, MixPanelEvent, MixpanelGlobalProps,
 };
 
 #[derive(Clone)]
@@ -41,19 +40,14 @@ fn yral_nav_items() -> Vec<NavItem> {
             .path("/")
             .max_age(AUTH_UTIL_COOKIES_MAX_AGE_MS),
     );
-    let current_post_params: RwSignal<Option<PostParams>> = expect_context();
+    // let current_post_params: RwSignal<Option<PostParams>> = expect_context();
 
     vec![
         NavItem {
             render_data: NavItemRenderData::Icon {
                 icon: HomeSymbol,
                 filled_icon: Some(HomeSymbolFilled),
-                href: Signal::derive(move || {
-                    current_post_params
-                        .get()
-                        .map(|f| format!("/hot-or-not/{}/{}", f.canister_id, f.post_id))
-                        .unwrap_or("/".to_string())
-                }),
+                href: "/".into(),
             },
             cur_selected: Signal::derive(move || {
                 matches!(path.get().as_str(), "/") || path.get().contains("/hot-or-not")
@@ -135,6 +129,20 @@ pub fn NavBar() -> impl IntoView {
     }
 }
 
+fn track_nav_analytics(
+    category: BottomNavigationCategory,
+    user_principal: Option<Principal>,
+    user_canister: Option<Principal>,
+    is_connected: Option<bool>,
+    is_nsfw_enabled: bool,
+) {
+    if let (Some(user), Some(canister)) = (user_principal, user_canister) {
+        let connected = is_connected.unwrap_or(false);
+        let global = MixpanelGlobalProps::new(user, canister, connected, is_nsfw_enabled, None);
+        MixPanelEvent::track_bottom_navigation_clicked(global, category);
+    }
+}
+
 #[component]
 fn NavIcon(
     #[prop(into)] href: Signal<String>,
@@ -148,22 +156,31 @@ fn NavIcon(
     let (is_connected, _) = use_cookie::<bool, FromToStringCodec>(ACCOUNT_CONNECTED_STORE);
     let (is_nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
 
-    let on_click = move |_| {
-        if let (Some(user), Some(canister)) = (
-            user_principal.get_untracked(),
-            user_canister.get_untracked(),
-        ) {
-            let connected = is_connected.get_untracked().unwrap_or(false);
-            let category = BottomNavigationCategory::try_from(href.get_untracked());
-            if let Ok(category_name) = category {
-                let global = MixpanelGlobalProps::new(
-                    user,
-                    canister,
-                    connected,
-                    is_nsfw_enabled.get_untracked(),
-                    None,
-                );
-                MixPanelEvent::track_bottom_navigation_clicked(global, category_name);
+    let on_click = move |ev: leptos::ev::MouseEvent| {
+        let href_str = href.get_untracked();
+
+        // Track analytics for all nav clicks
+        if let Ok(category) = BottomNavigationCategory::try_from(href_str.clone()) {
+            track_nav_analytics(
+                category,
+                user_principal.get_untracked(),
+                user_canister.get_untracked(),
+                is_connected.get_untracked(),
+                is_nsfw_enabled.get_untracked(),
+            );
+        }
+
+        // Check if this is the home button and perform hard reload
+        if href_str == "/" {
+            // Prevent default navigation
+            ev.prevent_default();
+
+            // Perform hard reload
+            #[cfg(feature = "hydrate")]
+            {
+                if let Some(window) = web_sys::window() {
+                    let _ = window.location().set_href("/");
+                }
             }
         }
     };
@@ -200,23 +217,13 @@ fn UploadIcon(#[prop(into)] cur_selected: Signal<bool>) -> impl IntoView {
     let (is_nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
 
     let on_click = move |_| {
-        if let (Some(user), Some(canister)) = (
+        track_nav_analytics(
+            BottomNavigationCategory::UploadVideo,
             user_principal.get_untracked(),
             user_canister.get_untracked(),
-        ) {
-            let connected = is_connected.get_untracked().unwrap_or(false);
-            let global = MixpanelGlobalProps::new(
-                user,
-                canister,
-                connected,
-                is_nsfw_enabled.get_untracked(),
-                None,
-            );
-            MixPanelEvent::track_bottom_navigation_clicked(
-                global,
-                BottomNavigationCategory::UploadVideo,
-            );
-        }
+            is_connected.get_untracked(),
+            is_nsfw_enabled.get_untracked(),
+        );
     };
     view! {
         <a
