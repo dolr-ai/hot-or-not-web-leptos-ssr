@@ -250,14 +250,14 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
                         <div class="flex-1 min-h-0 overflow-y-auto">
                         <Suspense>
                         {move || {
-                            let Some(Ok(Some(res))) = get_last_viewed.get_value().get() else{
-                                return view!{
-                                    <Redirect path="/"/>
-                                }.into_any()
-                            };
-                            view!{
-                                <NotificationInfiniteScroller last_viewed_time=res/>
-                            }.into_any()
+                            get_last_viewed.get_value().get().and_then(|res| {
+                                let res = utils::try_or_redirect_opt!(res);
+
+                                Some(view!{
+                                    <NotificationInfiniteScroller last_viewed_time=res.unwrap_or(web_time::SystemTime::now().duration_since(web_time::SystemTime::UNIX_EPOCH).unwrap().as_secs())/>
+                                }.into_any())
+
+                            })
                         }}
                         </Suspense>
                         </div>
@@ -284,14 +284,14 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
 
                             <Suspense>
                             {move || {
-                                let Some(Ok(res)) = get_last_viewed.get_value().get() else{
-                                    return view!{
-                                        <Redirect path="/"/>
-                                    }.into_any()
-                                };
-                                view!{
-                                    <NotificationInfiniteScroller last_viewed_time=res.unwrap_or(web_time::SystemTime::now().duration_since(web_time::SystemTime::UNIX_EPOCH).unwrap().as_secs())/>
-                                }.into_any()
+                                get_last_viewed.get_value().get().and_then(|res| {
+                                    let res = utils::try_or_redirect_opt!(res);
+
+                                    Some(view!{
+                                        <NotificationInfiniteScroller last_viewed_time=res.unwrap_or(web_time::SystemTime::now().duration_since(web_time::SystemTime::UNIX_EPOCH).unwrap().as_secs())/>
+                                    }.into_any())
+
+                                })
                             }}
                             </Suspense>
                         </div>
