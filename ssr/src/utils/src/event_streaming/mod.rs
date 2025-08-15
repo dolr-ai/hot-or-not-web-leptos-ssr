@@ -9,11 +9,6 @@ use tracing::instrument;
 pub mod events;
 pub mod video_analytics;
 
-#[cfg(feature = "ssr")]
-pub mod warehouse_events {
-    tonic::include_proto!("warehouse_events");
-}
-
 #[derive(Clone, Default)]
 pub struct EventHistory {
     pub event_name: RwSignal<String>,
@@ -117,31 +112,47 @@ pub async fn stream_to_offchain_agent(
     event: String,
     params: &serde_json::Value,
 ) -> Result<(), ServerFnError> {
-    use tonic::metadata::MetadataValue;
-    use tonic::transport::Channel;
-    use tonic::Request;
-
-    let channel: Channel = expect_context();
+    use consts::OFF_CHAIN_AGENT_GRPC_URL;
+    use reqwest::Client;
 
     let mut off_chain_agent_grpc_auth_token = env::var("GRPC_AUTH_TOKEN").expect("GRPC_AUTH_TOKEN");
     // removing whitespaces and new lines for proper parsing
     off_chain_agent_grpc_auth_token.retain(|c| !c.is_whitespace());
 
-    let token: MetadataValue<_> = format!("Bearer {off_chain_agent_grpc_auth_token}").parse()?;
+    let client = Client::new();
 
-    let mut client =
-        warehouse_events::warehouse_events_client::WarehouseEventsClient::with_interceptor(
-            channel,
-            move |mut req: Request<()>| {
-                req.metadata_mut().insert("authorization", token.clone());
-                Ok(req)
-            },
-        );
+    // Construct the REST API endpoint
+    let url = OFF_CHAIN_AGENT_GRPC_URL
+        .join("api/v2/events")
+        .map_err(|e| ServerFnError::new(format!("Failed to construct URL: {e}")))?;
 
-    let params = params.to_string();
-    let request = tonic::Request::new(warehouse_events::WarehouseEvent { event, params });
+    // Prepare the JSON payload
+    let payload = json!({
+        "event": event,
+        "params": params.to_string()
+    });
 
-    client.send_event(request).await?;
+    // Send the POST request
+    let response = client
+        .post(url)
+        .bearer_auth(off_chain_agent_grpc_auth_token)
+        .header("Content-Type", "application/json")
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to send request: {e}")))?;
+
+    // Check if the request was successful
+    if !response.status().is_success() {
+        let status = response.status();
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
+        return Err(ServerFnError::new(format!(
+            "Request failed with status {status}: {error_text}"
+        )));
+    }
 
     Ok(())
 }
