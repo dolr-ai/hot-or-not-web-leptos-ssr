@@ -84,13 +84,15 @@ fn HNButton(
 
     view! {
         <button
-            class="size-14 md:size-16 lg:size-16 shrink-0"
+            class="size-14 md:size-16 drop-shadow-[0_4px_6px_rgba(0,0,0,0.28)]"
             class=("grayscale", grayscale)
             disabled=disabled
             on:click=move |_| {bet_direction.set(Some(kind)); place_bet_action.dispatch(kind);}
         >
             <Show when=move || !show_spinner() fallback=SpinnerFit>
-                <img src=icon alt="Icons..." />
+                <img src=icon alt="Icons..." class="w-full h-full"
+                    loading="eager"
+                />
             </Show>
         </button>
     }
