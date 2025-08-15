@@ -478,12 +478,6 @@ fn HNWonLost(
         }
     };
 
-    let vote_kind_image = match bet_direction.get() {
-        Some(VoteKind::Hot) => "/img/hotornot/hot-circular.svg",
-        Some(VoteKind::Not) => "/img/hotornot/not-circular.svg",
-        None => "/img/hotornot/not-circular.svg",
-    };
-
     let (onboarding_store, _, _) =
         use_local_storage::<UserOnboardingStore, JsonSerdeCodec>(USER_ONBOARDING_STORE_KEY);
     let show_help_ping = RwSignal::new(true);
