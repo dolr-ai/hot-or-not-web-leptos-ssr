@@ -209,6 +209,15 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
                 .await
                 .map_err(|e| ServerFnError::new(e.to_string()))?;
 
+            // Set the notification panel viewed time
+            // The reason why we're setting it here is to ensure that panel is opened ie the viewed and
+            // we return the old last seen time so that unread messages can be read
+            let _ = send_wrap(client.set_notification_panel_viewed())
+                .await
+                .map_err(|e| crate::notification::provider::NotificationError(e.to_string()))
+                .inspect_err(|e| {
+                    leptos::logging::log!("Failed to set notification panel viewed: {}", e)
+                });
             Ok::<_, ServerFnError>(
                 res.map(|m| m.secs_since_epoch)
                     .unwrap_or(chrono::Utc::now().timestamp() as u64),

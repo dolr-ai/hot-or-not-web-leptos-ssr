@@ -61,16 +61,6 @@ impl CursoredDataProvider for NotificationProvider {
 
         let list_end = notifications.len() < (_end - _start);
 
-        if list_end {
-            client
-                .set_notification_panel_viewed()
-                .await
-                .map_err(|e| NotificationError(e.to_string()))
-                .inspect_err(|e| {
-                    leptos::logging::log!("Failed to set notification panel viewed: {}", e)
-                })?;
-        }
-
         Ok(PageEntry {
             data: notifications
                 .into_iter()
