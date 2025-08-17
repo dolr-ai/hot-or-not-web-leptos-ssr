@@ -1,5 +1,5 @@
 use crate::infinite_scroller::InfiniteScroller;
-use crate::notification::provider::{NotificationError, NotificationProvider};
+use crate::notification::provider::NotificationProvider;
 use crate::overlay::{ShadowOverlay, ShowOverlay};
 use leptos::prelude::*;
 use leptos_icons::Icon;
@@ -196,24 +196,7 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
 
     let auth = auth_state();
 
-    let set_last_viewed = Action::new(move |()| async move {
-        let cans = send_wrap(auth.auth_cans())
-            .await
-            .map_err(|e| NotificationError(e.to_string()))
-            .unwrap();
-        let agent = cans.authenticated_user().await.1;
-        let client = NotificationStore(NOTIFICATION_STORE_ID, agent);
-        send_wrap(client.set_notification_panel_viewed())
-            .await
-            .map_err(|e| NotificationError(e.to_string()))
-            .unwrap();
-    });
-
-    on_cleanup(move || {
-        set_last_viewed.dispatch(());
-    });
-
-    let get_last_viewed = StoredValue::new(Resource::new(
+    let get_last_viewed = Resource::new(
         move || (),
         move |()| async move {
             let cans = send_wrap(auth.auth_cans())
@@ -226,9 +209,12 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
                 .await
                 .map_err(|e| ServerFnError::new(e.to_string()))?;
 
-            Ok::<_, ServerFnError>(res.map(|m| m.secs_since_epoch))
+            Ok::<_, ServerFnError>(
+                res.map(|m| m.secs_since_epoch)
+                    .unwrap_or(chrono::Utc::now().timestamp() as u64),
+            )
         },
-    ));
+    );
     view! {
         <Title text=page_title />
         {move || if is_desktop.get() {
@@ -250,11 +236,11 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
                         <div class="flex-1 min-h-0 overflow-y-auto">
                         <Suspense>
                         {move || {
-                            get_last_viewed.get_value().get().and_then(|res| {
+                            get_last_viewed.get().and_then(|res| {
                                 let res = utils::try_or_redirect_opt!(res);
 
                                 Some(view!{
-                                    <NotificationInfiniteScroller last_viewed_time=res.unwrap_or(web_time::SystemTime::now().duration_since(web_time::SystemTime::UNIX_EPOCH).unwrap().as_secs())/>
+                                    <NotificationInfiniteScroller last_viewed_time=res/>
                                 }.into_any())
 
                             })
@@ -284,11 +270,11 @@ pub fn NotificationPage(close: RwSignal<bool>) -> impl IntoView {
 
                             <Suspense>
                             {move || {
-                                get_last_viewed.get_value().get().and_then(|res| {
+                                get_last_viewed.get().and_then(|res| {
                                     let res = utils::try_or_redirect_opt!(res);
 
                                     Some(view!{
-                                        <NotificationInfiniteScroller last_viewed_time=res.unwrap_or(web_time::SystemTime::now().duration_since(web_time::SystemTime::UNIX_EPOCH).unwrap().as_secs())/>
+                                        <NotificationInfiniteScroller last_viewed_time=res/>
                                     }.into_any())
 
                                 })
