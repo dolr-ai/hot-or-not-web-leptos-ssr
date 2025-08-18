@@ -48,6 +48,7 @@ pub async fn handle_user_login(
     event_ctx: EventCtx,
     referrer: Option<Principal>,
     page_name: Option<BottomNavigationCategory>,
+    email: Option<String>,
 ) -> Result<(), ServerFnError> {
     let user_principal = canisters.user_principal();
     let first_time_login = mark_user_registered(user_principal).await?;
@@ -56,6 +57,12 @@ pub async fn handle_user_login(
     // TODO: Move for first_time_login only
     let url = METADATA_API_BASE.clone();
     let metadata_client: MetadataClient<false> = MetadataClient::with_base_url(url);
+
+    if let Some(email) = email {
+        let _ = metadata_client
+            .set_user_email(user_principal, email, !first_time_login)
+            .await;
+    }
     let _ = metadata_client
         .set_signup_datetime(user_principal, !first_time_login)
         .await;
@@ -197,22 +204,14 @@ pub fn LoginProviders(
                 canisters = Canisters::authenticate_with_network(new_id.id_wire, referrer).await?;
             }
 
-            if let Some(email) = new_id.email {
-                let url = METADATA_API_BASE.clone();
-                let user_principal = canisters.user_principal();
-                let metadata_client: MetadataClient<false> = MetadataClient::with_base_url(url);
-                let res = metadata_client.set_user_email(user_principal, email).await;
-                if let Ok(metadata) = res {
-                    MixpanelState::get_metadata().set(Some(MixpanelUserMetadata {
-                        email: metadata.email,
-                        signup_at: metadata.signup_at,
-                        user_principal: metadata.user_principal.to_text(),
-                    }));
-                }
-            }
-
-            if let Err(e) =
-                handle_user_login(canisters.clone(), auth.event_ctx(), referrer, page_name).await
+            if let Err(e) = handle_user_login(
+                canisters.clone(),
+                auth.event_ctx(),
+                referrer,
+                page_name,
+                new_id.email,
+            )
+            .await
             {
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
