@@ -104,13 +104,6 @@ pub fn CommonPostViewWithUpdates(
         });
         video_queue.update_untracked(|v| {
             if v.len() > 1 {
-                // Safe to do a GC here
-                let rem = 0..(current_idx.get_untracked().saturating_sub(6));
-                current_idx.update(|c| *c -= rem.len());
-                v.drain(rem.clone());
-                video_queue_for_feed.update_untracked(|vqf| {
-                    vqf.drain(rem);
-                });
                 return;
             }
             *v = IndexSet::new();
