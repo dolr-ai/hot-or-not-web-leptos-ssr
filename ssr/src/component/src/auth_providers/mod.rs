@@ -26,8 +26,6 @@ use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, Provi
 use utils::mixpanel::mixpanel_events::BottomNavigationCategory;
 use utils::mixpanel::mixpanel_events::MixPanelEvent;
 use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
-use utils::mixpanel::state::MixpanelState;
-use utils::mixpanel::state::MixpanelUserMetadata;
 use utils::send_wrap;
 use utils::types::NewIdentity;
 use yral_canisters_common::Canisters;
