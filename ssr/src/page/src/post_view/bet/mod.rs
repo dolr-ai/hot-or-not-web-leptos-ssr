@@ -303,6 +303,7 @@ fn HNButtonOverlay(
                         Some(())
                     }
                     Err(e) => {
+                        show_low_balance_popup.set(true);
                         log::error!("{e}");
                         None
                     }
