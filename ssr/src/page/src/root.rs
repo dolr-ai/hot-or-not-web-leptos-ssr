@@ -6,10 +6,10 @@ use leptos_router::components::Redirect;
 use leptos_router::hooks::use_query_map;
 use utils::host::show_nsfw_content;
 use utils::ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw};
-use yral_types::post::PostItemV2;
+use yral_types::post::PostItemV3;
 
 #[server]
-async fn get_top_post_id_global_clean_feed() -> Result<Option<PostItemV2>, ServerFnError> {
+async fn get_top_post_id_global_clean_feed() -> Result<Option<PostItemV3>, ServerFnError> {
     use utils::client_ip::get_client_ip;
 
     let ip_address = get_client_ip().await;
@@ -28,7 +28,7 @@ async fn get_top_post_id_global_clean_feed() -> Result<Option<PostItemV2>, Serve
 }
 
 #[server]
-async fn get_top_post_id_global_nsfw_feed() -> Result<Option<PostItemV2>, ServerFnError> {
+async fn get_top_post_id_global_nsfw_feed() -> Result<Option<PostItemV3>, ServerFnError> {
     use utils::client_ip::get_client_ip;
 
     let ip_address = get_client_ip().await;

@@ -2,58 +2,18 @@ use candid::Principal;
 use serde::Deserialize;
 use serde::Serialize;
 use yral_canisters_common::utils::posts::PostDetails;
-use yral_types::post::FeedResponseV2;
-use yral_types::post::PostItemV2;
+use yral_types::post::FeedRequestV3;
+use yral_types::post::FeedResponseV3;
+use yral_types::post::PostItemV3;
 
 const RECOMMENDATION_SERVICE_URL: &str =
-    "https://recommendation-service-82502260393.us-central1.run.app/recommendations";
+    "https://recommendation-service-82502260393.us-central1.run.app/v2/recommendations";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WatchHistoryItem {
     pub video_id: String,
     pub last_watched_timestamp: String,
     pub mean_percentage_watched: String,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RecommendationRequest {
-    pub user_id: String,
-    pub exclude_items: Vec<String>, // IDs of videos to exclude from recommendations
-    pub nsfw_label: bool,           // Whether to include NSFW content in recommendations
-    num_results: u32,               // Number of results to return
-    ip_address: Option<String>,     // Optional IP address for geolocation
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Recommendation {
-    pub publisher_user_id: String,
-    pub canister_id: String,
-    pub post_id: u64,
-    pub video_id: String,
-    pub nsfw_probability: f32,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct RecommendationResponse {
-    pub posts: Vec<Recommendation>,
-}
-
-impl From<RecommendationResponse> for FeedResponseV2 {
-    fn from(response: RecommendationResponse) -> Self {
-        FeedResponseV2 {
-            posts: response
-                .posts
-                .into_iter()
-                .map(|rec| PostItemV2 {
-                    publisher_user_id: rec.publisher_user_id,
-                    post_id: rec.post_id,
-                    canister_id: rec.canister_id,
-                    video_id: rec.video_id,
-                    is_nsfw: rec.nsfw_probability > 0.4,
-                })
-                .collect(),
-        }
-    }
 }
 
 // New v2 REST APIs
@@ -63,10 +23,10 @@ pub async fn get_ml_feed_coldstart_clean(
     num_results: u32,
     filter_results: Vec<PostDetails>,
     ip_address: Option<String>,
-) -> Result<Vec<PostItemV2>, anyhow::Error> {
+) -> Result<Vec<PostItemV3>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let recommendation_request = RecommendationRequest {
-        user_id: user_id.to_string(),
+    let recommendation_request = FeedRequestV3 {
+        user_id,
         exclude_items: post_details_to_video_ids(filter_results),
         nsfw_label: false,
         num_results,
@@ -85,8 +45,7 @@ pub async fn get_ml_feed_coldstart_clean(
             response.text().await?
         )));
     }
-    let response = response.json::<RecommendationResponse>().await?;
-    let response: FeedResponseV2 = response.into();
+    let response = response.json::<FeedResponseV3>().await?;
     Ok(response.posts)
 }
 
@@ -95,10 +54,10 @@ pub async fn get_ml_feed_coldstart_nsfw(
     num_results: u32,
     filter_results: Vec<PostDetails>,
     ip_address: Option<String>,
-) -> Result<Vec<PostItemV2>, anyhow::Error> {
+) -> Result<Vec<PostItemV3>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let recommendation_request = RecommendationRequest {
-        user_id: user_id.to_string(),
+    let recommendation_request = FeedRequestV3 {
+        user_id,
         exclude_items: post_details_to_video_ids(filter_results),
         nsfw_label: true,
         num_results,
@@ -117,8 +76,7 @@ pub async fn get_ml_feed_coldstart_nsfw(
             response.text().await?
         )));
     }
-    let response = response.json::<RecommendationResponse>().await?;
-    let response: FeedResponseV2 = response.into();
+    let response = response.json::<FeedResponseV3>().await?;
     Ok(response.posts)
 }
 
@@ -127,10 +85,10 @@ pub async fn get_ml_feed_clean(
     num_results: u32,
     filter_results: Vec<PostDetails>,
     ip_address: Option<String>,
-) -> Result<Vec<PostItemV2>, anyhow::Error> {
+) -> Result<Vec<PostItemV3>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let recommendation_request = RecommendationRequest {
-        user_id: user_id.to_string(),
+    let recommendation_request = FeedRequestV3 {
+        user_id,
         exclude_items: post_details_to_video_ids(filter_results),
         nsfw_label: false,
         num_results,
@@ -148,8 +106,7 @@ pub async fn get_ml_feed_clean(
             response.text().await?
         )));
     }
-    let response = response.json::<RecommendationResponse>().await?;
-    let response: FeedResponseV2 = response.into();
+    let response = response.json::<FeedResponseV3>().await?;
     Ok(response.posts)
 }
 
@@ -158,10 +115,10 @@ pub async fn get_ml_feed_nsfw(
     num_results: u32,
     filter_results: Vec<PostDetails>,
     ip_address: Option<String>,
-) -> Result<Vec<PostItemV2>, anyhow::Error> {
+) -> Result<Vec<PostItemV3>, anyhow::Error> {
     let client = reqwest::Client::new();
-    let recommendation_request = RecommendationRequest {
-        user_id: user_id.to_string(),
+    let recommendation_request = FeedRequestV3 {
+        user_id,
         exclude_items: post_details_to_video_ids(filter_results),
         nsfw_label: true,
         num_results,
@@ -179,17 +136,16 @@ pub async fn get_ml_feed_nsfw(
             response.text().await?
         )));
     }
-    let response = response.json::<RecommendationResponse>().await?;
-    let response: FeedResponseV2 = response.into();
+    let response = response.json::<FeedResponseV3>().await?;
     Ok(response.posts)
 }
 
-pub fn post_details_to_post_item(post_details: Vec<PostDetails>) -> Vec<PostItemV2> {
+pub fn post_details_to_post_item(post_details: Vec<PostDetails>) -> Vec<PostItemV3> {
     post_details
         .into_iter()
-        .map(|post_detail| PostItemV2 {
+        .map(|post_detail| PostItemV3 {
             publisher_user_id: post_detail.poster_principal.to_text(),
-            post_id: post_detail.post_id,
+            post_id: post_detail.post_id.to_string(),
             canister_id: post_detail.canister_id.to_text(),
             video_id: post_detail.uid,
             is_nsfw: post_detail.is_nsfw,

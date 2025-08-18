@@ -12,7 +12,7 @@ use indexmap::IndexSet;
 use priority_queue::DoublePriorityQueue;
 use state::canisters::{auth_state, unauth_canisters};
 use std::{cmp::Reverse, collections::HashMap};
-use yral_types::post::PostItemV2;
+use yral_types::post::PostItemV3;
 
 use candid::Principal;
 use codee::string::FromToStringCodec;
@@ -74,7 +74,7 @@ impl PostViewCtx {
 
 #[derive(Clone, Default)]
 pub struct PostDetailsCacheCtx {
-    pub post_details: RwSignal<HashMap<PostId, PostItemV2>>,
+    pub post_details: RwSignal<HashMap<PostId, PostItemV3>>,
 }
 
 #[component]

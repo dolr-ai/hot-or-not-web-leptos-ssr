@@ -141,10 +141,13 @@ impl<
             .into_iter()
             .map(move |item| {
                 // TODO: not changing now since this will be replaced with new post canister service
+                let is_nsfw = if item.is_nsfw { 1.0 } else { 0.0 };
                 self.canisters.get_post_details_with_nsfw_info(
                     Principal::from_text(item.canister_id).unwrap(),
-                    item.post_id,
-                    if item.is_nsfw { 1.0 } else { 0.0 },
+                    item.post_id.parse().expect(
+                        "In phase one, only the type changes but post id will remain a number",
+                    ),
+                    is_nsfw,
                 )
             })
             .collect::<FuturesOrdered<_>>()
@@ -191,10 +194,13 @@ impl<
         let chunk_stream = top_posts
             .into_iter()
             .map(move |item| {
+                let is_nsfw = if item.is_nsfw { 1.0 } else { 0.0 };
                 self.canisters.get_post_details_with_nsfw_info(
                     Principal::from_text(item.canister_id).unwrap(),
-                    item.post_id,
-                    if item.is_nsfw { 1.0 } else { 0.0 },
+                    item.post_id.parse().expect(
+                        "In phase one, only the type changes but post id will remain a number",
+                    ),
+                    is_nsfw,
                 )
             })
             .collect::<FuturesOrdered<_>>()
