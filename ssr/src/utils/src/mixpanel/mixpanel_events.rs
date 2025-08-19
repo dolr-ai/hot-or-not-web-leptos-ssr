@@ -1,19 +1,21 @@
 use candid::Principal;
+use chrono::{DateTime, NaiveDate, Utc};
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use consts::AUTH_JOURNEY_PAGE;
-use consts::{AUTH_JOURNET, CUSTOM_DEVICE_ID, DEVICE_ID, NSFW_TOGGLE_STORE};
+use consts::{AUTH_JOURNET, CUSTOM_DEVICE_ID, DEVICE_ID, NSFW_ENABLED_COOKIE};
 use global_constants::REFERRAL_REWARD_SATS;
 use leptos::logging;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_timeout_fn;
-use leptos_use::{use_cookie, UseTimeoutFnReturn};
+use leptos_use::{use_cookie, use_cookie_with_options, UseCookieOptions, UseTimeoutFnReturn};
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
 use yral_canisters_common::utils::vote::VoteKind;
 use yral_canisters_common::Canisters;
+use yral_metadata_client::MetadataClient;
 
 use crate::event_streaming::events::EventCtx;
 use crate::event_streaming::events::HistoryCtx;
@@ -50,6 +52,43 @@ async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
     props["ip"] = ip.clone().into();
     props["ip_addr"] = ip.clone().into();
     props["user_agent"] = ua.clone().into();
+
+    // check if user_type is present or not, if not get principal and fetch from metadata client
+    if props.get("user_type").is_none() {
+        let principal = props
+            .get("principal")
+            .and_then(Value::as_str)
+            .and_then(|f| Principal::from_text(f).ok());
+        let is_logged_in = props
+            .get("is_logged_in")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        if let Some(user_principal) = principal {
+            let metadata_client: MetadataClient<false> = MetadataClient::default();
+            let metadata = metadata_client
+                .set_signup_datetime(user_principal, is_logged_in)
+                .await;
+            if let Ok(metadata) = metadata {
+                if let Some(signup_at) = metadata.signup_at {
+                    if let Some(signup_date) =
+                        DateTime::<Utc>::from_timestamp(signup_at, 0).map(|dt| dt.date_naive())
+                    {
+                        let today_date: NaiveDate = Utc::now().date_naive();
+
+                        props["user_type"] = if today_date > signup_date {
+                            "repeat".into()
+                        } else {
+                            "new".into()
+                        };
+                    }
+                }
+
+                if let Some(email) = metadata.email {
+                    props["email"] = email.into();
+                }
+            }
+        }
+    }
 
     #[cfg(feature = "qstash")]
     {
@@ -202,9 +241,14 @@ impl MixpanelGlobalProps {
 
     /// Load global state (login, principal, NSFW toggle)
     pub fn try_get(cans: &Canisters<true>, is_logged_in: bool) -> Self {
-        let (is_nsfw_enabled, _, _) =
-            use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
-        let is_nsfw_enabled = is_nsfw_enabled.get_untracked();
+        let (is_nsfw_enabled, _) = use_cookie_with_options::<bool, FromToStringCodec>(
+            NSFW_ENABLED_COOKIE,
+            UseCookieOptions::default()
+                .path("/")
+                .max_age(consts::auth::REFRESH_MAX_AGE.as_secs() as i64)
+                .same_site(leptos_use::SameSite::Lax),
+        );
+        let is_nsfw_enabled = is_nsfw_enabled.get_untracked().unwrap_or(false);
 
         Self {
             user_id: if is_logged_in {
@@ -269,9 +313,14 @@ impl MixpanelGlobalProps {
         }
         #[cfg(feature = "hydrate")]
         {
-            let (is_nsfw_enabled, _, _) =
-                use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
-            let is_nsfw_enabled = is_nsfw_enabled.get_untracked();
+            let (is_nsfw_enabled, _) = use_cookie_with_options::<bool, FromToStringCodec>(
+                NSFW_ENABLED_COOKIE,
+                UseCookieOptions::default()
+                    .path("/")
+                    .max_age(consts::auth::REFRESH_MAX_AGE.as_secs() as i64)
+                    .same_site(leptos_use::SameSite::Lax),
+            );
+            let is_nsfw_enabled = is_nsfw_enabled.get_untracked().unwrap_or(false);
 
             Self::from_ev_ctx_with_nsfw_info(ev_ctx, is_nsfw_enabled)
         }

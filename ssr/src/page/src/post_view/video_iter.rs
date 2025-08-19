@@ -147,7 +147,7 @@ impl<
                     item.post_id.parse().expect(
                         "In phase one, only the type changes but post id will remain a number",
                     ),
-                    is_nsfw,
+                    Some(is_nsfw),
                 )
             })
             .collect::<FuturesOrdered<_>>()
@@ -200,7 +200,7 @@ impl<
                     item.post_id.parse().expect(
                         "In phase one, only the type changes but post id will remain a number",
                     ),
-                    is_nsfw,
+                    Some(is_nsfw),
                 )
             })
             .collect::<FuturesOrdered<_>>()

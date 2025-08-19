@@ -1,9 +1,12 @@
 use candid::Principal;
+use codee::string::FromToStringCodec;
 use component::spinner::FullScreenSpinner;
+use consts::NSFW_ENABLED_COOKIE;
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::components::Redirect;
 use leptos_router::hooks::use_query_map;
+use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use utils::host::show_nsfw_content;
 use utils::ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw};
 use yral_types::post::PostItemV3;
@@ -50,27 +53,25 @@ async fn get_top_post_id_global_nsfw_feed() -> Result<Option<PostItemV3>, Server
 pub fn YralRootPage() -> impl IntoView {
     let params = use_query_map();
 
-    // This will never get trigerred...
-    // efects only run on client (by default)
-    // TODO: figure out the proper logic to trigger this
-    // Effect::new(move |_| {
-    //     let params_map = params.get();
-    //     let utm_source = params_map
-    //         .get("utm_source")
-    //         .unwrap_or("external".to_string());
-
-    //     let (_, set_is_internal_user, _) =
-    //         use_local_storage::<bool, FromToStringCodec>(USER_INTERNAL_STORE);
-    //     if utm_source == "internal" {
-    //         set_is_internal_user(true);
-    //     } else if utm_source == "internaloff" {
-    //         set_is_internal_user(false);
-    //     }
-    // });
+    let (nsfw_cookie_enabled, _) = use_cookie_with_options::<bool, FromToStringCodec>(
+        NSFW_ENABLED_COOKIE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(consts::auth::REFRESH_MAX_AGE.as_secs() as i64)
+            .same_site(leptos_use::SameSite::Lax),
+    );
 
     let full_info = Resource::new_blocking(params, move |params_map| async move {
-        let nsfw_enabled = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
-        let post = if nsfw_enabled || show_nsfw_content() {
+        // Check query param first, then cookie, then show_nsfw_content
+        let nsfw_from_query = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
+        let nsfw_enabled = nsfw_from_query
+            || nsfw_cookie_enabled.get_untracked().unwrap_or(false)
+            || show_nsfw_content();
+        leptos::logging::log!(
+            "NSFW enabled: {nsfw_enabled} (query: {nsfw_from_query}, cookie: {:?})",
+            nsfw_cookie_enabled.get_untracked()
+        );
+        let post = if nsfw_enabled {
             get_top_post_id_global_nsfw_feed().await
         } else {
             get_top_post_id_global_clean_feed().await

@@ -11216,7 +11216,7 @@ dependencies = [
 [[package]]
 name = "yral-identity"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#43c675a574249e8ab0627c9b225050becb7f6e50"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#234aef08fc410c4960242c6f42b6446b5e44ca73"
 dependencies = [
  "candid",
  "ic-agent",
