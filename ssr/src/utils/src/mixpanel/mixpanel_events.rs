@@ -2,7 +2,7 @@ use candid::Principal;
 use chrono::{DateTime, NaiveDate, Utc};
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use consts::{AUTH_JOURNET, CUSTOM_DEVICE_ID, DEVICE_ID, NSFW_TOGGLE_STORE};
-use consts::{AUTH_JOURNEY_PAGE, METADATA_API_BASE};
+use consts::AUTH_JOURNEY_PAGE;
 use global_constants::REFERRAL_REWARD_SATS;
 use leptos::logging;
 use leptos::prelude::*;
@@ -64,8 +64,7 @@ async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
             .and_then(Value::as_bool)
             .unwrap_or(false);
         if let Some(user_principal) = principal {
-            let base_url = METADATA_API_BASE.clone();
-            let metadata_client: MetadataClient<false> = MetadataClient::with_base_url(base_url);
+            let metadata_client: MetadataClient<false> = MetadataClient::default();
             let metadata = metadata_client
                 .set_signup_datetime(user_principal, is_logged_in)
                 .await;
@@ -162,78 +161,6 @@ where
     T: Serialize,
 {
     let mut props = serde_json::to_value(&props).unwrap();
-    // let metadata = serde_json::to_value(&props).unwrap();
-    // let user_id = metadata.get("user_id").and_then(Value::as_str);
-    // let visitor_id = metadata.get("visitor_id").and_then(Value::as_str);
-    // let principal = if user_id.is_some() {
-    //     user_id.to_owned()
-    // } else {
-    //     visitor_id.to_owned()
-    // };
-    // let metadata = MixpanelState::get_metadata();
-
-    // let is_logged_in = props
-    //     .get("is_logged_in")
-    //     .and_then(Value::as_bool)
-    //     .unwrap_or(false);
-
-    // if metadata.get_untracked().is_none() {
-    //     // clone principal into something owned
-    //     let principal_owned = principal.map(|p| p.to_string());
-
-    //     spawn_local(async move {
-    //         if let Some(user_principal) = principal_owned {
-    //             let base_url = METADATA_API_BASE.clone();
-    //             let metadata_client: MetadataClient<false> =
-    //                 MetadataClient::with_base_url(base_url);
-
-    //             let user_principal_clone = user_principal.clone();
-
-    //             let metadata = metadata_client
-    //                 .set_signup_datetime(
-    //                     Principal::from_text(user_principal).expect("Invalid principal"),
-    //                     is_logged_in,
-    //                 )
-    //                 .await;
-
-    //             if let Ok(metadata) = metadata {
-    //                 if metadata.user_principal.to_text() == user_principal_clone {
-    //                     MixpanelState::get_metadata().set(Some(MixpanelUserMetadata {
-    //                         email: metadata.email,
-    //                         signup_at: metadata.signup_at,
-    //                         user_principal: metadata.user_principal.to_text(),
-    //                     }));
-    //                 }
-    //             } else {
-    //                 logging::error!(
-    //                     "Failed to fetch metadata for principal: {}",
-    //                     user_principal_clone
-    //                 );
-    //             }
-    //         }
-    //     });
-    // }
-
-    // if let Some(metadata) = metadata.get_untracked() {
-    //     // if signup_at is 24 hours or more ago, set it to "old"
-    //     if let Some(signup_at) = metadata.signup_at {
-    //         if let Some(signup_date) =
-    //             DateTime::<Utc>::from_timestamp(signup_at, 0).map(|dt| dt.date_naive())
-    //         {
-    //             let today_date = Utc::now().date_naive();
-
-    //             props["user_type"] = if today_date > signup_date {
-    //                 "repeat".into()
-    //             } else {
-    //                 "new".into()
-    //             };
-    //         }
-    //     }
-    //     if let Some(email) = metadata.email {
-    //         props["email"] = email.into();
-    //     }
-    // }
-
     props["event"] = event_name.into();
     props["time"] = chrono::Utc::now().timestamp().into();
     props["$device_id"] = MixpanelGlobalProps::get_device_id().into();

@@ -4,14 +4,6 @@ use leptos::prelude::*;
 pub struct MixpanelState {
     pub device_id: RwSignal<Option<String>>,
     pub custom_device_id: RwSignal<Option<String>>,
-    pub metadata: RwSignal<Option<MixpanelUserMetadata>>,
-}
-
-#[derive(Clone, Default)]
-pub struct MixpanelUserMetadata {
-    pub email: Option<String>,
-    pub signup_at: Option<i64>,
-    pub user_principal: String,
 }
 
 impl MixpanelState {
@@ -34,11 +26,5 @@ impl MixpanelState {
     pub fn reset_device_id(device_id: String) {
         let this = use_context::<Self>().unwrap_or_else(Self::init);
         this.device_id.set(Some(device_id));
-        this.metadata.set(None);
-    }
-
-    pub fn get_metadata() -> RwSignal<Option<MixpanelUserMetadata>> {
-        let this = use_context::<Self>().unwrap_or_else(Self::init);
-        this.metadata
     }
 }

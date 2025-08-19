@@ -7,7 +7,6 @@ use candid::Principal;
 use codee::string::JsonSerdeCodec;
 use consts::auth::REFRESH_MAX_AGE;
 use consts::AUTH_JOURNEY_PAGE;
-use consts::METADATA_API_BASE;
 use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
@@ -53,8 +52,7 @@ pub async fn handle_user_login(
 
     let auth_journey = MixpanelGlobalProps::get_auth_journey();
     // TODO: Move for first_time_login only
-    let url = METADATA_API_BASE.clone();
-    let metadata_client: MetadataClient<false> = MetadataClient::with_base_url(url);
+    let metadata_client: MetadataClient<false> = MetadataClient::default();
 
     if let Some(email) = email {
         let identity = canisters.identity();
