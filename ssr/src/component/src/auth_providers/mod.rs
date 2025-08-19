@@ -30,6 +30,7 @@ use utils::send_wrap;
 use utils::types::NewIdentity;
 use yral_canisters_common::Canisters;
 use yral_metadata_client::MetadataClient;
+use yral_metadata_types::SetUserEmailReq;
 
 #[server]
 async fn issue_referral_rewards(worker_req: ReferralReqWithSignature) -> Result<(), ServerFnError> {
@@ -57,8 +58,15 @@ pub async fn handle_user_login(
     let metadata_client: MetadataClient<false> = MetadataClient::with_base_url(url);
 
     if let Some(email) = email {
+        let identity = canisters.identity();
         let _ = metadata_client
-            .set_user_email(user_principal, email, !first_time_login)
+            .set_user_email(
+                identity,
+                SetUserEmailReq {
+                    email,
+                    already_signed_in: !first_time_login,
+                },
+            )
             .await;
     }
     let _ = metadata_client
