@@ -6,7 +6,7 @@ pub mod video_iter;
 pub mod video_loader;
 use crate::scrolling_post_view::ScrollingPostView;
 use component::spinner::FullScreenSpinner;
-use consts::{MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_TOGGLE_STORE};
+use consts::{MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_ENABLED_COOKIE};
 use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
 use indexmap::IndexSet;
 use priority_queue::DoublePriorityQueue;
@@ -22,7 +22,7 @@ use leptos_router::{
     hooks::{use_navigate, use_params},
     params::Params,
 };
-use leptos_use::{storage::use_local_storage, use_debounce_fn};
+use leptos_use::{use_cookie_with_options, use_debounce_fn, UseCookieOptions};
 use utils::{
     mixpanel::mixpanel_events::*,
     posts::{FeedPostCtx, FetchCursor},
@@ -185,7 +185,13 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
     let auth = auth_state();
 
     let fetch_video_action = Action::new(move |_| {
-        let (nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
+        let (nsfw_enabled, _) = use_cookie_with_options::<bool, FromToStringCodec>(
+            NSFW_ENABLED_COOKIE,
+            UseCookieOptions::default()
+                .path("/")
+                .max_age(consts::auth::REFRESH_MAX_AGE.as_secs() as i64)
+                .same_site(leptos_use::SameSite::Lax),
+        );
         #[cfg(not(feature = "hydrate"))]
         {
             return async {};
@@ -236,12 +242,12 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                 let chunks = if let Some(cans_true) = cans_true.as_ref() {
                     let mut fetch_stream = new_video_fetch_stream_auth(cans_true, auth, cursor);
                     fetch_stream
-                        .fetch_post_uids_hybrid(3, nsfw_enabled, video_queue_c)
+                        .fetch_post_uids_hybrid(3, nsfw_enabled.unwrap_or(false), video_queue_c)
                         .await
                 } else {
                     let mut fetch_stream = new_video_fetch_stream(&cans_false, auth, cursor);
                     fetch_stream
-                        .fetch_post_uids_hybrid(3, nsfw_enabled, video_queue_c)
+                        .fetch_post_uids_hybrid(3, nsfw_enabled.unwrap_or(false), video_queue_c)
                         .await
                 };
 
@@ -305,14 +311,20 @@ pub fn PostView() -> impl IntoView {
     let home_page_viewed_sent = RwSignal::new(false);
 
     let auth = auth_state();
-    let (nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
+    let (nsfw_enabled, _) = use_cookie_with_options::<bool, FromToStringCodec>(
+        NSFW_ENABLED_COOKIE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(consts::auth::REFRESH_MAX_AGE.as_secs() as i64)
+            .same_site(leptos_use::SameSite::Lax),
+    );
     Effect::new(move |_| {
         if home_page_viewed_sent.get_untracked() {
             return;
         }
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(
             auth.event_ctx(),
-            nsfw_enabled.get_untracked(),
+            nsfw_enabled.get_untracked().unwrap_or(false),
         ) {
             MixPanelEvent::track_home_page_viewed(global);
             home_page_viewed_sent.set(true);

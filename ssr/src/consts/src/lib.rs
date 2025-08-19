@@ -35,6 +35,7 @@ pub static CF_BASE_URL: Lazy<Url> =
 pub const NOTIFICATIONS_ENABLED_STORE: &str = "yral-notifications-enabled";
 pub const NOTIFICATION_MIGRATED_STORE: &str = "notifications-migrated";
 pub const NSFW_TOGGLE_STORE: &str = "nsfw-enabled";
+pub const NSFW_ENABLED_COOKIE: &str = "nsfw-enabled-cookie";
 pub const REFERRER_COOKIE: &str = "referrer";
 pub const USER_CANISTER_ID_STORE: &str = "user-canister-id";
 pub const USER_PRINCIPAL_STORE: &str = "user-principal";

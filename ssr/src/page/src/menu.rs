@@ -1,20 +1,15 @@
-use codee::string::FromToStringCodec;
 use component::content_upload::AuthorizedUserToSeedContent;
 use component::content_upload::YoutubeUpload;
 use component::modal::Modal;
 use component::title::TitleText;
-use component::{connect::ConnectLogin, social::*, toggle::Toggle};
-use consts::NSFW_TOGGLE_STORE;
+use component::{connect::ConnectLogin, social::*};
 use leptos::either::Either;
 use leptos::html::Div;
-use leptos::html::Input;
 use leptos::portal::Portal;
-use leptos::{ev, prelude::*};
+use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_meta::*;
 use leptos_router::{components::Redirect, hooks::use_query_map};
-use leptos_use::storage::use_local_storage;
-use leptos_use::use_event_listener;
 use state::app_state::AppState;
 use state::canisters::auth_state;
 use state::content_seed_client::ContentSeedClient;
@@ -102,35 +97,6 @@ fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
                 @{user_details.display_name_or_fallback()}
             </span>
             <span class="text-xs md:text-sm text-neutral-400 line-clamp-1">{user_details.principal()}</span>
-        </div>
-    }
-    .into_any()
-}
-
-#[component]
-fn NsfwToggle() -> impl IntoView {
-    let (nsfw_enabled, set_nsfw_enabled, _) =
-        use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
-    let toggle_ref = NodeRef::<Input>::new();
-
-    _ = use_event_listener(toggle_ref, ev::change, move |_| {
-        set_nsfw_enabled(
-            toggle_ref
-                .get_untracked()
-                .map(|t| t.checked())
-                .unwrap_or_default(),
-        )
-    });
-
-    view! {
-        <div class="grid grid-cols-2 items-center w-full">
-            <div class="flex flex-row gap-4 items-center">
-                <Icon attr:class="text-2xl" icon=icondata::BiShowAltRegular />
-                <span>Show NSFW Videos</span>
-            </div>
-            <div class="justify-self-end">
-                <Toggle checked=nsfw_enabled node_ref=toggle_ref />
-            </div>
         </div>
     }
     .into_any()
@@ -278,8 +244,6 @@ pub fn Menu() -> impl IntoView {
                 </div>
             </div>
             <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
-                // add later when NSFW toggle is needed
-                // <NsfwToggle />
                 <MenuItem click_cta_type=MixpanelMenuClickedCTAType::ReferAndEarn href="/refer-earn" text="Refer & Earn" icon=icondata::AiGiftFilled />
                 <MenuItem click_cta_type=MixpanelMenuClickedCTAType::Leaderboard href="/leaderboard" text="Leaderboard" icon=icondata::ChTrophy />
                 <MenuItem

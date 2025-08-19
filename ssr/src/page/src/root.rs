@@ -1,9 +1,12 @@
 use candid::Principal;
+use codee::string::FromToStringCodec;
 use component::spinner::FullScreenSpinner;
+use consts::NSFW_ENABLED_COOKIE;
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::components::Redirect;
 use leptos_router::hooks::use_query_map;
+use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use utils::host::show_nsfw_content;
 use utils::ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw};
 use yral_types::post::PostItemV2;
@@ -50,10 +53,25 @@ async fn get_top_post_id_global_nsfw_feed() -> Result<Option<PostItemV2>, Server
 pub fn YralRootPage() -> impl IntoView {
     let params = use_query_map();
 
+    let (nsfw_cookie_enabled, _) = use_cookie_with_options::<bool, FromToStringCodec>(
+        NSFW_ENABLED_COOKIE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(consts::auth::REFRESH_MAX_AGE.as_secs() as i64)
+            .same_site(leptos_use::SameSite::Lax),
+    );
+
     let full_info = Resource::new_blocking(params, move |params_map| async move {
-        let nsfw_enabled = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
-        leptos::logging::log!("NSFW enabled: {nsfw_enabled}");
-        let post = if nsfw_enabled || show_nsfw_content() {
+        // Check query param first, then cookie, then show_nsfw_content
+        let nsfw_from_query = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
+        let nsfw_enabled = nsfw_from_query
+            || nsfw_cookie_enabled.get_untracked().unwrap_or(false)
+            || show_nsfw_content();
+        leptos::logging::log!(
+            "NSFW enabled: {nsfw_enabled} (query: {nsfw_from_query}, cookie: {:?})",
+            nsfw_cookie_enabled.get_untracked()
+        );
+        let post = if nsfw_enabled {
             get_top_post_id_global_nsfw_feed().await
         } else {
             get_top_post_id_global_clean_feed().await
