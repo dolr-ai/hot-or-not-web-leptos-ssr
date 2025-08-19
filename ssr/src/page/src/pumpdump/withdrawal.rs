@@ -147,7 +147,7 @@ pub fn PndWithdrawal() -> impl IntoView {
         let cans = auth.auth_cans().await?;
         let path = loc.pathname.get();
         let page_name = BottomNavigationCategory::try_from(path.clone()).ok();
-        handle_user_login(cans.clone(), ev_ctx, None, page_name).await?;
+        handle_user_login(cans.clone(), ev_ctx, None, page_name, None).await?;
 
         let req = ClaimReq::new(cans.identity(), dolrs()).map_err(ServerFnError::new)?;
         let claim_url = PUMP_AND_DUMP_WORKER_URL

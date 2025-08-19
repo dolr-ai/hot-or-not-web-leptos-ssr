@@ -1,4 +1,5 @@
 use candid::Principal;
+use chrono::{DateTime, NaiveDate, Utc};
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use consts::AUTH_JOURNEY_PAGE;
 use consts::{AUTH_JOURNET, CUSTOM_DEVICE_ID, DEVICE_ID, NSFW_ENABLED_COOKIE};
@@ -14,6 +15,7 @@ use serde::Serialize;
 use serde_json::Value;
 use yral_canisters_common::utils::vote::VoteKind;
 use yral_canisters_common::Canisters;
+use yral_metadata_client::MetadataClient;
 
 use crate::event_streaming::events::EventCtx;
 use crate::event_streaming::events::HistoryCtx;
@@ -50,6 +52,43 @@ async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
     props["ip"] = ip.clone().into();
     props["ip_addr"] = ip.clone().into();
     props["user_agent"] = ua.clone().into();
+
+    // check if user_type is present or not, if not get principal and fetch from metadata client
+    if props.get("user_type").is_none() {
+        let principal = props
+            .get("principal")
+            .and_then(Value::as_str)
+            .and_then(|f| Principal::from_text(f).ok());
+        let is_logged_in = props
+            .get("is_logged_in")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        if let Some(user_principal) = principal {
+            let metadata_client: MetadataClient<false> = MetadataClient::default();
+            let metadata = metadata_client
+                .set_signup_datetime(user_principal, is_logged_in)
+                .await;
+            if let Ok(metadata) = metadata {
+                if let Some(signup_at) = metadata.signup_at {
+                    if let Some(signup_date) =
+                        DateTime::<Utc>::from_timestamp(signup_at, 0).map(|dt| dt.date_naive())
+                    {
+                        let today_date: NaiveDate = Utc::now().date_naive();
+
+                        props["user_type"] = if today_date > signup_date {
+                            "repeat".into()
+                        } else {
+                            "new".into()
+                        };
+                    }
+                }
+
+                if let Some(email) = metadata.email {
+                    props["email"] = email.into();
+                }
+            }
+        }
+    }
 
     #[cfg(feature = "qstash")]
     {
