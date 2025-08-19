@@ -362,12 +362,12 @@ pub fn PostView() -> impl IntoView {
                 let item = p.get(&(params.canister_id, params.post_id));
                 if let Some(item) = item {
                     if item.is_nsfw {
-                        1.0
+                        Some(1.0)
                     } else {
-                        0.0
+                        Some(0.0)
                     }
                 } else {
-                    1.0 // TODO: handle this for when we don't have details (when user shares video)
+                    None
                 }
             });
 

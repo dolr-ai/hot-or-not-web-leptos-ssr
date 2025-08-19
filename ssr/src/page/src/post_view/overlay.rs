@@ -293,13 +293,7 @@ pub fn VideoDetailsOverlay(
 
     let (nsfw_enabled, set_nsfw_enabled, _) =
         use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
-    let nsfw_enabled_with_host = Signal::derive(move || {
-        if show_nsfw_content() {
-            true
-        } else {
-            nsfw_enabled()
-        }
-    });
+
     let click_nsfw = Action::new(move |()| {
         let video_id = post.uid.clone();
         async move {
@@ -532,7 +526,7 @@ pub fn VideoDetailsOverlay(
                             let _ = click_nsfw.dispatch(());
                         }
                         src=move || {
-                            if nsfw_enabled_with_host() {
+                            if post.is_nsfw {
                                 "/img/yral/nsfw/nsfw-toggle-on.webp"
                             } else {
                                 "/img/yral/nsfw/nsfw-toggle-off.webp"

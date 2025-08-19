@@ -50,26 +50,9 @@ async fn get_top_post_id_global_nsfw_feed() -> Result<Option<PostItemV2>, Server
 pub fn YralRootPage() -> impl IntoView {
     let params = use_query_map();
 
-    // This will never get trigerred...
-    // efects only run on client (by default)
-    // TODO: figure out the proper logic to trigger this
-    // Effect::new(move |_| {
-    //     let params_map = params.get();
-    //     let utm_source = params_map
-    //         .get("utm_source")
-    //         .unwrap_or("external".to_string());
-
-    //     let (_, set_is_internal_user, _) =
-    //         use_local_storage::<bool, FromToStringCodec>(USER_INTERNAL_STORE);
-    //     if utm_source == "internal" {
-    //         set_is_internal_user(true);
-    //     } else if utm_source == "internaloff" {
-    //         set_is_internal_user(false);
-    //     }
-    // });
-
     let full_info = Resource::new_blocking(params, move |params_map| async move {
         let nsfw_enabled = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
+        leptos::logging::log!("NSFW enabled: {nsfw_enabled}");
         let post = if nsfw_enabled || show_nsfw_content() {
             get_top_post_id_global_nsfw_feed().await
         } else {
