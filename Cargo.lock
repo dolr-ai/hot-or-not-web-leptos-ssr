@@ -7173,7 +7173,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
  "heck 0.4.1",
- "itertools 0.10.5",
+ "itertools 0.14.0",
  "log",
  "multimap",
  "once_cell",
@@ -7193,7 +7193,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.10.5",
+ "itertools 0.14.0",
  "proc-macro2",
  "quote",
  "syn 2.0.104",
@@ -11216,7 +11216,7 @@ dependencies = [
 [[package]]
 name = "yral-identity"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#eebf88a011c416ee72bd40f3c1ab268e5c15d6ef"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#234aef08fc410c4960242c6f42b6446b5e44ca73"
 dependencies = [
  "candid",
  "ic-agent",

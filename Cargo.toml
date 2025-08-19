@@ -204,7 +204,7 @@ base64 = "0.22"
 
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], branch = "master", version = "0.1.0" }
+], branch = "master" }
 sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [

@@ -144,7 +144,7 @@ impl<
                 self.canisters.get_post_details_with_nsfw_info(
                     Principal::from_text(item.canister_id).unwrap(),
                     item.post_id,
-                    if item.is_nsfw { 1.0 } else { 0.0 },
+                    if item.is_nsfw { Some(1.0) } else { Some(0.0) },
                 )
             })
             .collect::<FuturesOrdered<_>>()
@@ -194,7 +194,7 @@ impl<
                 self.canisters.get_post_details_with_nsfw_info(
                     Principal::from_text(item.canister_id).unwrap(),
                     item.post_id,
-                    if item.is_nsfw { 1.0 } else { 0.0 },
+                    if item.is_nsfw { Some(1.0) } else { Some(0.0) },
                 )
             })
             .collect::<FuturesOrdered<_>>()
