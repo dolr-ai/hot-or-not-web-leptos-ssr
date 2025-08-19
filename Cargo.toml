@@ -204,22 +204,22 @@ base64 = "0.22"
 
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], branch="feat/string-as-post-id" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch="feat/string-as-post-id" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch="feat/string-as-post-id" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch="feat/string-as-post-id", features = [
+], branch="master" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch="master" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch="master" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch="master", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch="feat/string-as-post-id" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch="master" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], branch="feat/string-as-post-id", version = "0.1.0" }
-global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch="feat/string-as-post-id" }
-yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch="feat/string-as-post-id", default-features = false, features = [
+], branch="master", version = "0.1.0" }
+global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch="master" }
+yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch="master", default-features = false, features = [
     "ic-git",
     "wasm-bindgen",
 ] }
-videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch="feat/string-as-post-id", features = [
+videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch="master", features = [
     "client",
     "ic",
 ] }
