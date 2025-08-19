@@ -1,14 +1,14 @@
 use candid::Principal;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use consts::AUTH_JOURNEY_PAGE;
-use consts::{AUTH_JOURNET, CUSTOM_DEVICE_ID, DEVICE_ID, NSFW_TOGGLE_STORE};
+use consts::{AUTH_JOURNET, CUSTOM_DEVICE_ID, DEVICE_ID, NSFW_ENABLED_COOKIE};
 use global_constants::REFERRAL_REWARD_SATS;
 use leptos::logging;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_timeout_fn;
-use leptos_use::{use_cookie, UseTimeoutFnReturn};
+use leptos_use::{use_cookie, use_cookie_with_options, UseCookieOptions, UseTimeoutFnReturn};
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
@@ -202,9 +202,14 @@ impl MixpanelGlobalProps {
 
     /// Load global state (login, principal, NSFW toggle)
     pub fn try_get(cans: &Canisters<true>, is_logged_in: bool) -> Self {
-        let (is_nsfw_enabled, _, _) =
-            use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
-        let is_nsfw_enabled = is_nsfw_enabled.get_untracked();
+        let (is_nsfw_enabled, _) = use_cookie_with_options::<bool, FromToStringCodec>(
+            NSFW_ENABLED_COOKIE,
+            UseCookieOptions::default()
+                .path("/")
+                .max_age(consts::auth::REFRESH_MAX_AGE.as_secs() as i64)
+                .same_site(leptos_use::SameSite::Lax),
+        );
+        let is_nsfw_enabled = is_nsfw_enabled.get_untracked().unwrap_or(false);
 
         Self {
             user_id: if is_logged_in {
@@ -269,9 +274,14 @@ impl MixpanelGlobalProps {
         }
         #[cfg(feature = "hydrate")]
         {
-            let (is_nsfw_enabled, _, _) =
-                use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
-            let is_nsfw_enabled = is_nsfw_enabled.get_untracked();
+            let (is_nsfw_enabled, _) = use_cookie_with_options::<bool, FromToStringCodec>(
+                NSFW_ENABLED_COOKIE,
+                UseCookieOptions::default()
+                    .path("/")
+                    .max_age(consts::auth::REFRESH_MAX_AGE.as_secs() as i64)
+                    .same_site(leptos_use::SameSite::Lax),
+            );
+            let is_nsfw_enabled = is_nsfw_enabled.get_untracked().unwrap_or(false);
 
             Self::from_ev_ctx_with_nsfw_info(ev_ctx, is_nsfw_enabled)
         }

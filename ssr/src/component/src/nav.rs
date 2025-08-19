@@ -2,15 +2,13 @@ use crate::nav_icons::*;
 use candid::Principal;
 use codee::string::FromToStringCodec;
 use consts::{
-    ACCOUNT_CONNECTED_STORE, AUTH_UTIL_COOKIES_MAX_AGE_MS, NSFW_TOGGLE_STORE,
+    ACCOUNT_CONNECTED_STORE, AUTH_UTIL_COOKIES_MAX_AGE_MS, NSFW_ENABLED_COOKIE,
     USER_CANISTER_ID_STORE, USER_PRINCIPAL_STORE,
 };
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_router::hooks::use_location;
-use leptos_use::{
-    storage::use_local_storage, use_cookie, use_cookie_with_options, UseCookieOptions,
-};
+use leptos_use::{use_cookie, use_cookie_with_options, UseCookieOptions};
 use utils::{
     mixpanel::mixpanel_events::{BottomNavigationCategory, MixPanelEvent, MixpanelGlobalProps},
     types::PostParams,
@@ -146,7 +144,13 @@ fn NavIcon(
 
     let (user_canister, _) = use_cookie::<Principal, FromToStringCodec>(USER_CANISTER_ID_STORE);
     let (is_connected, _) = use_cookie::<bool, FromToStringCodec>(ACCOUNT_CONNECTED_STORE);
-    let (is_nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
+    let (is_nsfw_enabled, _) = use_cookie_with_options::<bool, FromToStringCodec>(
+        NSFW_ENABLED_COOKIE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(consts::auth::REFRESH_MAX_AGE.as_secs() as i64)
+            .same_site(leptos_use::SameSite::Lax),
+    );
 
     let on_click = move |_| {
         if let (Some(user), Some(canister)) = (
@@ -160,7 +164,7 @@ fn NavIcon(
                     user,
                     canister,
                     connected,
-                    is_nsfw_enabled.get_untracked(),
+                    is_nsfw_enabled.get_untracked().unwrap_or(false),
                     None,
                 );
                 MixPanelEvent::track_bottom_navigation_clicked(global, category_name);
@@ -197,7 +201,13 @@ fn UploadIcon(#[prop(into)] cur_selected: Signal<bool>) -> impl IntoView {
 
     let (user_canister, _) = use_cookie::<Principal, FromToStringCodec>(USER_CANISTER_ID_STORE);
     let (is_connected, _) = use_cookie::<bool, FromToStringCodec>(ACCOUNT_CONNECTED_STORE);
-    let (is_nsfw_enabled, _, _) = use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
+    let (is_nsfw_enabled, _) = use_cookie_with_options::<bool, FromToStringCodec>(
+        NSFW_ENABLED_COOKIE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(consts::auth::REFRESH_MAX_AGE.as_secs() as i64)
+            .same_site(leptos_use::SameSite::Lax),
+    );
 
     let on_click = move |_| {
         if let (Some(user), Some(canister)) = (
@@ -209,7 +219,7 @@ fn UploadIcon(#[prop(into)] cur_selected: Signal<bool>) -> impl IntoView {
                 user,
                 canister,
                 connected,
-                is_nsfw_enabled.get_untracked(),
+                is_nsfw_enabled.get_untracked().unwrap_or(false),
                 None,
             );
             MixPanelEvent::track_bottom_navigation_clicked(

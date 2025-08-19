@@ -10,7 +10,7 @@ use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption}
 use global_constants::REFERRAL_REWARD_SATS;
 
 use consts::{
-    UserOnboardingStore, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
+    UserOnboardingStore, NSFW_ENABLED_COOKIE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
 };
 use gloo::timers::callback::Timeout;
 use leptos::html::Audio;
@@ -19,7 +19,9 @@ use leptos_icons::*;
 use leptos_router::hooks::{use_location, use_navigate};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
-use leptos_use::{use_interval_fn_with_options, UseIntervalFnOptions};
+use leptos_use::{
+    use_cookie_with_options, use_interval_fn_with_options, UseCookieOptions, UseIntervalFnOptions,
+};
 use state::audio_state::AudioState;
 use state::canisters::auth_state;
 use utils::host::show_nsfw_content;
@@ -291,15 +293,14 @@ pub fn VideoDetailsOverlay(
         }
     });
 
-    let (nsfw_enabled, set_nsfw_enabled, _) =
-        use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
-    let nsfw_enabled_with_host = Signal::derive(move || {
-        if show_nsfw_content() {
-            true
-        } else {
-            nsfw_enabled()
-        }
-    });
+    let (nsfw_enabled, set_nsfw_enabled) = use_cookie_with_options::<bool, FromToStringCodec>(
+        NSFW_ENABLED_COOKIE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(consts::auth::REFRESH_MAX_AGE.as_secs() as i64)
+            .same_site(leptos_use::SameSite::Lax),
+    );
+
     let click_nsfw = Action::new(move |()| {
         let video_id = post.uid.clone();
         async move {
@@ -307,7 +308,7 @@ pub fn VideoDetailsOverlay(
                 return;
             }
 
-            if !nsfw_enabled() && !show_nsfw_permission() {
+            if !nsfw_enabled().unwrap_or(false) && !show_nsfw_permission() {
                 show_nsfw_permission.set(true);
                 if let Some(global) = MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(ev_ctx, false)
                 {
@@ -325,7 +326,7 @@ pub fn VideoDetailsOverlay(
                     );
                 }
             } else {
-                if !nsfw_enabled() && show_nsfw_permission() {
+                if !nsfw_enabled().unwrap_or(false) && show_nsfw_permission() {
                     show_nsfw_permission.set(false);
                     if let Some(global) =
                         MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(ev_ctx, false)
@@ -339,9 +340,9 @@ pub fn VideoDetailsOverlay(
                             None,
                         );
                     }
-                    set_nsfw_enabled(true);
+                    set_nsfw_enabled(Some(true));
                 } else {
-                    set_nsfw_enabled(false);
+                    set_nsfw_enabled(Some(false));
                     if let Some(global) =
                         MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(ev_ctx, false)
                     {
@@ -361,9 +362,10 @@ pub fn VideoDetailsOverlay(
                 }
                 // using set_href to hard reload the page
                 let window = window();
-                let _ = window
-                    .location()
-                    .set_href(&format!("/?nsfw={}", nsfw_enabled.get_untracked()));
+                let _ = window.location().set_href(&format!(
+                    "/?nsfw={}",
+                    nsfw_enabled.get_untracked().unwrap_or(false)
+                ));
             }
         }
     });
@@ -532,7 +534,7 @@ pub fn VideoDetailsOverlay(
                             let _ = click_nsfw.dispatch(());
                         }
                         src=move || {
-                            if nsfw_enabled_with_host() {
+                            if post.is_nsfw {
                                 "/img/yral/nsfw/nsfw-toggle-on.webp"
                             } else {
                                 "/img/yral/nsfw/nsfw-toggle-off.webp"
