@@ -8,6 +8,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 axum = { workspace = true, optional = true }
+chrono = "0.4"
 console_error_panic_hook = { workspace = true }
 console_log = { workspace = true }
 hon-worker-common = { workspace = true }

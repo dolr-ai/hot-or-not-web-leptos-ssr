@@ -247,29 +247,3 @@ fn UploadIcon(#[prop(into)] cur_selected: Signal<bool>) -> impl IntoView {
         </a>
     }
 }
-
-// #[component]
-// fn TrophyIcon(idx: usize, cur_selected: Memo<usize>) -> impl IntoView {
-//     view! {
-//         <a href="/leaderboard" class="flex justify-center items-center">
-//             <Show
-//                 when=move || cur_selected() == idx
-//                 fallback=move || {
-//                     view! {
-//                         <div class="py-5">
-//                             <Icon icon=TrophySymbol class="text-2xl text-white md:text-3xl fill-none"/>
-//                         </div>
-//                     }
-//                 }
-//             >
-//
-//                 <div class="py-5 border-t-2 border-t-pink-500">
-//                     <Icon
-//                         icon=TrophySymbolFilled
-//                         class="text-2xl text-white md:text-3xl fill-none aspect-square"
-//                     />
-//                 </div>
-//             </Show>
-//         </a>
-//     }
-// }

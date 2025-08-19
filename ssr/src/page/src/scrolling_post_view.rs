@@ -1,5 +1,4 @@
 use crate::post_view::video_loader::{BgView, VideoViewForQueue};
-use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
 use indexmap::IndexSet;
 use leptos::html;
 use leptos::html::Audio;
@@ -103,7 +102,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                 .root(Some(scroll_root)),
                         );
                         Effect::new(move |_| {
-                            if current_idx() >= MAX_VIDEO_ELEMENTS_FOR_FEED - 1 {
+                            if current_idx() >= video_queue_for_feed.with_untracked(|vqf| vqf.len()) - 1 {
                                 let window = window();
                                 let _ = window
                                     .location()

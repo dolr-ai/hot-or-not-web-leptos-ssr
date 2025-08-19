@@ -1316,6 +1316,7 @@ dependencies = [
  "bb8",
  "bb8-redis",
  "candid",
+ "chrono",
  "ciborium",
  "circular-buffer",
  "codee",
@@ -11215,7 +11216,7 @@ dependencies = [
 [[package]]
 name = "yral-identity"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#df0f414ddd0fc4ae867e2e88d945de34e0c0b454"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#eebf88a011c416ee72bd40f3c1ab268e5c15d6ef"
 dependencies = [
  "candid",
  "ic-agent",

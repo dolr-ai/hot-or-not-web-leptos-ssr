@@ -84,13 +84,15 @@ fn HNButton(
 
     view! {
         <button
-            class="size-14 md:size-16 lg:size-16 shrink-0"
+            class="size-14 md:size-16 drop-shadow-[0_4px_6px_rgba(0,0,0,0.28)]"
             class=("grayscale", grayscale)
             disabled=disabled
             on:click=move |_| {bet_direction.set(Some(kind)); place_bet_action.dispatch(kind);}
         >
             <Show when=move || !show_spinner() fallback=SpinnerFit>
-                <img src=icon alt="Icons..." />
+                <img src=icon alt="Icons..." class="w-full h-full"
+                    loading="eager"
+                />
             </Show>
         </button>
     }
@@ -301,6 +303,7 @@ fn HNButtonOverlay(
                         Some(())
                     }
                     Err(e) => {
+                        show_low_balance_popup.set(true);
                         log::error!("{e}");
                         None
                     }
@@ -335,10 +338,12 @@ fn HNButtonOverlay(
 
     view! {
         <div class="flex justify-center w-full touch-manipulation">
-            <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_next())>
-                <Icon
-                    attr:class="justify-self-end text-2xl text-[#F8D75E]"
-                    icon=icondata::AiUpOutlined
+            <button disabled=running  on:click=move |_| coin.update(|c| *c = c.wrapping_next())
+              class="disabled:grayscale disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+                <img
+                    class="w-6 h-6 md:w-7 md:h-7"
+                    src="/img/hotornot/hn_arrow_up.svg"
                 />
             </button>
         </div>
@@ -361,8 +366,12 @@ fn HNButtonOverlay(
         <div class="flex gap-6 justify-center items-center pt-2 w-full text-base font-medium text-center md:text-lg lg:text-xl touch-manipulation">
             <p class="w-14 md:w-16 lg:w-18">Hot</p>
             <div class="flex justify-center w-12 md:w-14 lg:w-16">
-                <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_prev())>
-                    <Icon attr:class="text-2xl text-[#F8D75E]" icon=icondata::AiDownOutlined />
+                <button disabled=running on:click=move |_| coin.update(|c| *c = c.wrapping_prev())
+                    class="disabled:grayscale disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                    <img
+                        src="/img/hotornot/hn_arrow_down.svg"
+                    />
                 </button>
             </div>
             <p class="w-14 md:w-16 lg:w-18">Not</p>
@@ -472,12 +481,6 @@ fn HNWonLost(
         }
     };
 
-    let vote_kind_image = match bet_direction.get() {
-        Some(VoteKind::Hot) => "/img/hotornot/hot-circular.svg",
-        Some(VoteKind::Not) => "/img/hotornot/not-circular.svg",
-        None => "/img/hotornot/not-circular.svg",
-    };
-
     let (onboarding_store, _, _) =
         use_local_storage::<UserOnboardingStore, JsonSerdeCodec>(USER_ONBOARDING_STORE_KEY);
     let show_help_ping = RwSignal::new(true);
@@ -525,7 +528,6 @@ fn HNWonLost(
             <div class="flex gap-2 justify-center items-center w-full">
                 <div class="relative shrink-0 drop-shadow-lg">
                     <CoinStateView class="w-14 h-14 md:w-16 md:h-16" coin is_connected />
-                    <img src=vote_kind_image class="absolute bottom-0 -right-1 h-7 w-7" />
                 </div>
                 <div class="flex-1 p-1 text-xs md:text-sm font-semibold leading-snug text-white rounded-full">
                     {line1}<br/>
@@ -612,10 +614,10 @@ fn VideoScoreComparison(
     }
 
     view! {
-        <div class="flex justify-center items-center gap-6 bg-black/40 rounded-full px-6 py-2 text-white text-sm font-semibold">
+        <div class="flex justify-center items-center gap-2 bg-black/40 rounded-full px-2 py-2 text-white text-sm font-semibold">
             <div class="flex gap-2 items-center text-start">
-                <Show when=move||show_score><span class="text-lg">{current_score_int}</span></Show>
-                <span class="text-xs">Current Video<br/>Engagement Score</span>
+                <Show when=move||show_score><span class="text-md">{current_score_int}</span></Show>
+                <span class="text-xs">Current Video Score</span>
             </div>
 
             <span class=format!("text-lg font-bold {}", comparison_color)>
@@ -623,8 +625,8 @@ fn VideoScoreComparison(
             </span>
 
             <div class="flex gap-2 items-center text-start">
-                <Show when=move||show_score><span class="text-lg">{previous_score_int}</span></Show>
-                <span class="text-xs">Previous Video<br/>Engagement Score</span>
+                <Show when=move||show_score><span class="text-md">{previous_score_int}</span></Show>
+                <span class="text-xs">Previous Video Score</span>
             </div>
         </div>
     }

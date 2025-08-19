@@ -104,13 +104,6 @@ pub fn CommonPostViewWithUpdates(
         });
         video_queue.update_untracked(|v| {
             if v.len() > 1 {
-                // Safe to do a GC here
-                let rem = 0..(current_idx.get_untracked().saturating_sub(6));
-                current_idx.update(|c| *c -= rem.len());
-                v.drain(rem.clone());
-                video_queue_for_feed.update_untracked(|vqf| {
-                    vqf.drain(rem);
-                });
                 return;
             }
             *v = IndexSet::new();
@@ -207,7 +200,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                     video_queue.update(|vq| {
                         if vq.insert(next.clone()) {
                             let len_vq = vq.len();
-                            if len_vq > MAX_VIDEO_ELEMENTS_FOR_FEED {
+                            if len_vq >= video_queue_for_feed.with_untracked(|vqf| vqf.len()) {
                                 return;
                             }
 
@@ -267,7 +260,8 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                             video_queue.update(|vq| {
                                 if vq.insert(post_detail.clone()) {
                                     let len_vq = vq.len();
-                                    if len_vq > MAX_VIDEO_ELEMENTS_FOR_FEED {
+                                    if len_vq > video_queue_for_feed.with_untracked(|vqf| vqf.len())
+                                    {
                                         return;
                                     }
                                     video_queue_for_feed.update(|vqf| {
