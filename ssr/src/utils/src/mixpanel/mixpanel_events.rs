@@ -1,8 +1,8 @@
 use candid::Principal;
 use chrono::{DateTime, NaiveDate, Utc};
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
-use consts::{AUTH_JOURNET, CUSTOM_DEVICE_ID, DEVICE_ID, NSFW_TOGGLE_STORE};
 use consts::AUTH_JOURNEY_PAGE;
+use consts::{AUTH_JOURNET, CUSTOM_DEVICE_ID, DEVICE_ID, NSFW_TOGGLE_STORE};
 use global_constants::REFERRAL_REWARD_SATS;
 use leptos::logging;
 use leptos::prelude::*;
