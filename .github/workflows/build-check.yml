@@ -108,16 +108,83 @@ jobs:
             RUSTFLAGS_VALUE="--cfg=erase_components"
           fi
           echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
-          RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release --lib-features release-lib --bin-features release-bin
+          # Build with debug symbols for WASM (--wasm-debug flag)
+          RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release --wasm-debug --lib-features release-lib --bin-features release-bin
         env:
           RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
           LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
           LEPTOS_HASH_FILES: true
           LEPTOS_TAILWIND_VERSION: v4.1.7
-      - name: Strip debug symbols
+
+      - name: Extract and save WASM debug info
         run: |
-          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
+          # Save WASM file size info
+          echo "WASM file sizes (with debug symbols):"
+          ls -lh target/site/pkg/*.wasm || true
+
+          # Check for debug sections in WASM
+          if command -v wasm-objdump &> /dev/null; then
+            echo "Debug sections in WASM:"
+            wasm-objdump -h target/site/pkg/*.wasm | grep -i "custom\|debug" || true
+          fi
+
+      - name: Setup Sentry CLI
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
+        uses: matbour/setup-sentry-cli@v2
+        with:
+          url: https://sentry.yral.com
+          token: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          organization: sentry
+          project: leptos-ssr-server
+
+      - name: Upload Sentry debug files for Server
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
+        run: |
+          # Extract debug symbols from server binary
+          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.debug}
           objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
+          objcopy --add-gnu-debuglink target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{.debug,}
+
+          # Upload server debug files with source context
+          echo "Uploading server debug symbols to Sentry (leptos-ssr-server)..."
+          sentry-cli debug-files upload --org sentry --project leptos-ssr-server --auth-token $SENTRY_AUTH_TOKEN --include-sources . || true
+
+          # Create release for server
+          export SENTRY_RELEASE="${GITHUB_SHA:0:7}"
+          sentry-cli releases new "$SENTRY_RELEASE" --org sentry --project leptos-ssr-server || true
+          sentry-cli releases set-commits "$SENTRY_RELEASE" --org sentry --project leptos-ssr-server --auto || true
+          sentry-cli releases finalize "$SENTRY_RELEASE" --org sentry --project leptos-ssr-server || true
+
+          echo "Server release $SENTRY_RELEASE created and debug files uploaded"
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        continue-on-error: true
+
+      - name: Upload Sentry debug files for Browser (WASM)
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
+        run: |
+          # Upload WASM debug files for browser project
+          export SENTRY_RELEASE="${GITHUB_SHA:0:7}"
+
+          echo "Uploading WASM debug files to Sentry (leptos-ssr-browser)..."
+          if [ -d "target/site/pkg" ]; then
+            # Upload WASM files with debug symbols
+            sentry-cli debug-files upload --org sentry --project leptos-ssr-browser --auth-token $SENTRY_AUTH_TOKEN --include-sources target/site/pkg/*.wasm || true
+            
+            # Also upload JS files for better context
+            sentry-cli debug-files upload --org sentry --project leptos-ssr-browser --auth-token $SENTRY_AUTH_TOKEN target/site/pkg/*.js || true
+          fi
+
+          # Create and finalize release for browser project
+          sentry-cli releases new "$SENTRY_RELEASE" --org sentry --project leptos-ssr-browser || true
+          sentry-cli releases set-commits "$SENTRY_RELEASE" --org sentry --project leptos-ssr-browser --auto || true
+          sentry-cli releases finalize "$SENTRY_RELEASE" --org sentry --project leptos-ssr-browser || true
+
+          echo "Browser release $SENTRY_RELEASE created and WASM debug files uploaded"
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        continue-on-error: true
+
       - run: touch .empty
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
@@ -128,6 +195,8 @@ jobs:
             target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
             target/x86_64-unknown-linux-musl/prod-release/hash.txt
             target/site
+            target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr.debug
+            target/site/pkg/*.wasm
             .empty
 
       - name: Find and display hash file

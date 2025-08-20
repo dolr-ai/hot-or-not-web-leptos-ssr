@@ -14,24 +14,112 @@ function tracesSampler(samplingContext) {
   return 0.5; // 0.25 once stabilised
 }
 
+// Check if we're in debug mode (local development)
+const isDebugMode = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
 Sentry.init({
   dsn: "https://3f7d672f8461961bd7b6bec57acf7f18@sentry.yral.com/3",
+  
+  // Enable debug in local development
+  debug: isDebugMode,
+  
+  // Set environment based on hostname
+  environment: isDebugMode ? 'local-development' : 'production',
+  
   integrations: [
     Sentry.browserTracingIntegration(),
-    Sentry.captureConsoleIntegration(),
+    Sentry.captureConsoleIntegration({
+      levels: isDebugMode ? ['error', 'warn'] : ['error']
+    }),
     Sentry.contextLinesIntegration(),
-    Sentry.extraErrorDataIntegration(),
+    Sentry.extraErrorDataIntegration({
+      depth: isDebugMode ? 10 : 5
+    }),
     Sentry.httpClientIntegration(),
     Sentry.replayIntegration({
-      networkDetailAllowUrls: [/^\//, 'yral.com', 'yral-ml-feed-server.fly.dev', 'icp-off-chain-agent.fly.dev'],
+      networkDetailAllowUrls: [/^\//, 'yral.com', 'yral-ml-feed-server.fly.dev', 'icp-off-chain-agent.fly.dev', 'localhost'],
       maskAllText: false,
       blockAllMedia: false,
     }),
   ],
+  
+  // Better WASM error handling
+  beforeSend(event, hint) {
+    // Enhanced logging in debug mode
+    if (isDebugMode) {
+      console.log('Sentry Event:', event);
+      console.log('Sentry Hint:', hint);
+    }
+    
+    // Improve WASM stack traces
+    if (event.exception && event.exception.values) {
+      event.exception.values.forEach(exception => {
+        if (exception.stacktrace && exception.stacktrace.frames) {
+          exception.stacktrace.frames.forEach(frame => {
+            // Mark WASM frames as in-app
+            if (frame.filename && (frame.filename.includes('.wasm') || frame.filename.includes('wasm-function'))) {
+              frame.in_app = true;
+              if (!frame.context_line) {
+                frame.context_line = '[WASM Module]';
+              }
+            }
+          });
+        }
+      });
+    }
+    
+    return event;
+  },
+  
   tracesSampler: tracesSampler,
-  replaysSessionSampleRate: 0.5, // 0.1 once stailised
+  replaysSessionSampleRate: isDebugMode ? 1.0 : 0.5, // Capture all sessions in debug
   replaysOnErrorSampleRate: 1.0,
-  tracePropagationTargets: [/^\//, 'yral.com', 'yral-ml-feed-server.fly.dev', 'icp-off-chain-agent.fly.dev'],
+  tracePropagationTargets: [/^\//, 'yral.com', 'yral-ml-feed-server.fly.dev', 'icp-off-chain-agent.fly.dev', 'localhost'],
+  
+  // Include stack traces for better debugging
+  attachStacktrace: true,
+  
+  // Include more context in errors
+  maxValueLength: isDebugMode ? 1000 : 500,
+});
+
+// Enhanced global error handlers for WASM panics
+window.addEventListener('error', (event) => {
+  if (isDebugMode) {
+    console.error('Global error caught:', event);
+  }
+  
+  // Check if this is a WASM panic or Rust panic
+  if (event.message && (event.message.includes('wasm') || event.message.includes('panic'))) {
+    Sentry.captureException(new Error(`WASM/Rust Error: ${event.message}`), {
+      tags: {
+        source: 'wasm',
+        type: 'panic'
+      },
+      extra: {
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        error: event.error ? event.error.toString() : 'No error object'
+      }
+    });
+  }
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  if (isDebugMode) {
+    console.error('Unhandled promise rejection:', event);
+  }
+  Sentry.captureException(event.reason, {
+    tags: {
+      source: 'promise',
+      type: 'unhandled_rejection'
+    }
+  });
 });
 
 window.Sentry = Sentry;
+
+if (isDebugMode) {
+  console.log('Sentry initialized with enhanced WASM debugging support');
+}

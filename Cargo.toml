@@ -17,6 +17,9 @@ inherits = "release"
 opt-level = 'z'
 lto = true
 codegen-units = 1
+# Enable debug info for Sentry source maps
+# Use "line-tables-only" for smaller size, or true/2 for full debug info
+debug = true
 # panic = "abort"
 
 [profile.prod-release]
