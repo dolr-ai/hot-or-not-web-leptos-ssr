@@ -109,7 +109,7 @@ jobs:
           fi
           echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
           # Build with debug symbols for WASM (--wasm-debug flag)
-          RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --wasm-debug --lib-features release-lib --bin-features release-bin
+          RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release --lib-features release-lib --bin-features release-bin
         env:
           RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
           LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
@@ -139,9 +139,9 @@ jobs:
       - name: Upload Sentry debug files for Server
         run: |
           # Extract debug symbols from server binary
-          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/debug/hot-or-not-web-leptos-ssr{,.debug}
-          objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/debug/hot-or-not-web-leptos-ssr
-          objcopy --add-gnu-debuglink target/x86_64-unknown-linux-musl/debug/hot-or-not-web-leptos-ssr{.debug,}
+          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
+          objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
+          objcopy --add-gnu-debuglink target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{.d,}
 
           # Upload server debug files with source context
           echo "Uploading server debug symbols to Sentry (leptos-ssr-server)..."
@@ -189,10 +189,10 @@ jobs:
         with:
           name: build-musl
           path: |
-            target/x86_64-unknown-linux-musl/debug/hot-or-not-web-leptos-ssr
-            target/x86_64-unknown-linux-musl/debug/hash.txt
+            target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
+            target/x86_64-unknown-linux-musl/prod-release/hash.txt
             target/site
-            target/x86_64-unknown-linux-musl/debug/hot-or-not-web-leptos-ssr.debug
+            target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr.debug
             target/site/pkg/*.wasm
             .empty
 
