@@ -19,9 +19,9 @@ lto = true
 codegen-units = 1
 # Enable debug info for Sentry source maps
 # Use "line-tables-only" for smaller size, or true/2 for full debug info
-# debug = "line-tables-only"
-# split-debuginfo = "packed"
-# strip = "debuginfo"
+debug = "line-tables-only"
+split-debuginfo = "packed"
+strip = "debuginfo"
 # panic = "abort"
 
 [profile.prod-release]
