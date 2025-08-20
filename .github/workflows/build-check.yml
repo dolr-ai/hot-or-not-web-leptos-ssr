@@ -40,7 +40,7 @@ jobs:
       - name: Rust Setup
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "nightly-2025-06-15"
+          toolchain: "nightly-2025-01-09"
           targets: "x86_64-unknown-linux-musl,wasm32-unknown-unknown"
           components: "clippy,rustfmt"
           override: true
