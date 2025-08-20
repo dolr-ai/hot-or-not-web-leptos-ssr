@@ -371,16 +371,8 @@ pub fn PostView() -> impl IntoView {
                 return Ok(Some(post));
             }
             let post_nsfw_prob = post_details_cache.post_details.with_untracked(|p| {
-                let item = p.get(&(params.canister_id, params.post_id));
-                if let Some(item) = item {
-                    if item.is_nsfw {
-                        Some(1.0)
-                    } else {
-                        Some(0.0)
-                    }
-                } else {
-                    None
-                }
+                p.get(&(params.canister_id, params.post_id))
+                    .map(|i| i.nsfw_probability)
             });
 
             match send_wrap(canisters.get_post_details_with_nsfw_info(
