@@ -40,7 +40,7 @@ jobs:
       - name: Rust Setup
         uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: "nightly-2025-06-14"
+          toolchain: "nightly-2025-06-15"
           targets: "x86_64-unknown-linux-musl,wasm32-unknown-unknown"
           components: "clippy,rustfmt"
           override: true
@@ -100,6 +100,8 @@ jobs:
         run: |
           rustc --version
           cargo --version
+          cargo install wasm-opt --locked
+          wasm-opt --version
 
       - name: Build the Leptos project to `musl` output
         run: |
@@ -111,7 +113,7 @@ jobs:
           # Build with debug symbols for WASM (--wasm-debug flag)
           RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --wasm-debug --release --lib-features release-lib --bin-features release-bin
         env:
-          RUSTUP_TOOLCHAIN: "nightly-2025-06-14"
+          RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
           LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
           LEPTOS_HASH_FILES: true
           LEPTOS_TAILWIND_VERSION: v4.1.7
