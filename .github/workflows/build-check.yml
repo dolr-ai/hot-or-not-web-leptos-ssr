@@ -49,8 +49,8 @@ jobs:
       - name: cargo-leptos setup
         run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked
 
-      - name: Cache rust dependencies and build output
-        uses: Swatinem/rust-cache@v2
+      # - name: Cache rust dependencies and build output
+      #   uses: Swatinem/rust-cache@v2
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -111,7 +111,7 @@ jobs:
           # Build with debug symbols for WASM (--wasm-debug flag)
           RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release --wasm-debug --lib-features release-lib --bin-features release-bin
         env:
-          RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
+          RUSTUP_TOOLCHAIN: "nightly-2025-01-09"
           LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
           LEPTOS_HASH_FILES: true
           LEPTOS_TAILWIND_VERSION: v4.1.7
