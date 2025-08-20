@@ -140,19 +140,6 @@ pub async fn get_ml_feed_nsfw(
     Ok(response.posts)
 }
 
-pub fn post_details_to_post_item(post_details: Vec<PostDetails>) -> Vec<PostItemV3> {
-    post_details
-        .into_iter()
-        .map(|post_detail| PostItemV3 {
-            publisher_user_id: post_detail.poster_principal.to_text(),
-            post_id: post_detail.post_id.to_string(),
-            canister_id: post_detail.canister_id.to_text(),
-            video_id: post_detail.uid,
-            is_nsfw: post_detail.is_nsfw,
-        })
-        .collect()
-}
-
 pub fn post_details_to_video_ids(post_details: Vec<PostDetails>) -> Vec<String> {
     post_details
         .into_iter()
