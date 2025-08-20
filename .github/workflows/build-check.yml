@@ -129,7 +129,6 @@ jobs:
           fi
 
       - name: Setup Sentry CLI
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
         uses: matbour/setup-sentry-cli@v2
         with:
           url: https://sentry.yral.com
@@ -138,12 +137,11 @@ jobs:
           project: leptos-ssr-server
 
       - name: Upload Sentry debug files for Server
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
         run: |
           # Extract debug symbols from server binary
-          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.debug}
-          objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
-          objcopy --add-gnu-debuglink target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{.debug,}
+          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/debug/hot-or-not-web-leptos-ssr{,.debug}
+          objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/debug/hot-or-not-web-leptos-ssr
+          objcopy --add-gnu-debuglink target/x86_64-unknown-linux-musl/debug/hot-or-not-web-leptos-ssr{.debug,}
 
           # Upload server debug files with source context
           echo "Uploading server debug symbols to Sentry (leptos-ssr-server)..."
@@ -161,7 +159,6 @@ jobs:
         continue-on-error: true
 
       - name: Upload Sentry debug files for Browser (WASM)
-        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/staging')
         run: |
           # Upload WASM debug files for browser project
           export SENTRY_RELEASE="${GITHUB_SHA:0:7}"
@@ -192,10 +189,10 @@ jobs:
         with:
           name: build-musl
           path: |
-            target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
-            target/x86_64-unknown-linux-musl/prod-release/hash.txt
+            target/x86_64-unknown-linux-musl/debug/hot-or-not-web-leptos-ssr
+            target/x86_64-unknown-linux-musl/debug/hash.txt
             target/site
-            target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr.debug
+            target/x86_64-unknown-linux-musl/debug/hot-or-not-web-leptos-ssr.debug
             target/site/pkg/*.wasm
             .empty
 
