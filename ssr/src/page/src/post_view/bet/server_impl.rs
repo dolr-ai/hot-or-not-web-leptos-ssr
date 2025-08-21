@@ -1,11 +1,13 @@
 use candid::Principal;
 use hon_worker_common::VoteRequest;
 use leptos::prelude::*;
+use tracing;
 use yral_identity::Signature;
 
 use crate::post_view::bet::VoteAPIRes;
 
 #[server(endpoint = "vote", input = server_fn::codec::Json)]
+#[tracing::instrument(skip(sig))]
 pub async fn vote_with_cents_on_post(
     sender: Principal,
     req: VoteRequest,
@@ -37,6 +39,7 @@ mod alloydb {
     use super::*;
     use hon_worker_common::WORKER_URL;
     use hon_worker_common::{HoNGameVoteReqV3, HotOrNot, VoteRequestV3, VoteResV2};
+    #[tracing::instrument(skip(sig))]
     pub async fn vote_with_cents_on_post(
         sender: Principal,
         req: VoteRequest,
@@ -48,6 +51,8 @@ mod alloydb {
         use yral_canisters_common::Canisters;
 
         let cans: Canisters<false> = expect_context();
+        // loads post details, only needs video_id and poster's id
+        // makes sense to call the canister ourselves, as that will only incur network overhead + very slight computation on canister
         let Some(post_info) = cans
             .get_post_details(req.post_canister, req.post_id)
             .await?
@@ -55,6 +60,7 @@ mod alloydb {
             return Err(ServerFnError::new("post not found"));
         };
         let prev_uid_formatted = if let Some((canister_id, post_id)) = prev_video_info {
+            // only needs the uid
             let details = cans
                 .get_post_details(canister_id, post_id)
                 .await?
@@ -63,6 +69,9 @@ mod alloydb {
         } else {
             "NULL".to_string()
         };
+
+        // the above two `get_post_details` call could be run in parallel
+
         // sanitization is not required here, as get_post_details verifies that the post is valid
         // and exists on cloudflare
         let query = format!(
@@ -70,6 +79,7 @@ mod alloydb {
             post_info.uid, prev_uid_formatted
         );
 
+        // TODO: figure out the overhead from this alloydb call in prod
         let alloydb: AlloyDbInstance = expect_context();
         let mut res = alloydb.execute_sql_raw(query).await?;
         let mut res = res.sql_results.pop().ok_or_else(|| {
@@ -117,6 +127,7 @@ mod alloydb {
             post_creator: Some(post_info.poster_principal),
         };
 
+        // TODO: figure out the overhead from this worker call in prod
         let req_url = format!("{WORKER_URL}v3/vote/{sender}");
         let client = reqwest::Client::new();
         let jwt = expect_context::<HonWorkerJwt>();
@@ -134,6 +145,7 @@ mod alloydb {
             )));
         }
 
+        // huh?
         let vote_res: VoteResV2 = res.json().await?;
 
         Ok(VoteAPIRes {
@@ -151,6 +163,7 @@ mod mock {
     use super::*;
 
     #[allow(dead_code)]
+    #[tracing::instrument(skip(sig))]
     pub async fn vote_with_cents_on_post(
         _sender: Principal,
         _req: VoteRequest,
