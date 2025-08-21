@@ -32,13 +32,35 @@ pub async fn vote_with_cents_on_post(
     vote_with_cents_on_post(sender, req, sig, prev_video_info).await
 }
 
-#[cfg(feature = "alloydb")]
+// #[cfg(feature = "alloydb")]
 mod alloydb {
     use crate::post_view::bet::{VideoComparisonResult, VoteAPIRes};
 
     use super::*;
+    use futures::try_join;
     use hon_worker_common::WORKER_URL;
     use hon_worker_common::{HoNGameVoteReqV3, HotOrNot, VoteRequestV3, VoteResV2};
+    use yral_canisters_client::individual_user_template::PostDetailsForFrontend;
+    use yral_canisters_common::utils::posts::PostDetails;
+    use yral_canisters_common::Canisters;
+
+    async fn get_poster_principal_and_video_uid(
+        cans: Canisters<false>,
+        user_principal: Principal,
+        post_id: u64,
+    ) -> Result<(Principal, String), ServerFnError> {
+        let PostDetailsForFrontend {
+            video_uid,
+            created_by_user_principal_id,
+            ..
+        } = cans
+            .individual_user(user_principal)
+            .await
+            .get_individual_post_details_by_id(post_id)
+            .await?;
+        Ok((created_by_user_principal_id, video_uid))
+    }
+
     #[tracing::instrument(skip(sig))]
     pub async fn vote_with_cents_on_post(
         sender: Principal,
@@ -50,25 +72,24 @@ mod alloydb {
         use state::server::HonWorkerJwt;
         use yral_canisters_common::Canisters;
 
-        let cans: Canisters<false> = expect_context();
         // loads post details, only needs video_id and poster's id
         // makes sense to call the canister ourselves, as that will only incur network overhead + very slight computation on canister
-        let Some(post_info) = cans
-            .get_post_details(req.post_canister, req.post_id)
-            .await?
-        else {
-            return Err(ServerFnError::new("post not found"));
-        };
-        let prev_uid_formatted = if let Some((canister_id, post_id)) = prev_video_info {
-            // only needs the uid
-            let details = cans
-                .get_post_details(canister_id, post_id)
-                .await?
-                .ok_or_else(|| ServerFnError::new("previous post not found"))?;
-            format!("'{}'", details.uid)
-        } else {
-            "NULL".to_string()
-        };
+        let ((poster_principal, uid), prev_uid_formatted) = try_join!(
+            get_poster_principal_and_video_uid(expect_context(), req.post_canister, req.post_id),
+            async {
+                let res = if let Some((canister_id, post_id)) = prev_video_info {
+                    // only needs the uid
+                    let (_, uid) =
+                        get_poster_principal_and_video_uid(expect_context(), canister_id, post_id)
+                            .await?;
+                    format!("'{}'", uid)
+                } else {
+                    "NULL".to_string()
+                };
+
+                Ok::<_, ServerFnError>(res)
+            }
+        )?;
 
         // the above two `get_post_details` call could be run in parallel
 
@@ -76,7 +97,7 @@ mod alloydb {
         // and exists on cloudflare
         let query = format!(
             "select hot_or_not_evaluator.compare_videos_hot_or_not_v3('{}', {})",
-            post_info.uid, prev_uid_formatted
+            uid, prev_uid_formatted
         );
 
         // TODO: figure out the overhead from this alloydb call in prod
@@ -114,7 +135,7 @@ mod alloydb {
 
         // Convert VoteRequest to VoteRequestV3
         let req_v3 = VoteRequestV3 {
-            publisher_principal: post_info.poster_principal,
+            publisher_principal: poster_principal,
             post_id: req.post_id,
             vote_amount: req.vote_amount,
             direction: req.direction,
@@ -124,7 +145,7 @@ mod alloydb {
             request: req_v3,
             fetched_sentiment: sentiment,
             signature: sig,
-            post_creator: Some(post_info.poster_principal),
+            post_creator: Some(poster_principal),
         };
 
         // TODO: figure out the overhead from this worker call in prod
