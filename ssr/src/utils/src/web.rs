@@ -3,15 +3,33 @@ use leptos_use::use_window;
 
 #[derive(Clone)]
 pub struct FileWithUrl {
-    pub file: gloo::file::File,
-    pub url: ObjectUrl,
+    #[cfg(feature = "hydrate")]
+    pub file: send_wrapper::SendWrapper<gloo::file::File>,
+    #[cfg(feature = "hydrate")]
+    pub url: send_wrapper::SendWrapper<ObjectUrl>,
 }
 
 impl FileWithUrl {
     #[cfg(feature = "hydrate")]
     pub fn new(file: gloo::file::File) -> Self {
+        use send_wrapper::SendWrapper;
+
         let url = ObjectUrl::from(file.clone());
-        Self { file, url }
+        Self {
+            file: SendWrapper::new(file),
+            url: SendWrapper::new(url),
+        }
+    }
+
+    pub fn url(&self) -> String {
+        #[cfg(feature = "hydrate")]
+        {
+            self.url.to_string()
+        }
+        #[cfg(not(feature = "hydrate"))]
+        {
+            "".to_string()
+        }
     }
 }
 

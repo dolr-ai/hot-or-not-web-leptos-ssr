@@ -13,7 +13,11 @@ use indexmap::IndexSet;
 use leptos::{html, portal::Portal, prelude::*};
 use leptos_icons::*;
 use leptos_meta::*;
-use leptos_router::{components::Redirect, hooks::use_params, params::Params};
+use leptos_router::{
+    components::Redirect,
+    hooks::{use_navigate, use_params},
+    params::Params,
+};
 use posts::ProfilePosts;
 use speculation::ProfileSpeculations;
 use state::{
@@ -143,6 +147,17 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
 
     let edit_icon_mount_point = NodeRef::<html::Div>::new();
 
+    let ev_ctx = auth.event_ctx();
+    let on_edit_click = move |ev: leptos::web_sys::MouseEvent| {
+        ev.prevent_default();
+        if let Some(props) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_edit_profile_clicked(props, "profile".into());
+        }
+
+        let nav = use_navigate();
+        nav("/profile/edit", Default::default());
+    };
+
     view! {
         <div class="overflow-y-auto pt-10 pb-12 min-h-screen text-white bg-black">
             <div class="grid grid-cols-1 gap-5 justify-items-center w-full justify-normal">
@@ -187,7 +202,7 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                             <Show when=move || user_principal == authenticated_princ>
                                             {move || edit_icon_mount_point.get().map(|mount| view! {
                                                 <Portal mount>
-                                                    <a href="/profile/edit">
+                                                    <a on:click=on_edit_click href="/profile/edit">
                                                         <Icon
                                                             icon=EditIcon
                                                             attr:class="text-2xl text-neutral-300"
@@ -265,22 +280,19 @@ pub fn ProfileView() -> impl IntoView {
         let cans = cans.clone();
         send_wrap(async move {
             let profile_id = profile_id.ok_or_else(|| ServerFnError::new("Invalid ID"))?;
-            if let Some(user_can) =
-                auth.auth_cans_if_available(cans.clone())
-                    .filter(|can| match &profile_id {
-                        UsernameOrPrincipal::Principal(princ) => *princ == can.user_principal(),
-                        UsernameOrPrincipal::Username(u) => {
-                            Some(u) == can.profile_details().username.as_ref()
-                        }
-                    })
+            if let Some(user_can) = auth
+                .auth_cans_if_available()
+                .filter(|can| match &profile_id {
+                    UsernameOrPrincipal::Principal(princ) => *princ == can.user_principal(),
+                    UsernameOrPrincipal::Username(u) => {
+                        Some(u) == can.profile_details().username.as_ref()
+                    }
+                })
             {
-                return Ok::<_, ServerFnError>(user_can.profile_details());
+                return Ok::<_, ServerFnError>(Some(user_can.profile_details()));
             }
 
-            let user_details = cans
-                .get_profile_details(profile_id.to_string())
-                .await?
-                .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
+            let user_details = cans.get_profile_details(profile_id.to_string()).await?;
 
             Ok::<_, ServerFnError>(user_details)
         })
@@ -290,12 +302,34 @@ pub fn ProfileView() -> impl IntoView {
         <ProfilePageTitle />
         <Suspense fallback=FullScreenSpinner>
             {move || Suspend::new(async move {
-                let res = user_details.await;
-                match res {
-                    Ok(user) => {
-                        view! { <ProfileComponent user /> }.into_any()
+                let res = async {
+                    let maybe_user = user_details.await?;
+                    if let Some(user) = maybe_user {
+                        return Ok::<_, ServerFnError>(user);
                     }
-                    _ => view! { <Redirect path="/" /> }.into_any(),
+                    // edge case: user is not logged in
+                    let auth = auth_state();
+                    let cans = auth.auth_cans().await?;
+                    let my_details = cans.profile_details();
+                    let id = untrack(param_id).expect("ID should be available");
+                    match id {
+                        UsernameOrPrincipal::Principal(princ) if princ == cans.user_principal() => {
+                            Ok(my_details)
+                        },
+                        UsernameOrPrincipal::Username(username) if Some(&username) == my_details.username.as_ref() => {
+                            Ok(my_details)
+                        }
+                        _ => Err(ServerFnError::new("User not found")),
+                    }
+                };
+
+                match res.await {
+                    Ok(user) => view! {
+                        <ProfileComponent user />
+                    }.into_any(),
+                    _ => view! {
+                        <Redirect path="/" />
+                    }.into_any(),
                 }
             })}
         </Suspense>

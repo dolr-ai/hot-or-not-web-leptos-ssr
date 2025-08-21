@@ -70,6 +70,7 @@ pub fn TokenViewFallback() -> impl IntoView {
 enum AirdropStatusFetcherType {
     Sats,
     Dolr,
+    Yral,
     MockAvailable,
     MockWaiting,
     NonAirdropable,
@@ -82,7 +83,7 @@ impl AirdropStatusFetcherType {
         user_principal: Principal,
     ) -> Result<Option<AirdropStatus>, ServerFnError> {
         let res = match self {
-            Self::Sats => {
+            Self::Sats | Self::Yral => {
                 let eligible =
                     is_user_eligible_for_sats_airdrop(user_canister, user_principal).await?;
                 Some(if eligible {
@@ -114,6 +115,7 @@ pub enum BalanceFetcherType {
     Icrc1 { ledger: Principal, decimals: u8 },
     Sats,
     Cents,
+    Yral,
 }
 
 impl BalanceFetcherType {
@@ -130,9 +132,11 @@ impl BalanceFetcherType {
                 .icrc1_balance_of(user_principal, *ledger)
                 .await
                 .map(|b| TokenBalance::new(b, *decimals))?,
-            BalanceFetcherType::Sats => load_sats_balance(user_principal)
-                .await
-                .map(|info| TokenBalance::new(info.balance.into(), 0))?,
+            BalanceFetcherType::Sats | BalanceFetcherType::Yral => {
+                load_sats_balance(user_principal)
+                    .await
+                    .map(|info| TokenBalance::new(info.balance.into(), 0))?
+            }
             BalanceFetcherType::Cents => load_cents_balance(user_canister)
                 .await
                 .map(|info| TokenBalance::new(info.balance, 6))?,
@@ -185,6 +189,7 @@ pub enum TokenType {
     Cents,
     Dolr,
     Usdc,
+    Yral,
 }
 
 impl From<TokenType> for AirdropStatusFetcherType {
@@ -192,6 +197,7 @@ impl From<TokenType> for AirdropStatusFetcherType {
         match value {
             TokenType::Sats => Self::Sats,
             TokenType::Dolr => Self::Dolr,
+            TokenType::Yral => Self::Yral,
             _ => Self::NonAirdropable,
         }
     }
@@ -215,6 +221,7 @@ impl From<TokenType> for StakeType {
             TokenType::Btc => Self::Btc,
             TokenType::Usdc => Self::Usdc,
             TokenType::Dolr => Self::DolrAi,
+            TokenType::Yral => Self::Yral,
         }
     }
 }
@@ -254,6 +261,12 @@ impl From<TokenType> for TokenDisplayInfo {
                 logo: "/img/common/usdc.svg".into(),
                 token_root_canister: None,
             },
+            TokenType::Yral => Self {
+                name: "Yral".into(),
+                symbol: "YRAL".into(),
+                logo: "/img/yral/yral-token.webp".into(),
+                token_root_canister: None,
+            },
         }
     }
 }
@@ -275,6 +288,7 @@ impl From<TokenType> for BalanceFetcherType {
                 ledger: USDC_LEDGER_CANISTER.parse().unwrap(),
                 decimals: 6,
             },
+            TokenType::Yral => Self::Yral,
         }
     }
 }
@@ -283,7 +297,7 @@ impl TokenType {
     /// Whether the token is maintained artifically by our platform, unlike
     /// icrc1/2 tokens. For example, `Sats` and `Cents`
     fn is_utility_token(&self) -> bool {
-        matches!(self, Self::Sats | Self::Cents)
+        matches!(self, Self::Sats | Self::Cents | Self::Yral)
     }
 }
 
@@ -317,7 +331,8 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
     };
 
     let tokens = [
-        TokenType::Sats,
+        TokenType::Yral,
+        // TokenType::Sats, // TODO: enable once SATS are added back
         TokenType::Btc,
         TokenType::Dolr,
         TokenType::Usdc,
@@ -569,6 +584,7 @@ impl Airdropper {
     fn choose(name: &str) -> Option<Self> {
         match name {
             "DOLR AI" => Some(Airdropper::AirdropDolr(AirdropDolr)),
+            "Yral" => Some(Airdropper::AirdropSats(AirdropSats)),
             s if s == SATS_TOKEN_NAME => Some(Airdropper::AirdropSats(AirdropSats)),
             _ => None,
         }
@@ -812,13 +828,11 @@ pub fn FastWalletCard(
     let airdrop_popup = RwSignal::new(false);
 
     let auth = auth_state();
-    let base = unauth_canisters();
     let show_login = use_context()
         .map(|ShowLoginSignal(show_login)| show_login)
         .unwrap_or_else(|| RwSignal::new(false));
     // action to claim airdrop
-    let claim_airdrop = Action::new_local(move |&is_connected: &bool| {
-        let base = base.clone();
+    let claim_airdrop = Action::new_unsync(move |&is_connected: &bool| {
         let airdrop_amount_claimed = airdrop_amount_claimed;
         let error_claiming_airdrop = error_claiming_airdrop;
         let airdropper = airdropper_c2.clone();
@@ -829,7 +843,7 @@ pub fn FastWalletCard(
                 return Err(ServerFnError::new("login required"));
             }
 
-            let cans = auth.auth_cans(base).await?;
+            let cans = auth.auth_cans().await?;
             let global = MixpanelGlobalProps::try_get(&cans.clone(), is_connected);
             let global_dispatched = MixpanelGlobalProps::try_get(&cans.clone(), is_connected);
             MixPanelEvent::track_claim_airdrop_clicked(

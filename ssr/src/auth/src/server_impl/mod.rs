@@ -2,6 +2,8 @@ pub mod store;
 #[cfg(feature = "oauth-ssr")]
 pub mod yral;
 
+use std::env;
+
 use axum::response::IntoResponse;
 use axum_extra::extract::{
     cookie::{Cookie, Key, SameSite},
@@ -35,6 +37,16 @@ fn set_cookies(resp: &ResponseOptions, jar: impl IntoResponse) {
     {
         resp.append_header(header::SET_COOKIE, cookie);
     }
+}
+
+fn cookie_key() -> Key {
+    use_context().unwrap_or_else(|| {
+        // HACK: https://github.com/leptos-rs/leptos/issues/2112
+        let cookie_key_str = env::var("COOKIE_KEY").expect("`COOKIE_KEY` is required!");
+        let raw_key =
+            hex::decode(cookie_key_str).expect("Invalid `COOKIE_KEY` (must be length 128 hex)");
+        Key::from(&raw_key)
+    })
 }
 
 pub fn extract_principal_from_cookie_legacy(
@@ -130,7 +142,7 @@ async fn extract_identity_legacy(
 }
 
 pub async fn extract_identity_impl() -> Result<Option<DelegatedIdentityWire>, ServerFnError> {
-    let key: Key = expect_context();
+    let key = cookie_key();
     let jar: SignedCookieJar = extract_with_state(&key).await?;
 
     #[cfg(not(feature = "oauth-ssr"))]
@@ -176,7 +188,7 @@ pub async fn extract_identity_impl() -> Result<Option<DelegatedIdentityWire>, Se
 }
 
 pub async fn logout_identity_impl() -> Result<DelegatedIdentityWire, ServerFnError> {
-    let key: Key = expect_context();
+    let key = cookie_key();
     let jar: SignedCookieJar = extract_with_state(&key).await?;
     let resp: ResponseOptions = expect_context();
 
@@ -225,7 +237,7 @@ pub async fn logout_identity_impl() -> Result<DelegatedIdentityWire, ServerFnErr
 
 pub async fn generate_anonymous_identity_if_required_impl(
 ) -> Result<Option<AnonymousIdentity>, ServerFnError> {
-    let key: Key = expect_context();
+    let key = cookie_key();
     let jar: SignedCookieJar = extract_with_state(&key).await?;
     #[cfg(not(feature = "oauth-ssr"))]
     {
@@ -286,7 +298,7 @@ pub async fn generate_anonymous_identity_if_required_impl(
 }
 
 pub async fn set_anonymous_identity_cookie_impl(refresh_jwt: String) -> Result<(), ServerFnError> {
-    let key: Key = expect_context();
+    let key = cookie_key();
     let jar: SignedCookieJar = extract_with_state(&key).await?;
 
     let resp: ResponseOptions = expect_context();

@@ -1,6 +1,5 @@
 use candid::Principal;
 use component::{back_btn::BackButton, spinner::FullScreenSpinner};
-use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
 use leptos::prelude::*;
 use leptos_router::params::Params;
 use leptos_router::{
@@ -41,6 +40,8 @@ pub fn PostViewWithUpdatesProfile(
     let recovering_state = RwSignal::new(false);
     let hard_refresh_target = RwSignal::new("/".to_string());
 
+    let username = StoredValue::new(initial_post.username.clone());
+
     // Initialize cursor to fetch posts after the ones already in video_queue
     let initial_cursor_start =
         start_index.get_untracked() + video_queue.with_untracked(|vq| vq.len());
@@ -53,17 +54,11 @@ pub fn PostViewWithUpdatesProfile(
     let overlay = move || {
         view! {
             <Suspense>
-                {move || {
-                    auth.user_canister
-                        .get()
-                        .map(|canister| {
-                            if canister == Ok(initial_post.canister_id) {
-                                Some(view! { <YourProfileOverlay /> }.into_any())
-                            } else {
-                                None
-                            }
-                        })
-                }}
+                {move || Suspend::new(async move {
+                    let canister = auth.user_canister().await.ok()?;
+                    (canister == initial_post.canister_id)
+                        .then(|| view! { <YourProfileOverlay />  }.into_any())
+                })}
             </Suspense>
         }
     };
@@ -86,11 +81,22 @@ pub fn PostViewWithUpdatesProfile(
         async move {
             let cursor = fetch_cursor.get_untracked();
             let canisters = unauth_canisters();
-            let posts_res = if let Some(canisters) = auth.auth_cans_if_available(canisters.clone())
-            {
-                DefProfileVidStream::fetch_next_posts(cursor, &canisters, user_canister).await
+            let posts_res = if let Some(canisters) = auth.auth_cans_if_available() {
+                DefProfileVidStream::fetch_next_posts(
+                    cursor,
+                    &canisters,
+                    user_canister,
+                    username.get_value(),
+                )
+                .await
             } else {
-                DefProfileVidStream::fetch_next_posts(cursor, &canisters, user_canister).await
+                DefProfileVidStream::fetch_next_posts(
+                    cursor,
+                    &canisters,
+                    user_canister,
+                    username.get_value(),
+                )
+                .await
             };
 
             let res = try_or_redirect!(posts_res);
@@ -100,7 +106,7 @@ pub fn PostViewWithUpdatesProfile(
                 video_queue.try_update(|q| {
                     if q.insert(p.clone()) {
                         let len_vq = q.len();
-                        if len_vq <= MAX_VIDEO_ELEMENTS_FOR_FEED {
+                        if len_vq <= video_queue_for_feed.with_untracked(|vqf| vqf.len()) {
                             video_queue_for_feed.update(|vqf| {
                                 vqf[len_vq - 1].value.set(Some(p.clone()));
                             });
@@ -229,7 +235,7 @@ fn ProfilePostBase<
                     // Always update video_queue_for_feed to reflect the new state
                     video_queue_for_feed.update(|vqf| {
                         // Re-populate from the updated video_queue
-                        for (i, post) in vq.iter().take(MAX_VIDEO_ELEMENTS_FOR_FEED).enumerate() {
+                        for (i, post) in vq.iter().take(vqf.len()).enumerate() {
                             vqf[i].value.set(Some(post.clone()));
                         }
                     });

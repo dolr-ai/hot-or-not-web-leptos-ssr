@@ -10,12 +10,12 @@ use yral_canisters_common::{
 };
 
 #[derive(Clone)]
-pub struct NotificationDataKeyed(pub NotificationData);
+pub struct NotificationDataKeyed(pub (NotificationData, bool));
 
 impl KeyedData for NotificationDataKeyed {
     type Key = String;
     fn key(&self) -> String {
-        self.0.notification_id.to_string()
+        self.0 .0.notification_id.to_string()
     }
 }
 
@@ -32,6 +32,7 @@ impl std::fmt::Display for NotificationError {
 pub struct NotificationProvider {
     pub auth: AuthState,
     pub canisters: Canisters<false>,
+    pub last_viewed_time: u64,
 }
 
 impl CursoredDataProvider for NotificationProvider {
@@ -45,7 +46,7 @@ impl CursoredDataProvider for NotificationProvider {
     ) -> Result<PageEntry<Self::Data>, Self::Error> {
         let cans = self
             .auth
-            .auth_cans(self.canisters.clone())
+            .auth_cans()
             .await
             .map_err(|e| NotificationError(e.to_string()))?;
 
@@ -63,7 +64,15 @@ impl CursoredDataProvider for NotificationProvider {
         Ok(PageEntry {
             data: notifications
                 .into_iter()
-                .map(NotificationDataKeyed)
+                .map(|n| {
+                    let is_read = self.last_viewed_time < n.created_at.secs_since_epoch;
+                    leptos::logging::log!(
+                        "Notification: {} is_read: {}",
+                        n.notification_id,
+                        is_read
+                    );
+                    NotificationDataKeyed((n, is_read))
+                })
                 .collect(),
             end: list_end,
         })

@@ -195,10 +195,10 @@ pub fn HonWithdrawal() -> impl IntoView {
 
     let send_claim = Action::new_local(move |&()| {
         async move {
-            let cans = auth.auth_cans(expect_context()).await?;
+            let cans = auth.auth_cans().await?;
 
             // TODO: do we still need this?
-            handle_user_login(cans.clone(), auth.event_ctx(), None).await?;
+            handle_user_login(cans.clone(), auth.event_ctx(), None, None).await?;
 
             let req = hon_worker_common::WithdrawRequest {
                 receiver: cans.user_principal(),
@@ -241,7 +241,8 @@ pub fn HonWithdrawal() -> impl IntoView {
             let treasury = SATS_CKBTC_CANISTER.parse().unwrap();
 
             send_wrap(async move {
-                match cans.icrc1_balance_of(treasury, ledger).await {
+                let fetched_balance = cans.icrc1_balance_of(treasury, ledger).await;
+                match fetched_balance {
                     Ok(balance) => balance,
                     Err(_) => Nat::from(0_usize),
                 }

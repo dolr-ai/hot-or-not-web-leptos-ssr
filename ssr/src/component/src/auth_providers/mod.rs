@@ -4,23 +4,31 @@ mod server_impl;
 pub mod yral;
 
 use candid::Principal;
+use codee::string::JsonSerdeCodec;
+use consts::auth::REFRESH_MAX_AGE;
+use consts::AUTH_JOURNEY_PAGE;
 use global_constants::{NEW_USER_SIGNUP_REWARD_SATS, REFERRAL_REWARD_SATS};
 use hon_worker_common::sign_referral_request;
 use hon_worker_common::ReferralReqWithSignature;
+use leptos::logging;
 use leptos::prelude::ServerFnError;
 use leptos::{ev, prelude::*, reactive::wrappers::write::SignalSetter};
 use leptos_icons::Icon;
+use leptos_router::hooks::use_location;
 use leptos_router::hooks::use_navigate;
+use leptos_use::use_cookie_with_options;
+use leptos_use::UseCookieOptions;
 use state::canisters::auth_state;
-use state::canisters::unauth_canisters;
 use utils::event_streaming::events::CentsAdded;
 use utils::event_streaming::events::EventCtx;
 use utils::event_streaming::events::{LoginMethodSelected, LoginSuccessful, ProviderKind};
+use utils::mixpanel::mixpanel_events::BottomNavigationCategory;
 use utils::mixpanel::mixpanel_events::MixPanelEvent;
 use utils::mixpanel::mixpanel_events::MixpanelGlobalProps;
 use utils::send_wrap;
 use utils::types::NewIdentity;
 use yral_canisters_common::Canisters;
+use yral_metadata_client::MetadataClient;
 
 #[server]
 async fn issue_referral_rewards(worker_req: ReferralReqWithSignature) -> Result<(), ServerFnError> {
@@ -36,24 +44,42 @@ pub async fn handle_user_login(
     canisters: Canisters<true>,
     event_ctx: EventCtx,
     referrer: Option<Principal>,
+    page_name: Option<BottomNavigationCategory>,
+    email: Option<String>,
 ) -> Result<(), ServerFnError> {
     let user_principal = canisters.user_principal();
     let first_time_login = mark_user_registered(user_principal).await?;
 
     let auth_journey = MixpanelGlobalProps::get_auth_journey();
+    // TODO: Move for first_time_login only
+    let metadata_client: MetadataClient<false> = MetadataClient::default();
+
+    if let Some(email) = email {
+        let identity = canisters.identity();
+        let _ = metadata_client
+            .set_user_email(identity, email, !first_time_login)
+            .await;
+    }
+    let _ = metadata_client
+        .set_signup_datetime(user_principal, !first_time_login)
+        .await;
+
+    let page_name = page_name.unwrap_or_default();
 
     if first_time_login {
         CentsAdded.send_event(event_ctx, "signup".to_string(), NEW_USER_SIGNUP_REWARD_SATS);
         let global = MixpanelGlobalProps::try_get(&canisters, true);
-        MixPanelEvent::track_signup_success(
+        MixPanelEvent::track_signup_success_async(
             global,
             referrer.is_some(),
             referrer.map(|f| f.to_text()),
             auth_journey,
-        );
+            page_name,
+        )
+        .await;
     } else {
         let global = MixpanelGlobalProps::try_get(&canisters, true);
-        MixPanelEvent::track_login_success(global, auth_journey);
+        MixPanelEvent::track_login_success_async(global, auth_journey, page_name).await;
     }
 
     match referrer {
@@ -125,6 +151,7 @@ pub fn LoginProviders(
     show_modal: RwSignal<bool>,
     lock_closing: RwSignal<bool>,
     redirect_to: Option<String>,
+    #[prop(optional, into)] reload_window: bool,
 ) -> impl IntoView {
     let auth = auth_state();
 
@@ -132,23 +159,40 @@ pub fn LoginProviders(
 
     let event_ctx = auth.event_ctx();
 
+    let loc = use_location();
+
+    let nav = use_navigate();
+
     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
-        MixPanelEvent::track_auth_screen_viewed(global);
+        let page_name = global.page_name();
+        MixPanelEvent::track_auth_screen_viewed(global, page_name);
     }
 
-    let base_cans = unauth_canisters();
+    let (_, set_auth_journey_page) =
+        use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
+            AUTH_JOURNEY_PAGE,
+            UseCookieOptions::default()
+                .path("/")
+                .max_age(REFRESH_MAX_AGE.as_millis() as i64),
+        );
+
     let login_action = Action::new(move |new_id: &NewIdentity| {
         // Clone the necessary parts
         let new_id = new_id.clone();
         let redirect_to = redirect_to.clone();
-        let base_cans = base_cans.clone();
+        let path = loc.pathname.get();
+        let page_name = BottomNavigationCategory::try_from(path.clone()).ok();
+
+        let nav = nav.clone();
+        // let start = start.clone();
         // Capture the context signal setter
         send_wrap(async move {
             let referrer = auth.referrer_store.get_untracked();
 
             let mut canisters = auth
-                .set_new_identity_and_wait_for_authentication(base_cans, new_id.clone(), true)
+                .set_new_identity_and_wait_for_authentication(new_id.clone(), true)
                 .await?;
+
             // HACK: leptos can panic sometimes and reach an undefined state
             // while the panic is not fixed, we use this workaround
             if canisters.user_principal()
@@ -157,19 +201,30 @@ pub fn LoginProviders(
                 canisters = Canisters::authenticate_with_network(new_id.id_wire).await?;
             }
 
-            if let Err(e) = handle_user_login(canisters.clone(), auth.event_ctx(), referrer).await {
+            if let Err(e) = handle_user_login(
+                canisters.clone(),
+                auth.event_ctx(),
+                referrer,
+                page_name,
+                new_id.email,
+            )
+            .await
+            {
                 log::warn!("failed to handle user login, err {e}. skipping");
             }
 
             let _ = LoginSuccessful.send_event(canisters.clone());
 
+            if reload_window {
+                let res = window().location().reload();
+                logging::log!("Reloading window after login: {:#?}", res);
+            }
+            set_auth_journey_page.set(None);
+            show_modal.set(false);
+
             if let Some(redir_loc) = redirect_to {
-                let nav = use_navigate();
                 nav(&redir_loc, Default::default());
             }
-
-            // Update the context signal instead of writing directly
-            show_modal.set(false);
 
             Ok::<_, ServerFnError>(())
         })
@@ -183,6 +238,7 @@ pub fn LoginProviders(
         }),
         login_complete: SignalSetter::map(move |val: NewIdentity| {
             // Dispatch just the DelegatedIdentityWire
+            logging::log!("email: {:?}", val.email);
             login_action.dispatch(val);
         }),
     };

@@ -26,6 +26,7 @@ pub(crate) trait ProfVideoStream<const LIMIT: u64>: Sized {
         cursor: FixedFetchCursor<LIMIT>,
         canisters: &Canisters<AUTH>,
         user_canister: Principal,
+        username: Option<String>,
     ) -> Result<PostsRes, CanistersError>;
 }
 
@@ -36,6 +37,7 @@ impl<const LIMIT: u64> ProfVideoStream<LIMIT> for ProfileVideoStream<LIMIT> {
         cursor: FixedFetchCursor<LIMIT>,
         canisters: &Canisters<AUTH>,
         user_canister: Principal,
+        username: Option<String>,
     ) -> Result<PostsRes, CanistersError> {
         let user = canisters.individual_user(user_canister).await;
         let posts = user
@@ -46,7 +48,10 @@ impl<const LIMIT: u64> ProfVideoStream<LIMIT> for ProfileVideoStream<LIMIT> {
                 let end = v.len() < LIMIT as usize;
                 let posts = v
                     .into_iter()
-                    .map(|details| PostDetails::from_canister_post(AUTH, user_canister, details))
+                    .map(|mut details| {
+                        details.created_by_unique_user_name = username.clone();
+                        PostDetails::from_canister_post(AUTH, user_canister, details)
+                    })
                     .collect::<Vec<_>>();
                 Ok(PostsRes { posts, end })
             }

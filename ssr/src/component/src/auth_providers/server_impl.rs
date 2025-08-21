@@ -19,7 +19,7 @@ pub async fn mark_user_registered(user_principal: Principal) -> Result<bool, Ser
     ensure_user_logged_in_with_oauth(user_principal).await?;
 
     let cans = auth_state();
-    let canisters = cans.auth_cans(unauth_canisters()).await?;
+    let canisters = cans.auth_cans().await?;
     let user_canister = canisters.user_canister();
     mark_user_registered_impl(user_principal, user_canister).await
 }

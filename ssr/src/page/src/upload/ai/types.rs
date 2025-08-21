@@ -1,7 +1,7 @@
 use candid::Principal;
 use serde::{Deserialize, Serialize};
 use utils::host::show_preview_component;
-use videogen_common::{VideoGenProvider, VideoModel};
+use videogen_common::{TokenType, VideoGenProvider, VideoModel};
 
 // Local storage key for video generation parameters
 pub const AI_VIDEO_PARAMS_STORE: &str = "ai_video_generation_params";
@@ -41,6 +41,7 @@ pub struct SerializablePostDetailsFromFrontend {
 #[derive(Clone)]
 pub struct UploadActionParams {
     pub video_url: String,
+    pub token_type: TokenType,
 }
 
 // Video generation parameters
@@ -50,6 +51,7 @@ pub struct VideoGenerationParams {
     pub prompt: String,
     pub model: VideoModel,
     pub image_data: Option<String>,
+    pub token_type: TokenType,
 }
 
 impl Default for VideoGenerationParams {
@@ -70,6 +72,7 @@ impl Default for VideoGenerationParams {
             prompt: String::new(),
             model: filtered_models.into_iter().next().unwrap_or_default(),
             image_data: None,
+            token_type: TokenType::Sats,
         }
     }
 }
