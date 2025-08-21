@@ -163,7 +163,7 @@ mod mock {
     use super::*;
 
     #[allow(dead_code)]
-    #[tracing::instrument(skip(sig))]
+    #[tracing::instrument(skip(_sig))]
     pub async fn vote_with_cents_on_post(
         _sender: Principal,
         _req: VoteRequest,
