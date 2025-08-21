@@ -167,7 +167,7 @@ pub fn PreVideoUpload(
                 ></video>
             </Show>
             <input
-                on:click=move |_| {modal_show.set(true); file_upload_clicked.dispatch(());}
+                on:click=move |_| {file_upload_clicked.dispatch(());}
                 id="dropzone-file"
                 node_ref=file_ref
                 type="file"
@@ -175,11 +175,13 @@ pub fn PreVideoUpload(
                 class="hidden w-0 h-0"
             />
         </label>
-        <Modal show=modal_show>
-            <span class="flex flex-col justify-center items-center py-10 w-full h-full text-lg text-center text-white md:text-xl">
-                Please ensure that the video is shorter than 60 seconds
-            </span>
-        </Modal>
+        <Show when=move || modal_show.get()>
+            <Modal show=modal_show>
+                <span class="flex flex-col justify-center items-center py-10 w-full h-full text-lg text-center text-white md:text-xl">
+                    Please ensure that the video is shorter than 60 seconds
+                </span>
+            </Modal>
+        </Show>
     }
 }
 
