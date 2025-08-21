@@ -32,7 +32,7 @@ pub async fn vote_with_cents_on_post(
     vote_with_cents_on_post(sender, req, sig, prev_video_info).await
 }
 
-// #[cfg(feature = "alloydb")]
+#[cfg(feature = "alloydb")]
 mod alloydb {
     use crate::post_view::bet::{VideoComparisonResult, VoteAPIRes};
 
