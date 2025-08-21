@@ -47,7 +47,7 @@ jobs:
 
       - uses: cargo-bins/cargo-binstall@main
       - name: cargo-leptos setup
-        run: cargo install --locked --force cargo-leptos --git https://github.com/psykomal/cargo-leptos --branch sentry-debug
+        run: cargo binstall --no-confirm cargo-leptos --version 0.2.42 --locked
 
       # - name: Cache rust dependencies and build output
       #   uses: Swatinem/rust-cache@v2
@@ -100,7 +100,7 @@ jobs:
         run: |
           rustc --version
           cargo --version
-          cargo install wasm-opt --locked
+          npm i wasm-opt
           wasm-opt --version
 
       - name: Build the Leptos project to `gnu` output

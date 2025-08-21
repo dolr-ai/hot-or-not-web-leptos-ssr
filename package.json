@@ -1,5 +1,8 @@
 {
 	"devDependencies": {
 		"tailwindcss": "^4.1.11"
+	},
+	"dependencies": {
+		"wasm-opt": "^1.4.0"
 	}
 }
