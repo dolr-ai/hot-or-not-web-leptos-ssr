@@ -1,7 +1,7 @@
 use crate::post_view::video_loader::{BgView, VideoViewForQueue};
-use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
 use indexmap::IndexSet;
 use leptos::html;
+use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserverOptions};
@@ -11,19 +11,26 @@ use utils::posts::FeedPostCtx;
 use yral_canisters_common::utils::posts::PostDetails;
 
 #[component]
-pub fn MuteIconOverlay(show_mute_icon: RwSignal<bool>) -> impl IntoView {
+pub fn MuteUnmuteOverlay(muted: RwSignal<bool>) -> impl IntoView {
     view! {
-        <Show when=show_mute_icon>
-            <button
-                class="fixed top-1/2 left-1/2 z-20 cursor-pointer pointer-events-none"
-                on:click=move |_| AudioState::toggle_mute()
+        <div
+            class="fixed top-1/2 left-1/2 z-20 text-[5rem] pointer-events-none transform -translate-x-1/2 -translate-y-1/2"
+        >
+            <Show
+                when=move || muted.get()
+                fallback=|| view! {
+                    <Icon
+                        attr:class="text-white/80 mute-indicator"
+                        icon=icondata::BiVolumeFullSolid
+                    />
+                }
             >
-                <Icon
-                    attr:class="text-white/80 animate-ping text-4xl"
-                    icon=icondata::BiVolumeMuteSolid
-                />
-            </button>
-        </Show>
+            <Icon
+                attr:class="text-white/80 mute-indicator"
+                icon=icondata::BiVolumeMuteSolid
+            />
+            </Show>
+        </div>
     }
 }
 
@@ -39,16 +46,19 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
     threshold_trigger_fetch: usize,
     #[prop(optional, into)] hard_refresh_target: RwSignal<String>,
 ) -> impl IntoView {
-    let AudioState {
-        muted,
-        show_mute_icon,
-        ..
-    } = AudioState::get();
+    let AudioState { muted, volume } = AudioState::get();
 
     let scroll_root: NodeRef<html::Div> = NodeRef::new();
+    let win_audio_ref = NodeRef::<Audio>::new();
 
     let var_name = view! {
         <div class="overflow-hidden overflow-y-auto w-full h-full">
+            <audio
+                class="sr-only"
+                node_ref=win_audio_ref
+                preload="auto"
+                src="/img/hotornot/chaching.m4a"
+            />
             <div
                 node_ref=scroll_root
                 class="overflow-y-scroll bg-black snap-mandatory snap-y h-dvh w-dvw"
@@ -92,7 +102,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                 .root(Some(scroll_root)),
                         );
                         Effect::new(move |_| {
-                            if current_idx() >= MAX_VIDEO_ELEMENTS_FOR_FEED - 1 {
+                            if current_idx() >= video_queue_for_feed.with_untracked(|vqf| vqf.len()) - 1 {
                                 let window = window();
                                 let _ = window
                                     .location()
@@ -116,12 +126,13 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                         view! {
                             <div node_ref=container_ref class="w-full h-full snap-always snap-end" class:hidden=move || post.get().is_none()>
                                 <Show when=show_video>
-                                    <BgView video_queue idx=queue_idx>
+                                    <BgView win_audio_ref video_queue idx=queue_idx>
                                         <VideoViewForQueue
                                             post
                                             current_idx
                                             idx=queue_idx
                                             muted
+                                            volume
                                             to_load
                                         />
                                     </BgView>
@@ -137,7 +148,7 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                     </div>
                 </Show>
 
-                <MuteIconOverlay show_mute_icon />
+                <MuteUnmuteOverlay muted />
             </div>
         </div>
     };

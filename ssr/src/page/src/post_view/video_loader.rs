@@ -19,6 +19,7 @@ use super::{overlay::VideoDetailsOverlay, PostDetails};
 pub fn BgView(
     video_queue: RwSignal<IndexSet<PostDetails>>,
     idx: usize,
+    win_audio_ref: NodeRef<Audio>,
     children: Children,
 ) -> impl IntoView {
     let post_with_prev = Memo::new(move |_| {
@@ -41,20 +42,12 @@ pub fn BgView(
             .unwrap_or_default()
     };
 
-    let win_audio_ref = NodeRef::<Audio>::new();
-
     view! {
         <div class="overflow-hidden relative w-full h-full bg-transparent">
             <div
                 class="absolute top-0 left-0 w-full h-full bg-center bg-cover z-1 blur-lg bg-black"
                 style:background-image=move || format!("url({})", bg_url(uid()))
             ></div>
-            <audio
-                class="sr-only"
-                node_ref=win_audio_ref
-                preload="auto"
-                src="/img/hotornot/chaching.m4a"
-            />
             {move || {
                 let (post, prev_post) = post_with_prev.get();
                 Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref /> })
@@ -72,6 +65,7 @@ pub fn VideoView(
     #[prop(optional)] autoplay_at_render: bool,
     to_load: Memo<bool>,
     muted: RwSignal<bool>,
+    volume: RwSignal<f64>,
     #[prop(optional, into)] is_current: Option<Signal<bool>>,
 ) -> impl IntoView {
     let post_for_uid = post;
@@ -106,6 +100,13 @@ pub fn VideoView(
         Some(())
     });
 
+    // Handles volume change
+    Effect::new(move |_| {
+        let vid = _ref.get()?;
+        vid.set_volume(volume());
+        Some(())
+    });
+
     Effect::new(move |_| {
         let vid = _ref.get()?;
         // the attributes in DOM don't seem to be working
@@ -127,6 +128,8 @@ pub fn VideoView(
     view! {
         <VideoPlayer
             node_ref=_ref
+            muted
+            autoplay=is_current.unwrap_or(false.into())
             view_bg_url=Signal::derive(view_bg_url)
             view_video_url=Signal::derive(view_video_url)
         />
@@ -140,6 +143,7 @@ pub fn VideoViewForQueue(
     current_idx: RwSignal<usize>,
     idx: usize,
     muted: RwSignal<bool>,
+    volume: RwSignal<f64>,
     to_load: Memo<bool>,
 ) -> impl IntoView {
     let container_ref = NodeRef::<Video>::new();
@@ -200,6 +204,7 @@ pub fn VideoViewForQueue(
             _ref=container_ref
             to_load
             muted
+            volume
             is_current=is_current_signal
         />
     }

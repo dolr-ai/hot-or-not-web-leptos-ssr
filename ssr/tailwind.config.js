@@ -134,5 +134,9 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+      function ({ addVariant }) {
+        addVariant('safari', '@supports (-webkit-touch-callout: none)')
+      }
+    ]
 };

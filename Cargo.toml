@@ -37,11 +37,11 @@ web-time = "1.0.0"
 axum = { version = "0.8.4", features = ["macros"] }
 console_error_panic_hook = "0.1"
 console_log = "1"
-leptos = { version = "0.8.2", features = ["nightly"] }
-leptos_axum = { version = "0.8.2" }
-leptos_meta = "0.8.2"
-leptos_router = { version = "0.8.2", features = ["nightly"] }
-reactive_graph = "0.2.2"
+leptos = { version = "0.8.5", features = ["nightly"] }
+leptos_axum = { version = "0.8.5" }
+leptos_meta = "0.8.5"
+leptos_router = { version = "0.8.5", features = ["nightly"] }
+reactive_graph = "0.2.5"
 log = "0.4"
 simple_logger = "4.0"
 tokio = { version = "1", features = ["rt-multi-thread", "signal", "time"] }
@@ -56,11 +56,12 @@ ic-agent = { version = "0.41.0", default-features = false, features = ["pem"] }
 ic-base-types = { git = "https://github.com/dfinity/ic", rev = "tags/release-2024-10-17_03-07-base" }
 icp-ledger = { git = "https://github.com/dfinity/ic", rev = "tags/release-2024-10-17_03-07-base" }
 futures = "0.3.30"
-leptos-use = { version = "0.16.0-beta2" }
+leptos-use = { version = "0.16.2-beta2" }
 codee = { version = "0.3.0", features = ["json_serde"] }
 reqwest = { version = "0.12", default-features = false, features = [
     "json",
     "http2",
+    "multipart",
 ] }
 hex = "0.4.3"
 leptos_icons = "0.6.1"
@@ -164,18 +165,22 @@ sentry = { version = "0.37.0", default-features = false, features = [
 sentry-tower = { version = "0.37.0", features = ["axum", "axum-matched-path"] }
 jsonwebtoken = "9.3.1"
 google-cloud-alloydb-v1 = "0.4.2"
-sea-orm = { version = "1.1.13", features = ["sqlx-postgres", "runtime-tokio-rustls"] }
+sea-orm = { version = "1.1.13", features = [
+    "sqlx-postgres",
+    "runtime-tokio-rustls",
+] }
 dolr-airdrop = { git = "https://github.com/dolr-ai/yral-neon-postgres", branch = "main" }
 sats-airdrop = { git = "https://github.com/dolr-ai/yral-neon-postgres", branch = "main" }
 cargo-husky = { version = "1.5.0", features = ["user-hooks"] }
 num-traits = "0.2.19"
 num-bigint = "0.4.6"
+base64 = "0.22"
 
 # ===
 # Uncomment the below lines for testing out yral-common changes locally
 # ===
 # sns-validation = { path = "../yral-common/sns-validation" }
-# yral-types = { path = "../yral-common/types" }
+# yral-types = { path = "../yral-common/types" }    
 # yral-canisters-client = { path = "../yral-common/canisters-client", features = [
 #     "full",
 # ] }
@@ -186,15 +191,20 @@ num-bigint = "0.4.6"
 # yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features = [
 #     "client",
 # ], version = "0.1.0" }
-# hon-worker-common = { path = "../yral-common/hon-worker-common", features = [ "client", ], version = "0.1.0" }
-# yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features = [
+# global-constants = { path = "../yral-common/global-constants" }
+# yral-identity = { path = "../yral-common/identity", default-features = false, features = [
+#     "ic-git",
+#     "wasm-bindgen",
+# ] }
+# videogen-common = { path = "../yral-common/videogen-common", features = [
 #     "client",
-# ], version = "0.1.0" }
+#     "ic",
+# ] }
 # ===
 
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], branch = "master", version = "0.1.0" }
+], branch = "master" }
 sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
@@ -205,4 +215,11 @@ hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", featur
     "client",
 ], branch = "master", version = "0.1.0" }
 global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
-yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", default-features = false }
+yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", default-features = false, features = [
+    "ic-git",
+    "wasm-bindgen",
+] }
+videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
+    "client",
+    "ic",
+] }

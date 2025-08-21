@@ -1,17 +1,29 @@
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::buttons::HighlightedButton;
+use component::icons::sound_off_icon::SoundOffIcon;
+use component::icons::sound_on_icon::SoundOnIcon;
+use component::icons::volume_high_icon::VolumeHighIcon;
+use component::icons::volume_mute_icon::VolumeMuteIcon;
 use component::overlay::ShadowOverlay;
+use component::spinner::SpinnerFit;
 use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption};
+use global_constants::REFERRAL_REWARD_SATS;
 
-use consts::{UserOnboardingStore, NSFW_TOGGLE_STORE, USER_ONBOARDING_STORE_KEY};
+use consts::{
+    UserOnboardingStore, NSFW_ENABLED_COOKIE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
+};
 use gloo::timers::callback::Timeout;
 use leptos::html::Audio;
 use leptos::{prelude::*, task::spawn_local};
 use leptos_icons::*;
-use leptos_router::hooks::use_location;
+use leptos_router::hooks::{use_location, use_navigate};
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
-use state::canisters::{auth_state, unauth_canisters};
+use leptos_use::{
+    use_cookie_with_options, use_interval_fn_with_options, UseCookieOptions, UseIntervalFnOptions,
+};
+use state::audio_state::AudioState;
+use state::canisters::auth_state;
 use utils::host::show_nsfw_content;
 use utils::{
     event_streaming::events::{LikeVideo, ShareVideo},
@@ -20,9 +32,12 @@ use utils::{
     web::{copy_to_clipboard, share_url},
 };
 
+use utils::mixpanel::mixpanel_events::*;
 use yral_canisters_common::utils::posts::PostDetails;
 
-use utils::mixpanel::mixpanel_events::*;
+use crate::wallet::airdrop::sats_airdrop::{claim_sats_airdrop, get_sats_airdrop_status};
+use crate::wallet::airdrop::{AirdropStatus, SatsAirdropPopup};
+use leptos::prelude::ServerFnError;
 
 use super::bet::HNGameOverlay;
 
@@ -51,7 +66,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
         let post_details = post.clone();
         let video_id = post.uid.clone();
         send_wrap(async move {
-            let Ok(canisters) = auth.auth_cans(unauth_canisters()).await else {
+            let Ok(canisters) = auth.auth_cans().await else {
                 log::warn!("Trying to toggle like without auth");
                 return;
             };
@@ -101,21 +116,19 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
 
     let liked_fetch = auth.derive_resource(
         || (),
-        move |cans, _| {
-            send_wrap(async move {
-                let result = if let Some(liked) = initial_liked.0 {
-                    (liked, initial_liked.1)
-                } else {
-                    match cans.post_like_info(post_canister, post_id).await {
-                        Ok(liked) => liked,
-                        Err(e) => {
-                            log::warn!("faild to fetch likes {e}");
-                            (false, likes.try_get_untracked().unwrap_or_default())
-                        }
+        move |cans, _| async move {
+            let result = if let Some(liked) = initial_liked.0 {
+                (liked, initial_liked.1)
+            } else {
+                match cans.post_like_info(post_canister, post_id).await {
+                    Ok(liked) => liked,
+                    Err(e) => {
+                        log::warn!("faild to fetch likes {e}");
+                        (false, likes.try_get_untracked().unwrap_or_default())
                     }
-                };
-                Ok::<_, ServerFnError>(result)
-            })
+                }
+            };
+            Ok::<_, ServerFnError>(result)
         },
     );
 
@@ -165,6 +178,7 @@ pub fn VideoDetailsOverlay(
             .map(|b| format!("{b}/hot-or-not/{}/{}", post.canister_id, post.post_id))
             .unwrap_or_default()
     };
+    let display_name = post.display_name_or_fallback();
 
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
@@ -228,7 +242,7 @@ pub fn VideoDetailsOverlay(
         ShareVideo.send_event(ev_ctx, post_details);
     };
 
-    let profile_url = format!("/profile/{}/tokens", post.poster_principal.to_text());
+    let profile_url = format!("/profile/{}/tokens", post.username_or_principal());
     let post_c = post.clone();
 
     let click_copy = move |text: String| {
@@ -257,10 +271,9 @@ pub fn VideoDetailsOverlay(
             use utils::report::send_report_offchain;
 
             let post_details = post_details_report.clone();
-            let base = unauth_canisters();
 
             spawn_local(async move {
-                let cans = auth.auth_cans(base).await.unwrap();
+                let cans = auth.auth_cans().await.unwrap();
                 let details = cans.profile_details();
                 send_report_offchain(
                     details.principal(),
@@ -280,15 +293,14 @@ pub fn VideoDetailsOverlay(
         }
     });
 
-    let (nsfw_enabled, set_nsfw_enabled, _) =
-        use_local_storage::<bool, FromToStringCodec>(NSFW_TOGGLE_STORE);
-    let nsfw_enabled_with_host = Signal::derive(move || {
-        if show_nsfw_content() {
-            true
-        } else {
-            nsfw_enabled()
-        }
-    });
+    let (nsfw_enabled, set_nsfw_enabled) = use_cookie_with_options::<bool, FromToStringCodec>(
+        NSFW_ENABLED_COOKIE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(consts::auth::REFRESH_MAX_AGE.as_secs() as i64)
+            .same_site(leptos_use::SameSite::Lax),
+    );
+
     let click_nsfw = Action::new(move |()| {
         let video_id = post.uid.clone();
         async move {
@@ -296,7 +308,7 @@ pub fn VideoDetailsOverlay(
                 return;
             }
 
-            if !nsfw_enabled() && !show_nsfw_permission() {
+            if !nsfw_enabled().unwrap_or(false) && !show_nsfw_permission() {
                 show_nsfw_permission.set(true);
                 if let Some(global) = MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(ev_ctx, false)
                 {
@@ -314,7 +326,7 @@ pub fn VideoDetailsOverlay(
                     );
                 }
             } else {
-                if !nsfw_enabled() && show_nsfw_permission() {
+                if !nsfw_enabled().unwrap_or(false) && show_nsfw_permission() {
                     show_nsfw_permission.set(false);
                     if let Some(global) =
                         MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(ev_ctx, false)
@@ -328,9 +340,9 @@ pub fn VideoDetailsOverlay(
                             None,
                         );
                     }
-                    set_nsfw_enabled(true);
+                    set_nsfw_enabled(Some(true));
                 } else {
-                    set_nsfw_enabled(false);
+                    set_nsfw_enabled(Some(false));
                     if let Some(global) =
                         MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(ev_ctx, false)
                     {
@@ -350,9 +362,10 @@ pub fn VideoDetailsOverlay(
                 }
                 // using set_href to hard reload the page
                 let window = window();
-                let _ = window
-                    .location()
-                    .set_href(&format!("/?nsfw={}", nsfw_enabled.get_untracked()));
+                let _ = window.location().set_href(&format!(
+                    "/?nsfw={}",
+                    nsfw_enabled.get_untracked().unwrap_or(false)
+                ));
             }
         }
     });
@@ -388,7 +401,100 @@ pub fn VideoDetailsOverlay(
         async move {}
     });
 
+    let show_low_balance_popup: RwSignal<bool> = RwSignal::new(false);
+    let auth = auth_state();
+
+    let show_sats_airdrop_popup = RwSignal::new(false);
+    let sats_airdrop_claimed = RwSignal::new(false);
+    let sats_airdrop_amount = RwSignal::new(0u64);
+    let sats_airdrop_error = RwSignal::new(false);
+
+    let claim_sats_airdrop_action = Action::new_local(move |_| async move {
+        show_sats_airdrop_popup.set(true);
+        sats_airdrop_claimed.set(false);
+        sats_airdrop_error.set(false);
+
+        let Ok(auth_cans) = auth.auth_cans().await else {
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                MixPanelEvent::track_claim_airdrop_clicked(
+                    global,
+                    StakeType::Sats,
+                    "home".to_string(),
+                );
+            }
+            log::warn!("Failed to get authenticated canisters");
+            sats_airdrop_error.set(true);
+            return Err(ServerFnError::new("Failed to get authenticated canisters"));
+        };
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_claim_airdrop_clicked(global, StakeType::Sats, "home".to_string());
+        }
+        let user_canister = auth_cans.user_canister();
+        let user_principal = auth_cans.user_principal();
+        let request = hon_worker_common::ClaimRequest { user_principal };
+        let signature =
+            hon_worker_common::sign_claim_request(auth_cans.identity(), request.clone()).unwrap();
+        claim_sats_airdrop(user_canister, request, signature)
+            .await
+            .inspect(|&amount| {
+                sats_airdrop_claimed.set(true);
+                sats_airdrop_amount.set(amount);
+
+                let (_, set_wallet_balance_store, _) =
+                    use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
+
+                set_wallet_balance_store.update(|balance| {
+                    *balance += amount;
+                });
+
+                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                    MixPanelEvent::track_airdrop_claimed(
+                        global,
+                        StakeType::Sats,
+                        true,
+                        amount,
+                        "home".to_string(),
+                    );
+                }
+            })
+            .inspect_err(|_| {
+                log::warn!("Something went wrong claiming airdrop");
+                sats_airdrop_error.set(true);
+                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                    MixPanelEvent::track_airdrop_claimed(
+                        global,
+                        StakeType::Sats,
+                        false,
+                        0,
+                        "home".to_string(),
+                    );
+                }
+            })
+    });
+
+    let navigate = use_navigate();
+    let navigate_to_refer = Action::new(move |is_airdrop_eligible: &bool| {
+        let navigate = navigate.clone();
+        let is_airdrop_eligible = *is_airdrop_eligible;
+        async move {
+            let Ok(_) = auth.auth_cans().await else {
+                return;
+            };
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                MixPanelEvent::track_refer_friend_clicked(
+                    global,
+                    is_airdrop_eligible,
+                    "low_sats_popup".to_string(),
+                    "home".to_string(),
+                );
+            }
+            navigate("/refer-earn", Default::default());
+        }
+    });
+    let AudioState { muted, volume } = AudioState::get();
+
     view! {
+        <MuteUnmuteControl muted volume />
         <div class="flex absolute bottom-0 left-0 flex-col flex-nowrap justify-between pt-5 pb-20 w-full h-full text-white bg-transparent pointer-events-none px-[16px] z-4 md:px-[16px]">
             <div class="flex flex-row justify-between items-center w-full pointer-events-auto">
                 <div class="flex flex-row gap-2 items-center p-2 w-9/12 rounded-s-full bg-linear-to-r from-black/25 via-80% via-black/10">
@@ -407,7 +513,7 @@ pub fn VideoDetailsOverlay(
                                     on:click=move |_| mixpanel_track_profile_click()
                                     href=profile_url
                                 >
-                                    {post.display_name}
+                                    {display_name}
                                 </a>
                             </span>
                             <span class="font-semibold">"|"</span>
@@ -428,7 +534,7 @@ pub fn VideoDetailsOverlay(
                             let _ = click_nsfw.dispatch(());
                         }
                         src=move || {
-                            if nsfw_enabled_with_host() {
+                            if post.is_nsfw {
                                 "/img/yral/nsfw/nsfw-toggle-on.webp"
                             } else {
                                 "/img/yral/nsfw/nsfw-toggle-off.webp"
@@ -456,7 +562,7 @@ pub fn VideoDetailsOverlay(
                     </button>
                 </div>
                 <div class="w-full bg-transparent pointer-events-auto max-w-lg mx-auto">
-                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref show_tutorial />
+                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref show_tutorial show_low_balance_popup />
                 </div>
             </div>
         </div>
@@ -551,7 +657,23 @@ pub fn VideoDetailsOverlay(
             </div>
         </Modal>
         <HotOrNotTutorialOverlay show=show_tutorial close_action=close_help_popup_action />
-
+        <LowSatsBalancePopup
+            show=show_low_balance_popup
+            navigate_refer_page=navigate_to_refer
+            claim_airdrop=Action::new(move |_| {
+                show_low_balance_popup.set(false);
+                claim_sats_airdrop_action.dispatch(auth.is_logged_in_with_oauth().get());
+                async move {}
+            })
+            auth=auth
+        />
+        <SatsAirdropPopup
+            show=show_sats_airdrop_popup
+            claimed=sats_airdrop_claimed.read_only()
+            amount_claimed=sats_airdrop_amount.read_only()
+            error=sats_airdrop_error.read_only()
+            try_again=claim_sats_airdrop_action
+        />
     }.into_any()
 }
 
@@ -572,6 +694,83 @@ fn ExpandableText(description: String) -> impl IntoView {
 }
 
 #[component]
+pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl IntoView {
+    let volume_ = Signal::derive(move || if muted.get() { 0.0 } else { volume.get() });
+    view! {
+        <button
+            tabindex="0"
+            class="z-10 select-none rounded-r-lg bg-black/25 py-2 px-3 cursor-pointer text-sm font-medium text-white items-center gap-1
+            pointer-coarse:flex pointer-fine:hidden absolute top-[7rem] left-0 safari:transition-none
+            active:translate-x-0 -translate-x-2/3 focus:delay-[3.5s] active:focus:delay-0 transition-all duration-100"
+            on:click=move |_| {
+                let is_muted = muted.get_untracked();
+                muted.set(!is_muted);
+                volume.set(if is_muted { 1.0 } else { 0.0 });
+            }
+        >
+            <div class="w-[10ch] text-center">{move || if muted.get() { "Unmute" } else { "Mute" }}</div>
+            <Show
+                when=move || muted.get()
+                fallback=|| view! { <SoundOnIcon classes="w-4 h-4".to_string() /> }
+            >
+                <SoundOffIcon classes="w-4 h-4".to_string() />
+            </Show>
+        </button>
+        <div class="z-10 select-none rounded-full bg-black/35 p-2.5 cursor-pointer text-sm font-medium text-white items-center gap-3
+            pointer-coarse:hidden pointer-fine:flex absolute top-[7rem] left-4
+            size-11 hover:size-auto group">
+            <button
+                class="shrink-0"
+                on:click=move |_| {
+                    let is_muted = muted.get_untracked();
+                    muted.set(!is_muted);
+                    volume.set(if is_muted { 1.0 } else { 0.0 });
+                }
+                >
+                <Show
+                    when=move || muted.get() || volume.get() == 0.0
+                    fallback=|| view! {<VolumeHighIcon classes="w-6 h-6".to_string() /> }
+                >
+                    <VolumeMuteIcon classes="w-6 h-6".to_string() />
+                </Show>
+
+            </button>
+            <div class="overflow-hidden max-w-0 group-hover:max-w-[500px] transition-all duration-1000">
+                <div class="relative w-fit -translate-y-0.5">
+                    <div class="absolute inset-0 flex items-center pointer-events-none">
+                        <div
+                            style:width=move || format!("calc({}% - 0.25%)", volume_.get() * 100.0)
+                            class="bg-white w-full h-1.5 translate-y-[0.15rem] rounded-full"
+                            >
+                        </div>
+                    </div>
+                    <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        class="z-[2] appearance-none bg-zinc-500 h-1.5 rounded-full accent-white"
+                        prop:value={move || volume_.get()}
+                        on:change=move |ev: leptos::ev::Event| {
+                            let input = event_target_value(&ev);
+                            if let Ok(value) = input.parse::<f64>() {
+                                volume.set(value);
+                                if value > 0.0 {
+                                    muted.set(false);
+                                } else {
+                                    muted.set(true);
+                                }
+                            }
+                        }
+
+                    />
+                    </div>
+                </div>
+            </div>
+    }
+}
+
+#[component]
 pub fn HotOrNotTutorialOverlay(
     show: RwSignal<bool>,
     close_action: Action<(), ()>,
@@ -579,8 +778,7 @@ pub fn HotOrNotTutorialOverlay(
     view! {
         <ShadowOverlay show=show >
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
-                <div class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
-                    <img src="/img/common/refer-bg.webp" class="absolute inset-0 z-0 w-full h-full object-cover opacity-40" />
+                <div style="max-height: 90vh;" class="overflow-hidden overflow-y-auto h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
                     <div
                         style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
                         class="absolute z-[1] -left-1/2 top-0 size-[32rem]" >
@@ -596,7 +794,7 @@ pub fn HotOrNotTutorialOverlay(
                     </button>
                     <div class="flex z-[2] relative flex-col items-center gap-2 text-white justify-center p-12">
                         <div class="text-lg font-bold">"How to play?"</div>
-                        <div class="font-bold text-yellow-500 pb-4">"Stake Bitcoin (SATS) to vote HOT or NOT."</div>
+                        <div class="font-bold text-yellow-500 pb-4 text-center">"Stake YRAL to vote HOT or NOT."</div>
                         <div class="border rounded-md border-neutral-800 bg-neutral-950 flex p-3 gap-4 items-center">
                             <img src="/img/hotornot/hot-circular.svg" class="size-12 shrink-0" />
                             <div class="text-neutral-400"><span class="font-bold text-white">"'Hot'"</span>" = Higher engagement score than the previous"</div>
@@ -611,12 +809,12 @@ pub fn HotOrNotTutorialOverlay(
                                 <div>"Previous video score: 36"</div>
                                 <div>"Your vote on the current video: HOT 🔥"</div>
                                 <div>"Current video score: 42"</div>
-                                <div class="font-semibold">"You scored it right. Bitcoin coming your way!"</div>
+                                <div class="font-semibold">"You scored it right. YRAL coming your way!"</div>
                             </div>
                             <div class="text-sm text-neutral-400"><span class="font-bold text-neutral-300">"Note: "</span>"First video results are random."</div>
                         </div>
                         <div class="text-yellow-500 font-bold text-center py-4">
-                            "You make the content, you take the cut — 10% of all SATS staked!"
+                            "You make the content, you take the cut — 10% of all YRAL staked!"
                         </div>
 
                         <HighlightedButton
@@ -630,5 +828,171 @@ pub fn HotOrNotTutorialOverlay(
                 </div>
             </div>
         </ShadowOverlay>
+    }
+}
+#[component]
+pub fn LowSatsBalancePopup(
+    show: RwSignal<bool>,
+    navigate_refer_page: Action<bool, ()>,
+    claim_airdrop: Action<(), ()>,
+    auth: state::canisters::AuthState,
+) -> impl IntoView {
+    let ev_ctx = auth.event_ctx();
+
+    let status_resource = auth.derive_resource(
+        move || show.get(),
+        move |auth_cans, showing| async move {
+            if !showing {
+                return Ok(AirdropStatus::Available);
+            }
+            let user_canister = auth_cans.user_canister();
+            let user_principal = auth_cans.user_principal();
+            get_sats_airdrop_status(user_canister, user_principal).await
+        },
+    );
+
+    view! {
+        <ShadowOverlay show=show >
+            <div class="px-4 py-6 w-full h-full flex items-center justify-center">
+                <div style="min-height: 62vh;" class="overflow-hidden h-fit max-w-md items-center cursor-auto bg-neutral-950 rounded-md w-full relative">
+                    <button
+                        on:click=move |_| {
+                            show.set(false);
+                        }
+                        class="text-white rounded-full flex items-center justify-center text-center size-6 text-lg md:text-xl bg-neutral-600 absolute z-[3] top-4 right-4"
+                    >
+                        <Icon icon=icondata::ChCross />
+                    </button>
+
+                    <div class="flex z-[2] relative flex-col items-center gap-5 text-white justify-center p-12">
+                        <img src="/img/hotornot/sad.webp" class="size-14" />
+                        <div class="text-xl text-center font-semibold text-neutral-50">"You're Low on YRAL"</div>
+
+                        <Suspense
+                            fallback=move || view! {
+                                <div class="flex flex-col items-center justify-center w-full py-16">
+                                    <div class="size-12">
+                                        <SpinnerFit />
+                                    </div>
+                                 </div>
+                            }
+                        >
+                            {move || Suspend::new(async move {
+                                let airdrop_status = status_resource.await.unwrap_or(AirdropStatus::Available);
+                                let is_airdrop_eligible = matches!(airdrop_status, AirdropStatus::Available);
+
+                                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                                    MixPanelEvent::track_low_on_sats_popup_shown(
+                                        global,
+                                        is_airdrop_eligible,
+                                        "home".to_string(),
+                                    );
+                                }
+
+                                view! {
+                                    {
+                                        let refer_reward_text = format!("{REFERRAL_REWARD_SATS} YRAL");
+                                        match airdrop_status {
+                                            AirdropStatus::Available => view! {
+                                                    <div class="text-neutral-300 text-center">"Earn more in two easy ways:"</div>
+                                                    <ul class="flex list-disc flex-col gap-5 text-neutral-300">
+                                                        <li>"Unlock your daily"<span class="font-semibold">" YRAL "</span>"loot every 24 hours!"</li>
+                                                        <li>"Refer & earn "<span class="font-semibold">{refer_reward_text.clone()}</span>" for every friend you invite."</li>
+                                                        <li class="font-semibold">"Upload Videos to earn commissions."</li>
+                                                    </ul>
+                                                }.into_any(),
+                                            AirdropStatus::WaitFor(duration) => view! {
+                                                    <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
+                                                    <AirdropCountdown duration=duration />
+                                                    <div class="text-neutral-300 text-center">"Meanwhile, earn "<span class="font-semibold">{refer_reward_text.clone()}</span>" for every friend you refer!"</div>
+                                                }.into_any(),
+                                            AirdropStatus::Claimed => view! {
+                                                    <div class="text-neutral-300 text-center">"Looks like you've already claimed your daily airdrop."</div>
+                                                    <div class="text-neutral-300 text-center">"Meanwhile, earn "<span class="font-semibold">{refer_reward_text.clone()}</span>" for every friend you refer!"</div>
+                                                }.into_any(),
+                                        }
+                                    }
+
+                                    {
+                                        match airdrop_status {
+                                            AirdropStatus::Available => view! {
+                                                <HighlightedButton
+                                                alt_style=false
+                                                disabled=false
+                                                on_click=move || {
+                                                    show.set(false);
+                                                    claim_airdrop.dispatch(());
+                                                }
+                                                >
+                                                "Claim YRAL Airdrop"
+                                                </HighlightedButton>
+                                                <HighlightedButton
+                                                alt_style=true
+                                                disabled=false
+                                                on_click=move || {
+                                                    show.set(false);
+                                                    navigate_refer_page.dispatch(is_airdrop_eligible);
+                                                }
+                                                >
+                                                "Refer a friend"
+                                                </HighlightedButton>
+                                            }.into_any(),
+                                            _ => view! {
+                                                <HighlightedButton
+                                                    alt_style=false
+                                                    disabled=false
+                                                    on_click=move || {
+                                                        show.set(false);
+                                                        navigate_refer_page.dispatch(is_airdrop_eligible);
+                                                    }
+                                                    >
+                                                    "Refer a friend"
+                                                </HighlightedButton>
+                                                <HighlightedButton
+                                                    alt_style=true
+                                                    disabled=false
+                                                    on_click=move || {
+                                                        show.set(false);
+                                                    }
+                                                    >
+                                                    "Back to Game"
+                                                </HighlightedButton>
+                                            }.into_any()
+                                        }
+                                    }
+                                }
+                            })}
+                        </Suspense>
+                    </div>
+                </div>
+            </div>
+        </ShadowOverlay>
+    }
+}
+
+#[component]
+fn AirdropCountdown(duration: web_time::Duration) -> impl IntoView {
+    use utils::time::to_hh_mm_ss;
+    use web_time::Instant;
+
+    let end_time = Instant::now() + duration;
+    let (remaining_duration, set_remaining_duration) = signal(duration);
+
+    let _ = use_interval_fn_with_options(
+        move || {
+            let now = Instant::now();
+            let remaining = end_time.saturating_duration_since(now);
+            set_remaining_duration(remaining);
+        },
+        1000,
+        UseIntervalFnOptions::default().immediate(true),
+    );
+
+    view! {
+        <div class="bg-[#444444] rounded-md px-3 py-2">
+            <span class="text-white text-sm font-medium">
+                "Next Airdrop: "{move || to_hh_mm_ss(remaining_duration())}
+            </span>
+        </div>
     }
 }

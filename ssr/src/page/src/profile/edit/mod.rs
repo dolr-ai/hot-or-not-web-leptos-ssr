@@ -35,10 +35,10 @@ pub fn ProfileEdit() -> impl IntoView {
                 </div>
             }>
             {move || Suspend::new(async move {
-                let cans = auth.cans_wire().await;
+                let cans = auth.auth_cans().await;
                 match cans {
                     Ok(cans) => Either::Left(view! {
-                        <ProfileEditInner details=cans.profile_details />
+                        <ProfileEditInner details=cans.profile_details() />
                     }),
                     Err(e) => Either::Right(view! {
                         <Redirect path=format!("/error?err={e}") />
@@ -77,7 +77,7 @@ fn ProfileEditInner(details: ProfileDetails) -> impl IntoView {
             <div class="flex flex-col gap-5 w-full px-4">
                 <EditField
                     name="User Name"
-                    value=format!("@{}", details.username_or_principal())
+                    value=format!("@{}", details.username_or_fallback())
                     icon=|| view! {
                         <a href="/profile/edit/username">
                             <Icon

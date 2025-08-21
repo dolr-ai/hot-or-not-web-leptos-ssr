@@ -13,7 +13,7 @@ fn NotifInnerComponent(details: ProfileDetails) -> impl IntoView {
     let on_token_click: Action<(), ()> = Action::new_unsync(move |()| async move {
         let metaclient: MetadataClient<false> = MetadataClient::default();
 
-        let cans = auth_state.auth_cans(expect_context()).await.unwrap();
+        let cans = auth_state.auth_cans().await.unwrap();
 
         let token = get_device_registeration_token().await.unwrap();
         metaclient
@@ -24,7 +24,7 @@ fn NotifInnerComponent(details: ProfileDetails) -> impl IntoView {
 
     view! {
         <h1>"YRAL Notifs for"</h1>
-        <h2>{details.username_or_principal()}</h2>
+        <h2>{details.username_or_fallback()}</h2>
         <br />
         <div class="flex flex-row gap-2 text-black">
             <button
@@ -46,11 +46,11 @@ pub fn Notif() -> impl IntoView {
         <div class="grid grid-cols-1 justify-items-center place-content-center w-screen h-screen">
             <Suspense>
                 {move || Suspend::new(async move {
-                    let res = auth.cans_wire().await;
+                    let res = auth.auth_cans().await;
                     match res {
                         Ok(cans) => {
                             Either::Left(
-                                view! { <NotifInnerComponent details=cans.profile_details /> },
+                                view! { <NotifInnerComponent details=cans.profile_details() /> },
                             )
                         }
                         Err(e) => {

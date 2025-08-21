@@ -1,7 +1,7 @@
 use consts::auth::REFRESH_MAX_AGE;
 use leptos::{ev, prelude::*};
 use leptos_router::components::Outlet;
-use leptos_router::hooks::use_navigate;
+// use leptos_router::hooks::use_navigate;
 use leptos_use::{use_cookie_with_options, use_event_listener, use_window, UseCookieOptions};
 
 use codee::string::FromToStringCodec;
@@ -24,20 +24,19 @@ fn CtxProvider(children: Children) -> impl IntoView {
     provide_context(auth);
 
     let location = leptos_router::hooks::use_location();
-    let navigate = use_navigate();
+    // let navigate = use_navigate();
+    // // Monitor auth errors and navigate to logout if needed
+    // Effect::new(move |_| {
+    //     if let Some(Err(_)) = auth.user_identity.get() {
+    //         navigate("/logout", Default::default());
+    //     }
+    // });
 
-    // Monitor auth errors and navigate to logout if needed
     Effect::new(move |_| {
-        if let Some(Err(_)) = auth.user_identity.get() {
-            navigate("/logout", Default::default());
-        }
-    });
-
-    Effect::new(move |_| {
-        let maybe_user_canister = auth.user_canister.get();
-        let user_canister = maybe_user_canister
-            .and_then(|c| c.ok())
-            .map(|c| c.to_text());
+        let user_canister = auth.canisters_resource.read().as_ref().and_then(|c| {
+            let cans = c.as_ref().ok()?;
+            Some(cans.user_canister().to_string())
+        });
         set_sentry_user_canister(user_canister);
     });
 
@@ -56,7 +55,6 @@ fn CtxProvider(children: Children) -> impl IntoView {
             }));
         },
     );
-
     provide_context(notification);
 
     Effect::new(move |_| {
@@ -115,10 +113,7 @@ fn CtxProvider(children: Children) -> impl IntoView {
     let migrate_notification_proj = Action::new_local(move |_| async move {
         let metaclient: MetadataClient<false> = MetadataClient::default();
 
-        let cans = auth
-            .auth_cans(use_context().unwrap_or_default())
-            .await
-            .unwrap();
+        let cans = auth.auth_cans().await.unwrap();
         let token = get_fcm_token().await.unwrap();
 
         metaclient

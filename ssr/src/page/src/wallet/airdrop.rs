@@ -8,7 +8,7 @@ use component::{
 use leptos::prelude::*;
 use leptos_icons::Icon;
 use serde::{Deserialize, Serialize};
-use state::canisters::{auth_state, unauth_canisters};
+use state::canisters::auth_state;
 use utils::event_streaming::events::CentsAdded;
 use yral_canisters_common::utils::token::{TokenMetadata, TokenOwner};
 
@@ -69,18 +69,16 @@ fn AirdropButton(
     let name_for_action = name.clone();
 
     let auth = auth_state();
-    let base = unauth_canisters();
     let airdrop_action = Action::new_local(move |&()| {
         let token_owner_cans_id = token_owner.clone().unwrap().canister_id;
         let name_c = name_for_action.clone();
-        let base = base.clone();
 
         async move {
             if claimed.get() && !buffer_signal.get() {
                 return Ok(());
             }
             buffer_signal.set(true);
-            let cans = auth.auth_cans(base).await?;
+            let cans = auth.auth_cans().await?;
             let token_owner = cans.individual_user(token_owner_cans_id).await;
 
             token_owner
@@ -482,11 +480,11 @@ pub fn SatsAirdropPopup(
 ) -> impl IntoView {
     let img_src = move || {
         if claimed.get() {
-            "/img/airdrop/sats-airdrop-success.webp"
+            "/img/airdrop/yral-airdrop-success.svg"
         } else if error.get() {
-            "/img/airdrop/sats-airdrop-failed.webp"
+            "/img/airdrop/yral-airdrop-failed.svg"
         } else {
-            "/img/airdrop/sats-airdrop.webp"
+            "/img/airdrop/yral-airdrop.svg"
         }
     };
 
@@ -496,10 +494,6 @@ pub fn SatsAirdropPopup(
         <ShadowOverlay show=show>
             <div class="flex justify-center items-center py-6 px-4 w-full h-full">
                 <div class="overflow-hidden relative items-center pt-16 w-full max-w-md rounded-md cursor-auto h-fit bg-neutral-950">
-                    <img
-                        src="/img/common/refer-bg.webp"
-                        class="object-cover absolute inset-0 z-0 w-full h-full opacity-40"
-                    />
                     <div
                         style="background: radial-gradient(circle, rgba(226, 1, 123, 0.4) 0%, rgba(255,255,255,0) 50%);"
                         class=format!(
@@ -528,7 +522,7 @@ pub fn SatsAirdropPopup(
                                     view! {
                                         <div class="text-center">
                                             <span class="font-semibold">
-                                                {amount_claimed} " Bitcoin (SATS)"
+                                                {amount_claimed} " YRAL"
                                             </span>
                                             " credited in your wallet"
                                         </div>
@@ -545,7 +539,7 @@ pub fn SatsAirdropPopup(
                                     view! {
                                         <div class="text-center">
                                             "Claim for "
-                                            <span class="font-semibold">"Bitcoin (SATS)"</span>
+                                            <span class="font-semibold">"YRAL"</span>
                                             " failed"
                                         </div>
                                         <HighlightedButton
@@ -563,7 +557,7 @@ pub fn SatsAirdropPopup(
                                     view! {
                                         <div class="text-center">
                                             "Claim for "
-                                            <span class="font-semibold">"Bitcoin (SATS)"</span>
+                                            <span class="font-semibold">"YRAL"</span>
                                             " is being processed"
                                         </div>
                                         <div class="w-12 h-12">

@@ -3,7 +3,6 @@ pub mod tokens;
 pub mod transactions;
 pub mod txn;
 
-use candid::Principal;
 use codee::string::FromToStringCodec;
 use component::connect::ConnectLogin;
 use component::icons::notification_icon::NotificationIcon;
@@ -24,9 +23,11 @@ use state::app_state::AppState;
 use state::canisters::{auth_state, unauth_canisters};
 use tokens::TokenList;
 use utils::notifications::get_device_registeration_token;
-use utils::send_wrap;
+use utils::{send_wrap, UsernameOrPrincipal};
 use yral_canisters_common::utils::profile::ProfileDetails;
 use yral_metadata_client::MetadataClient;
+
+use component::notification::NotificationPage;
 
 /// Controller for the login modal, passed through context
 /// under wallet
@@ -61,7 +62,7 @@ fn ProfileCard(
             <Show when=move || !is_connected.get() && is_own_account>
                 <ConnectLogin
                     show_login
-                    login_text="Login to claim your Bitcoin (SATS)"
+                    login_text="Login to claim YRAL"
                     cta_location="wallet"
                     redirect_to="/wallet"
                 />
@@ -88,8 +89,8 @@ fn ProfileCardLoading() -> impl IntoView {
 #[component]
 fn Header(details: ProfileDetails, is_own_account: bool) -> impl IntoView {
     let share_link = {
-        let principal = details.principal();
-        format!("/wallet/{principal}")
+        let id = details.username_or_principal();
+        format!("/wallet/{id}")
     };
     let app_state = use_context::<AppState>();
     let message = format!(
@@ -98,15 +99,18 @@ fn Header(details: ProfileDetails, is_own_account: bool) -> impl IntoView {
         share_link
     );
 
+    let notification_panel = RwSignal::new(false);
+
     view! {
+        <NotificationPage close=notification_panel />
         <div class="flex gap-10 justify-between items-center py-3 px-4 w-full">
             <div class="text-xl font-bold text-white font-kumbh">My Wallet</div>
             <div class="flex gap-8 items-center">
                 <ShareButtonWithFallbackPopup share_link message />
                 <Show when=move || is_own_account>
-                    <a href="/notifications">
+                    <button on:click=move |_| notification_panel.set(true)>
                         <NotificationIcon show_dot=false class="w-6 h-6 text-neutral-300" />
-                    </a>
+                    </button>
                 </Show>
             </div>
         </div>
@@ -144,20 +148,20 @@ fn BalanceFallback() -> impl IntoView {
 
 #[derive(Params, PartialEq, Clone)]
 struct WalletParams {
-    id: Option<String>,
+    id: Option<UsernameOrPrincipal>,
 }
 #[component]
 pub fn Wallet() -> impl IntoView {
     let params = use_params::<WalletParams>();
-    let param_principal = move || {
+    let param_id = move || {
         let WalletParams { id } = params.get()?;
-        Ok::<_, ParamsError>(id.and_then(|p| Principal::from_text(p).ok()))
+        Ok::<_, ParamsError>(id)
     };
 
     view! {
         {move || {
-            match param_principal() {
-                Ok(Some(principal)) => Some(view! { <WalletImpl principal /> }.into_any()),
+            match param_id() {
+                Ok(Some(id)) => Some(view! { <WalletImpl id /> }.into_any()),
                 Ok(None) => {
                     let auth = auth_state();
                     Some(
@@ -189,33 +193,78 @@ pub fn Wallet() -> impl IntoView {
 }
 
 #[component]
-pub fn WalletImpl(principal: Principal) -> impl IntoView {
+pub fn WalletImpl(id: UsernameOrPrincipal) -> impl IntoView {
     let show_login = RwSignal::new(false);
 
     provide_context(ShowLoginSignal(show_login));
 
     let cans = unauth_canisters();
 
+    let id = StoredValue::new(id);
+
     let cans2 = cans.clone();
+    let auth = auth_state();
+
     let metadata = OnceResource::new(send_wrap(async move {
         let canisters = cans2;
         let user_canister = canisters
-            .get_user_metadata(principal.to_text())
-            .await?
-            .ok_or_else(|| ServerFnError::new("Failed to get user canister"))?;
+            .get_user_metadata(id.with_value(|id| id.to_string()))
+            .await?;
         Ok::<_, ServerFnError>(user_canister)
     }));
 
     let profile_info_res = OnceResource::new(send_wrap(async move {
-        let meta = metadata.await?;
+        let Some(meta) = metadata.await? else {
+            return Ok(None);
+        };
         let user = cans.individual_user(meta.user_canister_id).await;
         let user_details = user.get_profile_details_v_2().await?;
-        Ok::<ProfileDetails, ServerFnError>(ProfileDetails::from_canister(
+        Ok::<_, ServerFnError>(Some(ProfileDetails::from_canister(
             meta.user_canister_id,
             Some(meta.user_name),
             user_details,
-        ))
+        )))
     }));
+
+    // Edge Case: unauthenticated user navigates to wallet page
+    let metadata = Callback::new(move |()| async move {
+        if let Some(meta) = metadata.await? {
+            return Ok::<_, ServerFnError>((meta.user_principal, meta.user_canister_id));
+        }
+        let logged_in_user = auth.auth_cans().await?;
+        let is_own_account = match id.get_value() {
+            UsernameOrPrincipal::Principal(p) => p == logged_in_user.user_principal(),
+            UsernameOrPrincipal::Username(u) => {
+                Some(u) == logged_in_user.profile_details().username
+            }
+        };
+        if is_own_account {
+            Ok((
+                logged_in_user.user_principal(),
+                logged_in_user.user_canister(),
+            ))
+        } else {
+            Err(ServerFnError::new("User canister not found"))
+        }
+    });
+
+    // Edge Case: unauthenticated user navigates to wallet page
+    let profile_details = Callback::new(move |()| async move {
+        let logged_in_user = auth.auth_cans().await?;
+        let is_own_account = match id.get_value() {
+            UsernameOrPrincipal::Principal(p) => p == logged_in_user.user_principal(),
+            UsernameOrPrincipal::Username(u) => {
+                Some(u) == logged_in_user.profile_details().username
+            }
+        };
+        let profile_details = if is_own_account {
+            logged_in_user.profile_details()
+        } else {
+            let profile_details = profile_info_res.await?;
+            profile_details.ok_or_else(|| ServerFnError::new("User canister not found"))?
+        };
+        Ok::<_, ServerFnError>((profile_details, is_own_account))
+    });
 
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
@@ -230,15 +279,12 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
                 view! { <HeaderLoading /> }
             }>
                 {move || Suspend::new(async move {
-                    let profile_details = profile_info_res.await;
-                    let logged_in_user = auth.user_principal.await;
-                    match profile_details.and_then(|c| Ok((c, logged_in_user?))) {
-                        Ok((profile_details, logged_in_user)) => {
-                            let is_own_account = logged_in_user == principal;
+                    match profile_details.run(()).await {
+                        Ok((profile_details, is_own_account)) => {
                             Either::Left(
                                 view! { <Header details=profile_details is_own_account /> },
                             )
-                        }
+                        },
                         Err(e) => {
                             Either::Right(view! { <Redirect path=format!("/error?err={e}") /> })
                         }
@@ -248,11 +294,8 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
             <div class="flex flex-col gap-4 justify-center items-center px-4 mx-auto w-full max-w-md h-full">
                 <Suspense fallback=ProfileCardLoading>
                     {move || Suspend::new(async move {
-                        let profile_details = profile_info_res.await;
-                        let logged_in_user = auth.user_principal.await;
-                        match profile_details.and_then(|c| Ok((c, logged_in_user?))) {
-                            Ok((profile_details, logged_in_user)) => {
-                                let is_own_account = logged_in_user == principal;
+                        match profile_details.run(()).await {
+                            Ok((profile_details, is_own_account)) => {
                                 Either::Left(
                                     view! {
                                         <ProfileCard
@@ -271,17 +314,17 @@ pub fn WalletImpl(principal: Principal) -> impl IntoView {
                 </Suspense>
                 <Suspense>
                     {move || Suspend::new(async move {
-                        let meta = metadata.await;
+                        let meta = metadata.run(()).await;
                         match meta {
-                            Ok(meta) => {
+                            Ok((user_principal, user_canister)) => {
                                 Either::Left(
                                     view! {
                                         <div class="self-start pt-3 text-lg font-bold text-white font-kumbh">
                                             My tokens
                                         </div>
                                         <TokenList
-                                            user_principal=principal
-                                            user_canister=meta.user_canister_id
+                                            user_principal
+                                            user_canister
                                         />
                                     },
                                 )
@@ -324,7 +367,7 @@ pub fn NotificationWalletImpl() -> impl IntoView {
     let on_token_click: Action<(), ()> = Action::new_unsync(move |()| async move {
         let metaclient: MetadataClient<false> = MetadataClient::default();
 
-        let cans = auth.auth_cans(expect_context()).await.unwrap();
+        let cans = auth.auth_cans().await.unwrap();
 
         let token = get_device_registeration_token().await.unwrap();
 

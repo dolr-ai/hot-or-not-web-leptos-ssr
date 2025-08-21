@@ -1,6 +1,6 @@
 use leptos::prelude::*;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct MixpanelState {
     pub device_id: RwSignal<Option<String>>,
     pub custom_device_id: RwSignal<Option<String>>,
@@ -9,8 +9,7 @@ pub struct MixpanelState {
 impl MixpanelState {
     pub fn init() -> Self {
         let this = Self {
-            device_id: RwSignal::new(None),
-            custom_device_id: RwSignal::new(None),
+            ..Default::default()
         };
         provide_context(this.clone());
         this

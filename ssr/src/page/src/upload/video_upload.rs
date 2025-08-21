@@ -16,14 +16,12 @@ use leptos_icons::*;
 use leptos_use::use_event_listener;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use state::canisters::{auth_state, unauth_canisters};
+use state::canisters::auth_state;
 use std::cell::RefCell;
 use std::rc::Rc;
 use utils::mixpanel::mixpanel_events::*;
 use utils::{
-    event_streaming::events::{
-        VideoUploadSuccessful, VideoUploadUnsuccessful, VideoUploadVideoSelected,
-    },
+    event_streaming::events::{VideoUploadUnsuccessful, VideoUploadVideoSelected},
     try_or_redirect_opt,
     web::FileWithUrl,
 };
@@ -45,12 +43,12 @@ pub fn DropBox() -> impl IntoView {
 
 #[component]
 pub fn PreVideoUpload(
-    file_blob: RwSignal<Option<FileWithUrl>, LocalStorage>,
-    uid: RwSignal<Option<String>, LocalStorage>,
+    file_blob: RwSignal<Option<FileWithUrl>>,
+    uid: RwSignal<Option<String>>,
     upload_file_actual_progress: WriteSignal<f64>,
 ) -> impl IntoView {
     let file_ref = NodeRef::<Input>::new();
-    let file = RwSignal::new_local(None::<FileWithUrl>);
+    let file = RwSignal::new(None::<FileWithUrl>);
     let video_ref = NodeRef::<Video>::new();
     let modal_show = RwSignal::new(false);
     let auth = auth_state();
@@ -87,7 +85,7 @@ pub fn PreVideoUpload(
         });
     }
 
-    let upload_action: Action<(), _> = Action::new_local(move |_| {
+    let upload_action: Action<(), _> = Action::new_unsync(move |_| {
         let captured_progress_signal = upload_file_actual_progress;
         async move {
             #[cfg(feature = "hydrate")]
@@ -165,7 +163,7 @@ pub fn PreVideoUpload(
                     autoplay
                     loop
                     oncanplay="this.muted=true"
-                    src=move || file.with(|file| file.as_ref().map(|f| f.url.to_string()))
+                    src=move || file.with(|file| file.as_ref().map(|f| f.url()))
                 ></video>
             </Show>
             <input
@@ -235,7 +233,7 @@ pub struct SerializablePostDetailsFromFrontend {
 }
 
 #[cfg(feature = "hydrate")]
-async fn upload_video_part(
+pub async fn upload_video_part(
     upload_base_url: &str,
     form_field_name: &str,
     file_blob: &Blob,
@@ -356,15 +354,14 @@ async fn upload_video_part(
 #[component]
 pub fn VideoUploader(
     params: UploadParams,
-    uid: RwSignal<Option<String>, LocalStorage>,
+    uid: RwSignal<Option<String>>,
     upload_file_actual_progress: ReadSignal<f64>,
 ) -> impl IntoView {
-    let file_blob = params.file_blob;
+    let file_blob = StoredValue::new(params.file_blob);
     let hashtags = params.hashtags;
     let description = params.description;
 
-    let published = RwSignal::new(false);
-    let video_url = StoredValue::new_local(file_blob.url);
+    let published: RwSignal<bool> = RwSignal::new(false);
 
     let is_nsfw = params.is_nsfw;
     let enable_hot_or_not = params.enable_hot_or_not;
@@ -376,18 +373,19 @@ pub fn VideoUploader(
     let notification_nudge = RwSignal::new(false);
 
     let publish_action: Action<_, _> = Action::new_unsync(move |&()| {
-        let unauth_cans = unauth_canisters();
+        leptos::logging::log!("Publish action triggered");
         let hashtags = hashtags.clone();
         let hashtags_len = hashtags.len();
         let description = description.clone();
-        log::info!("Publish action called");
+        leptos::logging::log!("Publish action called");
 
         async move {
             let uid_value = uid.get_untracked()?;
 
-            let canisters = auth.auth_cans(unauth_cans).await.ok()?;
+            let canisters = auth.auth_cans().await.ok()?;
             let id = canisters.identity();
             let delegated_identity = delegate_short_lived_identity(id);
+
             let res: std::result::Result<reqwest::Response, ServerFnError> = {
                 let client = reqwest::Client::new();
                 notification_nudge.set(true);
@@ -422,9 +420,11 @@ pub fn VideoUploader(
                     MixPanelEvent::track_video_upload_success(
                         global,
                         uid_value.clone(),
-                        crate::consts::CREATOR_COMMISION_PERCENT,
+                        global_constants::CREATOR_COMMISSION_PERCENT,
                         true,
                         MixpanelPostGameType::HotOrNot,
+                        Some("upload_video".to_string()),
+                        "".to_string(), // Regular uploads don't use tokens
                     );
                     published.set(true)
                 }
@@ -440,15 +440,6 @@ pub fn VideoUploader(
                 }
             }
             try_or_redirect_opt!(res);
-
-            VideoUploadSuccessful.send_event(
-                ev_ctx,
-                uid_value.clone(),
-                hashtags_len,
-                is_nsfw,
-                enable_hot_or_not,
-                0,
-            );
 
             Some(())
         }
@@ -481,7 +472,7 @@ pub fn VideoUploader(
                     autoplay
                     loop
                     oncanplay="this.muted=true"
-                    src=move || video_url.get_value().to_string()
+                    src=move || file_blob.with_value(|f| f.url())
                 ></video>
             </div>
             <div class="flex overflow-y-auto flex-col gap-4 justify-center p-2 w-full h-auto rounded-2xl max-w-[627px] min-h-[400px] max-h-[90vh] lg:w-[627px] lg:h-[600px]">
@@ -540,7 +531,7 @@ pub fn VideoUploader(
 
 // post as in after not the content post
 #[component]
-fn PostUploadScreen() -> impl IntoView {
+pub fn PostUploadScreen() -> impl IntoView {
     view! {
         <div
             style="background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 75%, rgba(50,0,28,0.5) 100%);"
@@ -551,7 +542,7 @@ fn PostUploadScreen() -> impl IntoView {
                 src="/img/airdrop/bg.webp"
                 class="object-cover absolute inset-0 w-full h-full z-25 fade-in"
             />
-            <div class="flex z-50 flex-col items-center">
+            <div class="flex z-50 flex-col items-center text-white">
                 <img src="/img/common/coins/sucess-coin.png" width=170 class="mb-6 z-300" />
 
                 <h1 class="mb-2 text-lg font-semibold">Video uploaded sucessfully</h1>

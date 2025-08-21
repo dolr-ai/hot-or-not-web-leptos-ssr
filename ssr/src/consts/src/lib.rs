@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 
 // TODO: make it consistent with the actual bet amount
 pub const CENTS_IN_E6S: u64 = 1_000_000;
+pub const SATS_TO_BTC_CONVERSION_RATIO: f64 = 0.00000001;
 pub const CF_STREAM_BASE: &str = "https://customer-2p3jflss4r4hmpnz.cloudflarestream.com";
 pub const FALLBACK_PROPIC_BASE: &str = "https://api.dicebear.com/7.x/big-smile/svg";
 // an example URL is "https://imagedelivery.net/abXI9nS4DYYtyR1yFFtziA/gob.5/public";
@@ -28,11 +29,13 @@ pub const ACCOUNT_CONNECTED_STORE: &str = "account-connected-1";
 pub const DEVICE_ID: &str = "device_id";
 pub const CUSTOM_DEVICE_ID: &str = "custom_device_id";
 pub const AUTH_JOURNET: &str = "auth_journey";
+pub const AUTH_JOURNEY_PAGE: &str = "auth_journey_page";
 pub static CF_BASE_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://api.cloudflare.com/client/v4/").unwrap());
 pub const NOTIFICATIONS_ENABLED_STORE: &str = "yral-notifications-enabled";
 pub const NOTIFICATION_MIGRATED_STORE: &str = "notifications-migrated";
 pub const NSFW_TOGGLE_STORE: &str = "nsfw-enabled";
+pub const NSFW_ENABLED_COOKIE: &str = "nsfw-enabled-cookie";
 pub const REFERRER_COOKIE: &str = "referrer";
 pub const USER_CANISTER_ID_STORE: &str = "user-canister-id";
 pub const USER_PRINCIPAL_STORE: &str = "user-principal";
@@ -45,12 +48,9 @@ pub static OFF_CHAIN_AGENT_URL: Lazy<Url> =
 pub static ANALYTICS_SERVER_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://marketing-analytics-server.fly.dev").unwrap());
 pub static OFF_CHAIN_AGENT_GRPC_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev:443").unwrap()); // pr-91-yral-dapp-off-chain-agent https://icp-off-chain-agent.fly.dev:443
-                                                                                  // G-6W5Q2MRX0E to test locally | G-PLNNETMSLM
+    Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev:443").unwrap());
 pub static DOWNLOAD_UPLOAD_SERVICE: Lazy<Url> =
     Lazy::new(|| Url::parse("https://download-upload-service.fly.dev").unwrap());
-pub static ML_FEED_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://yral-ml-feed-server.fly.dev").unwrap());
 
 pub static FALLBACK_USER_INDEX: Lazy<Principal> =
     Lazy::new(|| Principal::from_text("rimrc-piaaa-aaaao-aaljq-cai").unwrap());
@@ -63,8 +63,6 @@ pub const CLOUDFLARE_ACCOUNT_ID: &str = "a209c523d2d9646cc56227dbe6ce3ede";
 pub const AUTH_UTIL_COOKIES_MAX_AGE_MS: i64 = 400 * 24 * 60 * 60 * 1000; // 400 days
 
 pub const MAX_VIDEO_ELEMENTS_FOR_FEED: usize = 200;
-
-pub const USERNAME_MAX_LEN: usize = 15;
 
 pub mod social {
     pub const TELEGRAM_YRAL: &str = "https://t.me/+c-LTX0Cp-ENmMzI1";
@@ -116,6 +114,9 @@ pub const DOLR_AI_ROOT_CANISTER: &str = "67bll-riaaa-aaaaq-aaauq-cai";
 pub const DOLR_AI_LEDGER_CANISTER: &str = "6rdgd-kyaaa-aaaaq-aaavq-cai";
 pub const CKBTC_LEDGER_CANISTER: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
 pub const USDC_LEDGER_CANISTER: &str = "xevnm-gaaaa-aaaar-qafnq-cai";
+
+pub const SATS_CKBTC_CANISTER: &str =
+    "zg7n3-345by-nqf6o-3moz4-iwxql-l6gko-jqdz2-56juu-ja332-unymr-fqe";
 
 pub const USER_ONBOARDING_STORE_KEY: &str = "user-onboarding";
 #[derive(Serialize, Deserialize, Clone, PartialEq, Default)]

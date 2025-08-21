@@ -126,10 +126,10 @@ fn ProfileInfo() -> impl IntoView {
     view! {
         <Suspense fallback=ProfileLoading>
             {move || Suspend::new(async move {
-                let res = auth.cans_wire().await;
+                let res = auth.auth_cans().await;
                 match res {
                     Ok(cans) => {
-                        let user_details = cans.profile_details;
+                        let user_details = cans.profile_details();
                         Either::Left(view! { <ProfileLoaded user_details /> })
                     }
                     Err(e) => Either::Right(view! { <Redirect path=format!("/error?err={e}") /> }),
@@ -156,10 +156,7 @@ fn EnableNotifications() -> impl IntoView {
     let on_token_click: Action<(), ()> = Action::new_unsync(move |()| async move {
         let metaclient: MetadataClient<false> = MetadataClient::default();
 
-        let cans = auth
-            .auth_cans(use_context().unwrap_or_default())
-            .await
-            .unwrap();
+        let cans = auth.auth_cans().await.unwrap();
         let browser_permission = Notification::permission();
         let notifs_enabled_val = notifs_enabled.get_untracked();
 

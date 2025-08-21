@@ -1,10 +1,62 @@
+use codee::string::JsonSerdeCodec;
+use consts::{auth::REFRESH_MAX_AGE, AUTH_JOURNEY_PAGE};
+use global_constants::CoinState;
 use leptos::prelude::*;
 use leptos_icons::*;
+use leptos_router::hooks::use_location;
+use leptos_use::{use_cookie_with_options, UseCookieOptions};
+use utils::{
+    event_streaming::events::EventCtx,
+    mixpanel::mixpanel_events::{
+        BottomNavigationCategory, MixPanelEvent, MixpanelGlobalProps, StakeType,
+    },
+};
 
 use crate::{buttons::HighlightedButton, login_icons::*, overlay::ShadowOverlay};
 
 #[component]
-pub fn LoginNudgePopup(show: RwSignal<bool>, show_login_popup: RwSignal<bool>) -> impl IntoView {
+pub fn LoginNudgePopup(
+    show: RwSignal<bool>,
+    coin: RwSignal<CoinState>,
+    show_login_popup: RwSignal<bool>,
+    ev_ctx: EventCtx,
+) -> impl IntoView {
+    Effect::new(move |_| {
+        if show.get() {
+            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                MixPanelEvent::track_unlock_higher_bets_popup_shown(
+                    global,
+                    "home".into(),
+                    coin.get_untracked().to_cents(),
+                    StakeType::Sats,
+                );
+            }
+        }
+    });
+
+    let loc = use_location();
+
+    let (_, set_auth_journey_page) =
+        use_cookie_with_options::<BottomNavigationCategory, JsonSerdeCodec>(
+            AUTH_JOURNEY_PAGE,
+            UseCookieOptions::default()
+                .path("/")
+                .max_age(REFRESH_MAX_AGE.as_millis() as i64),
+        );
+
+    let login_click_action = Action::new(move |_: &()| {
+        show.set(false);
+        show_login_popup.set(true);
+        let path = loc.pathname.get_untracked();
+        let category: BottomNavigationCategory =
+            BottomNavigationCategory::try_from(path.clone()).unwrap_or_default();
+        set_auth_journey_page.set(Some(category));
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            let page_name = global.page_name();
+            MixPanelEvent::track_signup_clicked(global, page_name);
+        }
+        async {}
+    });
     view! {
         <ShadowOverlay show=show>
             <div class="px-4 py-6 w-full h-full flex items-center justify-center">
@@ -30,7 +82,7 @@ pub fn LoginNudgePopup(show: RwSignal<bool>, show_login_popup: RwSignal<bool>) -
 
                         <div class="text-center text-sm text-neutral-300">
                             "You're just 1 step away from high-stake fun."<br />
-                            Log in to unlock 5 SATS bets!
+                            Log in to unlock 5 YRAL bets!
                         </div>
 
                         <div class="flex flex-col px-8 items-start gap-4 w-full max-w-xs text-sm">
@@ -46,7 +98,7 @@ pub fn LoginNudgePopup(show: RwSignal<bool>, show_login_popup: RwSignal<bool>) -
                             </div>
                             <div class="flex items-center gap-2 text-neutral-200">
                                 <Icon icon=Airdrop />
-                                <span>Daily DOLR / SATS airdrops</span>
+                                <span>Daily DOLR / YRAL airdrops</span>
                             </div>
                         </div>
 
@@ -55,8 +107,7 @@ pub fn LoginNudgePopup(show: RwSignal<bool>, show_login_popup: RwSignal<bool>) -
                             alt_style=false
                             disabled=false
                             on_click=move || {
-                                show.set(false);
-                                show_login_popup.set(true);
+                                login_click_action.dispatch(());
                             }
                         >
                             "Login Now"

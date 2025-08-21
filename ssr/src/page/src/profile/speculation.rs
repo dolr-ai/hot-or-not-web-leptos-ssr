@@ -79,13 +79,11 @@ pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView 
         move |(canister_id, post_id)| {
             send_wrap(async move {
                 let canister = unauth_canisters();
-                let user = canister.individual_user(canister_id).await;
-                let post_details = user.get_individual_post_details_by_id(post_id).await.ok()?;
-                Some(PostDetails::from_canister_post(
-                    false,
-                    canister_id,
-                    post_details,
-                ))
+                canister
+                    .get_post_details(canister_id, post_id)
+                    .await
+                    .ok()
+                    .flatten()
             })
         },
     );
@@ -183,7 +181,7 @@ pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView 
                 <div class="flex z-20 flex-col gap-y-5">
                     <div class="flex flex-col px-3">
                         <span class="text-xs font-medium uppercase">{bet_res}</span>
-                        <span class="text-sm font-semibold md:text-base">{amt_render}Sats</span>
+                        <span class="text-sm font-semibold md:text-base">{amt_render}Yral</span>
                     </div>
                     {icon}
                 </div>

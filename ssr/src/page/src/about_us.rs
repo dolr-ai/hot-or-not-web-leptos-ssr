@@ -26,7 +26,7 @@ pub fn AboutUs() -> impl IntoView {
             <div class="flex overflow-hidden overflow-y-auto flex-col px-8 mx-auto mt-2 w-full max-w-5xl h-full md:px-16">
 
                 <div class="mb-6 text-sm text-left whitespace-pre-line md:text-lg md:text-center">
-                    {"Yral is a short video-sharing platform built on the Internet Computer Protocol (ICP) blockchain, powered by Rust. The platform merges social media entertainment with user monetization, letting users earn CENT tokens by interacting with content. We aim to create a social platform where users receive financial rewards for their engagement. Through various skill-based games, users can earn rewards while engaging with creators' content."}
+                    {"Yral is a short video-sharing platform built on the Internet Computer Protocol (ICP) blockchain, powered by Rust. The platform merges social media entertainment with user monetization, letting users earn YRAL tokens by interacting with content. We aim to create a social platform where users receive financial rewards for their engagement. Through various skill-based games, users can earn rewards while engaging with creators' content."}
                 </div>
 
                 <div class="mb-6 text-sm text-left whitespace-pre-line md:text-lg md:text-center">

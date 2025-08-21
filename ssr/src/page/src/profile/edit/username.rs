@@ -7,13 +7,12 @@ use leptos_meta::Title;
 use leptos_router::{components::Redirect, hooks::use_navigate, NavigateOptions};
 use state::{
     app_state::AppState,
-    canisters::{auth_state, unauth_canisters, AuthState},
+    canisters::{auth_state, AuthState},
 };
 use utils::{
     mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps},
     send_wrap,
 };
-use yral_canisters_common::Canisters;
 
 #[component]
 pub fn ProfileUsernameEdit() -> impl IntoView {
@@ -36,12 +35,8 @@ pub fn ProfileUsernameEdit() -> impl IntoView {
     }
 }
 
-async fn set_username(
-    auth: AuthState,
-    base: Canisters<false>,
-    username: String,
-) -> Result<(), String> {
-    let cans = auth.auth_cans(base).await.map_err(|e| {
+async fn set_username(auth: AuthState, username: String) -> Result<(), String> {
+    let cans = auth.auth_cans().await.map_err(|e| {
         eprintln!("did not expect to get error: {e}");
         String::from("Unknown Error")
     })?;
@@ -97,15 +92,13 @@ fn UsernameEditInner() -> impl IntoView {
     };
 
     let auth = auth_state();
-    let cans = unauth_canisters();
 
     let nav = use_navigate();
     let set_username_action = Action::new(move |()| {
         let username = new_username.get_untracked();
-        let cans = cans.clone();
         let nav = nav.clone();
         async move {
-            let res = send_wrap(set_username(auth, cans, username)).await;
+            let res = send_wrap(set_username(auth, username)).await;
             if let Err(e) = res {
                 let Some(input) = input_ref.get_untracked() else {
                     return Ok(());
@@ -144,10 +137,10 @@ fn UsernameEditInner() -> impl IntoView {
                     <div class="w-full h-full rounded-full animate-pulse overflow-clip bg-white/20"/>
                 }>
                 {move || Suspend::new(async move {
-                    let cans = auth.cans_wire().await;
+                    let cans = auth.auth_cans().await;
                     match cans {
                         Ok(cans) => Either::Left(view! {
-                            <img class="w-35 h-35 rounded-full" src=cans.profile_details.profile_pic_or_random() />
+                            <img class="w-35 h-35 rounded-full" src=cans.profile_details().profile_pic_or_random() />
                         }),
                         Err(e) => Either::Right(view! {
                             <Redirect path=format!("/error?err={e}") />
