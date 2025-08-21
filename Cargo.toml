@@ -17,8 +17,6 @@ inherits = "release"
 opt-level = 'z'
 lto = true
 codegen-units = 1
-# Enable debug info for Sentry source maps
-# Keep debug symbols in separate DWARF file for Sentry
 debug = "limited"
 # panic = "abort"
 
