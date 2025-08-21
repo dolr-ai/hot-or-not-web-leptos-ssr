@@ -1,4 +1,5 @@
 use super::{ModelDropdown, TokenDropdown};
+use crate::upload::ai::server::fetch_video_providers;
 use crate::upload::ai::token_balance::load_token_balance;
 use crate::upload::ai::types::VideoGenerationParams;
 use codee::string::JsonSerdeCodec;
@@ -13,13 +14,11 @@ use leptos_router::hooks::use_location;
 use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use state::canisters::auth_state;
 use utils::event_streaming::events::VideoUploadInitiated;
-use utils::host::show_preview_component;
 use utils::mixpanel::mixpanel_events::{
     BottomNavigationCategory, MixPanelEvent, MixpanelGlobalProps,
 };
 use utils::send_wrap;
-use videogen_common::token_costs::TOKEN_COST_CONFIG;
-use videogen_common::{TokenType, VideoGenProvider, VideoModel};
+use videogen_common::{ProviderInfo, TokenType};
 use wasm_bindgen::{prelude::*, JsCast};
 use yral_canisters_common::utils::token::balance::TokenBalance;
 
@@ -40,7 +39,7 @@ fn ErrorDisplay(generation_error: Signal<Option<String>>) -> impl IntoView {
 // Component for image upload section
 #[component]
 fn ImageUploadSection(
-    selected_model: Signal<VideoModel>,
+    selected_provider: Signal<Option<ProviderInfo>>,
     uploaded_image: RwSignal<Option<String>>,
     image_input_ref: NodeRef<Input>,
 ) -> impl IntoView {
@@ -70,7 +69,7 @@ fn ImageUploadSection(
         }
     };
     view! {
-        <Show when=move || selected_model.get().supports_image>
+        <Show when=move || selected_provider.get().map(|p| p.supports_image).unwrap_or(false)>
             <div class="w-full">
                 <div class="flex items-center gap-2 mb-2">
                     <label class="block text-sm font-medium text-white">Image</label>
@@ -141,7 +140,7 @@ fn PromptSection(prompt_text: RwSignal<String>, character_count: Signal<usize>) 
 // Component for credits section
 #[component]
 fn CreditsSection(
-    selected_model: Signal<VideoModel>,
+    selected_provider: Signal<Option<ProviderInfo>>,
     selected_token: RwSignal<TokenType>,
     show_token_dropdown: RwSignal<bool>,
     is_logged_in: Signal<bool>,
@@ -158,8 +157,13 @@ fn CreditsSection(
                     <Suspense fallback=move || view! { <span>"..."</span> }>
                         {move || Suspend::new(async move {
                             let token = selected_token.get();
-                            let model = selected_model.get();
-                            let model_id = model.id.as_str();
+                            let provider_opt = selected_provider.get();
+
+                            // If no provider selected yet, show loading
+                            let provider = match provider_opt {
+                                Some(p) => p,
+                                None => return view! { <span>"Loading..."</span> }.into_any(),
+                            };
 
                             // Check if user can use free generation and lock in the status
                             let can_use_free = if is_logged_in.get() {
@@ -180,8 +184,12 @@ fn CreditsSection(
                                 true
                             };
 
-                            // Calculate cost and humanized string once, before the if block
-                            let cost = TOKEN_COST_CONFIG.get_model_cost(model_id, &token);
+                            // Get cost from provider based on token type
+                            let cost = match token {
+                                TokenType::Sats => provider.cost.sats,
+                                TokenType::Dolr => provider.cost.dolr,
+                                _ => 0,
+                            };
                             let humanized = match token {
                                 TokenType::Sats => TokenBalance::new(cost.into(), 0).humanize_float_truncate_to_dp(0),
                                 TokenType::Dolr => TokenBalance::new(cost.into(), 8).humanize_float_truncate_to_dp(2),
@@ -225,10 +233,28 @@ fn CreditsSection(
                     match balance_resource.await {
                         Ok(balance) => {
                             // Check balance sufficiency
-                            let model = selected_model.get();
-                            let model_id = model.id.as_str();
+                            let provider_opt = selected_provider.get();
+
+                            // If no provider selected yet, show loading
+                            let provider = match provider_opt {
+                                Some(p) => p,
+                                None => {
+                                    has_sufficient_balance.set(false);
+                                    return view! {
+                                        <div class="flex items-center gap-2 text-xs text-neutral-400">
+                                            <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
+                                            <span>"Loading providers..."</span>
+                                        </div>
+                                    }.into_any()
+                                }
+                            };
+
                             let token_type = selected_token.get();
-                            let required_amount = TOKEN_COST_CONFIG.get_model_cost(model_id, &token_type);
+                            let required_amount = match token_type {
+                                TokenType::Sats => provider.cost.sats,
+                                TokenType::Dolr => provider.cost.dolr,
+                                _ => 0,
+                            };
 
                             // Check if user can use free generation (use locked status if available)
                             let can_use_free = if !is_logged_in.get() {
@@ -301,26 +327,35 @@ pub fn PreUploadAiView(
     set_stored_params: WriteSignal<VideoGenerationParams>,
 ) -> impl IntoView {
     // Form state
-    // Use Memo to cache filtered models across re-renders
-    let filtered_models = Memo::new(move |_| {
-        let is_preview = show_preview_component();
-        let all_models = VideoModel::get_models();
-        if is_preview {
-            all_models
-        } else {
-            all_models
-                .into_iter()
-                .filter(|model| model.provider != VideoGenProvider::IntTest)
-                .collect::<Vec<_>>()
+    // Use Resource to fetch providers from API
+    let providers_resource = LocalResource::new(move || async move {
+        match fetch_video_providers().await {
+            Ok(providers) => providers,
+            Err(e) => {
+                leptos::logging::error!("Failed to fetch providers: {}", e);
+                // Return empty vector as fallback
+                Vec::new()
+            }
         }
     });
-    let selected_model = RwSignal::new(filtered_models.get_untracked().into_iter().next().unwrap());
+
+    // Default provider will be set once providers are loaded
+    let selected_provider = RwSignal::new(None::<ProviderInfo>);
     let show_dropdown = RwSignal::new(false);
     let selected_token = RwSignal::new(TokenType::Sats);
     let show_token_dropdown = RwSignal::new(false);
     let prompt_text = RwSignal::new(String::new());
     let character_count = Signal::derive(move || prompt_text.get().len());
     let uploaded_image = RwSignal::new(None::<String>);
+
+    // Set default provider once loaded
+    Effect::new(move |_| {
+        if let Some(providers) = providers_resource.get() {
+            if !providers.is_empty() && selected_provider.get_untracked().is_none() {
+                selected_provider.set(Some(providers.into_iter().next().unwrap()));
+            }
+        }
+    });
 
     // Login modal state
     let show_login_modal = RwSignal::new(false);
@@ -339,12 +374,12 @@ pub fn PreUploadAiView(
 
     // Get auth state
     let auth = auth_state();
-    let is_logged_in = auth.is_logged_in_with_oauth(); // Signal::stored(true); //
+    let is_logged_in = Signal::stored(true); // auth.is_logged_in_with_oauth(); // Signal::stored(true); //
 
-    // Reset locked status when token or model changes to force a fresh check
+    // Reset locked status when token or provider changes to force a fresh check
     Effect::new(move |_| {
         selected_token.get();
-        selected_model.get();
+        selected_provider.get();
         locked_rate_limit_status.set(None);
     });
 
@@ -432,13 +467,31 @@ pub fn PreUploadAiView(
             <div class="flex-1 px-4 py-6 pb-24 max-w-md mx-auto w-full">
                 <div class="flex flex-col gap-6">
 
-                    // Model Selection Dropdown
-                    <ModelDropdown selected_model=selected_model show_dropdown=show_dropdown />
+                    // Provider Selection Dropdown
+                    <Suspense fallback=move || view! {
+                        <div class="w-full">
+                            <label class="block text-sm font-medium text-white mb-2">Model</label>
+                            <div class="flex items-center justify-center p-4 bg-neutral-900 border border-neutral-800 rounded-lg">
+                                <span class="text-neutral-400">Loading models...</span>
+                            </div>
+                        </div>
+                    }>
+                        {move || Suspend::new(async move {
+                            let providers = providers_resource.await;
+                            view! {
+                                <ModelDropdown
+                                    selected_provider=selected_provider
+                                    show_dropdown=show_dropdown
+                                    providers=providers
+                                />
+                            }
+                        })}
+                    </Suspense>
 
 
                     // Image Upload Section (Optional)
                     <ImageUploadSection
-                        selected_model=selected_model.into()
+                        selected_provider=selected_provider.into()
                         uploaded_image=uploaded_image
                         image_input_ref=image_input
                     />
@@ -451,7 +504,7 @@ pub fn PreUploadAiView(
 
                     // Credits Required Section
                     <CreditsSection
-                        selected_model=selected_model.into()
+                        selected_provider=selected_provider.into()
                         selected_token=selected_token
                         show_token_dropdown=show_token_dropdown
                         is_logged_in=is_logged_in
@@ -489,7 +542,17 @@ pub fn PreUploadAiView(
                                                     Ok(user_principal) => {
                                                         // Get current form values
                                                         let prompt = prompt_text.get_untracked();
-                                                        let model = selected_model.get_untracked();
+                                                        let provider_opt = selected_provider.get_untracked();
+
+                                                        // Ensure provider is selected
+                                                        let provider = match provider_opt {
+                                                            Some(p) => p,
+                                                            None => {
+                                                                leptos::logging::error!("No provider selected");
+                                                                return;
+                                                            }
+                                                        };
+
                                                         let image_data = uploaded_image.get_untracked();
 
                                                         // Use locked rate limit status to determine if user can use free generation
@@ -507,7 +570,7 @@ pub fn PreUploadAiView(
                                                         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                                                             MixPanelEvent::track_create_ai_video_clicked(
                                                                 global,
-                                                                model.name.clone(),
+                                                                provider.name.clone(),
                                                                 format!("{api_token_type:?}").to_lowercase()
                                                             );
                                                         }
@@ -516,7 +579,7 @@ pub fn PreUploadAiView(
                                                         let params = VideoGenerationParams {
                                                             user_principal: *user_principal,
                                                             prompt,
-                                                            model,
+                                                            provider,
                                                             image_data,
                                                             token_type: api_token_type,  // Use the determined token type
                                                         };

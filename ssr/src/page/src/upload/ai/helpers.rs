@@ -1,22 +1,33 @@
-use crate::upload::ai::videogen_client::generate_video_with_identity;
+use crate::upload::ai::videogen_client::generate_video_with_identity_v2;
 use candid::Principal;
 use state::canisters::AuthState;
-use videogen_common::{ImageData, ImageInput, TokenType, VideoGenRequest, VideoModel};
+use std::collections::HashMap;
+use videogen_common::{ImageData, ImageInput, ProviderInfo, TokenType, VideoGenRequestV2};
 use yral_canisters_common::Canisters;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
-// Helper function to create video request
-pub fn create_video_request(
+// Helper function to create video request using V2 API
+pub fn create_video_request_v2(
     user_principal: Principal,
     prompt: String,
-    model: VideoModel,
+    provider: &ProviderInfo,
     image_data: Option<String>,
     token_type: TokenType,
-) -> Result<VideoGenRequest, Box<dyn std::error::Error>> {
+) -> Result<VideoGenRequestV2, Box<dyn std::error::Error>> {
     leptos::logging::log!("Starting video generation with prompt: {}", prompt);
+
+    // Check if provider is available
+    if !provider.is_available {
+        return Err(format!("Provider {} is coming soon", provider.name).into());
+    }
 
     // Convert image data if provided
     let image_data = if let Some(data) = image_data {
+        // Check if provider supports image input
+        if !provider.supports_image {
+            return Err(format!("Provider {} does not support image input", provider.name).into());
+        }
+
         // We expect data URLs from the file upload: data:image/png;base64,iVBORw0KGgo...
         if data.starts_with("data:") {
             // Parse data URL to extract mime type and base64 data
@@ -57,14 +68,20 @@ pub fn create_video_request(
         None
     };
 
-    // Create video generation input based on model
-    let input = model.to_video_gen_input(prompt, image_data)?;
-
-    // Create the request
-    let request = VideoGenRequest {
+    // Create the V2 request
+    let request = VideoGenRequestV2 {
         principal: user_principal,
-        input,
+        prompt,
+        model_id: provider.id.clone(),
         token_type,
+        negative_prompt: None, // Can be added later if needed
+        image: image_data,
+        aspect_ratio: provider.default_aspect_ratio.clone(),
+        duration_seconds: Some(provider.default_duration),
+        resolution: provider.default_resolution.clone(),
+        generate_audio: None,
+        seed: None,
+        extra_params: HashMap::new(),
     };
 
     Ok(request)
@@ -78,17 +95,17 @@ pub async fn get_auth_canisters(auth: &AuthState) -> Result<Canisters<true>, Str
     })
 }
 
-/// Execute video generation with delegated identity (for DOLR)
-pub async fn execute_video_generation_with_identity(
-    request: VideoGenRequest,
+/// Execute video generation with delegated identity using V2 API
+pub async fn execute_video_generation_with_identity_v2(
+    request: VideoGenRequestV2,
     delegated_identity: DelegatedIdentityWire,
     canisters: &Canisters<true>,
 ) -> Result<String, String> {
     // Get rate limits client from canisters
     let rate_limits = canisters.rate_limits().await;
 
-    // Generate video with delegated identity
-    generate_video_with_identity(request, delegated_identity, &rate_limits)
+    // Generate video with delegated identity using V2 API
+    generate_video_with_identity_v2(request, delegated_identity, &rate_limits)
         .await
         .map(|response| response.video_url)
         .map_err(|err| {
