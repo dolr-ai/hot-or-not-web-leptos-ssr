@@ -108,6 +108,79 @@ fn ImageUploadSection(
     }
 }
 
+// Component for audio upload section
+#[component]
+fn AudioUploadSection(
+    selected_provider: Signal<Option<ProviderInfo>>,
+    uploaded_audio: RwSignal<Option<String>>,
+    audio_input_ref: NodeRef<Input>,
+) -> impl IntoView {
+    // Handle audio upload
+    let handle_audio_upload = move |event: Event| {
+        let input: web_sys::HtmlInputElement = event_target(&event);
+        if let Some(files) = input.files() {
+            if let Some(file) = files.get(0) {
+                let file_reader = web_sys::FileReader::new().unwrap();
+                let file_reader_clone = file_reader.clone();
+                let _file_name = file.name();
+
+                let closure = Closure::wrap(Box::new(move |_event: web_sys::Event| {
+                    if let Ok(result) = file_reader_clone.result() {
+                        if let Ok(data_url) = result.dyn_into::<js_sys::JsString>() {
+                            uploaded_audio.set(Some(data_url.as_string().unwrap()));
+                        }
+                    }
+                }) as Box<dyn FnMut(_)>);
+
+                file_reader
+                    .add_event_listener_with_callback("load", closure.as_ref().unchecked_ref())
+                    .unwrap();
+                closure.forget();
+
+                let _ = file_reader.read_as_data_url(&file);
+            }
+        }
+    };
+
+    view! {
+        <Show when=move || selected_provider.get().map(|p| p.supports_audio_input).unwrap_or(false)>
+            <div class="w-full">
+                <div class="flex items-center gap-2 mb-2">
+                    <label class="block text-sm font-medium text-white">Audio</label>
+                    <span class="text-xs text-neutral-400">(Required for Talking Head)</span>
+                    <Icon icon=icondata::AiInfoCircleOutlined attr:class="text-neutral-400 text-sm" />
+                </div>
+
+                <div class="relative">
+                    <input
+                        type="file"
+                        accept="audio/*"
+                        node_ref=audio_input_ref
+                        on:change=handle_audio_upload
+                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+                    <div class="flex flex-col items-center justify-center p-12 bg-neutral-900 border border-neutral-800 rounded-lg hover:bg-neutral-800 transition-colors cursor-pointer">
+                        <Show
+                            when=move || uploaded_audio.get().is_some()
+                            fallback=move || view! {
+                                <div class="flex flex-col items-center gap-3">
+                                    <Icon icon=icondata::AiAudioOutlined attr:class="text-neutral-500 text-3xl" />
+                                    <span class="text-neutral-500 text-sm">"Click to upload audio"</span>
+                                </div>
+                            }
+                        >
+                            <div class="flex flex-col items-center gap-2">
+                                <Icon icon=icondata::AiAudioFilled attr:class="text-green-500 text-3xl" />
+                                <span class="text-green-500 text-sm">"Audio uploaded"</span>
+                            </div>
+                        </Show>
+                    </div>
+                </div>
+            </div>
+        </Show>
+    }
+}
+
 // Component for prompt section
 #[component]
 fn PromptSection(prompt_text: RwSignal<String>, character_count: Signal<usize>) -> impl IntoView {
@@ -347,6 +420,7 @@ pub fn PreUploadAiView(
     let prompt_text = RwSignal::new(String::new());
     let character_count = Signal::derive(move || prompt_text.get().len());
     let uploaded_image = RwSignal::new(None::<String>);
+    let uploaded_audio = RwSignal::new(None::<String>);
 
     // Set default provider once loaded
     Effect::new(move |_| {
@@ -374,7 +448,7 @@ pub fn PreUploadAiView(
 
     // Get auth state
     let auth = auth_state();
-    let is_logged_in = Signal::stored(true); // auth.is_logged_in_with_oauth(); // Signal::stored(true); //
+    let is_logged_in = auth.is_logged_in_with_oauth(); // Signal::stored(true); //
 
     // Reset locked status when token or provider changes to force a fresh check
     Effect::new(move |_| {
@@ -417,8 +491,22 @@ pub fn PreUploadAiView(
         },
     );
 
-    // Form validation - only check non-async conditions
-    let form_valid = Signal::derive(move || !prompt_text.get().trim().is_empty());
+    // Form validation - check based on provider requirements
+    let form_valid = Signal::derive(move || {
+        let provider = selected_provider.get();
+
+        if let Some(p) = provider {
+            if p.id == "talkinghead" {
+                // TalkingHead requires both image and audio
+                uploaded_image.get().is_some() && uploaded_audio.get().is_some()
+            } else {
+                // Other providers require prompt text
+                !prompt_text.get().trim().is_empty()
+            }
+        } else {
+            false // No provider selected
+        }
+    });
     let base_can_generate =
         Signal::derive(move || form_valid.get() && !generate_action.pending().get());
 
@@ -433,8 +521,9 @@ pub fn PreUploadAiView(
             .and_then(|result| result.err())
     });
 
-    // File input for image upload
+    // File inputs for image and audio upload
     let image_input = NodeRef::<Input>::new();
+    let audio_input = NodeRef::<Input>::new();
 
     let ev_ctx = auth.event_ctx();
     VideoUploadInitiated.send_event(ev_ctx);
@@ -496,11 +585,24 @@ pub fn PreUploadAiView(
                         image_input_ref=image_input
                     />
 
-                    // Prompt Section
-                    <PromptSection
-                        prompt_text=prompt_text
-                        character_count=character_count
+                    // Audio Upload Section (For TalkingHead)
+                    <AudioUploadSection
+                        selected_provider=selected_provider.into()
+                        uploaded_audio=uploaded_audio
+                        audio_input_ref=audio_input
                     />
+
+                    // Prompt Section (Hide for TalkingHead)
+                    <Show when=move || {
+                        selected_provider.get()
+                            .map(|p| p.id != "talkinghead")
+                            .unwrap_or(true)
+                    }>
+                        <PromptSection
+                            prompt_text=prompt_text
+                            character_count=character_count
+                        />
+                    </Show>
 
                     // Credits Required Section
                     <CreditsSection
@@ -554,6 +656,21 @@ pub fn PreUploadAiView(
                                                         };
 
                                                         let image_data = uploaded_image.get_untracked();
+                                                        let audio_data = uploaded_audio.get_untracked();
+
+                                                        // Validation for TalkingHead provider
+                                                        if provider.id == "talkinghead" {
+                                                            if image_data.is_none() || audio_data.is_none() {
+                                                                leptos::logging::error!("TalkingHead requires both image and audio");
+                                                                return;
+                                                            }
+                                                        } else {
+                                                            // For other providers, ensure prompt is not empty
+                                                            if prompt.is_empty() {
+                                                                leptos::logging::error!("Prompt cannot be empty");
+                                                                return;
+                                                            }
+                                                        }
 
                                                         // Use locked rate limit status to determine if user can use free generation
                                                         let can_use_free = locked_rate_limit_status.get_untracked()
@@ -575,12 +692,20 @@ pub fn PreUploadAiView(
                                                             );
                                                         }
 
+                                                        // For TalkingHead, use placeholder prompt for backend validation
+                                                        let final_prompt = if provider.id == "talkinghead" {
+                                                            "[TalkingHead: Audio-based generation]".to_string()
+                                                        } else {
+                                                            prompt
+                                                        };
+
                                                         // Create params struct and dispatch the action
                                                         let params = VideoGenerationParams {
                                                             user_principal: *user_principal,
-                                                            prompt,
+                                                            prompt: final_prompt,
                                                             provider,
                                                             image_data,
+                                                            audio_data,
                                                             token_type: api_token_type,  // Use the determined token type
                                                         };
                                                         // Store parameters before dispatching

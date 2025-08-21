@@ -61,6 +61,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                         params.prompt.clone(),
                         &params.provider,
                         params.image_data.clone(),
+                        params.audio_data.clone(),
                         params.token_type,
                     )
                     .map_err(|e| e.to_string())?;

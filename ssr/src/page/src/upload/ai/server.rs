@@ -152,14 +152,14 @@ pub async fn upload_ai_video_from_url(
 pub async fn fetch_video_providers() -> Result<Vec<ProviderInfo>, ServerFnError> {
     let client = VideoGenClient::new(OFF_CHAIN_AGENT_URL.clone());
     let is_preview = show_preview_component();
-    
+
     // Use get_providers_all for preview mode to include test models
     let providers_result = if is_preview {
         client.get_providers_all().await
     } else {
         client.get_providers().await
     };
-    
+
     match providers_result {
         Ok(providers_response) => {
             // Filter out internal/test providers in non-preview mode

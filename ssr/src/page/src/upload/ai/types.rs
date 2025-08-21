@@ -50,6 +50,7 @@ pub struct VideoGenerationParams {
     pub prompt: String,
     pub provider: ProviderInfo,
     pub image_data: Option<String>,
+    pub audio_data: Option<String>, // Base64 encoded audio data
     pub token_type: TokenType,
 }
 
@@ -58,7 +59,8 @@ pub struct VideoGenerationParams {
 impl Default for VideoGenerationParams {
     fn default() -> Self {
         // Create a minimal dummy ProviderInfo - this will be replaced when actual providers load
-        let dummy_provider = serde_json::from_str::<ProviderInfo>(r#"
+        let dummy_provider = serde_json::from_str::<ProviderInfo>(
+            r#"
             {
                 "id": "placeholder",
                 "name": "Loading...",
@@ -67,6 +69,7 @@ impl Default for VideoGenerationParams {
                 "supports_image": false,
                 "supports_negative_prompt": false,
                 "supports_audio": false,
+                "supports_audio_input": false,
                 "supports_seed": false,
                 "allowed_aspect_ratios": [],
                 "allowed_resolutions": [],
@@ -79,13 +82,16 @@ impl Default for VideoGenerationParams {
                 "model_icon": null,
                 "extra_info": {}
             }
-        "#).unwrap();
-        
+        "#,
+        )
+        .unwrap();
+
         Self {
             user_principal: Principal::anonymous(),
             prompt: String::new(),
             provider: dummy_provider,
             image_data: None,
+            audio_data: None,
             token_type: TokenType::Sats,
         }
     }
@@ -98,6 +104,7 @@ impl PartialEq for VideoGenerationParams {
             && self.prompt == other.prompt
             && self.provider.id == other.provider.id  // Compare by ID only
             && self.image_data == other.image_data
+            && self.audio_data == other.audio_data
             && self.token_type == other.token_type
     }
 }

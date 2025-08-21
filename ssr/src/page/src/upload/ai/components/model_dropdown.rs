@@ -179,10 +179,15 @@ pub fn ModelDropdown(
 }
 
 // Helper function to format duration display
-fn format_duration(duration_seconds: u8) -> String {
-    if duration_seconds < 60 {
-        format!("{} Sec", duration_seconds)
-    } else {
-        format!("{} Min", duration_seconds / 60)
+fn format_duration(duration_seconds: Option<u8>) -> String {
+    match duration_seconds {
+        Some(seconds) => {
+            if seconds < 60 {
+                format!("{seconds} Sec")
+            } else {
+                format!("{} Min", seconds / 60)
+            }
+        }
+        None => "Variable".to_string(), // For providers where duration depends on input
     }
 }
