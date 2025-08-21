@@ -1,8 +1,10 @@
+use codee::string::FromToStringCodec;
 use component::content_upload::AuthorizedUserToSeedContent;
 use component::content_upload::YoutubeUpload;
 use component::modal::Modal;
 use component::title::TitleText;
 use component::{connect::ConnectLogin, social::*};
+use consts::DEVICE_ID;
 use leptos::either::Either;
 use leptos::html::Div;
 use leptos::portal::Portal;
@@ -10,10 +12,12 @@ use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_meta::*;
 use leptos_router::{components::Redirect, hooks::use_query_map};
+use leptos_use::storage::use_local_storage;
 use state::app_state::AppState;
 use state::canisters::auth_state;
 use state::content_seed_client::ContentSeedClient;
 use utils::mixpanel::mixpanel_events::*;
+use utils::mixpanel::state::MixpanelState;
 use utils::send_wrap;
 use yral_canisters_common::utils::profile::ProfileDetails;
 
@@ -29,7 +33,13 @@ fn MenuItem(
     let ev_ctx = auth.event_ctx();
     let track_menu_clicked = move || {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_menu_clicked(global, click_cta_type);
+            MixPanelEvent::track_menu_clicked(global, click_cta_type.clone());
+        }
+        if click_cta_type == MixpanelMenuClickedCTAType::LogOut {
+            let (_, set_device_id, _) = use_local_storage::<String, FromToStringCodec>(DEVICE_ID);
+            let device_id = uuid::Uuid::new_v4().to_string();
+            set_device_id(device_id.clone());
+            MixpanelState::reset_device_id(device_id);
         }
     };
     view! {
