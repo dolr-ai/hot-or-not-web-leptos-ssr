@@ -100,7 +100,7 @@ jobs:
         run: |
           rustc --version
           cargo --version
-          wasm-opt --version
+          # wasm-opt --version
 
       - name: Build the Leptos project to `gnu` output
         run: |
