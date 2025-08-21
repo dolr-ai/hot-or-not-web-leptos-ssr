@@ -41,7 +41,7 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "nightly-2025-06-15"
-          targets: "x86_64-unknown-linux-musl,wasm32-unknown-unknown"
+          targets: "x86_64-unknown-linux-gnu,wasm32-unknown-unknown"
           components: "clippy,rustfmt"
           override: true
 
@@ -81,7 +81,7 @@ jobs:
 
       - uses: awalsh128/cache-apt-pkgs-action@v1
         with:
-          packages: musl-tools protobuf-compiler
+          packages: protobuf-compiler
           version: 1.0
 
       # - name: Install clippy
@@ -103,7 +103,7 @@ jobs:
           cargo install wasm-opt --locked
           wasm-opt --version
 
-      - name: Build the Leptos project to `musl` output
+      - name: Build the Leptos project to `gnu` output
         run: |
           RUSTFLAGS_VALUE=""
           if [[ "${{ inputs.erase_components }}" == "true" ]]; then
@@ -114,7 +114,7 @@ jobs:
           RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --wasm-debug --release --lib-features release-lib --bin-features release-bin
         env:
           RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
-          LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
+          LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-gnu
           LEPTOS_HASH_FILES: true
           LEPTOS_TAILWIND_VERSION: v4.1.7
 
@@ -141,9 +141,9 @@ jobs:
       - name: Upload Sentry debug files for Server
         run: |
           # Extract debug symbols from server binary
-          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
-          objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
-          objcopy --add-gnu-debuglink target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{.d,}
+          objcopy --only-keep-debug target/x86_64-unknown-linux-gnu/prod-release/hot-or-not-web-leptos-ssr{,.d}
+          objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-gnu/prod-release/hot-or-not-web-leptos-ssr
+          objcopy --add-gnu-debuglink target/x86_64-unknown-linux-gnu/prod-release/hot-or-not-web-leptos-ssr{.d,}
 
           # Upload server debug files with source context
           echo "Uploading server debug symbols to Sentry (leptos-ssr-server)..."
@@ -189,12 +189,12 @@ jobs:
         uses: actions/upload-artifact@v4
         if: ${{ inputs.publish-artifact }}
         with:
-          name: build-musl
+          name: build-gnu
           path: |
-            target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
-            target/x86_64-unknown-linux-musl/prod-release/hash.txt
+            target/x86_64-unknown-linux-gnu/prod-release/hot-or-not-web-leptos-ssr
+            target/x86_64-unknown-linux-gnu/prod-release/hash.txt
             target/site
-            target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr.debug
+            target/x86_64-unknown-linux-gnu/prod-release/hot-or-not-web-leptos-ssr.debug
             target/site/pkg/*.wasm
             .empty
 
