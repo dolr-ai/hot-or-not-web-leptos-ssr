@@ -41,7 +41,6 @@ mod alloydb {
     use hon_worker_common::WORKER_URL;
     use hon_worker_common::{HoNGameVoteReqV3, HotOrNot, VoteRequestV3, VoteResV2};
     use yral_canisters_client::individual_user_template::PostDetailsForFrontend;
-    use yral_canisters_common::utils::posts::PostDetails;
     use yral_canisters_common::Canisters;
 
     async fn get_poster_principal_and_video_uid(
@@ -70,7 +69,6 @@ mod alloydb {
     ) -> Result<VoteAPIRes, ServerFnError> {
         use state::alloydb::AlloyDbInstance;
         use state::server::HonWorkerJwt;
-        use yral_canisters_common::Canisters;
 
         // loads post details, only needs video_id and poster's id
         // makes sense to call the canister ourselves, as that will only incur network overhead + very slight computation on canister
@@ -82,7 +80,7 @@ mod alloydb {
                     let (_, uid) =
                         get_poster_principal_and_video_uid(expect_context(), canister_id, post_id)
                             .await?;
-                    format!("'{}'", uid)
+                    format!("'{uid}'")
                 } else {
                     "NULL".to_string()
                 };
@@ -96,8 +94,7 @@ mod alloydb {
         // sanitization is not required here, as get_post_details verifies that the post is valid
         // and exists on cloudflare
         let query = format!(
-            "select hot_or_not_evaluator.compare_videos_hot_or_not_v3('{}', {})",
-            uid, prev_uid_formatted
+            "select hot_or_not_evaluator.compare_videos_hot_or_not_v3('{uid}', {prev_uid_formatted})",
         );
 
         // TODO: figure out the overhead from this alloydb call in prod
