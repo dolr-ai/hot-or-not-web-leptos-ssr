@@ -768,19 +768,17 @@ pub fn HNGameOverlay(
 
     let user_principal = auth.user_principal;
     let create_game_info = Resource::new(
-        move || {
-            refetch_bet.track();
-            user_principal.track();
-        },
+        move || refetch_bet.track(),
         move |_| {
             send_wrap(async move {
                 let principal = user_principal.await?;
-                println!(
-                    "ssr resource started at: {:?}; with principal: {principal}",
-                    start.elapsed()
-                );
 
                 let post = post.get_value();
+                log::info!(
+                    "refetching bet status for: {}/{}",
+                    post.canister_id,
+                    post.post_id
+                );
                 let game_info_req = GameInfoReqV3 {
                     publisher_principal: post.poster_principal,
                     post_id: post.post_id,
@@ -793,15 +791,19 @@ pub fn HNGameOverlay(
                 .await
                 .map_err(|err| ServerFnError::new(format!("{err:#?}")))?;
 
-                println!(
-                    "ssr resource woke up at: {:?}; with principal: {principal}",
-                    start.elapsed()
-                );
+                log::info!("{} resulted in {game_info:?}", post.canister_id);
 
                 Ok::<_, ServerFnError>(game_info)
             })
         },
     );
+
+    Effect::new(move || {
+        refetch_bet.track();
+        log::info!("refetch triggered");
+
+        create_game_info.refetch();
+    });
 
     view! {
         <Suspense fallback=LoaderWithShadowBg>
@@ -824,7 +826,7 @@ pub fn HNGameOverlay(
                                 }
                                     .into_any()
                             } else {
-                                log::info!("rendering button for {} at {:?}", post.poster_principal, start.elapsed());
+                                // log::info!("rendering button for {} at {:?}", post.poster_principal, start.elapsed());
                                 view! {
                                     <HNButtonOverlay
                                         post
