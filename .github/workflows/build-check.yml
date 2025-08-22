@@ -47,7 +47,7 @@ jobs:
 
       - uses: cargo-bins/cargo-binstall@main
       - name: cargo-leptos setup
-        run: cargo install --locked --force cargo-leptos --git https://github.com/psykomal/cargo-leptos --branch sentry-debug
+        run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked
 
       # - name: Cache rust dependencies and build output
       #   uses: Swatinem/rust-cache@v2
@@ -81,7 +81,7 @@ jobs:
 
       - uses: awalsh128/cache-apt-pkgs-action@v1
         with:
-          packages: protobuf-compiler
+          packages: musl-tools protobuf-compiler
           version: 1.0
 
       # - name: Install clippy
@@ -111,7 +111,7 @@ jobs:
           fi
           echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
           # Build with debug symbols for WASM (--wasm-debug flag)
-          RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --wasm-debug --release --lib-features release-lib --bin-features release-bin
+          RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --lib-features release-lib --bin-features release-bin
         env:
           RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
           LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
