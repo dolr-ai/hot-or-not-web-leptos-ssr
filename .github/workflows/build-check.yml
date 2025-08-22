@@ -101,7 +101,9 @@ jobs:
           rustc --version
           cargo --version
           npm install -g wasm-opt
+          cargo install wasm-opt
           wasm-opt --version
+          /usr/local/cargo/bin/wasm-opt --version
 
       - name: Build the Leptos project to `musl` output
         run: |
@@ -168,7 +170,7 @@ jobs:
               
               # Create optimized production version (strip debug sections but keep sourceMappingURL)
               echo "Creating optimized production version..."
-              wasm-opt "$wasm_file" -o "$wasm_file.tmp" \
+              /usr/local/cargo/bin/wasm-opt "$wasm_file" -o "$wasm_file.tmp" \
                 --strip-debug \
                 --strip-producers \
                 --strip-dwarf \
