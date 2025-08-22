@@ -38,3 +38,5 @@ hon_google_service_account.json
 CLAUDE.md
 
 docs/
+# Sentry Config File
+.sentryclirc

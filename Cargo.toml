@@ -17,6 +17,7 @@ inherits = "release"
 opt-level = 'z'
 lto = true
 codegen-units = 1
+debug = "limited"
 # panic = "abort"
 
 [profile.prod-release]

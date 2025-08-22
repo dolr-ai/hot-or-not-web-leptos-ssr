@@ -11,6 +11,7 @@ use page::leaderboard::Leaderboard;
 use page::post_view::PostDetailsCacheCtx;
 use page::pumpdump;
 use page::root::YralRootPage;
+use page::test_sentry::TestSentryPage;
 use page::terms_android::TermsAndroid;
 use page::terms_ios::TermsIos;
 use page::{
@@ -70,6 +71,12 @@ pub fn shell(options: LeptosOptions) -> impl IntoView {
                 <meta charset="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <meta name="facebook-domain-verification" content="sqtv2sr90ar0ck7t7zcklos44fw8t3" />
+                {move || {
+                    // Get Sentry release from environment variable at runtime
+                    std::env::var("SENTRY_RELEASE").ok().map(|release| {
+                        view! { <meta name="sentry-release" content=release /> }
+                    })
+                }}
                 <script fetchpriority="low" type="module" src="/js/sentry-init.js" async></script>
                 <script
                     fetchpriority="low"
@@ -194,6 +201,7 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/terms-of-service") view=TermsOfService />
                         <Route path=path!("/privacy-policy") view=PrivacyPolicy />
                         <Route path=path!("/about-us") view=AboutUs />
+                        <Route path=path!("/test-sentry") view=TestSentryPage />
                         <Route path=path!("/wallet/:id") view=Wallet />
                         <Route path=path!("/wallet") view=Wallet />
                         <Route path=path!("/leaderboard") view=Leaderboard />

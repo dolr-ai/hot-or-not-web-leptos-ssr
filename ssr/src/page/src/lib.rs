@@ -27,3 +27,4 @@ pub mod wallet;
 pub mod yral_auth_redirect;
 
 pub mod pumpdump;
+pub mod test_sentry;
