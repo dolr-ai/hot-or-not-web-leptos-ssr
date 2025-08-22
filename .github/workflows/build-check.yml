@@ -170,7 +170,7 @@ jobs:
               
               # Create optimized production version (strip debug sections but keep sourceMappingURL)
               echo "Creating optimized production version..."
-              /usr/local/cargo/bin/wasm-opt "$wasm_file" -o "$wasm_file.tmp" \
+              /home/runner/.cargo/bin/wasm-opt "$wasm_file" -o "$wasm_file.tmp" \
                 --strip-debug \
                 --strip-producers \
                 --strip-dwarf \
