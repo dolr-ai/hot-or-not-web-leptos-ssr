@@ -1,4 +1,5 @@
-import * as Sentry from 'https://cdn.jsdelivr.net/npm/@sentry/browser@9.13.0/+esm';
+import * as Sentry from 'https://cdn.jsdelivr.net/npm/@sentry/browser@10.5.0/+esm';
+import { wasmIntegration } from 'https://cdn.jsdelivr.net/npm/@sentry/wasm@10.5.0/+esm';
 
 // Function to determine the traces sample rate based on localStorage
 function tracesSampler(samplingContext) {
@@ -17,8 +18,16 @@ function tracesSampler(samplingContext) {
 // Check if we're in debug mode (local development)
 const isDebugMode = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
+// Get release version from meta tag or environment
+const releaseVersion = document.querySelector('meta[name="sentry-release"]')?.content || 
+                      window.SENTRY_RELEASE || 
+                      'unknown';
+
 Sentry.init({
   dsn: "https://3f7d672f8461961bd7b6bec57acf7f18@sentry.yral.com/3",
+  
+  // Set release version for source map matching
+  release: releaseVersion,
   
   // Enable debug in local development
   debug: isDebugMode,
@@ -27,6 +36,8 @@ Sentry.init({
   environment: isDebugMode ? 'local-development' : 'production',
   
   integrations: [
+    // WASM integration for better WebAssembly debugging
+    wasmIntegration(),
     Sentry.browserTracingIntegration(),
     Sentry.captureConsoleIntegration({
       levels: isDebugMode ? ['error', 'warn'] : ['error']
@@ -121,5 +132,6 @@ window.addEventListener('unhandledrejection', (event) => {
 window.Sentry = Sentry;
 
 if (isDebugMode) {
-  console.log('Sentry initialized with enhanced WASM debugging support');
+  console.log('Sentry initialized with @sentry/wasm integration and source map support');
+  console.log('Sentry release:', releaseVersion);
 }

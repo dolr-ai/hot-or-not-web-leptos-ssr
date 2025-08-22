@@ -12,8 +12,9 @@ ENV LEPTOS_SITE_ADDR="0.0.0.0:8080"
 ENV LEPTOS_HASH_FILES="true"
 # ENV LEPTOS_TAILWIND_VERSION="v4.0.9"
 
-# Sentry release version will be set at runtime by deployment scripts
-# ENV SENTRY_RELEASE="${GITHUB_SHA:0:7}"
+# Sentry release version - will be set as build arg during CI/CD
+ARG SENTRY_RELEASE=unknown
+ENV SENTRY_RELEASE=${SENTRY_RELEASE}
 
 EXPOSE 8080
 

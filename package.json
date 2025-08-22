@@ -1,5 +1,11 @@
 {
-	"devDependencies": {
-		"tailwindcss": "^4.1.11"
-	}
+  "devDependencies": {
+    "tailwindcss": "^4.1.11"
+  },
+  "dependencies": {
+    "@sentry/cli": "^2.52.0"
+  },
+  "scripts": {
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org sentry --project leptos-ssr-browser ./target/site/ && sentry-cli --url https://sentry.yral.com/ sourcemaps upload --org sentry --project leptos-ssr-browser ./target/site/"
+  }
 }
