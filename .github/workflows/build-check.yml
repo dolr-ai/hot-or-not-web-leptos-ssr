@@ -103,7 +103,7 @@ jobs:
           npm install -g wasm-opt
           cargo install wasm-opt
           wasm-opt --version
-          /usr/local/cargo/bin/wasm-opt --version
+          /home/runner/.cargo/bin/wasm-opt --version
 
       - name: Build the Leptos project to `musl` output
         run: |
