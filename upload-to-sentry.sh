@@ -10,11 +10,7 @@ NC='\033[0m'
 
 echo -e "${GREEN}=== Uploading WASM with Source Maps to Sentry ===${NC}"
 
-# Check token
-if [ -z "$SENTRY_AUTH_TOKEN" ]; then
-    echo "Setting SENTRY_AUTH_TOKEN..."
-    export SENTRY_AUTH_TOKEN='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'
-fi
+
 
 # Sentry config
 export SENTRY_URL="https://sentry.yral.com"
