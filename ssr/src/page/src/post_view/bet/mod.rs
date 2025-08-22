@@ -735,41 +735,11 @@ pub fn HNGameOverlay(
         })
     });
 
-    // let create_game_info = auth.derive_resource(
-    //     move || refetch_bet.track(),
-    //     move |cans, _| {
-    //         send_wrap(async move {
-    //             let post = post.get_value();
-    //             log::info!(
-    //                 "fetching for {} at {:?}",
-    //                 post.poster_principal,
-    //                 start.elapsed()
-    //             );
-    //             let game_info_req = GameInfoReqV3 {
-    //                 publisher_principal: post.poster_principal,
-    //                 post_id: post.post_id,
-    //             };
-    //             let game_info = cans
-    //                 .fetch_game_with_sats_info_v3(
-    //                     reqwest::Url::parse(WORKER_URL).unwrap(),
-    //                     game_info_req,
-    //                 )
-    //                 .await?;
-
-    //             log::info!(
-    //                 "fetched for {} in {:?}",
-    //                 post.poster_principal,
-    //                 start.elapsed()
-    //             );
-    //             Ok::<_, ServerFnError>(game_info)
-    //         })
-    //     },
-    // );
-
     let user_principal = auth.user_principal;
     let create_game_info = Resource::new(
         move || refetch_bet.track(),
         move |_| {
+            refetch_bet.track();
             send_wrap(async move {
                 let principal = user_principal.await?;
 
@@ -797,13 +767,6 @@ pub fn HNGameOverlay(
             })
         },
     );
-
-    Effect::new(move || {
-        refetch_bet.track();
-        log::info!("refetch triggered");
-
-        create_game_info.refetch();
-    });
 
     view! {
         <Suspense fallback=LoaderWithShadowBg>
