@@ -1,5 +1,8 @@
 mod server_impl;
 
+use candid::Principal;
+use web_time::Instant;
+
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
@@ -37,6 +40,27 @@ use yral_canisters_common::utils::{
 pub struct VoteAPIRes {
     pub game_result: VoteResV2,
     pub video_comparison_result: VideoComparisonResult,
+}
+
+async fn fetch_game_with_sats_info_v3(
+    user_principal: Principal,
+    cloudflare_url: reqwest::Url,
+    request: GameInfoReqV3,
+) -> anyhow::Result<Option<GameInfo>> {
+    let path = format!("/v3/game_info/{user_principal}");
+    let url = cloudflare_url.join(&path)?;
+
+    let client = reqwest::Client::new();
+    let res = client.post(url).json(&request).send().await?;
+
+    if !res.status().is_success() {
+        let err = res.text().await?;
+        anyhow::bail!("{err}");
+    }
+
+    let info = res.json().await?;
+
+    Ok(info)
 }
 
 #[component]
@@ -690,6 +714,12 @@ pub fn HNGameOverlay(
     show_tutorial: RwSignal<bool>,
     show_low_balance_popup: RwSignal<bool>,
 ) -> impl IntoView {
+    let start = Instant::now();
+    log::info!(
+        "rendering for {} at {:?}",
+        post.poster_principal,
+        start.elapsed()
+    );
     let bet_direction = RwSignal::new(None::<VoteKind>);
 
     let refetch_bet = Trigger::new();
@@ -705,21 +735,69 @@ pub fn HNGameOverlay(
         })
     });
 
-    let create_game_info = auth.derive_resource(
-        move || refetch_bet.track(),
-        move |cans, _| {
+    // let create_game_info = auth.derive_resource(
+    //     move || refetch_bet.track(),
+    //     move |cans, _| {
+    //         send_wrap(async move {
+    //             let post = post.get_value();
+    //             log::info!(
+    //                 "fetching for {} at {:?}",
+    //                 post.poster_principal,
+    //                 start.elapsed()
+    //             );
+    //             let game_info_req = GameInfoReqV3 {
+    //                 publisher_principal: post.poster_principal,
+    //                 post_id: post.post_id,
+    //             };
+    //             let game_info = cans
+    //                 .fetch_game_with_sats_info_v3(
+    //                     reqwest::Url::parse(WORKER_URL).unwrap(),
+    //                     game_info_req,
+    //                 )
+    //                 .await?;
+
+    //             log::info!(
+    //                 "fetched for {} in {:?}",
+    //                 post.poster_principal,
+    //                 start.elapsed()
+    //             );
+    //             Ok::<_, ServerFnError>(game_info)
+    //         })
+    //     },
+    // );
+
+    let user_principal = auth.user_principal;
+    let create_game_info = Resource::new(
+        move || {
+            refetch_bet.track();
+            user_principal.track();
+        },
+        move |_| {
             send_wrap(async move {
+                let principal = user_principal.await?;
+                println!(
+                    "ssr resource started at: {:?}; with principal: {principal}",
+                    start.elapsed()
+                );
+
                 let post = post.get_value();
                 let game_info_req = GameInfoReqV3 {
                     publisher_principal: post.poster_principal,
                     post_id: post.post_id,
                 };
-                let game_info = cans
-                    .fetch_game_with_sats_info_v3(
-                        reqwest::Url::parse(WORKER_URL).unwrap(),
-                        game_info_req,
-                    )
-                    .await?;
+                let game_info = fetch_game_with_sats_info_v3(
+                    principal,
+                    reqwest::Url::parse(WORKER_URL).unwrap(),
+                    game_info_req,
+                )
+                .await
+                .map_err(|err| ServerFnError::new(format!("{err:#?}")))?;
+
+                println!(
+                    "ssr resource woke up at: {:?}; with principal: {principal}",
+                    start.elapsed()
+                );
+
                 Ok::<_, ServerFnError>(game_info)
             })
         },
@@ -746,6 +824,7 @@ pub fn HNGameOverlay(
                                 }
                                     .into_any()
                             } else {
+                                log::info!("rendering button for {} at {:?}", post.poster_principal, start.elapsed());
                                 view! {
                                     <HNButtonOverlay
                                         post
