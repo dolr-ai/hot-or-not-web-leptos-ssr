@@ -12,7 +12,6 @@ use global_constants::REFERRAL_REWARD_SATS;
 use consts::{
     UserOnboardingStore, NSFW_ENABLED_COOKIE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
 };
-use gloo::timers::callback::Timeout;
 use leptos::html::Audio;
 use leptos::{prelude::*, task::spawn_local};
 use leptos_icons::*;
@@ -182,13 +181,7 @@ pub fn VideoDetailsOverlay(
     let post_id = post.post_id.clone();
     let video_url = Signal::derive(move || {
         base_url()
-            .map(|b| {
-                format!(
-                    "{b}/hot-or-not/{}/{}",
-                    post_clone.canister_id.to_string(),
-                    post_id
-                )
-            })
+            .map(|b| format!("{b}/hot-or-not/{}/{}", post_clone.canister_id, post_id))
             .unwrap_or_default()
     });
 
@@ -513,8 +506,6 @@ pub fn VideoDetailsOverlay(
         }
     });
     let AudioState { muted, volume } = AudioState::get();
-
-    let func = move || video_url();
 
     view! {
         <MuteUnmuteControl muted volume />

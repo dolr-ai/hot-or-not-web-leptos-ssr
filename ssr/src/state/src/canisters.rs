@@ -64,7 +64,7 @@ async fn set_fallback_username(cans: &mut Canisters<true>, mut username: String)
 
 async fn do_canister_auth(
     auth: DelegatedIdentityWire,
-    referrer: Option<Principal>,
+    _referrer: Option<Principal>,
     fallback_username: Option<String>,
 ) -> Result<Canisters<true>, ServerFnError> {
     let auth_fut = Canisters::authenticate_with_network(auth);

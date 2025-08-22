@@ -5,7 +5,7 @@ use hon_worker_common::ReferralReqWithSignature;
 use leptos::prelude::*;
 #[cfg(not(feature = "backend-admin"))]
 use no_op::*;
-use state::canisters::{self, auth_state, unauth_canisters};
+use state::canisters::auth_state;
 
 pub async fn issue_referral_rewards(
     worker_req: ReferralReqWithSignature,
