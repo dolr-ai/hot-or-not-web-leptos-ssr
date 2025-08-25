@@ -1,8 +1,5 @@
 mod server_impl;
 
-use candid::Principal;
-use web_time::Instant;
-
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
@@ -33,34 +30,16 @@ use state::hn_bet_state::{HnBetState, VideoComparisonResult};
 use utils::try_or_redirect_opt;
 use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
-    posts::PostDetails, token::balance::TokenBalance, token::load_sats_balance, vote::VoteKind,
+    posts::PostDetails,
+    token::balance::TokenBalance,
+    token::load_sats_balance,
+    vote::{fetch_game_with_sats_info_v3, VoteKind},
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VoteAPIRes {
     pub game_result: VoteResV2,
     pub video_comparison_result: VideoComparisonResult,
-}
-
-async fn fetch_game_with_sats_info_v3(
-    user_principal: Principal,
-    cloudflare_url: reqwest::Url,
-    request: GameInfoReqV3,
-) -> anyhow::Result<Option<GameInfo>> {
-    let path = format!("/v3/game_info/{user_principal}");
-    let url = cloudflare_url.join(&path)?;
-
-    let client = reqwest::Client::new();
-    let res = client.post(url).json(&request).send().await?;
-
-    if !res.status().is_success() {
-        let err = res.text().await?;
-        anyhow::bail!("{err}");
-    }
-
-    let info = res.json().await?;
-
-    Ok(info)
 }
 
 #[component]
@@ -126,12 +105,10 @@ async fn fetch_and_update_balance(
     auth: &state::canisters::AuthState,
     set_wallet_balance_store: WriteSignal<u64>,
 ) -> Option<u64> {
-    log::info!("Fetching latest wallet balance for user");
     let cans = auth.auth_cans().await.ok()?;
     let user_principal = cans.user_principal();
     let balance_info = load_sats_balance(user_principal).await.ok()?;
     let balance = balance_info.balance.to_u64().unwrap_or(25);
-    log::info!("Fetched wallet balance: {balance}");
     set_wallet_balance_store.set(balance);
     HnBetState::set_balance(balance);
     Some(balance)
@@ -714,12 +691,6 @@ pub fn HNGameOverlay(
     show_tutorial: RwSignal<bool>,
     show_low_balance_popup: RwSignal<bool>,
 ) -> impl IntoView {
-    let start = Instant::now();
-    log::info!(
-        "rendering for {} at {:?}",
-        post.poster_principal,
-        start.elapsed()
-    );
     let bet_direction = RwSignal::new(None::<VoteKind>);
 
     let refetch_bet = Trigger::new();
@@ -744,11 +715,6 @@ pub fn HNGameOverlay(
                 let principal = user_principal.await?;
 
                 let post = post.get_value();
-                log::info!(
-                    "refetching bet status for: {}/{}",
-                    post.canister_id,
-                    post.post_id
-                );
                 let game_info_req = GameInfoReqV3 {
                     publisher_principal: post.poster_principal,
                     post_id: post.post_id,
@@ -760,8 +726,6 @@ pub fn HNGameOverlay(
                 )
                 .await
                 .map_err(|err| ServerFnError::new(format!("{err:#?}")))?;
-
-                log::info!("{} resulted in {game_info:?}", post.canister_id);
 
                 Ok::<_, ServerFnError>(game_info)
             })
@@ -789,7 +753,6 @@ pub fn HNGameOverlay(
                                 }
                                     .into_any()
                             } else {
-                                // log::info!("rendering button for {} at {:?}", post.poster_principal, start.elapsed());
                                 view! {
                                     <HNButtonOverlay
                                         post
