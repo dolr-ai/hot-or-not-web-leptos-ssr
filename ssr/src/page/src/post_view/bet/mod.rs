@@ -29,10 +29,7 @@ use state::hn_bet_state::{HnBetState, VideoComparisonResult};
 use utils::try_or_redirect_opt;
 use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
-    posts::PostDetails,
-    token::balance::TokenBalance,
-    token::load_sats_balance,
-    vote::{fetch_game_with_sats_info_v3, VoteKind},
+    posts::PostDetails, token::balance::TokenBalance, token::load_sats_balance, vote::VoteKind,
 };
 
 use crate::post_view::bet::server_impl::vote_with_cents_post_v2;
@@ -709,14 +706,11 @@ pub fn HNGameOverlay(
         })
     });
 
-    let user_principal = auth.user_principal;
-    let create_game_info = Resource::new(
+    let create_game_info = auth.derive_resource(
         move || refetch_bet.track(),
-        move |_| {
+        move |cans, _| {
             refetch_bet.track();
             send_wrap(async move {
-                let principal = user_principal.await?;
-
                 let post = post.get_value();
                 let game_info_req = GameInfoReqV4 {
                     publisher_principal: post.poster_principal,
