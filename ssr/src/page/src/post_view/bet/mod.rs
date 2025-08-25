@@ -13,7 +13,7 @@ use global_constants::{
     DEFAULT_BET_COIN_FOR_LOGGED_OUT,
 };
 use hon_worker_common::{
-    sign_vote_request_v4, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV4,
+    sign_vote_request_v4, GameInfo, GameInfoReqV4, GameResult, GameResultV2, VoteRequestV4,
     VoteResV2, WORKER_URL,
 };
 use ic_agent::Identity;
@@ -713,12 +713,12 @@ pub fn HNGameOverlay(
         move |cans, _| {
             send_wrap(async move {
                 let post = post.get_value();
-                let game_info_req = GameInfoReqV3 {
+                let game_info_req = GameInfoReqV4 {
                     publisher_principal: post.poster_principal,
-                    post_id: post.post_id.parse::<u64>().unwrap(),
+                    post_id: post.post_id.clone(),
                 };
                 let game_info = cans
-                    .fetch_game_with_sats_info_v3(
+                    .fetch_game_with_sats_info_v4(
                         reqwest::Url::parse(WORKER_URL).unwrap(),
                         game_info_req,
                     )
