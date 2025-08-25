@@ -1,11 +1,13 @@
 use candid::Principal;
 use hon_worker_common::{ServerVoteRequest, VoteRequest};
 use leptos::prelude::*;
+use tracing;
 use yral_identity::Signature;
 
 use crate::post_view::bet::VoteAPIRes;
 
 #[server(endpoint = "vote", input = server_fn::codec::Json)]
+#[tracing::instrument(skip(sig))]
 pub async fn vote_with_cents_on_post(
     sender: Principal,
     req: VoteRequest,
@@ -164,6 +166,7 @@ mod alloydb {
             "select hot_or_not_evaluator.compare_videos_hot_or_not_v3('{post_uid}', {previous_post_uid})",
         );
 
+        // TODO: figure out the overhead from this alloydb call in prod
         let alloydb: AlloyDbInstance = expect_context();
         let mut res = alloydb.execute_sql_raw(query).await?;
         let mut res = res.sql_results.pop().ok_or_else(|| {
@@ -222,6 +225,7 @@ mod alloydb {
             )));
         }
 
+        // huh?
         let vote_res: VoteResV2 = res.json().await?;
 
         Ok(VoteAPIRes {
@@ -239,6 +243,7 @@ mod mock {
     use super::*;
 
     #[allow(dead_code)]
+    #[tracing::instrument(skip(_sig))]
     pub async fn vote_with_cents_on_post(
         _sender: Principal,
         _req: VoteRequest,

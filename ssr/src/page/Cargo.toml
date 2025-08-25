@@ -21,7 +21,7 @@ tower = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 wasm-bindgen = { workspace = true }
 thiserror = { workspace = true }
-tracing = { workspace = true, optional = true }
+tracing = { workspace = true }
 http = { workspace = true }
 serde.workspace = true
 candid.workspace = true
@@ -128,7 +128,6 @@ ssr = [
     "leptos/ssr",
     "leptos_meta/ssr",
     "leptos_router/ssr",
-    "dep:tracing",
     "leptos-use/ssr",
     "leptos-use/axum",
     "reqwest/rustls-tls",
