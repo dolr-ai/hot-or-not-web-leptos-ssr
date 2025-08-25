@@ -215,7 +215,7 @@ yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", br
 yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "feat/support-new-service-canisters" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], branch = "feat/support-new-service-canisters", version = "0.1.0" }
+], branch = "feat/support-new-service-canisters"}
 global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "feat/support-new-service-canisters" }
 yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "feat/support-new-service-canisters", default-features = false, features = [
     "ic-git",

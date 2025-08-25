@@ -13,7 +13,7 @@ use global_constants::{
     DEFAULT_BET_COIN_FOR_LOGGED_OUT,
 };
 use hon_worker_common::{
-    sign_vote_request_v3, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV3,
+    sign_vote_request_v4, GameInfo, GameInfoReqV3, GameResult, GameResultV2, VoteRequestV4,
     VoteResV2, WORKER_URL,
 };
 use ic_agent::Identity;
@@ -24,7 +24,6 @@ use leptos_use::storage::use_local_storage;
 use leptos_use::{use_cookie_with_options, use_timeout_fn, UseCookieOptions, UseTimeoutFnReturn};
 use num_traits::cast::ToPrimitive;
 use serde::{Deserialize, Serialize};
-use server_impl::vote_with_cents_on_post;
 use state::canisters::auth_state;
 use state::hn_bet_state::{HnBetState, VideoComparisonResult};
 use utils::try_or_redirect_opt;
@@ -32,6 +31,8 @@ use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
     posts::PostDetails, token::balance::TokenBalance, token::load_sats_balance, vote::VoteKind,
 };
+
+use crate::post_view::bet::server_impl::vote_with_cents_post_v2;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct VoteAPIRes {
@@ -184,16 +185,16 @@ fn HNButtonOverlay(
             let bet_direction = *bet_direction;
 
             // Create the original VoteRequest for the server function
-            let req = hon_worker_common::VoteRequest {
-                post_id: post_id.parse().unwrap(),
+            let req = hon_worker_common::ServerVoteRequest {
+                post_id: post_id.clone(),
                 post_canister,
                 vote_amount: bet_amount as u128,
                 direction: bet_direction.into(),
             };
             // Create VoteRequestV3 for signing
-            let req_v3 = VoteRequestV3 {
+            let req_v3 = VoteRequestV4 {
                 publisher_principal: post.poster_principal,
-                post_id: post_id.parse().unwrap(),
+                post_id: post_id.clone(),
                 vote_amount: bet_amount as u128,
                 direction: bet_direction.into(),
             };
@@ -240,9 +241,9 @@ fn HNButtonOverlay(
 
                 let identity = cans.identity();
                 let sender = identity.sender().unwrap();
-                let sig = sign_vote_request_v3(identity, req_v3).ok()?;
+                let sig = sign_vote_request_v4(identity, req_v3).ok()?;
 
-                let res = vote_with_cents_on_post(sender, req, sig, prev_post).await;
+                let res = vote_with_cents_post_v2(sender, req, sig, prev_post).await;
                 refetch_bet.notify();
                 match res {
                     Ok(res) => {
