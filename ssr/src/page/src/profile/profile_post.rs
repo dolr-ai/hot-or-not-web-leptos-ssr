@@ -150,7 +150,7 @@ pub fn PostViewWithUpdatesProfile(
         video_queue.with(|q| {
             let curr_index = current_index();
             let details = q.get_index(curr_index);
-            details.map(|d| (d.canister_id, d.post_id))
+            details.map(|d| (d.canister_id, d.post_id.clone()))
         })
     });
 
@@ -193,7 +193,7 @@ fn ProfilePostBase<
     IV: IntoView + 'static,
     C: Fn(PostDetails) -> IV + Clone + 'static + Send + Sync,
 >(
-    #[prop(into)] canister_and_post: Signal<Option<(Principal, u64)>>,
+    #[prop(into)] canister_and_post: Signal<Option<(Principal, String)>>,
     #[prop(into)] next_start_idx: Signal<Option<usize>>,
     children: C,
 ) -> impl IntoView {
@@ -285,7 +285,7 @@ fn ProfilePostBase<
 #[derive(Params, PartialEq)]
 struct ProfileVideoParams {
     canister_id: Principal,
-    post_id: u64,
+    post_id: String,
 }
 
 #[derive(Params, PartialEq, Clone, Debug)]
@@ -301,7 +301,7 @@ pub fn ProfilePost() -> impl IntoView {
     let canister_and_post = Signal::derive(move || {
         params.with_untracked(|p| {
             let p = p.as_ref().ok()?;
-            Some((p.canister_id, p.post_id))
+            Some((p.canister_id, p.post_id.clone()))
         })
     });
 

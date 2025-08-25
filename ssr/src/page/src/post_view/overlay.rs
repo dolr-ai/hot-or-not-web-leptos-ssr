@@ -12,7 +12,6 @@ use global_constants::REFERRAL_REWARD_SATS;
 use consts::{
     UserOnboardingStore, NSFW_ENABLED_COOKIE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
 };
-use gloo::timers::callback::Timeout;
 use leptos::html::Audio;
 use leptos::{prelude::*, task::spawn_local};
 use leptos_icons::*;
@@ -34,6 +33,7 @@ use utils::{
 
 use utils::mixpanel::mixpanel_events::*;
 use yral_canisters_common::utils::posts::PostDetails;
+use yral_canisters_common::Canisters;
 
 use crate::wallet::airdrop::sats_airdrop::{claim_sats_airdrop, get_sats_airdrop_status};
 use crate::wallet::airdrop::{AirdropStatus, SatsAirdropPopup};
@@ -54,17 +54,15 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
         }
     });
 
-    let post_canister = post.canister_id;
-    let post_id = post.post_id;
     let initial_liked = (post.liked_by_user, post.likes);
 
     let auth: state::canisters::AuthState = auth_state();
     let is_logged_in = auth.is_logged_in_with_oauth();
     let ev_ctx = auth.event_ctx();
 
+    let post_clone = post.clone();
     let like_toggle = Action::new(move |&()| {
-        let post_details = post.clone();
-        let video_id = post.uid.clone();
+        let post_clone = post_clone.clone();
         send_wrap(async move {
             let Ok(canisters) = auth.auth_cans().await else {
                 log::warn!("Trying to toggle like without auth");
@@ -80,29 +78,29 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
 
             if should_like {
                 likes.update(|l| *l += 1);
-                LikeVideo.send_event(ev_ctx, post_details.clone(), likes);
+                LikeVideo.send_event(ev_ctx, post_clone.clone(), likes);
 
                 let is_logged_in = is_logged_in.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
                 let is_hot_or_not = true;
                 MixPanelEvent::track_video_clicked(
                     global,
-                    post.poster_principal.to_text(),
-                    post.likes,
-                    post.views,
+                    post_clone.poster_principal.to_text(),
+                    post_clone.likes,
+                    post_clone.views,
                     is_hot_or_not,
-                    video_id,
+                    post_clone.uid.clone(),
                     MixpanelPostGameType::HotOrNot,
                     MixpanelVideoClickedCTAType::Like,
-                    post.is_nsfw,
+                    post_clone.is_nsfw,
                 );
             } else {
                 likes.update(|l| *l -= 1);
             }
 
-            let individual = canisters.individual_user(post_canister).await;
-            match individual
-                .update_post_toggle_like_status_by_caller(post_id)
+            //TODO: refactor this to use cans<true>
+            match canisters
+                .like_post(post_clone.canister_id, post_clone.post_id.clone())
                 .await
             {
                 Ok(_) => (),
@@ -114,21 +112,27 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
         })
     });
 
+    let post_canister = post.canister_id;
+    let post_id = post.post_id.clone();
+
     let liked_fetch = auth.derive_resource(
         || (),
-        move |cans, _| async move {
-            let result = if let Some(liked) = initial_liked.0 {
-                (liked, initial_liked.1)
-            } else {
-                match cans.post_like_info(post_canister, post_id).await {
-                    Ok(liked) => liked,
-                    Err(e) => {
-                        log::warn!("faild to fetch likes {e}");
-                        (false, likes.try_get_untracked().unwrap_or_default())
+        move |cans: Canisters<true>, _| {
+            let post_id = post_id.clone();
+            async move {
+                let result = if let Some(liked) = initial_liked.0 {
+                    (liked, initial_liked.1)
+                } else {
+                    match cans.post_like_info(post_canister, post_id.clone()).await {
+                        Ok(liked) => liked,
+                        Err(e) => {
+                            log::warn!("faild to fetch likes {e}");
+                            (false, likes.try_get_untracked().unwrap_or_default())
+                        }
                     }
-                }
-            };
-            Ok::<_, ServerFnError>(result)
+                };
+                Ok::<_, ServerFnError>(result)
+            }
         },
     );
 
@@ -173,11 +177,15 @@ pub fn VideoDetailsOverlay(
             .as_ref()
             .and_then(|w| w.location().origin().ok())
     };
-    let video_url = move || {
+    let post_clone = post.clone();
+    let post_id = post.post_id.clone();
+    let video_url = Signal::derive(move || {
         base_url()
-            .map(|b| format!("{b}/hot-or-not/{}/{}", post.canister_id, post.post_id))
+            .map(|b| format!("{b}/hot-or-not/{}/{}", post_clone.canister_id, post_id))
             .unwrap_or_default()
-    };
+    });
+
+    println!("{}", post_clone.uid);
     let display_name = post.display_name_or_fallback();
 
     let auth = auth_state();
@@ -186,6 +194,7 @@ pub fn VideoDetailsOverlay(
     let post_details_share = post.clone();
     let track_video_id = post.uid.clone();
     let track_video_id_for_impressions = post.uid.clone();
+    let post_clone = post.clone();
     Effect::new(move |_| {
         // To trigger the effect on initial render
         let _ = use_location().pathname.get();
@@ -195,17 +204,18 @@ pub fn VideoDetailsOverlay(
                 MixPanelEvent::track_video_impression(
                     global,
                     track_video_id_for_impressions,
-                    post.poster_principal.to_text(),
+                    post_clone.poster_principal.to_text(),
                     MixpanelPostGameType::HotOrNot,
-                    post.likes,
-                    post.views,
-                    post.is_nsfw,
+                    post_clone.likes,
+                    post_clone.views,
+                    post_clone.is_nsfw,
                     true,
                 );
             }
         }
     });
 
+    let post_clone = post.clone();
     let track_video_clicked = move |cta_type: MixpanelVideoClickedCTAType| {
         let video_id = track_video_id.clone();
         let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
@@ -214,14 +224,14 @@ pub fn VideoDetailsOverlay(
         let is_hot_or_not = true;
         MixPanelEvent::track_video_clicked(
             global,
-            post.poster_principal.to_text(),
-            post.likes,
-            post.views,
+            post_clone.poster_principal.to_text(),
+            post_clone.likes,
+            post_clone.views,
             is_hot_or_not,
             video_id,
             MixpanelPostGameType::HotOrNot,
             cta_type,
-            post.is_nsfw,
+            post_clone.is_nsfw,
         );
     };
     let track_video_share = track_video_clicked.clone();
@@ -247,22 +257,23 @@ pub fn VideoDetailsOverlay(
 
     let click_copy = move |text: String| {
         _ = copy_to_clipboard(&text);
-        show_copied_popup.set(true);
-        Timeout::new(1200, move || show_copied_popup.set(false)).forget();
+        // show_copied_popup.set(true);
+        // Timeout::new(1200, move || show_copied_popup.set(false)).forget();
     };
 
     let post_details_report = post.clone();
     let profile_click_video_id = post.uid.clone();
     let report_video_click_id = post.uid.clone();
+    let post_clone = post.clone();
     let click_report = Action::new(move |()| {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
             MixPanelEvent::track_video_reported(
                 global,
-                post.poster_principal.to_text(),
+                post_clone.poster_principal.to_text(),
                 true,
                 report_video_click_id.clone(),
                 MixpanelPostGameType::HotOrNot,
-                post.is_nsfw,
+                post_clone.is_nsfw,
                 report_option.get_untracked(),
             );
         }
@@ -279,8 +290,8 @@ pub fn VideoDetailsOverlay(
                     details.principal(),
                     post_details.poster_principal.to_string(),
                     post_details.canister_id.to_string(),
-                    post_details.post_id.to_string(),
-                    post_details.uid,
+                    post_details.post_id.clone(),
+                    post_details.uid.clone(),
                     report_option.get_untracked(),
                     video_url(),
                 )
@@ -302,7 +313,8 @@ pub fn VideoDetailsOverlay(
     );
 
     let click_nsfw = Action::new(move |()| {
-        let video_id = post.uid.clone();
+        let video_id = post_clone.uid.clone();
+        let post_clone = post_clone.clone();
         async move {
             if show_nsfw_content() {
                 return;
@@ -315,14 +327,14 @@ pub fn VideoDetailsOverlay(
                     let is_hot_or_not = true;
                     MixPanelEvent::track_video_clicked(
                         global,
-                        post.poster_principal.to_text(),
-                        post.likes,
-                        post.views,
+                        post_clone.poster_principal.to_text(),
+                        post_clone.likes,
+                        post_clone.views,
                         is_hot_or_not,
                         video_id,
                         MixpanelPostGameType::HotOrNot,
                         MixpanelVideoClickedCTAType::NsfwToggle,
-                        post.is_nsfw,
+                        post_clone.is_nsfw,
                     );
                 }
             } else {
@@ -333,9 +345,9 @@ pub fn VideoDetailsOverlay(
                     {
                         MixPanelEvent::track_nsfw_enabled(
                             global,
-                            post.poster_principal.to_text(),
+                            post_clone.poster_principal.to_text(),
                             video_id,
-                            post.is_nsfw,
+                            post_clone.is_nsfw,
                             "home".to_string(),
                             None,
                         );
@@ -349,14 +361,14 @@ pub fn VideoDetailsOverlay(
                         let is_hot_or_not = true;
                         MixPanelEvent::track_video_clicked(
                             global,
-                            post.poster_principal.to_text(),
-                            post.likes,
-                            post.views,
+                            post_clone.poster_principal.to_text(),
+                            post_clone.likes,
+                            post_clone.views,
                             is_hot_or_not,
                             video_id,
                             MixpanelPostGameType::HotOrNot,
                             MixpanelVideoClickedCTAType::NsfwToggle,
-                            post.is_nsfw,
+                            post_clone.is_nsfw,
                         );
                     }
                 }
@@ -370,7 +382,9 @@ pub fn VideoDetailsOverlay(
         }
     });
 
+    let post_clone = post.clone();
     let mixpanel_track_profile_click = move || {
+        let post_clone = post_clone.clone();
         let video_id = profile_click_video_id.clone();
         let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
             return;
@@ -378,14 +392,14 @@ pub fn VideoDetailsOverlay(
         let is_hot_or_not = true;
         MixPanelEvent::track_video_clicked(
             global,
-            post.poster_principal.to_string(),
-            post.likes,
-            post.views,
+            post_clone.poster_principal.to_string(),
+            post_clone.likes,
+            post_clone.views,
             is_hot_or_not,
             video_id,
             MixpanelPostGameType::HotOrNot,
             MixpanelVideoClickedCTAType::CreatorProfile,
-            post.is_nsfw,
+            post_clone.is_nsfw,
         );
     };
 
@@ -571,7 +585,7 @@ pub fn VideoDetailsOverlay(
                 <span class="text-lg">Share</span>
                 <div class="flex flex-row gap-2 w-full">
                     <p class="overflow-x-scroll p-2 max-w-full whitespace-nowrap rounded-full text-md bg-white/10">
-                        {video_url}
+                        // {move  || { video_url()}}
                     </p>
                     <button on:click=move |_| click_copy(video_url())>
                         <Icon attr:class="text-xl" icon=icondata::FaCopyRegular />
