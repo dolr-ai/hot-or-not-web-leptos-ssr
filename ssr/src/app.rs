@@ -28,7 +28,7 @@ use page::{
     settings::Settings,
     terms::TermsOfService,
     token::{info::TokenInfo, transfer::TokenTransfer},
-    upload::{UploadAiPostPage, UploadOptionsPage},
+    upload::UploadOptionsPage,
     wallet::Wallet,
 };
 use state::app_state::AppState;
@@ -180,7 +180,7 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/post/:canister_id/:post_id") view=SinglePost />
                         <Route path=path!("/profile/:canister_id/post/:post_id") view=ProfilePost />
                         // <Route path=path!("/upload") view=UploadPostPage />
-                        <Route path=path!("/upload-ai") view=UploadAiPostPage />
+                        // <Route path=path!("/upload-ai") view=UploadAiPostPage />
                         <Route path=path!("/upload-options") view=UploadOptionsPage />
                         <Route path=path!("/error") view=ServerErrorPage />
                         <Route path=path!("/menu") view=Menu />
