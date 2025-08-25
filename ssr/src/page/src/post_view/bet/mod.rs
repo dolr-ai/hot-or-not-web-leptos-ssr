@@ -29,7 +29,10 @@ use state::hn_bet_state::{HnBetState, VideoComparisonResult};
 use utils::try_or_redirect_opt;
 use utils::{mixpanel::mixpanel_events::*, send_wrap};
 use yral_canisters_common::utils::{
-    posts::PostDetails, token::balance::TokenBalance, token::load_sats_balance, vote::VoteKind,
+    posts::PostDetails,
+    token::balance::TokenBalance,
+    token::load_sats_balance,
+    vote::{fetch_game_with_sats_info_v3, VoteKind},
 };
 
 use crate::post_view::bet::server_impl::vote_with_cents_post_v2;
@@ -103,12 +106,10 @@ async fn fetch_and_update_balance(
     auth: &state::canisters::AuthState,
     set_wallet_balance_store: WriteSignal<u64>,
 ) -> Option<u64> {
-    log::info!("Fetching latest wallet balance for user");
     let cans = auth.auth_cans().await.ok()?;
     let user_principal = cans.user_principal();
     let balance_info = load_sats_balance(user_principal).await.ok()?;
     let balance = balance_info.balance.to_u64().unwrap_or(25);
-    log::info!("Fetched wallet balance: {balance}");
     set_wallet_balance_store.set(balance);
     HnBetState::set_balance(balance);
     Some(balance)
@@ -708,10 +709,14 @@ pub fn HNGameOverlay(
         })
     });
 
-    let create_game_info = auth.derive_resource(
+    let user_principal = auth.user_principal;
+    let create_game_info = Resource::new(
         move || refetch_bet.track(),
-        move |cans, _| {
+        move |_| {
+            refetch_bet.track();
             send_wrap(async move {
+                let principal = user_principal.await?;
+
                 let post = post.get_value();
                 let game_info_req = GameInfoReqV4 {
                     publisher_principal: post.poster_principal,
