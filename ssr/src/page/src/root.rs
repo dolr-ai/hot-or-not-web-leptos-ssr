@@ -1,14 +1,13 @@
 use candid::Principal;
 use codee::string::FromToStringCodec;
 use component::spinner::FullScreenSpinner;
-use consts::{NSFW_ENABLED_COOKIE, USER_PRINCIPAL_STORE};
+use consts::NSFW_ENABLED_COOKIE;
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::components::Redirect;
 use leptos_router::hooks::use_query_map;
-use leptos_use::{use_cookie, use_cookie_with_options, UseCookieOptions};
+use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use utils::host::show_nsfw_content;
-use utils::mixpanel::mixpanel_events::init_event;
 use utils::ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw};
 use yral_types::post::PostItemV3;
 
@@ -62,8 +61,6 @@ pub fn YralRootPage() -> impl IntoView {
             .same_site(leptos_use::SameSite::Lax),
     );
 
-    let (user_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
-
     let full_info = Resource::new_blocking(params, move |params_map| async move {
         // Check query param first, then cookie, then show_nsfw_content
         let nsfw_from_query = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
@@ -74,8 +71,6 @@ pub fn YralRootPage() -> impl IntoView {
             "NSFW enabled: {nsfw_enabled} (query: {nsfw_from_query}, cookie: {:?})",
             nsfw_cookie_enabled.get_untracked()
         );
-        let user_principal = user_principal.get_untracked().map(|f| f.to_text());
-        init_event(user_principal).await;
         let post = if nsfw_enabled {
             get_top_post_id_global_nsfw_feed().await
         } else {
