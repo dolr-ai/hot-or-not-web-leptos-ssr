@@ -111,25 +111,28 @@ async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize telemetry with OTLP exporter for Jaeger
     // Use environment variable OTLP_ENDPOINT if set, otherwise default to localhost
-    let otlp_endpoint = std::env::var("OTLP_ENDPOINT")
-        .unwrap_or_else(|_| "http://localhost:4317".to_string());
-    
+    let otlp_endpoint =
+        std::env::var("OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".to_string());
+
     // Use OtlpTracesOnly for Jaeger - traces include latency metrics
     // Logs emitted during request handling will appear as span events in Jaeger
     let telemetry_config = telemetry_axum::Config {
-        exporter: telemetry_axum::Exporter::OtlpTracesOnly,  // Traces with embedded logs to Jaeger
+        exporter: telemetry_axum::Exporter::OtlpTracesOnly, // Traces with embedded logs to Jaeger
         otlp_endpoint: otlp_endpoint.clone(),
         service_name: "yral_ssr".to_string(),
         level: "info,yral_ssr=debug,tower_http=info,hot_or_not_web_leptos_ssr=debug".to_string(),
-        propagate: true,  // Enable trace propagation for distributed tracing
+        propagate: true, // Enable trace propagation for distributed tracing
         ..Default::default()
     };
 
-    let (logger_provider, tracer_provider, metrics_provider) = 
+    let (logger_provider, tracer_provider, metrics_provider) =
         telemetry_axum::init_telemetry(&telemetry_config)
-            .map_err(|e| format!("Failed to initialize telemetry: {}", e))?;
-    
-    tracing::info!("Telemetry initialized with Jaeger endpoint at {} (traces only, logs to stdout)", otlp_endpoint);
+            .map_err(|e| format!("Failed to initialize telemetry: {e}"))?;
+
+    tracing::info!(
+        "Telemetry initialized with Jaeger endpoint at {} (traces only, logs to stdout)",
+        otlp_endpoint
+    );
 
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
     // For deployment these variables are:
@@ -202,13 +205,17 @@ async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
                 service.name = "yral_ssr",
             )
         })
-        .on_response(|response: &axum::response::Response, latency: std::time::Duration, _span: &tracing::Span| {
-            tracing::info!(
-                status_code = response.status().as_u16(),
-                latency_ms = latency.as_millis(),
-                "request completed"
-            );
-        });
+        .on_response(
+            |response: &axum::response::Response,
+             latency: std::time::Duration,
+             _span: &tracing::Span| {
+                tracing::info!(
+                    status_code = response.status().as_u16(),
+                    latency_ms = latency.as_millis(),
+                    "request completed"
+                );
+            },
+        );
 
     let sentry_tower_layer = ServiceBuilder::new()
         .layer(NewSentryLayer::new_from_top())
@@ -260,15 +267,15 @@ async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
     // Cleanup telemetry providers
     if let Some(logger_provider) = logger_provider {
         if let Err(e) = logger_provider.shutdown() {
-            eprintln!("Error shutting down logger provider: {}", e);
+            eprintln!("Error shutting down logger provider: {e}");
         }
     }
     if let Err(e) = tracer_provider.shutdown() {
-        eprintln!("Error shutting down tracer provider: {}", e);
+        eprintln!("Error shutting down tracer provider: {e}");
     }
     if let Some(metrics_provider) = metrics_provider {
         if let Err(e) = metrics_provider.shutdown() {
-            eprintln!("Error shutting down metrics provider: {}", e);
+            eprintln!("Error shutting down metrics provider: {e}");
         }
     }
 
@@ -296,7 +303,7 @@ fn main() {
         .unwrap()
         .block_on(async {
             if let Err(e) = main_impl().await {
-                eprintln!("Server error: {}", e);
+                eprintln!("Server error: {e}");
                 std::process::exit(1);
             }
         });

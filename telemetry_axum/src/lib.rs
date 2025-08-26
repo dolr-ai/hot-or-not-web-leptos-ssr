@@ -3,11 +3,9 @@ pub mod tracing;
 pub mod utils;
 use opentelemetry::{
     global,
-    trace::{noop::NoopTextMapPropagator, TraceId, SpanId, TracerProvider},
+    trace::{noop::NoopTextMapPropagator, SpanId, TraceId, TracerProvider},
 };
-use opentelemetry_otlp::{
-    LogExporter, SpanExporter, WithExportConfig,
-};
+use opentelemetry_otlp::{LogExporter, SpanExporter, WithExportConfig};
 use opentelemetry_sdk::{
     logs::LoggerProvider,
     metrics::SdkMeterProvider,
@@ -111,9 +109,10 @@ pub enum TelemetryError {
 
 fn resource(config: &Config) -> Resource {
     use opentelemetry::KeyValue;
-    Resource::new(vec![
-        KeyValue::new("service.name", config.service_name.clone()),
-    ])
+    Resource::new(vec![KeyValue::new(
+        "service.name",
+        config.service_name.clone(),
+    )])
 }
 
 /// Initialize telemetry with the given config.
@@ -435,14 +434,14 @@ fn init_otlp_with_stdout(
 
 fn init_otlp_traces_only(config: &Config) -> Result<SdkTracerProvider, TelemetryError> {
     let resource = resource(config);
-    
+
     // Only set up console logging (no OTLP logs)
     let fmt_layer = tracing_subscriber::fmt::layer()
         .pretty()
         .with_file(true)
         .with_line_number(true)
         .with_filter(env_filter(config)?);
-    
+
     // Set up OTLP traces
     use opentelemetry_otlp::new_exporter;
     let exporter = SpanExporter::new(
@@ -450,36 +449,39 @@ fn init_otlp_traces_only(config: &Config) -> Result<SdkTracerProvider, Telemetry
             .tonic()
             .with_endpoint(config.otlp_endpoint.clone())
             .build_span_exporter()
-            .map_err(|e| TelemetryError::TraceExporterBuild(
-                opentelemetry_otlp::Error::from(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
-            ))?
+            .map_err(|e| {
+                TelemetryError::TraceExporterBuild(opentelemetry_otlp::Error::from(
+                    Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+                ))
+            })?,
     );
-    
+
     use opentelemetry_sdk::trace::Config;
     let tracer_provider = SdkTracerProvider::builder()
-        .with_config(Config::default()
-            .with_resource(resource.clone())
-            .with_id_generator(UuidGenerator)
-            .with_max_events_per_span(64)
-            .with_max_attributes_per_span(16)
+        .with_config(
+            Config::default()
+                .with_resource(resource.clone())
+                .with_id_generator(UuidGenerator)
+                .with_max_events_per_span(64)
+                .with_max_attributes_per_span(16),
         )
         .with_batch_exporter(exporter, opentelemetry_sdk::runtime::Tokio)
         .build();
-    
+
     let tracer = tracer_provider.tracer(config.service_name.clone());
     let filter = env_filter(config)?;
     let tracing_layer = tracing_opentelemetry::layer()
         .with_tracer(tracer)
         .with_filter(filter);
-    
+
     tracing_subscriber::registry()
         .with(fmt_layer)
         .with(tracing_layer)
         .try_init()?;
-    
+
     opentelemetry::global::set_tracer_provider(tracer_provider.clone());
     log_panics::init();
-    
+
     Ok(tracer_provider)
 }
 
@@ -529,11 +531,12 @@ fn tracer_provider(
         Exporter::Stdout | Exporter::File | Exporter::FileAndStdout => {
             use opentelemetry_sdk::trace::Config;
             Ok(SdkTracerProvider::builder()
-                .with_config(Config::default()
-                    .with_resource(resource)
-                    .with_id_generator(UuidGenerator)
-                    .with_max_events_per_span(64)
-                    .with_max_attributes_per_span(16)
+                .with_config(
+                    Config::default()
+                        .with_resource(resource)
+                        .with_id_generator(UuidGenerator)
+                        .with_max_events_per_span(64)
+                        .with_max_attributes_per_span(16),
                 )
                 .build())
         }
@@ -543,15 +546,21 @@ fn tracer_provider(
                 new_exporter()
                     .tonic()
                     .with_endpoint(config.otlp_endpoint.clone())
-                    .build_span_exporter().map_err(|e| opentelemetry_otlp::Error::from(Box::new(e) as Box<dyn std::error::Error + Send + Sync>))?
+                    .build_span_exporter()
+                    .map_err(|e| {
+                        opentelemetry_otlp::Error::from(
+                            Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+                        )
+                    })?,
             );
             use opentelemetry_sdk::trace::Config;
             let provider = SdkTracerProvider::builder()
-                .with_config(Config::default()
-                    .with_resource(resource)
-                    .with_id_generator(UuidGenerator)
-                    .with_max_events_per_span(64)
-                    .with_max_attributes_per_span(16)
+                .with_config(
+                    Config::default()
+                        .with_resource(resource)
+                        .with_id_generator(UuidGenerator)
+                        .with_max_events_per_span(64)
+                        .with_max_attributes_per_span(16),
                 )
                 .with_batch_exporter(exporter, opentelemetry_sdk::runtime::Tokio)
                 .build();
@@ -569,7 +578,12 @@ fn logger_provider(
         new_exporter()
             .tonic()
             .with_endpoint(config.otlp_endpoint.clone())
-            .build_log_exporter().map_err(|e| opentelemetry_otlp::Error::from(Box::new(e) as Box<dyn std::error::Error + Send + Sync>))?
+            .build_log_exporter()
+            .map_err(|e| {
+                opentelemetry_otlp::Error::from(
+                    Box::new(e) as Box<dyn std::error::Error + Send + Sync>
+                )
+            })?,
     );
     Ok(LoggerProvider::builder()
         .with_resource(resource)
@@ -582,20 +596,28 @@ fn metrics_provider(
     resource: Resource,
 ) -> Result<SdkMeterProvider, opentelemetry_otlp::Error> {
     use opentelemetry_otlp::new_exporter;
-    use opentelemetry_sdk::metrics::reader::{DefaultAggregationSelector, DefaultTemporalitySelector};
-    
+    use opentelemetry_sdk::metrics::reader::{
+        DefaultAggregationSelector, DefaultTemporalitySelector,
+    };
+
     let exporter = new_exporter()
         .tonic()
         .with_endpoint(config.otlp_endpoint.clone())
         .build_metrics_exporter(
             Box::new(DefaultAggregationSelector::new()),
             Box::new(DefaultTemporalitySelector::new()),
-        ).map_err(|e| opentelemetry_otlp::Error::from(Box::new(e) as Box<dyn std::error::Error + Send + Sync>))?;
-    
+        )
+        .map_err(|e| {
+            opentelemetry_otlp::Error::from(Box::new(e) as Box<dyn std::error::Error + Send + Sync>)
+        })?;
+
     use std::time::Duration;
-    let reader = opentelemetry_sdk::metrics::PeriodicReader::builder(exporter, opentelemetry_sdk::runtime::Tokio)
-        .with_interval(Duration::from_secs(30))
-        .build();
+    let reader = opentelemetry_sdk::metrics::PeriodicReader::builder(
+        exporter,
+        opentelemetry_sdk::runtime::Tokio,
+    )
+    .with_interval(Duration::from_secs(30))
+    .build();
     Ok(SdkMeterProvider::builder()
         .with_reader(reader)
         .with_resource(resource)
