@@ -318,7 +318,7 @@ pub fn PostView() -> impl IntoView {
             .max_age(consts::auth::REFRESH_MAX_AGE.as_secs() as i64)
             .same_site(leptos_use::SameSite::Lax),
     );
-    Effect::new(move |_| {
+    Effect::new_isomorphic(move |_| {
         if home_page_viewed_sent.get_untracked() {
             return;
         }
