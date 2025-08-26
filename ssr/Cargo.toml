@@ -89,6 +89,7 @@ tracing-subscriber = { workspace = true, optional = true }
 tracing-futures = { workspace = true, optional = true }
 sentry = { workspace = true, optional = true }
 sentry-tower = { workspace = true, optional = true }
+telemetry_axum = { workspace = true, optional = true }
 google-cloud-alloydb-v1 = { workspace = true, optional = true }
 google-cloud-auth = { version = "0.22.1", optional = true }
 jsonwebtoken = { workspace = true, optional = true }
@@ -169,6 +170,7 @@ ssr = [
     "dep:tracing-futures",
     "dep:sentry",
     "dep:sentry-tower",
+    "dep:telemetry_axum",
 ]
 # Fetch mock referral history instead of history via canister
 mock-referral-history = [

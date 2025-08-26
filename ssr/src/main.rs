@@ -11,7 +11,6 @@ use sentry_tower::{NewSentryLayer, SentryHttpLayer};
 use state::server::AppState;
 use tower::ServiceBuilder;
 use tracing::instrument;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utils::host::is_host_or_origin_from_preview_domain;
 
 use hot_or_not_web_leptos_ssr::app::shell;
@@ -107,8 +106,30 @@ pub async fn leptos_routes_handler(state: State<AppState>, req: Request<AxumBody
     handler(state, req).await.into_response()
 }
 
-async fn main_impl() {
+async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
+
+    // Initialize telemetry with OTLP exporter for Jaeger
+    // Use environment variable OTLP_ENDPOINT if set, otherwise default to localhost
+    let otlp_endpoint = std::env::var("OTLP_ENDPOINT")
+        .unwrap_or_else(|_| "http://localhost:4317".to_string());
+    
+    // Use OtlpTracesOnly for Jaeger - traces include latency metrics
+    // Logs emitted during request handling will appear as span events in Jaeger
+    let telemetry_config = telemetry_axum::Config {
+        exporter: telemetry_axum::Exporter::OtlpTracesOnly,  // Traces with embedded logs to Jaeger
+        otlp_endpoint: otlp_endpoint.clone(),
+        service_name: "yral_ssr".to_string(),
+        level: "info,yral_ssr=debug,tower_http=info,hot_or_not_web_leptos_ssr=debug".to_string(),
+        propagate: true,  // Enable trace propagation for distributed tracing
+        ..Default::default()
+    };
+
+    let (logger_provider, tracer_provider, metrics_provider) = 
+        telemetry_axum::init_telemetry(&telemetry_config)
+            .map_err(|e| format!("Failed to initialize telemetry: {}", e))?;
+    
+    tracing::info!("Telemetry initialized with Jaeger endpoint at {} (traces only, logs to stdout)", otlp_endpoint);
 
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
     // For deployment these variables are:
@@ -156,6 +177,39 @@ async fn main_impl() {
         }
     };
 
+    // Create HTTP tracing layer with OpenTelemetry semantic conventions
+    let trace_layer = tower_http::trace::TraceLayer::new_for_http()
+        .make_span_with(|request: &axum::extract::Request<_>| {
+            let method = request.method();
+            let uri = request.uri();
+            let route = request
+                .extensions()
+                .get::<axum::extract::MatchedPath>()
+                .map(|path| path.as_str())
+                .unwrap_or_else(|| uri.path());
+
+            tracing::info_span!(
+                "http_request",
+                method = %method,
+                uri = %uri,
+                route = route,
+                // OpenTelemetry semantic conventions
+                otel.name = format!("{} {}", method, route),
+                otel.kind = "server",
+                http.method = %method,
+                http.url = %uri,
+                http.route = route,
+                service.name = "yral_ssr",
+            )
+        })
+        .on_response(|response: &axum::response::Response, latency: std::time::Duration, _span: &tracing::Span| {
+            tracing::info!(
+                status_code = response.status().as_u16(),
+                latency_ms = latency.as_millis(),
+                "request completed"
+            );
+        });
+
     let sentry_tower_layer = ServiceBuilder::new()
         .layer(NewSentryLayer::new_from_top())
         .layer(SentryHttpLayer::with_transaction());
@@ -187,6 +241,7 @@ async fn main_impl() {
         )
         .leptos_routes_with_handler(routes, get(leptos_routes_handler))
         .fallback(file_and_error_handler)
+        .layer(trace_layer)
         .layer(sentry_tower_layer)
         .with_state(res.app_state);
 
@@ -201,6 +256,24 @@ async fn main_impl() {
     .with_graceful_shutdown(terminate)
     .await
     .unwrap();
+
+    // Cleanup telemetry providers
+    if let Some(logger_provider) = logger_provider {
+        if let Err(e) = logger_provider.shutdown() {
+            eprintln!("Error shutting down logger provider: {}", e);
+        }
+    }
+    if let Err(e) = tracer_provider.shutdown() {
+        eprintln!("Error shutting down tracer provider: {}", e);
+    }
+    if let Some(metrics_provider) = metrics_provider {
+        if let Err(e) = metrics_provider.shutdown() {
+            eprintln!("Error shutting down metrics provider: {}", e);
+        }
+    }
+
+    tracing::info!("Telemetry providers shut down");
+    Ok(())
 }
 
 fn main() {
@@ -214,27 +287,17 @@ fn main() {
         },
     ));
 
-    tracing_subscriber::registry()
-        .with(
-            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                // axum logs rejections from built-in extractors with the `axum::rejection`
-                // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
-                format!(
-                    "{}=debug,tower_http=debug,axum::rejection=trace",
-                    env!("CARGO_CRATE_NAME")
-                )
-                .into()
-            }),
-        )
-        .with(tracing_subscriber::fmt::layer())
-        .with(sentry_tracing::layer())
-        .init();
+    // Note: telemetry_axum will initialize its own tracing subscriber
+    // that includes OpenTelemetry exporters for Jaeger
 
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .unwrap()
         .block_on(async {
-            main_impl().await;
+            if let Err(e) = main_impl().await {
+                eprintln!("Server error: {}", e);
+                std::process::exit(1);
+            }
         });
 }
