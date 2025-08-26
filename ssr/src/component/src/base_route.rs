@@ -3,10 +3,15 @@ use consts::auth::REFRESH_MAX_AGE;
 use leptos::{ev, prelude::*};
 use leptos_router::components::Outlet;
 // use leptos_router::hooks::use_navigate;
-use leptos_use::{use_cookie, use_cookie_with_options, use_event_listener, use_window, UseCookieOptions};
+use leptos_use::{
+    use_cookie, use_cookie_with_options, use_event_listener, use_window, UseCookieOptions,
+};
 
 use codee::string::FromToStringCodec;
-use consts::{ACCOUNT_CONNECTED_STORE, NOTIFICATIONS_ENABLED_STORE, NOTIFICATION_MIGRATED_STORE, USER_PRINCIPAL_STORE};
+use consts::{
+    ACCOUNT_CONNECTED_STORE, NOTIFICATIONS_ENABLED_STORE, NOTIFICATION_MIGRATED_STORE,
+    USER_PRINCIPAL_STORE,
+};
 use leptos_use::storage::use_local_storage;
 use state::audio_state::AudioState;
 use state::canisters::AuthState;
@@ -34,7 +39,6 @@ fn CtxProvider(children: Children) -> impl IntoView {
     // });
 
     let (_, set_user_principal) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
-
 
     Effect::new(move |_| {
         let user_canister = auth.canisters_resource.read().as_ref().and_then(|c| {
