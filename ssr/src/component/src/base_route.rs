@@ -15,6 +15,7 @@ use state::audio_state::AudioState;
 use state::canisters::AuthState;
 use utils::event_streaming::events::PageVisit;
 use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps};
+use utils::mixpanel::state::MixpanelState;
 use utils::notifications::get_fcm_token;
 use utils::sentry::{set_sentry_user, set_sentry_user_canister};
 use yral_metadata_client::MetadataClient;
@@ -26,7 +27,8 @@ pub struct Notification(pub RwSignal<Option<serde_json::Value>>);
 fn CtxProvider(children: Children) -> impl IntoView {
     let auth = AuthState::default();
     provide_context(auth);
-
+    let _ = MixpanelState::get_device_id();
+    let _ = MixpanelState::get_custom_device_id();
     let location = leptos_router::hooks::use_location();
     // let navigate = use_navigate();
     // // Monitor auth errors and navigate to logout if needed
