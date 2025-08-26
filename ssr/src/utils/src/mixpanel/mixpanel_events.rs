@@ -23,7 +23,6 @@ use crate::mixpanel::state::MixpanelState;
 
 #[server]
 async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
-    leptos::logging::log!("Init event served");
     use axum::http::HeaderMap;
     use axum_extra::headers::UserAgent;
     use axum_extra::TypedHeader;
@@ -132,7 +131,6 @@ pub fn parse_query_params_utm() -> Result<Vec<(String, String)>, String> {
 }
 
 pub async fn init_event(user_principal: Option<String>) {
-    leptos::logging::log!("Init event {:?})", user_principal);
     let mut props = Value::Object(serde_json::Map::new());
     props["event"] = "init".into();
     if let Some(user_principal) = user_principal {
@@ -147,7 +145,6 @@ pub(super) fn send_event_to_server<T>(event_name: &str, props: T)
 where
     T: Serialize,
 {
-    logging::log!("Sending Mixpanel event: {}", event_name);
     let payload = get_event_payload(event_name, props);
     spawn_local(async {
         let res = track_event_server_fn(payload).await;
