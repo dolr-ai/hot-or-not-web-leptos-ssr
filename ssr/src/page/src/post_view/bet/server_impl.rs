@@ -42,7 +42,7 @@ pub async fn vote_with_cents_post_v2(
     #[cfg(feature = "alloydb")]
     use alloydb::vote_with_cents_on_post_v2;
     #[cfg(not(feature = "alloydb"))]
-    use mock::vote_with_cents_on_post;
+    use mock::vote_with_cents_on_post_v2;
 
     // validate request against global_constants
 
@@ -241,6 +241,30 @@ mod mock {
     use state::hn_bet_state::VideoComparisonResult;
 
     use super::*;
+
+    #[allow(dead_code)]
+    #[tracing::instrument(skip(_sig))]
+    pub async fn vote_with_cents_on_post_v2(
+        _sender: Principal,
+        _req: ServerVoteRequest,
+        _sig: Signature,
+        _prev_video_info: Option<(Principal, String)>,
+    ) -> Result<VoteAPIRes, ServerFnError> {
+        let game_result = VoteResV2 {
+            game_result: GameResultV2::Win {
+                win_amt: 0u32.into(),
+                updated_balance: 0u32.into(),
+            },
+        };
+        Ok(VoteAPIRes {
+            game_result,
+            video_comparison_result: VideoComparisonResult {
+                hot_or_not: true,
+                current_video_score: 50.0,
+                previous_video_score: 10.0,
+            },
+        })
+    }
 
     #[allow(dead_code)]
     #[tracing::instrument(skip(_sig))]
