@@ -109,30 +109,70 @@ pub async fn leptos_routes_handler(state: State<AppState>, req: Request<AxumBody
 async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
 
-    // Initialize telemetry with OTLP exporter for Jaeger
-    // Use environment variable OTLP_ENDPOINT if set, otherwise default to localhost
-    let otlp_endpoint =
-        std::env::var("OTLP_ENDPOINT").unwrap_or_else(|_| "http://localhost:4317".to_string());
+    // Initialize telemetry if OTLP_ENDPOINT is configured
+    let telemetry_handles = if let Ok(otlp_endpoint) = std::env::var("OTLP_ENDPOINT") {
+        // Use OtlpTracesOnly for Jaeger - traces include latency metrics
+        // Logs emitted during request handling will appear as span events in Jaeger
+        let telemetry_config = telemetry_axum::Config {
+            exporter: telemetry_axum::Exporter::OtlpTracesOnly, // Traces with embedded logs to Jaeger
+            otlp_endpoint: otlp_endpoint.clone(),
+            service_name: "yral_ssr".to_string(),
+            level: "info,yral_ssr=debug,tower_http=info,hot_or_not_web_leptos_ssr=debug".to_string(),
+            propagate: true, // Enable trace propagation for distributed tracing
+            ..Default::default()
+        };
 
-    // Use OtlpTracesOnly for Jaeger - traces include latency metrics
-    // Logs emitted during request handling will appear as span events in Jaeger
-    let telemetry_config = telemetry_axum::Config {
-        exporter: telemetry_axum::Exporter::OtlpTracesOnly, // Traces with embedded logs to Jaeger
-        otlp_endpoint: otlp_endpoint.clone(),
-        service_name: "yral_ssr".to_string(),
-        level: "info,yral_ssr=debug,tower_http=info,hot_or_not_web_leptos_ssr=debug".to_string(),
-        propagate: true, // Enable trace propagation for distributed tracing
-        ..Default::default()
+        match telemetry_axum::init_telemetry(&telemetry_config) {
+            Ok(handles) => {
+                tracing::info!(
+                    "Telemetry initialized with Jaeger endpoint at {} (traces only, logs to stdout)",
+                    otlp_endpoint
+                );
+                Some(handles)
+            }
+            Err(e) => {
+                eprintln!("Warning: Failed to initialize telemetry with OTLP endpoint {}: {}. Falling back to stdout only.", otlp_endpoint, e);
+                
+                // Fallback to stdout-only logging
+                let telemetry_config = telemetry_axum::Config {
+                    exporter: telemetry_axum::Exporter::Stdout,
+                    service_name: "yral_ssr".to_string(),
+                    level: "info,yral_ssr=debug,tower_http=info,hot_or_not_web_leptos_ssr=debug".to_string(),
+                    ..Default::default()
+                };
+                
+                match telemetry_axum::init_telemetry(&telemetry_config) {
+                    Ok(handles) => {
+                        tracing::info!("Telemetry initialized with stdout-only logging (Jaeger unavailable)");
+                        Some(handles)
+                    }
+                    Err(e) => {
+                        eprintln!("Error: Failed to initialize fallback telemetry: {}", e);
+                        None
+                    }
+                }
+            }
+        }
+    } else {
+        // No OTLP_ENDPOINT configured, use stdout-only logging
+        let telemetry_config = telemetry_axum::Config {
+            exporter: telemetry_axum::Exporter::Stdout,
+            service_name: "yral_ssr".to_string(),
+            level: "info,yral_ssr=debug,tower_http=info,hot_or_not_web_leptos_ssr=debug".to_string(),
+            ..Default::default()
+        };
+        
+        match telemetry_axum::init_telemetry(&telemetry_config) {
+            Ok(handles) => {
+                tracing::info!("Telemetry initialized with stdout-only logging (no OTLP_ENDPOINT configured)");
+                Some(handles)
+            }
+            Err(e) => {
+                eprintln!("Error: Failed to initialize telemetry: {}", e);
+                None
+            }
+        }
     };
-
-    let (logger_provider, tracer_provider, metrics_provider) =
-        telemetry_axum::init_telemetry(&telemetry_config)
-            .map_err(|e| format!("Failed to initialize telemetry: {e}"))?;
-
-    tracing::info!(
-        "Telemetry initialized with Jaeger endpoint at {} (traces only, logs to stdout)",
-        otlp_endpoint
-    );
 
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
     // For deployment these variables are:
@@ -264,22 +304,23 @@ async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
     .await
     .unwrap();
 
-    // Cleanup telemetry providers
-    if let Some(logger_provider) = logger_provider {
-        if let Err(e) = logger_provider.shutdown() {
-            eprintln!("Error shutting down logger provider: {e}");
+    // Cleanup telemetry providers if they were initialized
+    if let Some((logger_provider, tracer_provider, metrics_provider)) = telemetry_handles {
+        if let Some(logger_provider) = logger_provider {
+            if let Err(e) = logger_provider.shutdown() {
+                eprintln!("Error shutting down logger provider: {e}");
+            }
         }
-    }
-    if let Err(e) = tracer_provider.shutdown() {
-        eprintln!("Error shutting down tracer provider: {e}");
-    }
-    if let Some(metrics_provider) = metrics_provider {
-        if let Err(e) = metrics_provider.shutdown() {
-            eprintln!("Error shutting down metrics provider: {e}");
+        if let Err(e) = tracer_provider.shutdown() {
+            eprintln!("Error shutting down tracer provider: {e}");
         }
+        if let Some(metrics_provider) = metrics_provider {
+            if let Err(e) = metrics_provider.shutdown() {
+                eprintln!("Error shutting down metrics provider: {e}");
+            }
+        }
+        tracing::info!("Telemetry providers shut down");
     }
-
-    tracing::info!("Telemetry providers shut down");
     Ok(())
 }
 
