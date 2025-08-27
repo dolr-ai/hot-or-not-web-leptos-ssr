@@ -51,7 +51,7 @@ fn ProfileCard(
                 />
                 <div class="flex flex-col gap-2">
                     <span class="text-lg font-semibold select-all line-clamp-1 font-kumbh text-neutral-50">
-                        @{details.display_name_or_fallback()}
+                        @{details.username_or_fallback()}
                     </span>
                     <span class="text-xs text-neutral-400 line-clamp-1 select-all">
                         {details.principal()}
