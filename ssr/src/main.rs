@@ -117,7 +117,8 @@ async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
             exporter: telemetry_axum::Exporter::OtlpTracesOnly, // Traces with embedded logs to Jaeger
             otlp_endpoint: otlp_endpoint.clone(),
             service_name: "yral_ssr".to_string(),
-            level: "info,yral_ssr=debug,tower_http=info,hot_or_not_web_leptos_ssr=debug".to_string(),
+            level: "info,yral_ssr=debug,tower_http=info,hot_or_not_web_leptos_ssr=debug"
+                .to_string(),
             propagate: true, // Enable trace propagation for distributed tracing
             ..Default::default()
         };
@@ -131,23 +132,26 @@ async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
                 Some(handles)
             }
             Err(e) => {
-                eprintln!("Warning: Failed to initialize telemetry with OTLP endpoint {}: {}. Falling back to stdout only.", otlp_endpoint, e);
-                
+                eprintln!("Warning: Failed to initialize telemetry with OTLP endpoint {otlp_endpoint}: {e}. Falling back to stdout only.");
+
                 // Fallback to stdout-only logging
                 let telemetry_config = telemetry_axum::Config {
                     exporter: telemetry_axum::Exporter::Stdout,
                     service_name: "yral_ssr".to_string(),
-                    level: "info,yral_ssr=debug,tower_http=info,hot_or_not_web_leptos_ssr=debug".to_string(),
+                    level: "info,yral_ssr=debug,tower_http=info,hot_or_not_web_leptos_ssr=debug"
+                        .to_string(),
                     ..Default::default()
                 };
-                
+
                 match telemetry_axum::init_telemetry(&telemetry_config) {
                     Ok(handles) => {
-                        tracing::info!("Telemetry initialized with stdout-only logging (Jaeger unavailable)");
+                        tracing::info!(
+                            "Telemetry initialized with stdout-only logging (Jaeger unavailable)"
+                        );
                         Some(handles)
                     }
                     Err(e) => {
-                        eprintln!("Error: Failed to initialize fallback telemetry: {}", e);
+                        eprintln!("Error: Failed to initialize fallback telemetry: {e}");
                         None
                     }
                 }
@@ -158,17 +162,20 @@ async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
         let telemetry_config = telemetry_axum::Config {
             exporter: telemetry_axum::Exporter::Stdout,
             service_name: "yral_ssr".to_string(),
-            level: "info,yral_ssr=debug,tower_http=info,hot_or_not_web_leptos_ssr=debug".to_string(),
+            level: "info,yral_ssr=debug,tower_http=info,hot_or_not_web_leptos_ssr=debug"
+                .to_string(),
             ..Default::default()
         };
-        
+
         match telemetry_axum::init_telemetry(&telemetry_config) {
             Ok(handles) => {
-                tracing::info!("Telemetry initialized with stdout-only logging (no OTLP_ENDPOINT configured)");
+                tracing::info!(
+                    "Telemetry initialized with stdout-only logging (no OTLP_ENDPOINT configured)"
+                );
                 Some(handles)
             }
             Err(e) => {
-                eprintln!("Error: Failed to initialize telemetry: {}", e);
+                eprintln!("Error: Failed to initialize telemetry: {e}");
                 None
             }
         }
