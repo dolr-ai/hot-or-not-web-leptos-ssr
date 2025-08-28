@@ -3,12 +3,12 @@ use serde::{Deserialize, Serialize};
 use yral_canisters_client::individual_user_template::PostStatus as PostStatusCandid;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
-pub type PostId = (Principal, u64);
+pub type PostId = (Principal, String);
 
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone)]
 pub struct PostParams {
     pub canister_id: Principal,
-    pub post_id: u64,
+    pub post_id: String,
 }
 
 #[derive(PartialEq, Debug, Eq)]
