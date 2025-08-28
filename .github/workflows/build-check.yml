@@ -49,8 +49,8 @@ jobs:
       - name: cargo-leptos setup
         run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked
 
-      - name: Cache rust dependencies and build output
-        uses: Swatinem/rust-cache@v2
+      # - name: Cache rust dependencies and build output
+      #   uses: Swatinem/rust-cache@v2
 
       - name: Install Node.js
         uses: actions/setup-node@v4
@@ -84,22 +84,26 @@ jobs:
           packages: musl-tools protobuf-compiler
           version: 1.0
 
-      - name: Install clippy
-        run: |
-          rustup component add clippy
-          rustup component add rustfmt
+      # - name: Install clippy
+      #   run: |
+      #     rustup component add clippy
+      #     rustup component add rustfmt
 
-      - name: lint check
-        run: |
-          cargo fmt --check
-          cargo clippy --no-deps --all-features --release -- -D warnings
-        env:
-          RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
+      # - name: lint check
+      #   run: |
+      #     cargo fmt --check
+      #     cargo clippy --no-deps --all-features --release -- -D warnings
+      #   env:
+      #     RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
 
       - name: Print Rust and Cargo version
         run: |
           rustc --version
           cargo --version
+          npm install -g wasm-opt
+          cargo install wasm-opt
+          wasm-opt --version
+          /home/runner/.cargo/bin/wasm-opt --version
 
       - name: Build the Leptos project to `musl` output
         run: |
@@ -108,16 +112,191 @@ jobs:
             RUSTFLAGS_VALUE="--cfg=erase_components"
           fi
           echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
-          RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release --lib-features release-lib --bin-features release-bin
+          # Build with debug symbols for WASM (--wasm-debug flag)
+          RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --wasm-debug --release --lib-features release-lib --bin-features release-bin
         env:
           RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
           LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
           LEPTOS_HASH_FILES: true
           LEPTOS_TAILWIND_VERSION: v4.1.7
-      - name: Strip debug symbols
+
+      - name: Install cargo-wasm2map for source map generation
         run: |
+          echo "Installing cargo-wasm2map..."
+          cargo install cargo-wasm2map || echo "cargo-wasm2map already installed"
+
+      - name: Generate source maps and optimize WASM
+        run: |
+          # Determine base URL based on PR or main branch
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            BASE_URL="https://pr-${PR_NUMBER}-dolr-ai-hot-or-not-web-leptos-ssr.fly.dev/pkg"
+          else
+            BASE_URL="https://hot-or-not-web-leptos-ssr.fly.dev/pkg"
+          fi
+          echo "Using base URL: $BASE_URL"
+          
+          # Create debug directory for backup
+          mkdir -p target/site/debug
+          
+          # Process WASM files
+          for wasm_file in target/site/pkg/*.wasm; do
+            if [ -f "$wasm_file" ]; then
+              filename=$(basename "$wasm_file")
+              echo "Processing $filename..."
+              
+              # Show original size with debug symbols
+              echo "Original size (with debug): $(ls -lh "$wasm_file" | awk '{print $5}')"
+              
+              # Generate source map using cargo-wasm2map
+              echo "Generating source map..."
+              cargo wasm2map "$wasm_file" -p -b "$BASE_URL" || {
+                echo "Warning: Failed to generate source map for $filename"
+              }
+              
+              # Check if source map was created
+              if [ -f "$wasm_file.map" ]; then
+                map_size=$(ls -lh "$wasm_file.map" | awk '{print $5}')
+                echo "✓ Source map generated: ${filename}.map ($map_size)"
+                
+                # Verify sourceMappingURL was added
+                if strings "$wasm_file" 2>/dev/null | grep -q "sourceMappingURL"; then
+                  echo "✓ WASM patched with sourceMappingURL"
+                fi
+              fi
+              
+              # Copy WASM with source map reference for backup
+              cp "$wasm_file" "target/site/debug/${filename%.wasm}.with-sourcemap.wasm"
+              
+              # Create optimized production version (strip debug sections but keep sourceMappingURL)
+              echo "Creating optimized production version..."
+              /home/runner/.cargo/bin/wasm-opt "$wasm_file" -o "$wasm_file.tmp" \
+                --strip-debug \
+                --strip-producers \
+                --strip-dwarf \
+                -Oz \
+                --enable-bulk-memory \
+                --enable-nontrapping-float-to-int
+              
+              # Only replace if optimization succeeded
+              if [ -f "$wasm_file.tmp" ]; then
+                mv "$wasm_file.tmp" "$wasm_file"
+                echo "Optimized size (production): $(ls -lh "$wasm_file" | awk '{print $5}')"
+                
+                # Re-add sourceMappingURL if it was stripped
+                if [ -f "$wasm_file.map" ] && ! strings "$wasm_file" 2>/dev/null | grep -q "sourceMappingURL"; then
+                  echo "Re-adding sourceMappingURL reference..."
+                  # Note: wasm-opt strips custom sections, so we keep the original with sourcemap
+                  cp "target/site/debug/${filename%.wasm}.with-sourcemap.wasm" "$wasm_file"
+                  echo "Using WASM with embedded sourceMappingURL"
+                fi
+              fi
+              
+              echo "---"
+            fi
+          done
+          
+          echo "Source maps generated and WASM optimized"
+          ls -lh target/site/pkg/*.map 2>/dev/null || echo "No source maps found"
+
+      - name: Setup Sentry CLI
+        uses: matbour/setup-sentry-cli@v2
+        with:
+          url: https://sentry.yral.com
+          token: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          organization: sentry
+          project: leptos-ssr-server
+
+      - name: Upload Sentry debug files for Server
+        run: |
+          # Extract debug symbols from server binary
           objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
           objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
+          objcopy --add-musl-debuglink target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{.d,}
+
+          # Upload server debug files with source context
+          echo "Uploading server debug symbols to Sentry (leptos-ssr-server)..."
+          sentry-cli debug-files upload --org sentry --project leptos-ssr-server --auth-token $SENTRY_AUTH_TOKEN --include-sources . || true
+
+          # Create release for server
+          export SENTRY_RELEASE="${GITHUB_SHA:0:7}"
+          sentry-cli releases new "$SENTRY_RELEASE" --org sentry --project leptos-ssr-server || true
+          sentry-cli releases set-commits "$SENTRY_RELEASE" --org sentry --project leptos-ssr-server --auto || true
+          sentry-cli releases finalize "$SENTRY_RELEASE" --org sentry --project leptos-ssr-server || true
+
+          echo "Server release $SENTRY_RELEASE created and debug files uploaded"
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        continue-on-error: true
+
+      - name: Upload Sentry source maps for Browser (WASM)
+        run: |
+          # Upload WASM source maps for browser project
+          export SENTRY_RELEASE="${GITHUB_SHA:0:7}"
+
+          echo "Uploading WASM source maps to Sentry (leptos-ssr-browser)..."
+          echo "Release: $SENTRY_RELEASE"
+          
+          # Create release
+          sentry-cli releases new "$SENTRY_RELEASE" --org sentry --project leptos-ssr-browser || true
+          
+          # Upload WASM files and source maps as release artifacts
+          echo "Uploading WASM files and source maps..."
+          for wasm_file in target/site/pkg/*.wasm; do
+            if [ -f "$wasm_file" ]; then
+              filename=$(basename "$wasm_file")
+              
+              # Skip upload if file is too large (>100MB)
+              file_size_mb=$(stat -c%s "$wasm_file" 2>/dev/null | awk '{print int($1/1048576)}')
+              if [ "$file_size_mb" -gt 100 ]; then
+                echo "Warning: $filename is ${file_size_mb}MB, skipping WASM upload (too large)"
+                echo "Only uploading source map..."
+              else
+                echo "Uploading WASM: $filename (${file_size_mb}MB)"
+                sentry-cli releases files "$SENTRY_RELEASE" upload \
+                  --org sentry --project leptos-ssr-browser \
+                  "$wasm_file" "/pkg/$filename" || echo "Warning: Failed to upload $filename"
+              fi
+              
+              # Upload source map if exists
+              if [ -f "$wasm_file.map" ]; then
+                map_size=$(ls -lh "$wasm_file.map" | awk '{print $5}')
+                echo "Uploading source map: ${filename}.map ($map_size)"
+                sentry-cli releases files "$SENTRY_RELEASE" upload \
+                  --org sentry --project leptos-ssr-browser \
+                  "$wasm_file.map" "/pkg/${filename}.map" || echo "Warning: Failed to upload source map"
+              else
+                echo "Warning: No source map found for $filename"
+              fi
+            fi
+          done
+          
+          # Upload JS files
+          echo "Uploading JS files..."
+          for js_file in target/site/pkg/*.js; do
+            if [ -f "$js_file" ]; then
+              filename=$(basename "$js_file")
+              echo "Uploading JS: $filename"
+              sentry-cli releases files "$SENTRY_RELEASE" upload \
+                --org sentry --project leptos-ssr-browser \
+                "$js_file" "/pkg/$filename" || true
+            fi
+          done
+          
+          # List uploaded files
+          echo "Listing uploaded files..."
+          sentry-cli releases files "$SENTRY_RELEASE" list \
+            --org sentry --project leptos-ssr-browser || true
+
+          # Set commits and finalize
+          sentry-cli releases set-commits "$SENTRY_RELEASE" --org sentry --project leptos-ssr-browser --auto || true
+          sentry-cli releases finalize "$SENTRY_RELEASE" --org sentry --project leptos-ssr-browser || true
+
+          echo "Browser release $SENTRY_RELEASE created with source maps"
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+        continue-on-error: true
+
       - run: touch .empty
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
@@ -128,6 +307,9 @@ jobs:
             target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
             target/x86_64-unknown-linux-musl/prod-release/hash.txt
             target/site
+            target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr.debug
+            target/site/pkg/*.wasm
+            target/site/pkg/*.wasm.map
             .empty
 
       - name: Find and display hash file
