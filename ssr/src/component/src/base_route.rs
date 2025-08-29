@@ -1,3 +1,4 @@
+use candid::Principal;
 use consts::auth::REFRESH_MAX_AGE;
 use leptos::{ev, prelude::*};
 use leptos_router::components::Outlet;
@@ -5,12 +6,16 @@ use leptos_router::components::Outlet;
 use leptos_use::{use_cookie_with_options, use_event_listener, use_window, UseCookieOptions};
 
 use codee::string::FromToStringCodec;
-use consts::{ACCOUNT_CONNECTED_STORE, NOTIFICATIONS_ENABLED_STORE, NOTIFICATION_MIGRATED_STORE};
+use consts::{
+    ACCOUNT_CONNECTED_STORE, AUTH_UTIL_COOKIES_MAX_AGE_MS, NOTIFICATIONS_ENABLED_STORE,
+    NOTIFICATION_MIGRATED_STORE, USER_PRINCIPAL_STORE,
+};
 use leptos_use::storage::use_local_storage;
 use state::audio_state::AudioState;
 use state::canisters::AuthState;
 use utils::event_streaming::events::PageVisit;
 use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps};
+use utils::mixpanel::state::MixpanelState;
 use utils::notifications::get_fcm_token;
 use utils::sentry::{set_sentry_user, set_sentry_user_canister};
 use yral_metadata_client::MetadataClient;
@@ -22,7 +27,8 @@ pub struct Notification(pub RwSignal<Option<serde_json::Value>>);
 fn CtxProvider(children: Children) -> impl IntoView {
     let auth = AuthState::default();
     provide_context(auth);
-
+    let _ = MixpanelState::get_device_id();
+    let _ = MixpanelState::get_custom_device_id();
     let location = leptos_router::hooks::use_location();
     // let navigate = use_navigate();
     // // Monitor auth errors and navigate to logout if needed
@@ -32,9 +38,18 @@ fn CtxProvider(children: Children) -> impl IntoView {
     //     }
     // });
 
+    let (_, set_user_principal) = use_cookie_with_options::<Principal, FromToStringCodec>(
+        USER_PRINCIPAL_STORE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(AUTH_UTIL_COOKIES_MAX_AGE_MS),
+    );
+
     Effect::new(move |_| {
         let user_canister = auth.canisters_resource.read().as_ref().and_then(|c| {
             let cans = c.as_ref().ok()?;
+            let principal = cans.user_principal();
+            set_user_principal.set(Some(principal));
             Some(cans.user_canister().to_string())
         });
         set_sentry_user_canister(user_canister);

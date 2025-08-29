@@ -130,6 +130,17 @@ pub fn parse_query_params_utm() -> Result<Vec<(String, String)>, String> {
     Ok(Vec::new())
 }
 
+pub async fn init_event(user_principal: Option<String>) {
+    let mut props = Value::Object(serde_json::Map::new());
+    props["event"] = "init".into();
+    if let Some(user_principal) = user_principal {
+        props["principal"] = user_principal.into();
+    }
+    props["$device_id"] = MixpanelGlobalProps::get_device_id().into();
+    props["custom_device_id"] = MixpanelGlobalProps::get_custom_device_id().into();
+    let _ = track_event_server_fn(props).await;
+}
+
 pub(super) fn send_event_to_server<T>(event_name: &str, props: T)
 where
     T: Serialize,
@@ -273,7 +284,7 @@ impl MixpanelGlobalProps {
         if let Some(device_id) = device_id.get_untracked() {
             device_id
         } else {
-            let device_id_val = crate::local_storage::LocalStorage::uuid_get_or_init(DEVICE_ID);
+            let device_id_val = crate::storage::Storage::uuid_get_or_init(DEVICE_ID);
             device_id.set(Some(device_id_val.clone()));
             device_id_val
         }
@@ -284,8 +295,7 @@ impl MixpanelGlobalProps {
         if let Some(custom_device_id) = custom_device_id.get_untracked() {
             custom_device_id
         } else {
-            let custom_device_id_val =
-                crate::local_storage::LocalStorage::uuid_get_or_init(CUSTOM_DEVICE_ID);
+            let custom_device_id_val = crate::storage::Storage::uuid_get_or_init(CUSTOM_DEVICE_ID);
             custom_device_id.set(Some(custom_device_id_val.clone()));
             custom_device_id_val
         }

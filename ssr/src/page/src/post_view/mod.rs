@@ -6,7 +6,7 @@ pub mod video_iter;
 pub mod video_loader;
 use crate::scrolling_post_view::ScrollingPostView;
 use component::spinner::FullScreenSpinner;
-use consts::{MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_ENABLED_COOKIE};
+use consts::{MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_ENABLED_COOKIE, USER_PRINCIPAL_STORE};
 use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
 use indexmap::IndexSet;
 use priority_queue::DoublePriorityQueue;
@@ -22,7 +22,7 @@ use leptos_router::{
     hooks::{use_navigate, use_params},
     params::Params,
 };
-use leptos_use::{use_cookie_with_options, use_debounce_fn, UseCookieOptions};
+use leptos_use::{use_cookie, use_cookie_with_options, use_debounce_fn, UseCookieOptions};
 use utils::{
     mixpanel::mixpanel_events::*,
     posts::{FeedPostCtx, FetchCursor},
@@ -318,7 +318,7 @@ pub fn PostView() -> impl IntoView {
             .max_age(consts::auth::REFRESH_MAX_AGE.as_secs() as i64)
             .same_site(leptos_use::SameSite::Lax),
     );
-    Effect::new(move |_| {
+    Effect::new_isomorphic(move |_| {
         if home_page_viewed_sent.get_untracked() {
             return;
         }
@@ -356,9 +356,13 @@ pub fn PostView() -> impl IntoView {
     let canisters = unauth_canisters();
     let post_details_cache: PostDetailsCacheCtx = expect_context();
 
+    let (user_principal, _) = use_cookie::<Principal, FromToStringCodec>(USER_PRINCIPAL_STORE);
+
     let fetch_first_video_uid = Resource::new(initial_canister_and_post, move |params| {
         let canisters = canisters.clone();
         async move {
+            let user_principal = user_principal.get_untracked().map(|f| f.to_text());
+            init_event(user_principal).await;
             let Some(params) = params else {
                 return Err(());
             };
