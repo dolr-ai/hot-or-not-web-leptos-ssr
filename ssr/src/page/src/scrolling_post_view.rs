@@ -100,6 +100,15 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                 // Update current index
                                 current_idx.set(queue_idx);
 
+                                // Check if we've hit the limit and need to hard refresh
+                                if queue_idx >= video_queue_for_feed.with_untracked(|vqf| vqf.len()) - 1 {
+                                    if let Some(win) = leptos::web_sys::window() {
+                                        let _ = win
+                                            .location()
+                                            .set_href(&_hard_refresh_target.get_untracked());
+                                    }
+                                }
+
                                 // Trigger fetch if needed (without recursive calls)
                                 let queue_len = video_queue.with_untracked(|q| q.len());
                                 let remaining = queue_len.saturating_sub(queue_idx);
