@@ -104,12 +104,12 @@ pub fn RankBadge() -> impl IntoView {
     }
 }
 
-/// Global rank badge that uses the single global Resource
+/// Global rank badge that uses the single global LocalResource
 #[component]
 pub fn GlobalRankBadge() -> impl IntoView {
-    // Get the global rank Resource from context (created once in PostView)
-    let global_rank_resource = use_context::<Resource<UserRank>>()
-        .expect("Global rank Resource should be provided");
+    // Get the global rank LocalResource from context (created once in PostView)
+    let global_rank_resource = use_context::<LocalResource<UserRank>>()
+        .expect("Global rank LocalResource should be provided");
     
     view! {
         <Suspense
