@@ -14,6 +14,7 @@ pkgs.mkShell {
     rustup
     openssl
     git
+    cargo-leptos
     protobuf_21
     mold
   ] ++ (if pkgs.stdenv.isDarwin then [

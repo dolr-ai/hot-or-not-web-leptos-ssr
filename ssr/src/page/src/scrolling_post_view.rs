@@ -50,18 +50,23 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
 
     let scroll_root: NodeRef<html::Div> = NodeRef::new();
     let win_audio_ref = NodeRef::<Audio>::new();
-    
+
     // Monitor current_idx and trigger hard refresh when reaching the end
     Effect::new(move |_| {
         let current = current_idx.get();
         let queue_len = video_queue_for_feed.with(|vqf| vqf.len());
-        
+
         // Check if we're at the last video (or second to last to be safe)
         if queue_len > 0 && current >= queue_len.saturating_sub(2) {
             if let Some(win) = leptos::web_sys::window() {
                 let target = _hard_refresh_target.get_untracked();
                 if !target.is_empty() {
-                    leptos::logging::log!("Hard refresh triggered: current={}, queue_len={}, target={}", current, queue_len, target);
+                    leptos::logging::log!(
+                        "Hard refresh triggered: current={}, queue_len={}, target={}",
+                        current,
+                        queue_len,
+                        target
+                    );
                     let _ = win.location().set_href(&target);
                 }
             }
