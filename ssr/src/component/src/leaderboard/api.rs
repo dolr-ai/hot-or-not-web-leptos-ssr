@@ -21,42 +21,30 @@ pub struct LeaderboardRankResponse {
 }
 
 // Client-side function to fetch rank
-pub async fn fetch_user_rank_from_api(
-    principal: Principal,
-) -> Result<Option<u32>, String> {
-    #[cfg(feature = "hydrate")]
-    {
-        use consts::OFF_CHAIN_AGENT_URL;
-        
-        let url = OFF_CHAIN_AGENT_URL
-            .join(&format!("api/v1/leaderboard/rank/{}", principal))
-            .map_err(|e| format!("Failed to build URL: {}", e))?;
-        
-        let client = reqwest::Client::new();
-        let response = client
-            .get(url)
-            .send()
+pub async fn fetch_user_rank_from_api(principal: Principal) -> Result<Option<u32>, String> {
+    use consts::OFF_CHAIN_AGENT_URL;
+
+    let url = OFF_CHAIN_AGENT_URL
+        .join(&format!("api/v1/leaderboard/rank/{}", principal))
+        .map_err(|e| format!("Failed to build URL: {}", e))?;
+
+    let client = reqwest::Client::new();
+    let response = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    if response.status().is_success() {
+        let data: LeaderboardRankResponse = response
+            .json()
             .await
-            .map_err(|e| format!("Request failed: {}", e))?;
-        
-        if response.status().is_success() {
-            let data: LeaderboardRankResponse = response
-                .json()
-                .await
-                .map_err(|e| format!("Failed to parse response: {}", e))?;
-            Ok(Some(data.user.rank))
-        } else if response.status() == reqwest::StatusCode::NOT_FOUND {
-            // User not in current tournament
-            Ok(None)
-        } else {
-            Ok(None)
-        }
-    }
-    
-    #[cfg(not(feature = "hydrate"))]
-    {
-        // SSR doesn't make client calls
-        let _ = principal;
+            .map_err(|e| format!("Failed to parse response: {}", e))?;
+        Ok(Some(data.user.rank))
+    } else if response.status() == reqwest::StatusCode::NOT_FOUND {
+        // User not in current tournament
+        Ok(None)
+    } else {
         Ok(None)
     }
 }

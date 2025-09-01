@@ -4,7 +4,7 @@ use component::icons::sound_off_icon::SoundOffIcon;
 use component::icons::sound_on_icon::SoundOnIcon;
 use component::icons::volume_high_icon::VolumeHighIcon;
 use component::icons::volume_mute_icon::VolumeMuteIcon;
-use component::leaderboard::{RankBadge, RankUpdateCounter};
+use component::leaderboard::GlobalRankBadge;
 use component::overlay::ShadowOverlay;
 use component::spinner::SpinnerFit;
 use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption};
@@ -164,9 +164,7 @@ pub fn VideoDetailsOverlay(
     prev_post: Option<PostDetails>,
     win_audio_ref: NodeRef<Audio>,
 ) -> impl IntoView {
-    // Create counter for rank updates - increment to trigger refetch
-    let rank_update_count = RwSignal::new(RankUpdateCounter(0));
-    provide_context(rank_update_count);
+    // No need for local context - using global context from App
     
     let show_share = RwSignal::new(false);
     let show_report = RwSignal::new(false);
@@ -555,7 +553,7 @@ pub fn VideoDetailsOverlay(
                 
                 // Add the rank badge here, below the profile/NSFW row
                 <div class="flex justify-end w-full mt-2 pointer-events-auto">
-                    <RankBadge />
+                    <GlobalRankBadge />
                 </div>
             </div>
             

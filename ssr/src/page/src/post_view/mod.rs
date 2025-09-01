@@ -5,6 +5,7 @@ pub mod single_post;
 pub mod video_iter;
 pub mod video_loader;
 use crate::scrolling_post_view::ScrollingPostView;
+use component::leaderboard::{api::fetch_user_rank_from_api, RankUpdateCounter, UserRank};
 use component::spinner::FullScreenSpinner;
 use consts::{MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_ENABLED_COOKIE};
 use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
@@ -352,6 +353,51 @@ pub fn PostView() -> impl IntoView {
             DEFAULT_BET_COIN_FOR_LOGGED_OUT
         },
     ));
+
+    // Create a single global Resource for fetching rank
+    let rank_update_count = use_context::<RwSignal<RankUpdateCounter>>()
+        .expect("RankUpdateCounter should be provided globally");
+    let global_rank = use_context::<RwSignal<UserRank>>()
+        .expect("UserRank should be provided globally");
+    
+    let global_rank_resource = Resource::new(
+        move || rank_update_count.get().0,
+        move |counter| {
+            let global_rank = global_rank;
+            send_wrap(async move {
+                // If we already have a rank and counter is 0, return cached value
+                if counter == 0 {
+                    let cached = global_rank.get_untracked();
+                    if cached.0.is_some() {
+                        return cached;
+                    }
+                }
+                
+                // Get user principal
+                let Some(principal) = auth.user_principal.await.ok() else {
+                    return UserRank(None);
+                };
+                
+                leptos::logging::log!("PostView: Fetching rank for principal: {} (counter: {})", principal, counter);
+                
+                // Fetch rank from API
+                match fetch_user_rank_from_api(principal).await {
+                    Ok(rank) => {
+                        leptos::logging::log!("PostView: Fetched rank: {:?}", rank);
+                        // Update global rank value
+                        let user_rank = UserRank(rank);
+                        global_rank.set(user_rank);
+                        user_rank
+                    }
+                    Err(e) => {
+                        leptos::logging::error!("PostView: Failed to fetch user rank: {}", e);
+                        UserRank(None)
+                    }
+                }
+            })
+        },
+    );
+    provide_context(global_rank_resource);
 
     let canisters = unauth_canisters();
     let post_details_cache: PostDetailsCacheCtx = expect_context();

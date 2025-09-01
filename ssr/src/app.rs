@@ -1,5 +1,6 @@
 use crate::error_template::{AppError, ErrorTemplate};
 use component::content_upload::AuthorizedUserToSeedContent;
+use component::leaderboard::{RankUpdateCounter, UserRank};
 use component::{base_route::BaseRoute, nav::NavBar};
 use leptos::prelude::*;
 use leptos_meta::*;
@@ -108,6 +109,10 @@ pub fn App() -> impl IntoView {
     provide_context(AuthorizedUserToSeedContent::default());
     provide_context(AudioState::default());
     provide_context(PostDetailsCacheCtx::default());
+    
+    // Global rank state management
+    provide_context(RwSignal::new(RankUpdateCounter(0)));
+    provide_context(RwSignal::new(UserRank::default())); // Global rank value
 
     // History Tracking
     let history_ctx = HistoryCtx::default();

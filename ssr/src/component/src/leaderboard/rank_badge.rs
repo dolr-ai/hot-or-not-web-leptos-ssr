@@ -4,7 +4,7 @@ use leptos_router::hooks::use_navigate;
 use state::canisters::auth_state;
 use utils::send_wrap;
 
-use super::{api::fetch_user_rank_from_api, RankUpdateCounter};
+use super::{api::fetch_user_rank_from_api, RankUpdateCounter, UserRank};
 
 /// Reusable rank badge view component
 #[component]
@@ -99,6 +99,36 @@ pub fn RankBadge() -> impl IntoView {
                         }
                     })
                 }).flatten()
+            }}
+        </Suspense>
+    }
+}
+
+/// Global rank badge that uses the single global Resource
+#[component]
+pub fn GlobalRankBadge() -> impl IntoView {
+    // Get the global rank Resource from context (created once in PostView)
+    let global_rank_resource = use_context::<Resource<UserRank>>()
+        .expect("Global rank Resource should be provided");
+    
+    view! {
+        <Suspense
+            fallback=move || view! {
+                // Show loading state with "..."
+                <RankBadgeView rank_text="...".to_string() />
+            }
+        >
+            {move || {
+                global_rank_resource.get().map(|user_rank| {
+                    // Always render the badge
+                    let rank_text = match user_rank.0 {
+                        Some(rank) => format!("#{}", rank),
+                        None => "...".to_string(),
+                    };
+                    view! {
+                        <RankBadgeView rank_text />
+                    }
+                })
             }}
         </Suspense>
     }
