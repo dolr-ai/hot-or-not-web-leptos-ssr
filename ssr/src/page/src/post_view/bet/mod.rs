@@ -3,10 +3,7 @@ mod server_impl;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
-use component::{
-    bullet_loader::BulletLoader, hn_icons::*, leaderboard::RankBadge, show_any::ShowAny,
-    spinner::SpinnerFit,
-};
+use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
 use consts::auth::REFRESH_MAX_AGE;
 use consts::{
     UserOnboardingStore, AUTH_JOURNEY_PAGE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
@@ -306,14 +303,14 @@ fn HNButtonOverlay(
                         );
 
                         // Trigger rank update after successful vote
-                        if let Some(update_rank) = use_context::<Trigger>() {
-                            update_rank.notify();
+                        if let Some(rank_update_count) = use_context::<RwSignal<component::leaderboard::RankUpdateCounter>>() {
+                            rank_update_count.update(|c| c.0 += 1);
                         }
 
                         Some(())
                     }
                     Err(e) => {
-                        show_low_balance_popup.set(true);
+                        show_low_balance_popup.set(true); // TODO: only show when low sats and not other errors
                         log::error!("{e}");
                         None
                     }
@@ -703,13 +700,9 @@ pub fn HNGameOverlay(
     let bet_direction = RwSignal::new(None::<VoteKind>);
 
     let refetch_bet = Trigger::new();
-    let update_rank = Trigger::new();
     let post = StoredValue::new(post);
 
     let auth = auth_state();
-
-    // Provide context for rank updates
-    provide_context(update_rank);
 
     let coin: RwSignal<CoinState> = use_context().unwrap_or_else(|| {
         RwSignal::new(if auth.is_logged_in_with_oauth().get_untracked() {
@@ -747,9 +740,6 @@ pub fn HNGameOverlay(
 
     view! {
         <>
-            // Add the rank badge at the top
-            <RankBadge />
-
             <Suspense fallback=LoaderWithShadowBg>
                 {move || {
                     create_game_info

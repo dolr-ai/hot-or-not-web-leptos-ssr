@@ -2,11 +2,22 @@ use candid::Principal;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct RankResponse {
+pub struct UserRankInfo {
     pub rank: u32,
     pub score: f64,
     pub percentile: f64,
-    pub potential_reward: Option<f64>,
+    pub reward: Option<u32>,
+    pub principal_id: String,
+    pub username: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct LeaderboardRankResponse {
+    pub user: UserRankInfo,
+    // We don't need the other fields for now
+    // pub tournament: ...,
+    // pub surrounding_players: ...,
+    // pub total_participants: u32,
 }
 
 // Client-side function to fetch rank
@@ -29,11 +40,11 @@ pub async fn fetch_user_rank_from_api(
             .map_err(|e| format!("Request failed: {}", e))?;
         
         if response.status().is_success() {
-            let data: RankResponse = response
+            let data: LeaderboardRankResponse = response
                 .json()
                 .await
                 .map_err(|e| format!("Failed to parse response: {}", e))?;
-            Ok(Some(data.rank))
+            Ok(Some(data.user.rank))
         } else if response.status() == reqwest::StatusCode::NOT_FOUND {
             // User not in current tournament
             Ok(None)
