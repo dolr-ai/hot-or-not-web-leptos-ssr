@@ -1,7 +1,8 @@
-use std::{env, fmt::Display};
+use std::fmt::Display;
 
-use leptos::prelude::*;
-use leptos::server;
+#[cfg(feature = "ga4")]
+use leptos::{prelude::ServerFnError, server};
+
 pub enum ReportOption {
     Nudity,
     Violence,
@@ -33,7 +34,10 @@ pub async fn send_report_offchain(
     reason: String,
     video_url: String,
 ) -> Result<(), ServerFnError> {
+    use std::env;
+
     use crate::off_chain;
+    use leptos::prelude::expect_context;
     use tonic::metadata::MetadataValue;
     use tonic::transport::Channel;
     use tonic::Request;

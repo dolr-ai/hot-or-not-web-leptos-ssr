@@ -3,7 +3,10 @@ mod server_impl;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
-use component::{bullet_loader::BulletLoader, hn_icons::*, show_any::ShowAny, spinner::SpinnerFit};
+use component::{
+    bullet_loader::BulletLoader, hn_icons::*, leaderboard::RankBadge, show_any::ShowAny,
+    spinner::SpinnerFit,
+};
 use consts::auth::REFRESH_MAX_AGE;
 use consts::{
     UserOnboardingStore, AUTH_JOURNEY_PAGE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
@@ -301,6 +304,12 @@ fn HNButtonOverlay(
                             audio_ref,
                             matches!(res.game_result.game_result, GameResultV2::Win { .. }),
                         );
+
+                        // Trigger rank update after successful vote
+                        if let Some(update_rank) = use_context::<Trigger>() {
+                            update_rank.notify();
+                        }
+
                         Some(())
                     }
                     Err(e) => {
@@ -694,9 +703,13 @@ pub fn HNGameOverlay(
     let bet_direction = RwSignal::new(None::<VoteKind>);
 
     let refetch_bet = Trigger::new();
+    let update_rank = Trigger::new();
     let post = StoredValue::new(post);
 
     let auth = auth_state();
+
+    // Provide context for rank updates
+    provide_context(update_rank);
 
     let coin: RwSignal<CoinState> = use_context().unwrap_or_else(|| {
         RwSignal::new(if auth.is_logged_in_with_oauth().get_untracked() {
@@ -733,44 +746,49 @@ pub fn HNGameOverlay(
     );
 
     view! {
-        <Suspense fallback=LoaderWithShadowBg>
-            {move || {
-                create_game_info
-                    .get()
-                    .and_then(|res| {
-                        let participation = try_or_redirect_opt!(res.as_ref());
-                        let post = post.get_value();
-                        Some(
-                            if let Some(participation) = participation {
-                                view! {
-                                    <HNUserParticipation
-                                        post
-                                        refetch_bet
-                                        participation=participation.clone()
-                                        bet_direction
-                                        show_tutorial
-                                    />
-                                }
-                                    .into_any()
-                            } else {
-                                view! {
-                                    <HNButtonOverlay
-                                        post
-                                        prev_post=prev_post.clone()
-                                        bet_direction
-                                        coin
-                                        refetch_bet
-                                        audio_ref=win_audio_ref
-                                        show_low_balance_popup
-                                    />
-                                }
-                                    .into_any()
-                            },
-                        )
-                    })
-                    .unwrap_or_else(|| view! { <LoaderWithShadowBg /> }.into_any())
-            }}
+        <>
+            // Add the rank badge at the top
+            <RankBadge />
 
-        </Suspense>
+            <Suspense fallback=LoaderWithShadowBg>
+                {move || {
+                    create_game_info
+                        .get()
+                        .and_then(|res| {
+                            let participation = try_or_redirect_opt!(res.as_ref());
+                            let post = post.get_value();
+                            Some(
+                                if let Some(participation) = participation {
+                                    view! {
+                                        <HNUserParticipation
+                                            post
+                                            refetch_bet
+                                            participation=participation.clone()
+                                            bet_direction
+                                            show_tutorial
+                                        />
+                                    }
+                                        .into_any()
+                                } else {
+                                    view! {
+                                        <HNButtonOverlay
+                                            post
+                                            prev_post=prev_post.clone()
+                                            bet_direction
+                                            coin
+                                            refetch_bet
+                                            audio_ref=win_audio_ref
+                                            show_low_balance_popup
+                                        />
+                                    }
+                                        .into_any()
+                                },
+                            )
+                        })
+                        .unwrap_or_else(|| view! { <LoaderWithShadowBg /> }.into_any())
+                }}
+
+            </Suspense>
+        </>
     }
 }

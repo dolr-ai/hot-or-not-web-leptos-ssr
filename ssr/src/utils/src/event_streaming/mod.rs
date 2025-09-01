@@ -1,5 +1,3 @@
-use std::env;
-
 use leptos::prelude::*;
 use serde_json::json;
 
@@ -117,6 +115,8 @@ pub async fn stream_to_offchain_agent(
     event: String,
     params: &serde_json::Value,
 ) -> Result<(), ServerFnError> {
+    use std::env;
+
     use tonic::metadata::MetadataValue;
     use tonic::transport::Channel;
     use tonic::Request;
