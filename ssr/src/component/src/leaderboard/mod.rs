@@ -1,5 +1,10 @@
 pub mod api;
+pub mod pagination;
 pub mod rank_badge;
+pub mod search_bar;
+pub mod table;
+pub mod tournament_header;
+pub mod types;
 
 use serde::{Deserialize, Serialize};
 
