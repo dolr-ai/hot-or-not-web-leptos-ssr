@@ -1,6 +1,7 @@
 use component::infinite_scroller::InfiniteScroller;
 use component::leaderboard::{
     api::fetch_leaderboard_page,
+    podium::TournamentPodium,
     provider::LeaderboardProvider,
     search_bar::SearchBar,
     tournament_header::TournamentHeader,
@@ -10,7 +11,8 @@ use component::title::TitleText;
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 use leptos_use::use_debounce_fn;
-use state::canisters::auth_state;
+use state::canisters::{auth_state, unauth_canisters};
+use utils::send_wrap;
 
 #[component]
 pub fn Leaderboard() -> impl IntoView {
@@ -28,6 +30,35 @@ pub fn Leaderboard() -> impl IntoView {
     let tournament_resource = LocalResource::new(move || async move {
         let user_id = auth.user_principal.await.ok().map(|p| p.to_string());
         fetch_leaderboard_page(0, 1, user_id, Some("desc"), None).await
+    });
+    
+    // Fetch top 3 winners and their profiles when tournament is completed
+    let top_winners_resource = LocalResource::new(move || {
+        let status = tournament_info.get().map(|t| t.status.clone());
+        async move {
+            if status == Some("completed".to_string()) {
+                // Fetch top 3 from leaderboard
+                let response = fetch_leaderboard_page(0, 3, None, Some("desc"), None).await?;
+                let top_3 = response.data;
+                
+                // Fetch profile details for each winner
+                let canisters = unauth_canisters();
+                let mut profiles = Vec::new();
+                for entry in &top_3 {
+                    let profile = send_wrap(
+                        canisters.get_profile_details(entry.principal_id.clone())
+                    )
+                    .await
+                    .ok()
+                    .flatten();
+                    profiles.push(profile);
+                }
+                
+                Ok((top_3, profiles))
+            } else {
+                Err("Not completed".to_string())
+            }
+        }
     });
 
     // Handle tournament info load
@@ -139,10 +170,29 @@ pub fn Leaderboard() -> impl IntoView {
                 }>
                     {move || {
                         tournament_info.get().map(|tournament| {
+                            let is_completed = tournament.status == "completed";
+                            
                             view! {
                                 <>
                                     // Tournament header
-                                    <TournamentHeader tournament=tournament />
+                                    <TournamentHeader tournament=tournament.clone() />
+                                    
+                                    // Show podium if tournament is completed
+                                    <Show when=move || is_completed>
+                                        <Suspense fallback=move || view! {
+                                            <div class="flex justify-center py-8">
+                                                <div class="animate-spin h-8 w-8 border-t-2 border-pink-500 rounded-full"></div>
+                                            </div>
+                                        }>
+                                            {move || {
+                                                top_winners_resource.get().and_then(|result| {
+                                                    result.ok().map(|(winners, profiles)| {
+                                                        view! { <TournamentPodium winners winner_profiles=profiles /> }
+                                                    })
+                                                })
+                                            }}
+                                        </Suspense>
+                                    </Show>
 
                                     // Search bar
                                     <SearchBar on_search=on_search.get_value() />
