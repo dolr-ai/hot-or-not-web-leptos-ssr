@@ -39,8 +39,8 @@ pub fn TournamentHistoryCard(
                             <span class="text-[#FFEF00] text-base font-bold">
                                 {tournament.prize_pool.to_string()}
                             </span>
-                            // Coin emoji
-                            <span class="text-yellow-500">{"🪙"}</span>
+                            // YRAL token icon
+                            <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px] inline-block" />
                         </div>
                         <span class="text-white text-base font-bold">
                             "Shared by top 10 winners"

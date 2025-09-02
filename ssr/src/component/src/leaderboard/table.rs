@@ -34,7 +34,7 @@ pub fn LeaderboardTable(
                                 class="flex items-center gap-1 text-neutral-400 hover:text-white transition-colors ml-auto"
                                 on:click={let on_sort = on_sort.clone(); move |_| on_sort("earned".to_string())}
                             >
-                                <span>"🪙"</span>
+                                <img src="/img/yral/yral-token.webp" alt="" class="w-4 h-4 inline-block" />
                                 "Earned"
                                 <span class="text-xs">
                                     {if sort_order == "asc" { "↑" } else { "↓" }}
@@ -111,7 +111,7 @@ fn LeaderboardRow(
                     <span class="text-white font-semibold">
                         {entry.reward.map(|r| r.to_string()).unwrap_or_else(|| "0".to_string())}
                     </span>
-                    <span>"🪙"</span>
+                    <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px] inline-block" />
                 </div>
             </td>
         </tr>

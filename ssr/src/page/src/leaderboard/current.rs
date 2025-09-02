@@ -301,8 +301,8 @@ pub fn Leaderboard() -> impl IntoView {
                                                             <span class="text-sm font-semibold text-white">
                                                                 {entry.reward.unwrap_or(0)}
                                                             </span>
-                                                            // Coin emoji as a simple icon
-                                                            <span class="text-yellow-500">{"🪙"}</span>
+                                                            // YRAL token icon
+                                                            <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
                                                         </div>
                                                     </div>
                                                 }

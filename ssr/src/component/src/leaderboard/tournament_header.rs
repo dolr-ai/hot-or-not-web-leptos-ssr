@@ -101,7 +101,7 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
                             tournament.prize_pool as u64,
                             tournament.prize_token
                         )}
-                        <span class="ml-2">"🪙"</span>
+                        <img src="/img/yral/yral-token.webp" alt="" class="w-6 h-6 ml-2 inline-block" />
                     </h2>
                     <p class="text-white/90 text-sm">
                         "Top the leaderboard this week to win!"
