@@ -16,6 +16,7 @@ pub struct LeaderboardProvider {
     pub user_id: Option<String>,
     pub sort_order: String,
     pub search_query: Option<String>,
+    pub start_offset: usize,
 }
 
 impl LeaderboardProvider {
@@ -24,6 +25,7 @@ impl LeaderboardProvider {
             user_id,
             sort_order,
             search_query: None,
+            start_offset: 0,
         }
     }
     
@@ -33,6 +35,11 @@ impl LeaderboardProvider {
         } else { 
             Some(query) 
         };
+        self
+    }
+    
+    pub fn with_start_offset(mut self, offset: usize) -> Self {
+        self.start_offset = offset;
         self
     }
 }
@@ -57,13 +64,16 @@ impl CursoredDataProvider for LeaderboardProvider {
         start: usize,
         end: usize,
     ) -> Result<PageEntry<Self::Data>, Self::Error> {
-        let limit = (end - start).min(50); // Max 50 per request
+        // Apply the start_offset to shift the entire range
+        let adjusted_start = start + self.start_offset;
+        let adjusted_end = end + self.start_offset;
+        let limit = (adjusted_end - adjusted_start).min(50); // Max 50 per request
         
         let response = if let Some(query) = &self.search_query {
             // Search mode
             search_users(
                 query.clone(), 
-                start as u32, 
+                adjusted_start as u32, 
                 limit as u32, 
                 Some(&self.sort_order)
             )
@@ -73,7 +83,7 @@ impl CursoredDataProvider for LeaderboardProvider {
         } else {
             // Normal leaderboard mode
             fetch_leaderboard_page(
-                start as u32, 
+                adjusted_start as u32, 
                 limit as u32, 
                 self.user_id.clone(), 
                 Some(&self.sort_order),

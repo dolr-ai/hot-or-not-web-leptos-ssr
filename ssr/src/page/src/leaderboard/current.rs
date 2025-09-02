@@ -92,11 +92,23 @@ pub fn Leaderboard() -> impl IntoView {
         let order = sort_order.get();
         let query = search_query.get();
         
-        if query.is_empty() {
+        // Check if tournament is completed to determine if we need offset
+        let is_completed = tournament_info.get()
+            .map(|t| t.status == "completed")
+            .unwrap_or(false);
+        
+        let mut provider = if query.is_empty() {
             LeaderboardProvider::new(uid, order)
         } else {
-            LeaderboardProvider::new(uid, order).with_search(query)
+            LeaderboardProvider::new(uid, order).with_search(query.clone())
+        };
+        
+        // Skip top 3 entries if tournament is completed (they're shown in podium)
+        if is_completed && query.is_empty() {
+            provider = provider.with_start_offset(3);
         }
+        
+        provider
     });
 
     // Debounced search function - executes 300ms after user stops typing
@@ -174,8 +186,10 @@ pub fn Leaderboard() -> impl IntoView {
                             
                             view! {
                                 <>
-                                    // Tournament header
-                                    <TournamentHeader tournament=tournament.clone() />
+                                    // Tournament header - only show if not completed
+                                    <Show when=move || !is_completed>
+                                        <TournamentHeader tournament=tournament.clone() />
+                                    </Show>
                                     
                                     // Show podium if tournament is completed
                                     <Show when=move || is_completed>
