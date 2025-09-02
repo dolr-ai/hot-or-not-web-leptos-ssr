@@ -22,134 +22,112 @@ pub fn TournamentPodium(
     let third_profile = winner_profiles.get(2).and_then(|p| p.clone());
     
     view! {
-        <div class="relative w-full pt-16 pb-8 mb-8">
-            // Sunburst background effect (exact Figma design)
+        <div class="relative w-full h-[380px] mb-8">
+            // Sunburst background effect centered on 1st place avatar
             <div class="absolute inset-0 overflow-hidden pointer-events-none">
-                <div class="absolute top-[-63px] left-1/2 transform -translate-x-1/2 w-[471px] h-[450px]">
+                // Position sunburst so its center aligns with 1st place avatar at top: 125px + 31.5px (half of 63px avatar)
+                <div class="absolute left-1/2 transform -translate-x-1/2" style="top: -18px; width: 390px; height: 387px;">
                     <img 
                         src="/img/leaderboard/sunburst.svg"
                         alt=""
                         class="w-full h-full object-contain"
-                        style="transform: rotate(180deg)"
                     />
                 </div>
             </div>
             
-            // Podium container
-            <div class="relative flex items-end justify-center gap-[42px] px-4 max-w-md mx-auto mt-8">
-                // 2nd Place (Left)
-                {second.map(|winner| {
+            // Podium container with absolute positioning
+            <div class="relative w-full h-full">
+                // Trophy bases layer (positioned at top: 145px)
+                <div class="absolute left-1/2 transform -translate-x-1/2 top-[145px] flex items-end justify-center gap-[42px]">
+                    // Silver trophy base
+                    <div class="w-[45.75px] h-[135.317px]">
+                        <img 
+                            src="/img/leaderboard/trophy-silver.svg"
+                            alt="Silver trophy"
+                            class="w-full h-full object-contain"
+                        />
+                    </div>
+                    
+                    // Gold trophy base
+                    <div class="w-[66.75px] h-[146.266px]">
+                        <img 
+                            src="/img/leaderboard/trophy-gold.svg"
+                            alt="Gold trophy"
+                            class="w-full h-full object-contain"
+                        />
+                    </div>
+                    
+                    // Bronze trophy base
+                    <div class="w-[45px] h-[91px]">
+                        <img 
+                            src="/img/leaderboard/trophy-bronze.svg"
+                            alt="Bronze trophy"
+                            class="w-full h-full object-contain"
+                        />
+                    </div>
+                </div>
+                
+                // 2nd Place Avatar (Left) - positioned on top of silver trophy
+                {second.clone().map(|winner| {
                     let profile_pic = second_profile
                         .map(|p| p.profile_pic_or_random())
                         .unwrap_or_else(|| generate_default_avatar(&winner.username));
                     
                     view! {
-                        <div class="flex flex-col items-center">
-                            // Silver trophy
-                            <div class="relative w-[46px] h-[135px] mb-[-50px] z-10">
-                                <img 
-                                    src="/img/leaderboard/trophy-silver.svg"
-                                    alt="Silver trophy"
-                                    class="w-full h-full object-contain"
-                                />
-                            </div>
-                            
-                            // Profile picture
-                            <div class="relative mb-2 z-20">
-                                <img 
-                                    src=profile_pic
-                                    alt=format!("{}'s profile", winner.username)
-                                    class="w-[50px] h-[50px] rounded-full object-cover border-[3px] border-[#2F2F30]"
-                                />
-                            </div>
-                            
-                            // Username and reward
-                            <div class="text-center mt-2">
-                                <div class="text-sm font-medium text-neutral-400 mb-1">
-                                    "@"{winner.username}
-                                </div>
-                                <div class="flex items-center justify-center gap-1">
-                                    <span class="text-sm font-bold text-white">
-                                        {winner.reward.unwrap_or(0)}
-                                    </span>
-                                    <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
-                                </div>
-                            </div>
+                        <div class="absolute left-1/2 transform -translate-x-1/2" style="left: calc(50% - 97px); top: 166px;">
+                            // Profile picture overlaying trophy head
+                            <img 
+                                src=profile_pic
+                                alt=format!("{}'s profile", winner.username)
+                                class="w-[50px] h-[50px] rounded-full object-cover border-[3px] border-[#2F2F30]"
+                            />
                         </div>
                     }
                 })}
                 
-                // 1st Place (Center, Elevated)
-                {first.map(|winner| {
+                // 1st Place Avatar (Center) - positioned on top of gold trophy
+                {first.clone().map(|winner| {
                     let profile_pic = first_profile
                         .map(|p| p.profile_pic_or_random())
                         .unwrap_or_else(|| generate_default_avatar(&winner.username));
                     
                     view! {
-                        <div class="flex flex-col items-center -mt-8">
-                            // Gold trophy
-                            <div class="relative w-[67px] h-[146px] mb-[-60px] z-10">
-                                <img 
-                                    src="/img/leaderboard/trophy-gold.svg"
-                                    alt="Gold trophy"
-                                    class="w-full h-full object-contain"
-                                />
-                            </div>
-                            
-                            // Profile picture
-                            <div class="relative mb-2 z-20">
-                                <img 
-                                    src=profile_pic
-                                    alt=format!("{}'s profile", winner.username)
-                                    class="w-[63px] h-[63px] rounded-full object-cover border-4 border-[#BF760B]"
-                                />
-                            </div>
-                            
-                            // Username and reward
-                            <div class="text-center mt-2">
-                                <div class="text-sm font-medium text-neutral-400 mb-1">
-                                    "@"{winner.username}
-                                </div>
-                                <div class="flex items-center justify-center gap-1">
-                                    <span class="text-sm font-bold text-white">
-                                        {winner.reward.unwrap_or(0)}
-                                    </span>
-                                    <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
-                                </div>
-                            </div>
+                        <div class="absolute left-1/2 transform -translate-x-1/2 top-[125px]">
+                            // Profile picture overlaying trophy head
+                            <img 
+                                src=profile_pic
+                                alt=format!("{}'s profile", winner.username)
+                                class="w-[63px] h-[63px] rounded-full object-cover border-4 border-[#BF760B]"
+                            />
                         </div>
                     }
                 })}
                 
-                // 3rd Place (Right)
-                {third.map(|winner| {
+                // 3rd Place Avatar (Right) - positioned on top of bronze trophy
+                {third.clone().map(|winner| {
                     let profile_pic = third_profile
                         .map(|p| p.profile_pic_or_random())
                         .unwrap_or_else(|| generate_default_avatar(&winner.username));
                     
                     view! {
-                        <div class="flex flex-col items-center">
-                            // Bronze trophy
-                            <div class="relative w-[45px] h-[91px] mb-[-40px] z-10">
-                                <img 
-                                    src="/img/leaderboard/trophy-bronze.svg"
-                                    alt="Bronze trophy"
-                                    class="w-full h-full object-contain"
-                                />
-                            </div>
-                            
-                            // Profile picture
-                            <div class="relative mb-2 z-20">
-                                <img 
-                                    src=profile_pic
-                                    alt=format!("{}'s profile", winner.username)
-                                    class="w-12 h-12 rounded-full object-cover border-[2.5px] border-[#6D4C35]"
-                                />
-                            </div>
-                            
-                            // Username and reward
-                            <div class="text-center mt-2">
-                                <div class="text-sm font-medium text-neutral-400 mb-1">
+                        <div class="absolute left-1/2 transform -translate-x-1/2" style="left: calc(50% + 99px); top: 182px;">
+                            // Profile picture overlaying trophy head
+                            <img 
+                                src=profile_pic
+                                alt=format!("{}'s profile", winner.username)
+                                class="w-12 h-12 rounded-full object-cover border-[2.5px] border-[#6D4C35]"
+                            />
+                        </div>
+                    }
+                })}
+                
+                // Usernames and rewards layer (positioned below avatars)
+                <div class="absolute left-1/2 transform -translate-x-1/2 top-[308px] flex items-center justify-start gap-4">
+                    // 2nd Place username and reward
+                    {second.map(|winner| {
+                        view! {
+                            <div class="flex flex-col gap-2 items-center w-[93px]">
+                                <div class="text-sm font-medium text-neutral-400">
                                     "@"{winner.username}
                                 </div>
                                 <div class="flex items-center justify-center gap-1">
@@ -159,9 +137,43 @@ pub fn TournamentPodium(
                                     <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
                                 </div>
                             </div>
-                        </div>
-                    }
-                })}
+                        }
+                    })}
+                    
+                    // 1st Place username and reward
+                    {first.map(|winner| {
+                        view! {
+                            <div class="flex flex-col gap-2 items-center w-[93px]">
+                                <div class="text-sm font-medium text-neutral-400">
+                                    "@"{winner.username}
+                                </div>
+                                <div class="flex items-center justify-center gap-1">
+                                    <span class="text-sm font-bold text-white">
+                                        {winner.reward.unwrap_or(0)}
+                                    </span>
+                                    <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
+                                </div>
+                            </div>
+                        }
+                    })}
+                    
+                    // 3rd Place username and reward
+                    {third.map(|winner| {
+                        view! {
+                            <div class="flex flex-col gap-2 items-center w-[93px]">
+                                <div class="text-sm font-medium text-neutral-400">
+                                    "@"{winner.username}
+                                </div>
+                                <div class="flex items-center justify-center gap-1">
+                                    <span class="text-sm font-bold text-white">
+                                        {winner.reward.unwrap_or(0)}
+                                    </span>
+                                    <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
+                                </div>
+                            </div>
+                        }
+                    })}
+                </div>
             </div>
         </div>
     }.into_any()
