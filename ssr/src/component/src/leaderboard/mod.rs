@@ -1,4 +1,7 @@
 pub mod api;
+pub mod history_api;
+pub mod history_card;
+pub mod history_types;
 pub mod pagination;
 pub mod provider;
 pub mod rank_badge;
