@@ -149,13 +149,32 @@ pub fn Leaderboard() -> impl IntoView {
 
                                     // Infinite scrolling leaderboard
                                     <div class="w-full">
-                                        <div class="mb-4 flex justify-end">
-                                            <button
-                                                class="text-sm text-gray-400 hover:text-white transition-colors"
-                                                on:click={let on_sort = on_sort.clone(); move |_| on_sort("score".to_string())}
-                                            >
-                                                {move || format!("Sort: {}", if sort_order.get() == "desc" { "↓ Highest" } else { "↑ Lowest" })}
-                                            </button>
+                                        // Table header
+                                        <div class="flex items-center justify-between px-4 py-2 border-b border-white/10">
+                                            <div class="flex items-center gap-1 w-[80px]">
+                                                <span class="text-xs text-neutral-400 font-medium">Rank</span>
+                                                <button 
+                                                    class="text-neutral-400 hover:text-white transition-colors"
+                                                    on:click={let on_sort = on_sort.clone(); move |_| on_sort("rank".to_string())}
+                                                >
+                                                    <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
+                                                </button>
+                                            </div>
+                                            <div class="flex-1">
+                                                <span class="text-xs text-neutral-400 font-medium">Username</span>
+                                            </div>
+                                            <div class="flex items-center gap-1 w-[100px] justify-end">
+                                                <span class="text-xs text-neutral-400 font-medium">Games Played</span>
+                                            </div>
+                                            <div class="flex items-center gap-1 w-[100px] justify-end">
+                                                <span class="text-xs text-neutral-400 font-medium">Rewards</span>
+                                                <button 
+                                                    class="text-neutral-400 hover:text-white transition-colors"
+                                                    on:click={let on_sort = on_sort.clone(); move |_| on_sort("reward".to_string())}
+                                                >
+                                                    <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
+                                                </button>
+                                            </div>
                                         </div>
                                         
                                         <InfiniteScroller
@@ -166,34 +185,60 @@ pub fn Leaderboard() -> impl IntoView {
                                                     .map(|u| u.principal_id == entry.principal_id)
                                                     .unwrap_or(false);
                                                 
+                                                // Get rank styling based on position
+                                                let rank_class = match entry.rank {
+                                                    1 => "bg-gradient-to-r from-[#BF760B] via-[#FFE89F] to-[#C38F14] bg-clip-text text-transparent",
+                                                    2 => "bg-gradient-to-r from-[#2F2F30] via-[#FFFFFF] to-[#4B4B4B] bg-clip-text text-transparent", 
+                                                    3 => "bg-gradient-to-r from-[#6D4C35] via-[#DBA374] to-[#9F7753] bg-clip-text text-transparent",
+                                                    _ => "text-white"
+                                                };
+                                                
+                                                // Get username color based on rank
+                                                let username_color = match entry.rank {
+                                                    1 => "text-[#FDBF01]",
+                                                    2 => "text-[#DCDCDC]",
+                                                    3 => "text-[#D99979]",
+                                                    _ => "text-white"
+                                                };
+                                                
                                                 view! {
                                                     <div 
                                                         node_ref=node_ref.unwrap_or_default()
                                                         class=move || {
                                                             format!(
-                                                                "flex items-center justify-between p-4 border-b border-white/10 hover:bg-white/5 transition-colors {}",
-                                                                if is_current_user { "bg-pink-500/10" } else { "" }
+                                                                "flex items-center justify-between px-4 py-3 border-b border-[#212121] hover:bg-white/5 transition-colors {}",
+                                                                if is_current_user { "bg-[rgba(226,1,123,0.2)]" } else { "" }
                                                             )
                                                         }
                                                     >
-                                                        <div class="flex items-center gap-4">
-                                                            <span class="text-2xl font-bold text-white/60 w-12 text-center">
-                                                                {entry.rank}
+                                                        // Rank column
+                                                        <div class="w-[80px]">
+                                                            <span class=format!("text-lg font-bold {}", rank_class)>
+                                                                "#"{entry.rank}
                                                             </span>
-                                                            <div class="flex flex-col">
-                                                                <span class="text-white font-medium">{entry.username}</span>
-                                                                <span class="text-white/40 text-xs">{entry.principal_id.chars().take(10).collect::<String>()}"..."</span>
-                                                            </div>
                                                         </div>
-                                                        <div class="flex items-center gap-4">
-                                                            <span class="text-white font-bold">{entry.score}</span>
-                                                            {entry.reward.map(|reward| {
-                                                                view! {
-                                                                    <span class="text-green-400 text-sm">
-                                                                        "+" {reward} " YRAL"
-                                                                    </span>
-                                                                }
-                                                            })}
+                                                        
+                                                        // Username column
+                                                        <div class="flex-1">
+                                                            <span class=format!("text-sm font-medium {}", username_color)>
+                                                                "@"{entry.username}
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        // Games Played column
+                                                        <div class="w-[100px] flex items-center justify-end gap-1">
+                                                            <span class="text-sm font-semibold text-white">
+                                                                {entry.score as u32}
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        // Rewards column
+                                                        <div class="w-[100px] flex items-center justify-end gap-1">
+                                                            <span class="text-sm font-semibold text-white">
+                                                                {entry.reward.unwrap_or(0)}
+                                                            </span>
+                                                            // Coin emoji as a simple icon
+                                                            <span class="text-yellow-500">{"🪙"}</span>
                                                         </div>
                                                     </div>
                                                 }
