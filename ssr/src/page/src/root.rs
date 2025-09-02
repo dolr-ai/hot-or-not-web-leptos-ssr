@@ -7,13 +7,12 @@ use futures::{StreamExt, TryStreamExt};
 use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
 use leptos::prelude::*;
 use leptos_meta::*;
-use leptos_router::components::Redirect;
 use leptos_router::hooks::use_query_map;
 use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use state::canisters::unauth_canisters;
 use utils::host::show_nsfw_content;
 use utils::ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw};
-use utils::{send_wrap, try_or_redirect, try_or_redirect_opt};
+use utils::{send_wrap, try_or_redirect_opt};
 use yral_canisters_common::utils::posts::PostDetails;
 use yral_types::post::PostItemV3;
 
