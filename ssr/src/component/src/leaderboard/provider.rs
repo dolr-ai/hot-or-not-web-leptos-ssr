@@ -76,7 +76,8 @@ impl CursoredDataProvider for LeaderboardProvider {
                 start as u32, 
                 limit as u32, 
                 self.user_id.clone(), 
-                Some(&self.sort_order)
+                Some(&self.sort_order),
+                None // No tournament_id for current leaderboard
             )
             .await
             .map_err(|e| LeaderboardError(e))?

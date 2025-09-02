@@ -27,7 +27,7 @@ pub fn Leaderboard() -> impl IntoView {
     // Fetch tournament info and user info once
     let tournament_resource = LocalResource::new(move || async move {
         let user_id = auth.user_principal.await.ok().map(|p| p.to_string());
-        fetch_leaderboard_page(0, 1, user_id, Some("desc")).await
+        fetch_leaderboard_page(0, 1, user_id, Some("desc"), None).await
     });
 
     // Handle tournament info load

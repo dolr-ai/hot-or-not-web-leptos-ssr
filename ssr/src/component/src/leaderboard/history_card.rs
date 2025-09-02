@@ -14,7 +14,7 @@ fn format_date(timestamp: i64) -> String {
 pub fn TournamentHistoryCard(
     tournament: TournamentHistoryEntry,
 ) -> impl IntoView {
-    let _navigate = use_navigate();
+    let navigate = use_navigate();
     
     // Format date range
     let start_date = format_date(tournament.start_time);
@@ -24,9 +24,7 @@ pub fn TournamentHistoryCard(
     // Click handler for View Leaderboard button
     let tournament_id = tournament.id.clone();
     let on_click = move |_| {
-        // For now, navigate to the tournament results page (future implementation)
-        // navigate(&format!("/leaderboard/tournament/{}", tournament_id), Default::default());
-        log::info!("Navigate to tournament: {}", tournament_id);
+        navigate(&format!("/leaderboard/tournament/{}", tournament_id), Default::default());
     };
     
     view! {

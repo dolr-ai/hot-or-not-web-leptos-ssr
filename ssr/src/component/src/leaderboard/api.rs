@@ -56,6 +56,7 @@ pub async fn fetch_leaderboard_page(
     limit: u32,
     user_id: Option<String>,
     sort_order: Option<&str>,
+    tournament_id: Option<String>,
 ) -> Result<LeaderboardResponse, String> {
     use consts::OFF_CHAIN_AGENT_URL;
 
@@ -76,6 +77,11 @@ pub async fn fetch_leaderboard_page(
     if let Some(order) = sort_order {
         url.query_pairs_mut()
             .append_pair("sort_order", order);
+    }
+    
+    if let Some(t_id) = tournament_id {
+        url.query_pairs_mut()
+            .append_pair("tournament_id", &t_id);
     }
 
     let client = reqwest::Client::new();

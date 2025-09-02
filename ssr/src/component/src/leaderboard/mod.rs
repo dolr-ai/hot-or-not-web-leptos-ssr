@@ -8,6 +8,7 @@ pub mod rank_badge;
 pub mod search_bar;
 pub mod table;
 pub mod tournament_header;
+pub mod tournament_provider;
 pub mod types;
 
 use serde::{Deserialize, Serialize};
