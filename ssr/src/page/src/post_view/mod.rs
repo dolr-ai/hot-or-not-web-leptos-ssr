@@ -171,6 +171,7 @@ pub fn CommonPostViewWithUpdates(
 
 #[component]
 pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<PostDetails>) -> impl IntoView {
+    leptos::logging::debug_warn!("trying to render ml feed");
     let PostViewCtx {
         fetch_cursor,
         video_queue,
@@ -183,6 +184,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<PostDetails>) -> impl IntoVi
     } = expect_context();
 
     let auth = auth_state();
+    leptos::logging::debug_warn!("auth state exists here");
 
     let fetch_video_action = Action::new(move |_| {
         let (nsfw_enabled, _) = use_cookie_with_options::<bool, FromToStringCodec>(
@@ -370,6 +372,8 @@ pub fn PostView() -> impl IntoView {
             if let Some(post) = cached_post {
                 return Ok(Some(post));
             }
+
+            // this cache is never written to? so what's the point of this?
             let post_nsfw_prob = post_details_cache.post_details.with_untracked(|p| {
                 p.get(&(params.canister_id, params.post_id))
                     .map(|i| i.nsfw_probability)

@@ -19,7 +19,8 @@ use yral_metadata_client::MetadataClient;
 pub struct Notification(pub RwSignal<Option<serde_json::Value>>);
 
 #[component]
-fn CtxProvider(children: Children) -> impl IntoView {
+pub fn CtxProvider(children: Children) -> impl IntoView {
+    leptos::logging::debug_warn!("setting up contexts");
     let auth = AuthState::default();
     provide_context(auth);
 
@@ -142,6 +143,7 @@ fn CtxProvider(children: Children) -> impl IntoView {
 
 #[component]
 pub fn BaseRoute() -> impl IntoView {
+    leptos::logging::debug_warn!("base route is being used");
     view! {
         <CtxProvider>
             <Outlet />
