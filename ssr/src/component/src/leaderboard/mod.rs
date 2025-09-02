@@ -1,5 +1,6 @@
 pub mod api;
 pub mod pagination;
+pub mod provider;
 pub mod rank_badge;
 pub mod search_bar;
 pub mod table;
