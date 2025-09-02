@@ -60,7 +60,7 @@ pub fn Leaderboard() -> impl IntoView {
     Effect::new(move |_| {
         load_trigger.get(); // Subscribe to trigger
         let query = search_query.get_untracked();
-        
+
         // Check if we're in search mode or normal mode
         if query.is_empty() {
             // Normal mode - load from leaderboard
@@ -71,7 +71,9 @@ pub fn Leaderboard() -> impl IntoView {
                     let user_id = auth.user_principal.await.ok().map(|p| p.to_string());
                     let order = sort_order.get_untracked();
 
-                    match fetch_leaderboard_page(cursor_start.get(), 20, user_id, Some(&order)).await {
+                    match fetch_leaderboard_page(cursor_start.get(), 20, user_id, Some(&order))
+                        .await
+                    {
                         Ok(response) => {
                             let mut current = entries.get();
                             current.extend(response.data);
@@ -92,7 +94,7 @@ pub fn Leaderboard() -> impl IntoView {
                 spawn_local(async move {
                     set_is_loading.set(true);
                     let order = sort_order.get_untracked();
-                    
+
                     match search_users(query, search_cursor.get(), 20, Some(&order)).await {
                         Ok(response) => {
                             let mut current = entries.get();
@@ -102,7 +104,8 @@ pub fn Leaderboard() -> impl IntoView {
                             set_search_cursor.set(response.cursor_info.next_cursor.unwrap_or(0));
                         }
                         Err(e) => {
-                            set_error_message.set(Some(format!("Failed to load more search results: {}", e)));
+                            set_error_message
+                                .set(Some(format!("Failed to load more search results: {}", e)));
                         }
                     }
                     set_is_loading.set(false);
@@ -125,7 +128,7 @@ pub fn Leaderboard() -> impl IntoView {
 
             move || {
                 let query = search_query.get_untracked();
-                
+
                 if query.is_empty() {
                     // Reset to initial state
                     set_search_cursor.set(0);
@@ -160,7 +163,7 @@ pub fn Leaderboard() -> impl IntoView {
                 });
             }
         },
-        300.0  // 300ms delay
+        300.0, // 300ms delay
     );
 
     // Search function that updates query and triggers debounced search
@@ -168,7 +171,7 @@ pub fn Leaderboard() -> impl IntoView {
         let debounced_search = debounced_search.clone();
         StoredValue::new(move |query: String| {
             set_search_query.set(query.clone());
-            
+
             if query.is_empty() {
                 // For empty query, reset immediately without debouncing
                 set_search_cursor.set(0);
@@ -189,19 +192,23 @@ pub fn Leaderboard() -> impl IntoView {
         let initial_resource = initial_resource.clone();
         let search_query = search_query.clone();
         let debounced_search = debounced_search.clone();
-        
+
         move |field: String| {
             log::info!("Sorting by: {}", field);
-            
+
             // Toggle sort order
             set_sort_order.update(|order| {
-                *order = if order == "asc" { "desc".to_string() } else { "asc".to_string() };
+                *order = if order == "asc" {
+                    "desc".to_string()
+                } else {
+                    "asc".to_string()
+                };
             });
-            
+
             // Reset pagination
             set_cursor_start.set(0);
             set_search_cursor.set(0);
-            
+
             // Check if we're in search mode or normal mode
             if search_query.get_untracked().is_empty() {
                 // Normal mode - refetch from leaderboard
