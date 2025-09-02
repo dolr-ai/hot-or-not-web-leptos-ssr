@@ -10,6 +10,9 @@ pub struct TournamentInfo {
     pub status: String,
     pub metric_type: String,
     pub metric_display_name: String,
+    pub client_timezone: Option<String>,
+    pub client_start_time: Option<String>,
+    pub client_end_time: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
