@@ -24,7 +24,8 @@ pub fn Leaderboard() -> impl IntoView {
     let (tournament_info, set_tournament_info) = signal(None::<TournamentInfo>);
     let (current_user_info, set_current_user_info) = signal(None::<UserInfo>);
     let (sort_order, set_sort_order) = signal("desc".to_string());
-    let (search_query, set_search_query) = signal(String::new());
+    let (search_input, set_search_input) = signal(String::new()); // Immediate input value
+    let (search_query, set_search_query) = signal(String::new()); // Debounced search value
     let (provider_key, set_provider_key) = signal(0u32); // Key to force provider refresh
 
     // Fetch tournament info and user info once
@@ -75,42 +76,15 @@ pub fn Leaderboard() -> impl IntoView {
         }
     });
 
-    // Create provider based on current state
-    let provider = Memo::new(move |_| {
-        provider_key.get(); // Subscribe to refresh key
-        let uid = auth
-            .user_principal
-            .get()
-            .and_then(|res| res.ok())
-            .map(|p| p.to_string());
-        let order = sort_order.get();
-        let query = search_query.get();
-
-        // Check if tournament is completed to determine if we need offset
-        let is_completed = tournament_info
-            .get()
-            .map(|t| t.status == "completed")
-            .unwrap_or(false);
-
-        let mut provider = if query.is_empty() {
-            LeaderboardProvider::new(uid, order)
-        } else {
-            LeaderboardProvider::new(uid, order).with_search(query.clone())
-        };
-
-        // Skip top 3 entries if tournament is completed (they're shown in podium)
-        if is_completed && query.is_empty() {
-            provider = provider.with_start_offset(3);
-        }
-
-        provider
-    });
 
     // Debounced search function - executes 300ms after user stops typing
     // Only use debounce on client side to avoid SendWrapper thread issues in SSR
     #[cfg(feature = "hydrate")]
     let debounced_search = use_debounce_fn(
         move || {
+            // Copy input value to search query after debounce
+            let input = search_input.get();
+            set_search_query.set(input);
             // Force provider refresh
             set_provider_key.update(|k| *k += 1);
         },
@@ -120,19 +94,23 @@ pub fn Leaderboard() -> impl IntoView {
     // For SSR, execute immediately without debounce
     #[cfg(not(feature = "hydrate"))]
     let debounced_search = move || {
+        // Copy input value to search query immediately on SSR
+        let input = search_input.get();
+        set_search_query.set(input);
         // Force provider refresh
         set_provider_key.update(|k| *k += 1);
     };
 
-    // Search function that updates query and triggers debounced search
-    let on_search = StoredValue::new(move |query: String| {
-        set_search_query.set(query.clone());
+    // Search function that updates input and triggers debounced search
+    let on_search = StoredValue::new(move |input: String| {
+        set_search_input.set(input.clone());
 
-        if query.is_empty() {
-            // For empty query, reset immediately
+        if input.is_empty() {
+            // For empty input, clear search immediately
+            set_search_query.set(String::new());
             set_provider_key.update(|k| *k += 1);
         } else {
-            // For non-empty query, trigger debounced search
+            // For non-empty input, trigger debounced search
             debounced_search();
         }
     });
@@ -187,6 +165,27 @@ pub fn Leaderboard() -> impl IntoView {
                     {move || {
                         tournament_info.get().map(|tournament| {
                             let is_completed = tournament.status == "completed";
+                            
+                            // Create provider inside Suspense to avoid hydration warnings
+                            provider_key.get(); // Subscribe to refresh key
+                            let uid = auth
+                                .user_principal
+                                .get()
+                                .and_then(|res| res.ok())
+                                .map(|p| p.to_string());
+                            let order = sort_order.get();
+                            let query = search_query.get();
+
+                            let mut provider = if query.is_empty() {
+                                LeaderboardProvider::new(uid, order)
+                            } else {
+                                LeaderboardProvider::new(uid, order).with_search(query.clone())
+                            };
+
+                            // Skip top 3 entries if tournament is completed (they're shown in podium)
+                            if is_completed && query.is_empty() {
+                                provider = provider.with_start_offset(3);
+                            }
 
                             view! {
                                 <>
@@ -246,7 +245,7 @@ pub fn Leaderboard() -> impl IntoView {
                                         </div>
 
                                         <InfiniteScroller
-                                            provider=provider.get()
+                                            provider
                                             fetch_count=20
                                             children=move |entry: LeaderboardEntry, node_ref| {
                                                 let is_current_user = current_user_info.get()
