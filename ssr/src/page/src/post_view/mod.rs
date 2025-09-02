@@ -79,7 +79,7 @@ pub struct PostDetailsCacheCtx {
 
 #[component]
 pub fn CommonPostViewWithUpdates(
-    initial_post: Option<PostDetails>,
+    initial_posts: Vec<PostDetails>,
     fetch_video_action: Action<(), ()>,
     threshold_trigger_fetch: usize,
 ) -> impl IntoView {
@@ -93,7 +93,7 @@ pub fn CommonPostViewWithUpdates(
     } = expect_context();
 
     let recovering_state = RwSignal::new(false);
-    if let Some(initial_post) = initial_post.clone() {
+    if !initial_posts.is_empty() {
         fetch_cursor.update_untracked(|f| {
             // we've already fetched the first posts
             if f.start > 1 || queue_end.get_untracked() {
@@ -107,9 +107,11 @@ pub fn CommonPostViewWithUpdates(
                 return;
             }
             *v = IndexSet::new();
-            v.insert(initial_post.clone());
+            v.extend(initial_posts.clone());
             video_queue_for_feed.update(|vq| {
-                vq[0].value.set(Some(initial_post.clone()));
+                for (idx, post) in initial_posts.into_iter().enumerate() {
+                    vq[idx].value.set(Some(post));
+                }
             });
         })
     }
@@ -168,7 +170,7 @@ pub fn CommonPostViewWithUpdates(
 }
 
 #[component]
-pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl IntoView {
+pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<PostDetails>) -> impl IntoView {
     let PostViewCtx {
         fetch_cursor,
         video_queue,
@@ -299,7 +301,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
         })
     });
 
-    view! { <CommonPostViewWithUpdates initial_post fetch_video_action threshold_trigger_fetch=20 /> }.into_any()
+    view! { <CommonPostViewWithUpdates initial_posts fetch_video_action threshold_trigger_fetch=20 /> }.into_any()
 }
 
 #[component]
@@ -393,7 +395,11 @@ pub fn PostView() -> impl IntoView {
         <Suspense fallback=FullScreenSpinner>
             {move || Suspend::new(async move {
                 let initial_post = fetch_first_video_uid.await.ok()?;
-                { Some(view! { <PostViewWithUpdatesMLFeed initial_post /> }.into_any()) }
+                let initial_posts = match initial_post {
+                    Some(post) => vec![post],
+                    None => vec![],
+                };
+                { Some(view! { <PostViewWithUpdatesMLFeed initial_posts /> }.into_any()) }
             })}
         </Suspense>
     }
