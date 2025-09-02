@@ -34,20 +34,10 @@ pub fn TournamentResults() -> impl IntoView {
     let (sort_order, set_sort_order) = signal("desc".to_string());
     let (provider_key, set_provider_key) = signal(0u32); // Key to force provider refresh
     
-    // Get user ID once at initialization
-    let (user_id, set_user_id) = signal(None::<String>);
-    
-    // Fetch user ID asynchronously
-    leptos::task::spawn_local(async move {
-        if let Ok(principal) = auth.user_principal.await {
-            set_user_id.set(Some(principal.to_string()));
-        }
-    });
-    
     // Fetch tournament info and user info
     let tournament_resource = LocalResource::new(move || {
         let tid = tournament_id();
-        let uid = user_id.get();
+        let uid = auth.user_principal.get().and_then(|res| res.ok()).map(|p| p.to_string());
         async move {
             if tid.is_empty() {
                 Err("No tournament ID provided".to_string())
@@ -75,7 +65,7 @@ pub fn TournamentResults() -> impl IntoView {
     let provider = Memo::new(move |_| {
         provider_key.get(); // Subscribe to refresh key
         let tid = tournament_id();
-        let uid = user_id.get();
+        let uid = auth.user_principal.get().and_then(|res| res.ok()).map(|p| p.to_string());
         let order = sort_order.get();
         
         if !tid.is_empty() {

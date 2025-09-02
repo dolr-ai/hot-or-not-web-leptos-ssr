@@ -10,13 +10,14 @@ use component::leaderboard::{
 use component::title::TitleText;
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
+#[cfg(feature = "hydrate")]
 use leptos_use::use_debounce_fn;
 use state::canisters::{auth_state, unauth_canisters};
-use utils::send_wrap;
 
 #[component]
 pub fn Leaderboard() -> impl IntoView {
     let auth = auth_state();
+    let canisters = unauth_canisters();
     let navigate = use_navigate();
 
     // State management
@@ -31,29 +32,28 @@ pub fn Leaderboard() -> impl IntoView {
         let user_id = auth.user_principal.await.ok().map(|p| p.to_string());
         fetch_leaderboard_page(0, 1, user_id, Some("desc"), None).await
     });
-    
+
     // Fetch top 3 winners and their profiles when tournament is completed
     let top_winners_resource = LocalResource::new(move || {
         let status = tournament_info.get().map(|t| t.status.clone());
+        let canisters = canisters.clone();
         async move {
             if status == Some("completed".to_string()) {
                 // Fetch top 3 from leaderboard
                 let response = fetch_leaderboard_page(0, 3, None, Some("desc"), None).await?;
                 let top_3 = response.data;
-                
+
                 // Fetch profile details for each winner
-                let canisters = unauth_canisters();
                 let mut profiles = Vec::new();
                 for entry in &top_3 {
-                    let profile = send_wrap(
-                        canisters.get_profile_details(entry.principal_id.clone())
-                    )
-                    .await
-                    .ok()
-                    .flatten();
+                    let profile = canisters
+                        .get_profile_details(entry.principal_id.clone())
+                        .await
+                        .ok()
+                        .flatten();
                     profiles.push(profile);
                 }
-                
+
                 Ok((top_3, profiles))
             } else {
                 Err("Not completed".to_string())
@@ -65,7 +65,7 @@ pub fn Leaderboard() -> impl IntoView {
     Effect::new(move |_| {
         if let Some(Ok(response)) = tournament_resource.get() {
             set_tournament_info.set(Some(response.tournament_info));
-            
+
             // Parse user info if present
             if let Some(user_json) = response.user_info {
                 if let Ok(user_info) = serde_json::from_value::<UserInfo>(user_json) {
@@ -75,43 +75,40 @@ pub fn Leaderboard() -> impl IntoView {
         }
     });
 
-    // Get user ID once at initialization
-    let (user_id, set_user_id) = signal(None::<String>);
-    
-    // Fetch user ID asynchronously
-    leptos::task::spawn_local(async move {
-        if let Ok(principal) = auth.user_principal.await {
-            set_user_id.set(Some(principal.to_string()));
-        }
-    });
-    
     // Create provider based on current state
     let provider = Memo::new(move |_| {
         provider_key.get(); // Subscribe to refresh key
-        let uid = user_id.get();
+        let uid = auth
+            .user_principal
+            .get()
+            .and_then(|res| res.ok())
+            .map(|p| p.to_string());
         let order = sort_order.get();
         let query = search_query.get();
-        
+
         // Check if tournament is completed to determine if we need offset
-        let is_completed = tournament_info.get()
+        let is_completed = tournament_info
+            .get()
             .map(|t| t.status == "completed")
             .unwrap_or(false);
-        
+
         let mut provider = if query.is_empty() {
             LeaderboardProvider::new(uid, order)
         } else {
             LeaderboardProvider::new(uid, order).with_search(query.clone())
         };
-        
+
         // Skip top 3 entries if tournament is completed (they're shown in podium)
         if is_completed && query.is_empty() {
             provider = provider.with_start_offset(3);
         }
-        
+
         provider
     });
 
     // Debounced search function - executes 300ms after user stops typing
+    // Only use debounce on client side to avoid SendWrapper thread issues in SSR
+    #[cfg(feature = "hydrate")]
     let debounced_search = use_debounce_fn(
         move || {
             // Force provider refresh
@@ -119,11 +116,18 @@ pub fn Leaderboard() -> impl IntoView {
         },
         300.0, // 300ms delay
     );
+    
+    // For SSR, execute immediately without debounce
+    #[cfg(not(feature = "hydrate"))]
+    let debounced_search = move || {
+        // Force provider refresh
+        set_provider_key.update(|k| *k += 1);
+    };
 
     // Search function that updates query and triggers debounced search
     let on_search = StoredValue::new(move |query: String| {
         set_search_query.set(query.clone());
-        
+
         if query.is_empty() {
             // For empty query, reset immediately
             set_provider_key.update(|k| *k += 1);
@@ -136,7 +140,7 @@ pub fn Leaderboard() -> impl IntoView {
     // Sort function - toggles between asc and desc
     let on_sort = move |field: String| {
         log::info!("Sorting by: {}", field);
-        
+
         // Toggle sort order
         set_sort_order.update(|order| {
             *order = if order == "asc" {
@@ -145,7 +149,7 @@ pub fn Leaderboard() -> impl IntoView {
                 "asc".to_string()
             };
         });
-        
+
         // Force provider refresh
         set_provider_key.update(|k| *k += 1);
     };
@@ -183,14 +187,14 @@ pub fn Leaderboard() -> impl IntoView {
                     {move || {
                         tournament_info.get().map(|tournament| {
                             let is_completed = tournament.status == "completed";
-                            
+
                             view! {
                                 <>
                                     // Tournament header - only show if not completed
                                     <Show when=move || !is_completed>
                                         <TournamentHeader tournament=tournament.clone() />
                                     </Show>
-                                    
+
                                     // Show podium if tournament is completed
                                     <Show when=move || is_completed>
                                         <Suspense fallback=move || view! {
@@ -217,7 +221,7 @@ pub fn Leaderboard() -> impl IntoView {
                                         <div class="flex items-center justify-between px-4 py-2 border-b border-white/10">
                                             <div class="flex items-center gap-1 w-[80px]">
                                                 <span class="text-xs text-neutral-400 font-medium">Rank</span>
-                                                <button 
+                                                <button
                                                     class="text-neutral-400 hover:text-white transition-colors"
                                                     on:click={let on_sort = on_sort.clone(); move |_| on_sort("rank".to_string())}
                                                 >
@@ -232,7 +236,7 @@ pub fn Leaderboard() -> impl IntoView {
                                             </div>
                                             <div class="flex items-center gap-1 w-[100px] justify-end">
                                                 <span class="text-xs text-neutral-400 font-medium">Rewards</span>
-                                                <button 
+                                                <button
                                                     class="text-neutral-400 hover:text-white transition-colors"
                                                     on:click={let on_sort = on_sort.clone(); move |_| on_sort("reward".to_string())}
                                                 >
@@ -240,7 +244,7 @@ pub fn Leaderboard() -> impl IntoView {
                                                 </button>
                                             </div>
                                         </div>
-                                        
+
                                         <InfiniteScroller
                                             provider=provider.get()
                                             fetch_count=20
@@ -248,15 +252,15 @@ pub fn Leaderboard() -> impl IntoView {
                                                 let is_current_user = current_user_info.get()
                                                     .map(|u| u.principal_id == entry.principal_id)
                                                     .unwrap_or(false);
-                                                
+
                                                 // Get rank styling based on position
                                                 let rank_class = match entry.rank {
                                                     1 => "bg-gradient-to-r from-[#BF760B] via-[#FFE89F] to-[#C38F14] bg-clip-text text-transparent",
-                                                    2 => "bg-gradient-to-r from-[#2F2F30] via-[#FFFFFF] to-[#4B4B4B] bg-clip-text text-transparent", 
+                                                    2 => "bg-gradient-to-r from-[#2F2F30] via-[#FFFFFF] to-[#4B4B4B] bg-clip-text text-transparent",
                                                     3 => "bg-gradient-to-r from-[#6D4C35] via-[#DBA374] to-[#9F7753] bg-clip-text text-transparent",
                                                     _ => "text-white"
                                                 };
-                                                
+
                                                 // Get username color based on rank
                                                 let username_color = match entry.rank {
                                                     1 => "text-[#FDBF01]",
@@ -264,9 +268,9 @@ pub fn Leaderboard() -> impl IntoView {
                                                     3 => "text-[#D99979]",
                                                     _ => "text-white"
                                                 };
-                                                
+
                                                 view! {
-                                                    <div 
+                                                    <div
                                                         node_ref=node_ref.unwrap_or_default()
                                                         class=move || {
                                                             format!(
@@ -281,21 +285,21 @@ pub fn Leaderboard() -> impl IntoView {
                                                                 "#"{entry.rank}
                                                             </span>
                                                         </div>
-                                                        
+
                                                         // Username column
                                                         <div class="flex-1">
                                                             <span class=format!("text-sm font-medium {}", username_color)>
                                                                 "@"{entry.username}
                                                             </span>
                                                         </div>
-                                                        
+
                                                         // Games Played column
                                                         <div class="w-[100px] flex items-center justify-end gap-1">
                                                             <span class="text-sm font-semibold text-white">
                                                                 {entry.score as u32}
                                                             </span>
                                                         </div>
-                                                        
+
                                                         // Rewards column
                                                         <div class="w-[100px] flex items-center justify-end gap-1">
                                                             <span class="text-sm font-semibold text-white">
