@@ -32,8 +32,9 @@ async fn update_leaderboard_score(
     use consts::OFF_CHAIN_AGENT_URL;
 
     // Get auth token from environment
-    let auth_token = std::env::var("GRPC_AUTH_TOKEN")
+    let mut auth_token = std::env::var("GRPC_AUTH_TOKEN")
         .map_err(|_| ServerFnError::new("Missing auth token for leaderboard update"))?;
+    auth_token.retain(|c| !c.is_whitespace());
 
     let url = OFF_CHAIN_AGENT_URL
         .join("api/v1/leaderboard/score/update")
@@ -239,9 +240,13 @@ mod alloydb {
             )
             .await
             {
-                tracing::error!("Failed to update leaderboard for user {}: {:?}", sender, e);
+                leptos::logging::error!(
+                    "Failed to update leaderboard for user {}: {:?}",
+                    sender,
+                    e
+                );
             } else {
-                tracing::info!("Successfully updated leaderboard for user {}", sender);
+                leptos::logging::log!("Successfully updated leaderboard for user {}", sender);
             }
         });
 
