@@ -23,6 +23,7 @@ struct LeaderboardUpdateResponse {
 }
 
 /// Helper function to update leaderboard score for games played
+#[cfg(feature = "ssr")]
 async fn update_leaderboard_score(
     principal_id: Principal,
     metric_value: f64,
@@ -101,7 +102,6 @@ mod alloydb {
     use futures::try_join;
     use hon_worker_common::WORKER_URL;
     use hon_worker_common::{HoNGameVoteReqV3, HotOrNot, VoteRequestV3, VoteResV2};
-    use leptos::task::spawn;
     use yral_canisters_client::individual_user_template::PostDetailsForFrontend;
     use yral_canisters_common::Canisters;
 
@@ -230,7 +230,8 @@ mod alloydb {
 
         // Update leaderboard - track games played
         // This is fire-and-forget: spawn a task so we don't block the response
-        spawn(async move {
+        #[cfg(feature = "ssr")]
+        tokio::spawn(async move {
             if let Err(e) = update_leaderboard_score(
                 sender,
                 1.0, // Increment games played by 1
@@ -276,24 +277,27 @@ mod mock {
 
         // Update leaderboard in mock mode as well (for testing)
         // Making it synchronous for now
-        if let Err(e) = super::update_leaderboard_score(
-            sender,
-            1.0, // Increment games played by 1
-            "games_played",
-        )
-        .await
-        {
-            leptos::logging::error!(
-                "Failed to update leaderboard for user {} in mock mode: {:?}",
+        #[cfg(feature = "ssr")]
+        tokio::spawn(async move {
+            if let Err(e) = super::update_leaderboard_score(
                 sender,
-                e
-            );
-        } else {
-            leptos::logging::log!(
-                "Successfully updated leaderboard for user {} in mock mode",
-                sender
-            );
-        }
+                1.0, // Increment games played by 1
+                "games_played",
+            )
+            .await
+            {
+                leptos::logging::error!(
+                    "Failed to update leaderboard for user {} in mock mode: {:?}",
+                    sender,
+                    e
+                );
+            } else {
+                leptos::logging::log!(
+                    "Successfully updated leaderboard for user {} in mock mode",
+                    sender
+                );
+            }
+        });
 
         Ok(VoteAPIRes {
             game_result,
