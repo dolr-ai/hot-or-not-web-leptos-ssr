@@ -1,6 +1,7 @@
 use super::types::TournamentInfo;
-use chrono::{DateTime, Datelike, Utc};
+use chrono::Utc;
 use leptos::prelude::*;
+use utils::timezone::format_tournament_date_with_fallback;
 
 fn format_with_commas(n: u64) -> String {
     let s = n.to_string();
@@ -52,62 +53,12 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
     // Set initial value
     set_time_remaining.set(calculate_time_remaining());
 
-    // Format end date - use client_end_time if available, otherwise fallback to UTC
-    let end_date = if let Some(client_time) = &tournament.client_end_time {
-        // Parse ISO 8601 string and format for display
-        DateTime::parse_from_rfc3339(client_time)
-            .map(|dt| {
-                // Extract timezone abbreviation if available
-                let tz_str = tournament
-                    .client_timezone
-                    .as_ref()
-                    .and_then(|tz| tz.split('/').last())
-                    .unwrap_or("Local Time");
-
-                // Format with day suffix handling
-                let day = dt.day();
-                let suffix = match day {
-                    1 | 21 | 31 => "st",
-                    2 | 22 => "nd",
-                    3 | 23 => "rd",
-                    _ => "th",
-                };
-
-                format!(
-                    "{}{} {}, {} {}",
-                    day,
-                    suffix,
-                    dt.format("%B"),
-                    dt.format("%I:%M %p"),
-                    tz_str
-                )
-            })
-            .unwrap_or_else(|_| {
-                // If parsing fails, use the raw string
-                client_time.clone()
-            })
-    } else {
-        // Fallback to UTC formatting
-        DateTime::from_timestamp(tournament.end_time, 0)
-            .map(|dt| {
-                let day = dt.day();
-                let suffix = match day {
-                    1 | 21 | 31 => "st",
-                    2 | 22 => "nd",
-                    3 | 23 => "rd",
-                    _ => "th",
-                };
-
-                format!(
-                    "{}{} {}, {} UTC",
-                    day,
-                    suffix,
-                    dt.format("%B"),
-                    dt.format("%I:%M %p")
-                )
-            })
-            .unwrap_or_else(|| "Unknown".to_string())
-    };
+    // Format end date using the unified utility
+    let end_date = format_tournament_date_with_fallback(
+        tournament.end_time,
+        tournament.client_end_time.as_ref(),
+        tournament.client_timezone.as_ref(),
+    );
 
     view! {
         <div class="relative w-full rounded-lg overflow-hidden mb-6 min-h-[140px]"

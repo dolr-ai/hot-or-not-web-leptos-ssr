@@ -1,6 +1,6 @@
 use super::types::{TournamentInfo, UserInfo};
-use chrono::{DateTime, Datelike};
 use leptos::prelude::*;
+use utils::timezone::format_tournament_date_with_fallback;
 
 fn format_with_commas(n: u32) -> String {
     let s = n.to_string();
@@ -54,10 +54,6 @@ pub fn TournamentCompletionPopup(
             }
         }
         _ => PopupVariant::BetterLuck,
-    };
-
-    let popup_variant = PopupVariant::Silver {
-        reward: user_info.reward,
     };
 
     // Get the appropriate content based on variant
@@ -297,57 +293,12 @@ pub fn TournamentCompletionPopup(
 
                         // Contest starts badge - show if upcoming tournament info is available
                         {Some(&upcoming_tournament).filter(|t| !t.id.is_empty()).map(|tournament| {
-                            // Format the start date
-                            let start_date = if let Some(client_time) = &tournament.client_start_time {
-                                // Parse ISO 8601 string and format for display
-                                DateTime::parse_from_rfc3339(client_time)
-                                    .map(|dt| {
-                                        // Extract timezone abbreviation if available
-                                        let tz_str = tournament.client_timezone.as_ref()
-                                            .and_then(|tz| tz.split('/').last())
-                                            .unwrap_or("Local Time");
-
-                                        // Format with day suffix handling
-                                        let day = dt.day();
-                                        let suffix = match day {
-                                            1 | 21 | 31 => "st",
-                                            2 | 22 => "nd",
-                                            3 | 23 => "rd",
-                                            _ => "th",
-                                        };
-
-                                        format!(
-                                            "{}{} {}, {} {}",
-                                            day,
-                                            suffix,
-                                            dt.format("%B"),
-                                            dt.format("%I:%M %p"),
-                                            tz_str
-                                        )
-                                    })
-                                    .unwrap_or_else(|_| client_time.clone())
-                            } else {
-                                // Fallback to UTC formatting
-                                DateTime::from_timestamp(tournament.start_time, 0)
-                                    .map(|dt| {
-                                        let day = dt.day();
-                                        let suffix = match day {
-                                            1 | 21 | 31 => "st",
-                                            2 | 22 => "nd",
-                                            3 | 23 => "rd",
-                                            _ => "th",
-                                        };
-
-                                        format!(
-                                            "{}{} {}, {} UTC",
-                                            day,
-                                            suffix,
-                                            dt.format("%B"),
-                                            dt.format("%I:%M %p")
-                                        )
-                                    })
-                                    .unwrap_or_else(|| "Soon".to_string())
-                            };
+                            // Format the start date using the unified utility
+                            let start_date = format_tournament_date_with_fallback(
+                                tournament.start_time,
+                                tournament.client_start_time.as_ref(),
+                                tournament.client_timezone.as_ref(),
+                            );
 
                             view! {
                                 <div class="bg-[#212121] rounded-full px-2 py-1 mb-5 flex items-center gap-1.5">
