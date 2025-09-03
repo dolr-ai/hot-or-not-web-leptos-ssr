@@ -1,3 +1,4 @@
+#[cfg(not(feature = "hydrate"))]
 use chrono::{DateTime, Datelike};
 
 /// Get the browser's timezone using JavaScript's Intl API
@@ -37,6 +38,9 @@ pub fn get_browser_timezone() -> String {
                                     Reflect::get(&resolved_options, &JsValue::from_str("timeZone"))
                                 {
                                     if let Some(timezone_str) = timezone_value.as_string() {
+                                        web_sys::console::log_1(&JsValue::from_str(&format!(
+                                            "Detected timezone: {timezone_str}"
+                                        )));
                                         return timezone_str;
                                     }
                                 }
@@ -130,6 +134,16 @@ pub fn get_timezone_abbreviation(timezone: Option<&str>) -> String {
                                                         ) {
                                                             if let Some(tz_abbr) = value.as_string()
                                                             {
+                                                                let log_msg = if let Some(tz) =
+                                                                    timezone
+                                                                {
+                                                                    format!("Detected timezone abbreviation for {tz}: {tz_abbr}")
+                                                                } else {
+                                                                    format!("Detected timezone abbreviation (browser default): {tz_abbr}")
+                                                                };
+                                                                web_sys::console::log_1(
+                                                                    &JsValue::from_str(&log_msg),
+                                                                );
                                                                 return tz_abbr;
                                                             }
                                                         }
@@ -160,17 +174,16 @@ pub fn get_timezone_abbreviation(timezone: Option<&str>) -> String {
 /// Format a tournament date with proper timezone handling
 ///
 /// # Arguments
-/// * `timestamp` - Unix timestamp in seconds
+/// * `timestamp` - Unix timestamp in seconds (UTC)
 /// * `client_time` - Optional ISO 8601 formatted time string from server
 /// * `client_timezone` - Optional timezone string from server
 ///
 /// # Returns
-/// Formatted date string like "21st January, 09:30 PM IST" (with timezone if provided)
-/// or "21st January, 09:30 PM" (without timezone if not provided)
+/// Formatted date string like "21st January, 09:30 PM" in local browser time
 pub fn format_tournament_date(
     timestamp: i64,
-    client_time: Option<&String>,
-    client_timezone: Option<&String>,
+    _client_time: Option<&String>,
+    _client_timezone: Option<&String>,
 ) -> String {
     // Helper function for day suffix
     fn get_day_suffix(day: u32) -> &'static str {
@@ -182,45 +195,70 @@ pub fn format_tournament_date(
         }
     }
 
-    // First, try to use client_time if provided
-    if let Some(client_time_str) = client_time {
-        if let Ok(dt) = DateTime::parse_from_rfc3339(client_time_str) {
-            // Only show timezone abbreviation if explicitly provided by server
-            let tz_str = if let Some(tz) = client_timezone {
-                format!(" {}", get_timezone_abbreviation(Some(tz)))
-            } else {
-                "".to_string() // No timezone display when not provided
-            };
+    // Convert UTC timestamp to local time in browser
+    #[cfg(feature = "hydrate")]
+    {
+        use js_sys::Date;
 
+        // Create a Date object from the timestamp (multiply by 1000 for milliseconds)
+        let date = Date::new(&wasm_bindgen::JsValue::from_f64((timestamp * 1000) as f64));
+
+        // Get local date components
+        let day = date.get_date();
+        let month = date.get_month(); // 0-indexed
+        let hours = date.get_hours();
+        let minutes = date.get_minutes();
+
+        // Format month name
+        let month_names = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ];
+        let month_name = month_names.get(month as usize).unwrap_or(&"Unknown");
+
+        // Format time in 12-hour format
+        let (hour_12, period) = if hours == 0 {
+            (12, "AM")
+        } else if hours < 12 {
+            (hours, "AM")
+        } else if hours == 12 {
+            (12, "PM")
+        } else {
+            (hours - 12, "PM")
+        };
+
+        let suffix = get_day_suffix(day);
+
+        format!("{day}{suffix} {month_name}, {hour_12:02}:{minutes:02} {period}")
+    }
+
+    // Server-side fallback: just format the UTC time
+    #[cfg(not(feature = "hydrate"))]
+    {
+        if let Some(dt) = DateTime::from_timestamp(timestamp, 0) {
             let day = dt.day();
             let suffix = get_day_suffix(day);
 
-            return format!(
-                "{}{} {}, {}{}",
+            format!(
+                "{}{} {}, {}",
                 day,
                 suffix,
                 dt.format("%B"),
-                dt.format("%I:%M %p"),
-                tz_str
-            );
+                dt.format("%I:%M %p")
+            )
+        } else {
+            "Unknown".to_string()
         }
-    }
-
-    // Fallback to timestamp formatting (no timezone display)
-    if let Some(dt) = DateTime::from_timestamp(timestamp, 0) {
-        let day = dt.day();
-        let suffix = get_day_suffix(day);
-
-        // Don't show any timezone when falling back to timestamp
-        format!(
-            "{}{} {}, {}",
-            day,
-            suffix,
-            dt.format("%B"),
-            dt.format("%I:%M %p")
-        )
-    } else {
-        "Unknown".to_string()
     }
 }
 
