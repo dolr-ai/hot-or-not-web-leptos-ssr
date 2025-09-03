@@ -18,10 +18,7 @@ use candid::Principal;
 use codee::string::FromToStringCodec;
 use futures::StreamExt;
 use leptos::prelude::*;
-use leptos_router::{
-    hooks::{use_navigate, use_params},
-    params::Params,
-};
+use leptos_router::{hooks::use_params, params::Params};
 use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use utils::{
     mixpanel::mixpanel_events::*,

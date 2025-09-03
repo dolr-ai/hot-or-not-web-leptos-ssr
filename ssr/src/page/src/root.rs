@@ -1,6 +1,5 @@
 use candid::Principal;
 use codee::string::FromToStringCodec;
-use component::base_route::CtxProvider;
 use component::spinner::FullScreenSpinner;
 use consts::NSFW_ENABLED_COOKIE;
 use futures::{StreamExt, TryStreamExt};
