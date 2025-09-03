@@ -1,3 +1,4 @@
+use candid::Principal;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::buttons::HighlightedButton;
 use component::icons::sound_off_icon::SoundOffIcon;
@@ -160,7 +161,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
 #[component]
 pub fn VideoDetailsOverlay(
     post: PostDetails,
-    prev_post: Option<PostDetails>,
+    prev_post: Option<(Principal, u64)>,
     win_audio_ref: NodeRef<Audio>,
 ) -> impl IntoView {
     let show_share = RwSignal::new(false);
