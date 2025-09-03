@@ -51,7 +51,7 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
         _ => PopupVariant::BetterLuck,
     };
 
-    let popup_variant = PopupVariant::Champion {
+    let popup_variant = PopupVariant::Silver {
         reward: user_info.reward,
     };
 
@@ -278,14 +278,16 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
 
                         // View Leaderboard button
                         <button
-                            class="w-full bg-[#FAFAFA] text-black font-bold py-3 px-5 rounded-lg hover:bg-white transition-colors"
+                            class="w-full bg-[#FAFAFA] font-bold py-3 px-5 rounded-lg hover:bg-white transition-colors"
                             on:click=move |_| {
                                 show.set(false);
                                 // Scroll to user's position if needed
                                 // This could be enhanced to scroll to the user's rank
                             }
                         >
-                            "View Leaderboard"
+                            <span class="bg-gradient-to-r from-[#E2017B] to-[#CD29FF] bg-clip-text text-transparent">
+                                "View Leaderboard"
+                            </span>
                         </button>
                     </div>
                 </div>
