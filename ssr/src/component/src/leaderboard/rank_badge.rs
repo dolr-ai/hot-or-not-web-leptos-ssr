@@ -20,7 +20,11 @@ fn RankBadgeView(
             style={if !is_active { "filter: grayscale(100%) opacity(60%)" } else { "" }}
             on:click=move |_| {
                 let navigate = use_navigate();
-                navigate("/leaderboard", Default::default());
+                if is_active {
+                    navigate("/leaderboard", Default::default());
+                } else {
+                    navigate("/leaderboard/no-active", Default::default());
+                }
             }
         >
             <div class="relative group">
@@ -82,7 +86,11 @@ pub fn RankBadge() -> impl IntoView {
                 // Fetch rank and tournament status from API
                 match fetch_user_rank_from_api(principal).await {
                     Ok(Some((rank, status))) => {
-                        leptos::logging::log!("RankBadge: Fetched rank: {}, status: {}", rank, status);
+                        leptos::logging::log!(
+                            "RankBadge: Fetched rank: {}, status: {}",
+                            rank,
+                            status
+                        );
                         Some((rank, status))
                     }
                     Ok(None) => {
@@ -112,9 +120,9 @@ pub fn RankBadge() -> impl IntoView {
                         let rank_text = if is_active {
                             format!("#{}", rank)
                         } else {
-                            "NA".to_string()
+                            "N/A".to_string()
                         };
-                        
+
                         // Show badge with rank or NA based on tournament status
                         view! {
                             <RankBadgeView rank_text is_active />
@@ -146,7 +154,7 @@ pub fn GlobalRankBadge() -> impl IntoView {
                     let is_active = user_rank.tournament_status.as_ref()
                         .map(|s| s == "active")
                         .unwrap_or(false);
-                    
+
                     // Display rank or NA based on tournament status
                     let rank_text = if is_active {
                         match user_rank.rank {
@@ -156,7 +164,7 @@ pub fn GlobalRankBadge() -> impl IntoView {
                     } else {
                         "NA".to_string()
                     };
-                    
+
                     view! {
                         <RankBadgeView rank_text is_active />
                     }
