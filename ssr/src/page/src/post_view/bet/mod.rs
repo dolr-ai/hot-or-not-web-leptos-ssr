@@ -310,8 +310,14 @@ fn HNButtonOverlay(
                         Some(())
                     }
                     Err(e) => {
-                        show_low_balance_popup.set(true); // TODO: only show when low sats and not other errors
-                        log::error!("{e}");
+                        let error_msg = format!("{e}");
+                        
+                        // Only show low balance popup for insufficient funds errors
+                        if error_msg.contains("InsufficientFunds") {
+                            show_low_balance_popup.set(true);
+                        }
+                        
+                        log::error!("{}", error_msg);
                         None
                     }
                 }
