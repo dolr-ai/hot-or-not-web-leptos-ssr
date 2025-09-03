@@ -146,10 +146,13 @@ pub fn CommonPostViewWithUpdates(
             canister_id,
             post_id,
         }));
-        use_navigate()(
-            &format!("/hot-or-not/{canister_id}/{post_id}",),
-            Default::default(),
-        );
+
+        // Using browser history push to ensure that the browser doesn't try
+        // to load PostView component when rendering under any other parent.
+        // PostView has its own loading strategy and will cause a refresh
+        use gloo::history::History;
+        gloo::history::BrowserHistory::new()
+            .replace(format!("/hot-or-not/{canister_id}/{post_id}"));
     });
 
     let hard_refresh_target = RwSignal::new("/".to_string());

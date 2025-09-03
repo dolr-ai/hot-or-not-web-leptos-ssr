@@ -9,7 +9,7 @@ use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::hooks::use_query_map;
 use leptos_use::{use_cookie_with_options, UseCookieOptions};
-use state::canisters::unauth_canisters;
+use state::canisters::{unauth_canisters, AuthState};
 use utils::host::show_nsfw_content;
 use utils::ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw};
 use utils::{send_wrap, try_or_redirect_opt};
@@ -198,6 +198,13 @@ pub fn YralRootPage() -> impl IntoView {
         }
     });
 
+    // Providing auth state is one of CtxProvider's job, but as a hack I am
+    // setting it here because using CtxProvider here was causing this page to
+    // be loaded twice
+
+    let auth_state = AuthState::default();
+    provide_context(auth_state);
+
     view! {
         <Title text="YRAL - Home" />
         <Suspense fallback=FullScreenSpinner>
@@ -225,9 +232,7 @@ pub fn YralRootPage() -> impl IntoView {
                     let initial_posts = try_or_redirect_opt!(initial_posts.await);
 
                     Some(view! {
-                        <CtxProvider>
-                            <PostViewWithUpdatesMLFeed initial_posts />
-                        </CtxProvider>
+                        <PostViewWithUpdatesMLFeed initial_posts />
                     }.into_any())
                 })
             }}
