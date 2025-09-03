@@ -51,7 +51,7 @@ fn ProfileCard(
                 />
                 <div class="flex flex-col gap-2">
                     <span class="text-lg font-semibold select-all line-clamp-1 font-kumbh text-neutral-50">
-                        @{details.display_name_or_fallback()}
+                        @{details.username_or_fallback()}
                     </span>
                     <span class="text-xs text-neutral-400 line-clamp-1 select-all">
                         {details.principal()}
@@ -205,7 +205,7 @@ pub fn WalletImpl(id: UsernameOrPrincipal) -> impl IntoView {
     let cans2 = cans.clone();
     let auth = auth_state();
 
-    let metadata = OnceResource::new(send_wrap(async move {
+    let query_user_metadata_result = OnceResource::new(send_wrap(async move {
         let canisters = cans2;
         let user_canister = canisters
             .get_user_metadata(id.with_value(|id| id.to_string()))
@@ -214,21 +214,16 @@ pub fn WalletImpl(id: UsernameOrPrincipal) -> impl IntoView {
     }));
 
     let profile_info_res = OnceResource::new(send_wrap(async move {
-        let Some(meta) = metadata.await? else {
-            return Ok(None);
-        };
-        let user = cans.individual_user(meta.user_canister_id).await;
-        let user_details = user.get_profile_details_v_2().await?;
-        Ok::<_, ServerFnError>(Some(ProfileDetails::from_canister(
-            meta.user_canister_id,
-            Some(meta.user_name),
-            user_details,
-        )))
+        let profile_details = cans
+            .get_profile_details(format!("{}", id.get_value()))
+            .await
+            .inspect_err(|e| log::warn!("{e}"))?;
+        Ok::<_, ServerFnError>(profile_details)
     }));
 
     // Edge Case: unauthenticated user navigates to wallet page
-    let metadata = Callback::new(move |()| async move {
-        if let Some(meta) = metadata.await? {
+    let query_user_principal_and_canister_res = Callback::new(move |()| async move {
+        if let Some(meta) = query_user_metadata_result.await? {
             return Ok::<_, ServerFnError>((meta.user_principal, meta.user_canister_id));
         }
         let logged_in_user = auth.auth_cans().await?;
@@ -249,16 +244,18 @@ pub fn WalletImpl(id: UsernameOrPrincipal) -> impl IntoView {
     });
 
     // Edge Case: unauthenticated user navigates to wallet page
-    let profile_details = Callback::new(move |()| async move {
-        let logged_in_user = auth.auth_cans().await?;
+    let profile_details_and_is_owner_result = Callback::new(move |()| async move {
+        let authenticated_canister_resource = auth.auth_cans().await?;
         let is_own_account = match id.get_value() {
-            UsernameOrPrincipal::Principal(p) => p == logged_in_user.user_principal(),
+            UsernameOrPrincipal::Principal(p) => {
+                p == authenticated_canister_resource.user_principal()
+            }
             UsernameOrPrincipal::Username(u) => {
-                Some(u) == logged_in_user.profile_details().username
+                Some(u) == authenticated_canister_resource.profile_details().username
             }
         };
         let profile_details = if is_own_account {
-            logged_in_user.profile_details()
+            authenticated_canister_resource.profile_details()
         } else {
             let profile_details = profile_info_res.await?;
             profile_details.ok_or_else(|| ServerFnError::new("User canister not found"))?
@@ -279,7 +276,7 @@ pub fn WalletImpl(id: UsernameOrPrincipal) -> impl IntoView {
                 view! { <HeaderLoading /> }
             }>
                 {move || Suspend::new(async move {
-                    match profile_details.run(()).await {
+                    match profile_details_and_is_owner_result.run(()).await {
                         Ok((profile_details, is_own_account)) => {
                             Either::Left(
                                 view! { <Header details=profile_details is_own_account /> },
@@ -294,7 +291,7 @@ pub fn WalletImpl(id: UsernameOrPrincipal) -> impl IntoView {
             <div class="flex flex-col gap-4 justify-center items-center px-4 mx-auto w-full max-w-md h-full">
                 <Suspense fallback=ProfileCardLoading>
                     {move || Suspend::new(async move {
-                        match profile_details.run(()).await {
+                        match profile_details_and_is_owner_result.run(()).await {
                             Ok((profile_details, is_own_account)) => {
                                 Either::Left(
                                     view! {
@@ -314,7 +311,7 @@ pub fn WalletImpl(id: UsernameOrPrincipal) -> impl IntoView {
                 </Suspense>
                 <Suspense>
                     {move || Suspend::new(async move {
-                        let meta = metadata.run(()).await;
+                        let meta = query_user_principal_and_canister_res.run(()).await;
                         match meta {
                             Ok((user_principal, user_canister)) => {
                                 Either::Left(

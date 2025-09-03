@@ -64,11 +64,17 @@ async fn set_fallback_username(cans: &mut Canisters<true>, mut username: String)
 
 async fn do_canister_auth(
     auth: DelegatedIdentityWire,
-    referrer: Option<Principal>,
+    _referrer: Option<Principal>,
     fallback_username: Option<String>,
 ) -> Result<Canisters<true>, ServerFnError> {
-    let auth_fut = Canisters::authenticate_with_network(auth, referrer);
+    let auth_fut = Canisters::authenticate_with_network(auth);
     let mut canisters = send_wrap(auth_fut).await?;
+
+    leptos::logging::log!(
+        "registered new user with principal {}",
+        canisters.user_principal().to_text()
+    );
+
     if canisters.profile_details().username.is_some() {
         return Ok(canisters);
     }

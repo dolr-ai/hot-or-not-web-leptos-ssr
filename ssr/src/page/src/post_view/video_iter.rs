@@ -143,9 +143,7 @@ impl<
                 // TODO: not changing now since this will be replaced with new post canister service
                 self.canisters.get_post_details_with_nsfw_info(
                     Principal::from_text(item.canister_id).unwrap(),
-                    item.post_id.parse().expect(
-                        "In phase one, only the type changes but post id will remain a number",
-                    ),
+                    item.post_id.to_string(),
                     Some(item.nsfw_probability),
                 )
             })
@@ -195,9 +193,7 @@ impl<
             .map(move |item| {
                 self.canisters.get_post_details_with_nsfw_info(
                     Principal::from_text(item.canister_id).unwrap(),
-                    item.post_id.parse().expect(
-                        "In phase one, only the type changes but post id will remain a number",
-                    ),
+                    item.post_id.to_string(),
                     Some(item.nsfw_probability),
                 )
             })
