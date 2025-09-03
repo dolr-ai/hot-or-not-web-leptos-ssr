@@ -1,15 +1,18 @@
+use codee::string::JsonSerdeCodec;
 use component::infinite_scroller::InfiniteScroller;
 use component::leaderboard::{
     api::fetch_leaderboard_page,
     podium::TournamentPodium,
     provider::LeaderboardProvider,
     search_bar::SearchBar,
+    tournament_completion_popup::TournamentCompletionPopup,
     tournament_header::TournamentHeader,
     types::{LeaderboardEntry, TournamentInfo, UserInfo},
 };
 use component::title::TitleText;
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
+use leptos_use::storage::use_local_storage;
 #[cfg(feature = "hydrate")]
 use leptos_use::use_debounce_fn;
 use state::canisters::{auth_state, unauth_canisters};
@@ -27,6 +30,7 @@ pub fn Leaderboard() -> impl IntoView {
     let (search_input, set_search_input) = signal(String::new()); // Immediate input value
     let (search_query, set_search_query) = signal(String::new()); // Debounced search value
     let (provider_key, set_provider_key) = signal(0u32); // Key to force provider refresh
+    let show_completion_popup = RwSignal::new(false);
 
     // Fetch tournament info and user info once
     let tournament_resource = LocalResource::new(move || async move {
@@ -62,20 +66,40 @@ pub fn Leaderboard() -> impl IntoView {
         }
     });
 
+    // LocalStorage for tracking seen popups
+    let (seen_tournaments, set_seen_tournaments, _) =
+        use_local_storage::<Vec<String>, JsonSerdeCodec>("seen_tournament_completions");
+
     // Handle tournament info load
     Effect::new(move |_| {
         if let Some(Ok(response)) = tournament_resource.get() {
-            set_tournament_info.set(Some(response.tournament_info));
+            let tournament = response.tournament_info.clone();
+            set_tournament_info.set(Some(tournament.clone()));
 
             // Parse user info if present
             if let Some(user_json) = response.user_info {
                 if let Ok(user_info) = serde_json::from_value::<UserInfo>(user_json) {
-                    set_current_user_info.set(Some(user_info));
+                    set_current_user_info.set(Some(user_info.clone()));
+
+                    // Check if should show completion popup
+                    if tournament.status == "completed" {
+                        let tournament_id = tournament.id.to_string();
+                        let seen_list = seen_tournaments.get_untracked();
+
+                        // Only show if not seen before and user is logged in
+                        // if !seen_list.contains(&tournament_id) { // TODO: for testing, uncomment later by human
+                        show_completion_popup.set(true);
+
+                        // Mark as seen
+                        let mut updated_seen = seen_list;
+                        updated_seen.push(tournament_id);
+                        set_seen_tournaments.set(updated_seen);
+                        // }
+                    }
                 }
             }
         }
     });
-
 
     // Debounced search function - executes 300ms after user stops typing
     // Only use debounce on client side to avoid SendWrapper thread issues in SSR
@@ -88,16 +112,14 @@ pub fn Leaderboard() -> impl IntoView {
             // Force provider refresh
             set_provider_key.update(|k| *k += 1);
         },
-        300.0, // 300ms delay
+        500.0,
     );
-    
+
     // For SSR, execute immediately without debounce
     #[cfg(not(feature = "hydrate"))]
     let debounced_search = move || {
-        // Copy input value to search query immediately on SSR
         let input = search_input.get();
         set_search_query.set(input);
-        // Force provider refresh
         set_provider_key.update(|k| *k += 1);
     };
 
@@ -165,7 +187,7 @@ pub fn Leaderboard() -> impl IntoView {
                     {move || {
                         tournament_info.get().map(|tournament| {
                             let is_completed = tournament.status == "completed";
-                            
+
                             // Create provider inside Suspense to avoid hydration warnings
                             provider_key.get(); // Subscribe to refresh key
                             let uid = auth
@@ -323,6 +345,14 @@ pub fn Leaderboard() -> impl IntoView {
                     }}
                 </Suspense>
             </div>
+
+            // Tournament completion popup
+            <Show when=move || current_user_info.get().is_some() && show_completion_popup.get()>
+                <TournamentCompletionPopup
+                    show=show_completion_popup
+                    user_info=current_user_info.get().unwrap()
+                />
+            </Show>
         </div>
     }
 }
