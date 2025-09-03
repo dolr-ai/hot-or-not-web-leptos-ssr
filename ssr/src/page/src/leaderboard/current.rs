@@ -79,7 +79,7 @@ pub fn Leaderboard() -> impl IntoView {
         if let Some(Ok(response)) = tournament_resource.get() {
             let tournament = response.tournament_info.clone();
             set_tournament_info.set(Some(tournament.clone()));
-            
+
             // Set upcoming tournament info if present
             if let Some(upcoming) = response.upcoming_tournament_info {
                 set_upcoming_tournament_info.set(Some(upcoming));
@@ -95,12 +95,9 @@ pub fn Leaderboard() -> impl IntoView {
                         let tournament_id = tournament.id.to_string();
                         let seen_list = seen_tournaments.get_untracked();
 
-                        // Only show if not seen before and user is logged in
                         if !seen_list.contains(&tournament_id) {
-                            // TODO: for testing, uncomment later by human
                             show_completion_popup.set(true);
 
-                            // Mark as seen
                             let mut updated_seen = seen_list;
                             updated_seen.push(tournament_id);
                             set_seen_tournaments.set(updated_seen);
@@ -342,7 +339,7 @@ pub fn Leaderboard() -> impl IntoView {
                                                 let is_current_user = current_user_info.get()
                                                     .map(|u| u.principal_id == entry.principal_id)
                                                     .unwrap_or(false);
-                                                
+
                                                 // Create a node ref for the current user's row
                                                 let user_row_ref = NodeRef::<html::Div>::new();
 

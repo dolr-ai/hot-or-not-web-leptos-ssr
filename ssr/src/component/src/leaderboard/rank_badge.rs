@@ -1,9 +1,6 @@
+use super::UserRank;
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
-use state::canisters::auth_state;
-use utils::send_wrap;
-
-use super::{api::fetch_user_rank_from_api, RankUpdateCounter, UserRank};
 
 /// Reusable rank badge view component
 #[component]
@@ -68,11 +65,8 @@ fn RankBadgeView(
 /// Global rank badge that uses the single global LocalResource
 #[component]
 pub fn GlobalRankBadge() -> impl IntoView {
-    // Get the global rank LocalResource from context (created once in PostView)
     let global_rank_resource = use_context::<LocalResource<UserRank>>()
         .expect("Global rank LocalResource should be provided");
-
-    // Transition maintains state internally, no need for local signals or Effect
 
     view! {
         <Transition
@@ -100,9 +94,6 @@ pub fn GlobalRankBadge() -> impl IntoView {
                     } else {
                         "N/A".to_string()
                     };
-
-                    // set_rank_text.set(rank_text.clone());
-                    // set_is_active.set(is_active.clone());
 
                     view! {
                         <RankBadgeView rank_text is_active />

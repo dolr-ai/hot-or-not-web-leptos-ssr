@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use component::infinite_scroller::InfiniteScroller;
 use component::leaderboard::{
     api::fetch_leaderboard_page,
@@ -15,43 +16,43 @@ pub struct TournamentParams {
     pub id: String,
 }
 
+fn format_date(timestamp: i64) -> String {
+    let datetime =
+        DateTime::<Utc>::from_timestamp(timestamp, 0).unwrap_or_else(|| Utc::now().into());
+    datetime.format("%b %d").to_string()
+}
+
 #[component]
 pub fn TournamentResults() -> impl IntoView {
     let auth = auth_state();
     let navigate = use_navigate();
     let params = use_params::<TournamentParams>();
-    
+
     // Get tournament ID from params
-    let tournament_id = move || {
-        params.get()
-            .map(|p| p.id)
-            .unwrap_or_else(|_| String::new())
-    };
-    
+    let tournament_id = move || params.get().map(|p| p.id).unwrap_or_else(|_| String::new());
+
     // State management
     let (tournament_info, set_tournament_info) = signal(None::<TournamentInfo>);
     let (current_user_info, set_current_user_info) = signal(None::<UserInfo>);
     let (sort_order, set_sort_order) = signal("desc".to_string());
     let (provider_key, set_provider_key) = signal(0u32); // Key to force provider refresh
-    
+
     // Fetch tournament info and user info
-    let tournament_resource = LocalResource::new(move || {
+    let tournament_resource = LocalResource::new(move || async move {
         let tid = tournament_id();
-        let uid = auth.user_principal.get().and_then(|res| res.ok()).map(|p| p.to_string());
-        async move {
-            if tid.is_empty() {
-                Err("No tournament ID provided".to_string())
-            } else {
-                fetch_leaderboard_page(0, 1, uid, Some("desc"), Some(tid)).await
-            }
+        let uid = auth.user_principal.await.ok().map(|p| p.to_string());
+        if tid.is_empty() {
+            Err("No tournament ID provided".to_string())
+        } else {
+            fetch_leaderboard_page(0, 1, uid, Some("desc"), Some(tid)).await
         }
     });
-    
+
     // Handle tournament info load
     Effect::new(move |_| {
         if let Some(Ok(response)) = tournament_resource.get() {
             set_tournament_info.set(Some(response.tournament_info));
-            
+
             // Parse user info if present
             if let Some(user_json) = response.user_info {
                 if let Ok(user_info) = serde_json::from_value::<UserInfo>(user_json) {
@@ -60,25 +61,13 @@ pub fn TournamentResults() -> impl IntoView {
             }
         }
     });
-    
-    // Create provider based on current state
-    let provider = Memo::new(move |_| {
-        provider_key.get(); // Subscribe to refresh key
-        let tid = tournament_id();
-        let uid = auth.user_principal.get().and_then(|res| res.ok()).map(|p| p.to_string());
-        let order = sort_order.get();
-        
-        if !tid.is_empty() {
-            Some(TournamentLeaderboardProvider::new(tid, uid, order))
-        } else {
-            None
-        }
-    });
-    
+
+    // Provider will be created inside Suspense to avoid hydration warnings
+
     // Sort function - toggles between asc and desc
     let on_sort = move |field: String| {
         log::info!("Sorting by: {}", field);
-        
+
         // Toggle sort order
         set_sort_order.update(|order| {
             *order = if order == "asc" {
@@ -87,11 +76,11 @@ pub fn TournamentResults() -> impl IntoView {
                 "asc".to_string()
             };
         });
-        
+
         // Force provider refresh
         set_provider_key.update(|k| *k += 1);
     };
-    
+
     view! {
         <div class="min-h-screen bg-black text-white">
             // Header
@@ -118,8 +107,25 @@ pub fn TournamentResults() -> impl IntoView {
                     </div>
                 }>
                     {move || {
-                        match (tournament_info.get(), provider.get()) {
-                            (Some(tournament), Some(prov)) => {
+                        tournament_info.get().map(|tournament| {
+                            // Create provider inside Suspense to avoid hydration warnings
+                            provider_key.get(); // Subscribe to refresh key
+                            let tid = tournament_id();
+                            let uid = auth
+                                .user_principal
+                                .get()
+                                .and_then(|res| res.ok())
+                                .map(|p| p.to_string());
+                            let order = sort_order.get();
+
+                            if tid.is_empty() {
+                                view! {
+                                    <div class="text-center py-8">
+                                        <p class="text-gray-400">"Tournament not found"</p>
+                                    </div>
+                                }.into_any()
+                            } else {
+                                let prov = TournamentLeaderboardProvider::new(tid, uid, order);
                                 view! {
                                     <>
                                         // Tournament info card
@@ -143,17 +149,17 @@ pub fn TournamentResults() -> impl IntoView {
                                                         {tournament.prize_pool} " " {tournament.prize_token}
                                                     </span>
                                                 </div>
-                                                <div>"Metric: " {tournament.metric_display_name}</div>
+                                                <div>"Date: " {format_date(tournament.start_time)}</div>
                                             </div>
                                         </div>
-                                        
+
                                         // Leaderboard
                                         <div class="w-full">
                                             // Table header
                                             <div class="flex items-center justify-between px-4 py-2 border-b border-white/10">
                                                 <div class="flex items-center gap-1 w-[80px]">
                                                     <span class="text-xs text-neutral-400 font-medium">Rank</span>
-                                                    <button 
+                                                    <button
                                                         class="text-neutral-400 hover:text-white transition-colors"
                                                         on:click={let on_sort = on_sort.clone(); move |_| on_sort("rank".to_string())}
                                                     >
@@ -168,7 +174,7 @@ pub fn TournamentResults() -> impl IntoView {
                                                 </div>
                                                 <div class="flex items-center gap-1 w-[100px] justify-end">
                                                     <span class="text-xs text-neutral-400 font-medium">Rewards</span>
-                                                    <button 
+                                                    <button
                                                         class="text-neutral-400 hover:text-white transition-colors"
                                                         on:click={let on_sort = on_sort.clone(); move |_| on_sort("reward".to_string())}
                                                     >
@@ -176,7 +182,7 @@ pub fn TournamentResults() -> impl IntoView {
                                                     </button>
                                                 </div>
                                             </div>
-                                            
+
                                             <InfiniteScroller
                                                 provider=prov
                                                 fetch_count=20
@@ -184,15 +190,15 @@ pub fn TournamentResults() -> impl IntoView {
                                                     let is_current_user = current_user_info.get()
                                                         .map(|u| u.principal_id == entry.principal_id)
                                                         .unwrap_or(false);
-                                                    
+
                                                     // Get rank styling based on position
                                                     let rank_class = match entry.rank {
                                                         1 => "bg-gradient-to-r from-[#BF760B] via-[#FFE89F] to-[#C38F14] bg-clip-text text-transparent",
-                                                        2 => "bg-gradient-to-r from-[#2F2F30] via-[#FFFFFF] to-[#4B4B4B] bg-clip-text text-transparent", 
+                                                        2 => "bg-gradient-to-r from-[#2F2F30] via-[#FFFFFF] to-[#4B4B4B] bg-clip-text text-transparent",
                                                         3 => "bg-gradient-to-r from-[#6D4C35] via-[#DBA374] to-[#9F7753] bg-clip-text text-transparent",
                                                         _ => "text-white"
                                                     };
-                                                    
+
                                                     // Get username color based on rank
                                                     let username_color = match entry.rank {
                                                         1 => "text-[#FDBF01]",
@@ -200,9 +206,9 @@ pub fn TournamentResults() -> impl IntoView {
                                                         3 => "text-[#D99979]",
                                                         _ => "text-white"
                                                     };
-                                                    
+
                                                     view! {
-                                                        <div 
+                                                        <div
                                                             node_ref=node_ref.unwrap_or_default()
                                                             class=move || {
                                                                 format!(
@@ -217,21 +223,21 @@ pub fn TournamentResults() -> impl IntoView {
                                                                     "#"{entry.rank}
                                                                 </span>
                                                             </div>
-                                                            
+
                                                             // Username column
                                                             <div class="flex-1">
                                                                 <span class=format!("text-sm font-medium {}", username_color)>
                                                                     "@"{entry.username}
                                                                 </span>
                                                             </div>
-                                                            
+
                                                             // Games Played column
                                                             <div class="w-[100px] flex items-center justify-end gap-1">
                                                                 <span class="text-sm font-semibold text-white">
                                                                     {entry.score as u32}
                                                                 </span>
                                                             </div>
-                                                            
+
                                                             // Rewards column
                                                             <div class="w-[100px] flex items-center justify-end gap-1">
                                                                 <span class="text-sm font-semibold text-white">
@@ -253,14 +259,7 @@ pub fn TournamentResults() -> impl IntoView {
                                     </>
                                 }.into_any()
                             }
-                            _ => {
-                                view! {
-                                    <div class="text-center py-12 text-gray-400">
-                                        "Loading tournament data..."
-                                    </div>
-                                }.into_any()
-                            }
-                        }
+                        })
                     }}
                 </Suspense>
             </div>
