@@ -72,41 +72,14 @@ pub fn GlobalRankBadge() -> impl IntoView {
     let global_rank_resource = use_context::<LocalResource<UserRank>>()
         .expect("Global rank LocalResource should be provided");
 
-    // Local state to maintain current values
-    let (rank_text, set_rank_text) = signal("N/A".to_string());
-    let (is_active, set_is_active) = signal(false);
-
-    // Update local state when resource changes
-    // Effect::new(move |_| {
-    //     if let Some(user_rank) = global_rank_resource.get() {
-    //         let active = user_rank
-    //             .tournament_status
-    //             .as_ref()
-    //             .map(|s| s == "active")
-    //             .unwrap_or(false);
-
-    //         let text = if active {
-    //             match user_rank.rank {
-    //                 Some(rank) => format!("#{}", rank),
-    //                 None => "N/A".to_string(),
-    //             }
-    //         } else {
-    //             "N/A".to_string()
-    //         };
-
-    //         set_rank_text.set(text);
-    //         set_is_active.set(active);
-    //     }
-    // });
+    // Transition maintains state internally, no need for local signals or Effect
 
     view! {
-        <Suspense
+        <Transition
             fallback=move || {
-            let rank_text = rank_text.get_untracked();
-            let is_active = is_active.get_untracked();
             view! {
-                // Use stored state in fallback
-                <RankBadgeView rank_text=rank_text is_active=is_active />
+                // Initial loading state
+                <RankBadgeView rank_text="N/A".to_string() is_active=false />
             }
         }
         >
@@ -128,14 +101,14 @@ pub fn GlobalRankBadge() -> impl IntoView {
                         "N/A".to_string()
                     };
 
-                    set_rank_text.set(rank_text.clone());
-                    set_is_active.set(is_active.clone());
+                    // set_rank_text.set(rank_text.clone());
+                    // set_is_active.set(is_active.clone());
 
                     view! {
                         <RankBadgeView rank_text is_active />
                     }
                 })
             }}
-        </Suspense>
+        </Transition>
     }
 }
