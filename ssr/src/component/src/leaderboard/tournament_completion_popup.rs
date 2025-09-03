@@ -32,7 +32,7 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
     let _navigate = leptos_router::hooks::use_navigate();
 
     // Determine popup variant based on rank and reward
-    let _popup_variant = match user_info.rank {
+    let popup_variant = match user_info.rank {
         1 => PopupVariant::Champion {
             reward: user_info.reward,
         },

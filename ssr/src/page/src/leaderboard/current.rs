@@ -10,11 +10,13 @@ use component::leaderboard::{
     types::{LeaderboardEntry, TournamentInfo, UserInfo},
 };
 use component::title::TitleText;
-use leptos::prelude::*;
+use leptos::{html, prelude::*};
 use leptos_router::hooks::use_navigate;
 use leptos_use::storage::use_local_storage;
 #[cfg(feature = "hydrate")]
 use leptos_use::use_debounce_fn;
+#[cfg(feature = "hydrate")]
+use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserverOptions};
 use state::canisters::{auth_state, unauth_canisters};
 
 #[component]
@@ -31,6 +33,7 @@ pub fn Leaderboard() -> impl IntoView {
     let (search_query, set_search_query) = signal(String::new()); // Debounced search value
     let (provider_key, set_provider_key) = signal(0u32); // Key to force provider refresh
     let show_completion_popup = RwSignal::new(false);
+    let (user_row_visible, set_user_row_visible) = signal(false); // Track if user's actual row is visible
 
     // Fetch tournament info and user info once
     let tournament_resource = LocalResource::new(move || async move {
@@ -267,6 +270,65 @@ pub fn Leaderboard() -> impl IntoView {
                                             </div>
                                         </div>
 
+                                        // Sticky current user row (only shown when actual row is not visible and no search is active)
+                                        <Show when=move || {
+                                            !user_row_visible.get() && current_user_info.get().is_some() && search_query.get().is_empty()
+                                        }>
+                                            {move || {
+                                                current_user_info.get().map(|user_info| {
+                                                    // Get rank styling based on position
+                                                    let rank_class = match user_info.rank {
+                                                        1 => "bg-gradient-to-r from-[#BF760B] via-[#FFE89F] to-[#C38F14] bg-clip-text text-transparent",
+                                                        2 => "bg-gradient-to-r from-[#2F2F30] via-[#FFFFFF] to-[#4B4B4B] bg-clip-text text-transparent",
+                                                        3 => "bg-gradient-to-r from-[#6D4C35] via-[#DBA374] to-[#9F7753] bg-clip-text text-transparent",
+                                                        _ => "text-white"
+                                                    };
+
+                                                    // Get username color based on rank
+                                                    let username_color = match user_info.rank {
+                                                        1 => "text-[#FDBF01]",
+                                                        2 => "text-[#DCDCDC]",
+                                                        3 => "text-[#D99979]",
+                                                        _ => "text-white"
+                                                    };
+
+                                                    view! {
+                                                        <div class="sticky top-0 z-10 flex items-center justify-between px-4 py-3 border-b border-[#212121] bg-[rgba(226,1,123,0.2)]">
+                                                            // Rank column
+                                                            <div class="w-[80px]">
+                                                                <span class=format!("text-lg font-bold {}", rank_class)>
+                                                                    "#"{user_info.rank}
+                                                                </span>
+                                                            </div>
+
+                                                            // Username column
+                                                            <div class="flex-1">
+                                                                <span class=format!("text-sm font-medium {}", username_color)>
+                                                                    "@"{user_info.username}
+                                                                </span>
+                                                            </div>
+
+                                                            // Games Played column
+                                                            <div class="w-[100px] flex items-center justify-end gap-1">
+                                                                <span class="text-sm font-semibold text-white">
+                                                                    {user_info.score as u32}
+                                                                </span>
+                                                            </div>
+
+                                                            // Rewards column
+                                                            <div class="w-[100px] flex items-center justify-end gap-1">
+                                                                <span class="text-sm font-semibold text-white">
+                                                                    {user_info.reward.unwrap_or(0)}
+                                                                </span>
+                                                                // YRAL token icon
+                                                                <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                })
+                                            }}
+                                        </Show>
+
                                         <InfiniteScroller
                                             provider
                                             fetch_count=20
@@ -274,6 +336,25 @@ pub fn Leaderboard() -> impl IntoView {
                                                 let is_current_user = current_user_info.get()
                                                     .map(|u| u.principal_id == entry.principal_id)
                                                     .unwrap_or(false);
+                                                
+                                                // Create a node ref for the current user's row
+                                                let user_row_ref = NodeRef::<html::Div>::new();
+
+                                                // Set up intersection observer for current user's row (only on client side)
+                                                #[cfg(feature = "hydrate")]
+                                                if is_current_user {
+                                                    let _ = use_intersection_observer_with_options(
+                                                        user_row_ref,
+                                                        move |entries, _| {
+                                                            if let Some(entry) = entries.get(0) {
+                                                                set_user_row_visible.set(entry.is_intersecting());
+                                                            }
+                                                        },
+                                                        UseIntersectionObserverOptions::default()
+                                                            .root_margin("0px".to_string())
+                                                            .thresholds(vec![0.1]),
+                                                    );
+                                                }
 
                                                 // Get rank styling based on position
                                                 let rank_class = match entry.rank {
@@ -293,7 +374,7 @@ pub fn Leaderboard() -> impl IntoView {
 
                                                 view! {
                                                     <div
-                                                        node_ref=node_ref.unwrap_or_default()
+                                                        node_ref=if is_current_user { user_row_ref } else { node_ref.unwrap_or_default() }
                                                         class=move || {
                                                             format!(
                                                                 "flex items-center justify-between px-4 py-3 border-b border-[#212121] hover:bg-white/5 transition-colors {}",
