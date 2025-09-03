@@ -22,7 +22,7 @@ use leptos_router::{
     hooks::{use_navigate, use_params},
     params::Params,
 };
-use leptos_use::{use_cookie_with_options, use_debounce_fn, UseCookieOptions};
+use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use utils::{
     mixpanel::mixpanel_events::*,
     posts::{FeedPostCtx, FetchCursor},
@@ -121,14 +121,12 @@ pub fn CommonPostViewWithUpdates(
             fetch_video_action.dispatch(());
         }
     });
-    let next_videos = use_debounce_fn(
-        move || {
-            if !fetch_video_action.pending().get_untracked() && !queue_end.get_untracked() {
-                fetch_video_action.dispatch(());
-            }
-        },
-        200.0,
-    );
+    // Simplified fetch trigger without debounce - the fetching guard in ScrollingPostView handles rate limiting
+    let next_videos = move || {
+        if !fetch_video_action.pending().get_untracked() && !queue_end.get_untracked() {
+            fetch_video_action.dispatch(());
+        }
+    };
 
     let current_post_base = Memo::new(move |_| {
         video_queue.with(|q| {
@@ -163,7 +161,7 @@ pub fn CommonPostViewWithUpdates(
             fetch_next_videos=next_videos
             queue_end
             threshold_trigger_fetch
-            hard_refresh_target
+            _hard_refresh_target=hard_refresh_target
         />
     }
     .into_any()
