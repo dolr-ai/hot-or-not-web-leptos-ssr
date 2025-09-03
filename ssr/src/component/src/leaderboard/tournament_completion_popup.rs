@@ -121,40 +121,48 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
 
                     // Content
                     <div class="relative z-5 flex flex-col items-center justify-center px-6 py-10">
-                        // Icon or emoji
-                        {if matches!(&popup_variant, PopupVariant::BetterLuck) {
+                        // Main element - either reward badge for top 3, icon for 4-10, or emoji for 11+
+                        {if matches!(&popup_variant, PopupVariant::Champion { .. } | PopupVariant::Silver { .. } | PopupVariant::Bronze { .. }) {
+                            // For top 3: Show large reward badge with crown overlay
+                            let border_color = match &popup_variant {
+                                PopupVariant::Champion { .. } => "border-[rgba(255,244,86,0.43)]", // Gold
+                                PopupVariant::Silver { .. } => "border-[rgba(220,220,220,0.43)]", // Silver
+                                PopupVariant::Bronze { .. } => "border-[rgba(217,153,121,0.43)]", // Bronze
+                                _ => "border-[rgba(255,244,86,0.43)]"
+                            };
+                            reward_amount.clone().map(|amount| view! {
+                                <div class="relative mb-6">
+                                    <div class=format!("bg-[#1f1d17] border {} rounded-[20px] px-5 py-3 flex items-center gap-2.5", border_color)>
+                                        <span class="text-[#ffc33a] text-5xl font-bold tracking-[-1.44px]">{amount}</span>
+                                        <img src="/img/yral/yral-token.webp" alt="" class="w-12 h-[50px]" />
+                                    </div>
+                                    // Crown overlay on top-right
+                                    <div class="absolute -top-3 -right-3">
+                                        <img src="/img/leaderboard/crown.svg" alt="" class="w-10 h-10" />
+                                    </div>
+                                </div>
+                            }.into_any()).unwrap_or_else(|| view! { <div></div> }.into_any())
+                        } else if matches!(&popup_variant, PopupVariant::TopTen { .. }) {
+                            // For 4-10: Show trophy icon with reward badge below
+                            view! {
+                                <>
+                                    <div class="relative mb-6">
+                                        <img src=icon alt="" class="w-40 h-40" />
+                                    </div>
+                                    {reward_amount.clone().map(|amount| view! {
+                                        <div class="bg-[#1f1d17] border border-[rgba(255,244,86,0.43)] rounded-2xl px-4 py-2 mb-6 flex items-center gap-2">
+                                            <span class="text-[#ffc33a] text-3xl font-bold">{amount}</span>
+                                            <img src="/img/yral/yral-token.webp" alt="" class="w-8 h-8" />
+                                        </div>
+                                    })}
+                                </>
+                            }.into_any()
+                        } else {
+                            // For 11+: Show emoji
                             view! {
                                 <div class="text-6xl mb-6">"😔"</div>
                             }.into_any()
-                        } else {
-                            let icon_size = if matches!(&popup_variant, PopupVariant::TopTen { .. }) {
-                                "w-40 h-40"
-                            } else {
-                                "w-24 h-24"
-                            };
-                            view! {
-                                <div class="relative mb-6">
-                                    <img src=icon alt="" class=icon_size />
-                                    {if matches!(&popup_variant, PopupVariant::Champion { .. } | PopupVariant::Silver { .. } | PopupVariant::Bronze { .. }) {
-                                        Some(view! {
-                                            <div class="absolute -top-4 -right-4 rotate-12">
-                                                <img src="/img/leaderboard/crown.svg" alt="" class="w-8 h-8 transform rotate-12" />
-                                            </div>
-                                        })
-                                    } else {
-                                        None
-                                    }}
-                                </div>
-                            }.into_any()
                         }}
-
-                        // Reward amount badge (if applicable)
-                        {reward_amount.clone().map(|amount| view! {
-                            <div class="bg-[#1f1d17] border border-[rgba(255,244,86,0.43)] rounded-2xl px-4 py-2 mb-6 flex items-center gap-2">
-                                <span class="text-[#ffc33a] text-3xl font-bold">{amount}</span>
-                                <img src="/img/yral/yral-token.webp" alt="" class="w-8 h-8" />
-                            </div>
-                        })}
 
                         // Title
                         <h2 class=format!("text-2xl font-bold mb-4 {}", title_color)>
