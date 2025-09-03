@@ -109,7 +109,7 @@ pub fn App() -> impl IntoView {
     provide_context(AuthorizedUserToSeedContent::default());
     provide_context(AudioState::default());
     provide_context(PostDetailsCacheCtx::default());
-    
+
     // Global rank state management
     provide_context(RwSignal::new(RankUpdateCounter(0)));
     provide_context(RwSignal::new(UserRank::default())); // Global rank value

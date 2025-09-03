@@ -60,21 +60,21 @@ pub fn TournamentCompletionPopup(
     let (sunburst_svg, icon, title, reward_amount, title_color) = match &popup_variant {
         PopupVariant::Champion { reward } => (
             Some("/img/leaderboard/sunburst-gold.svg"),
-            "/img/leaderboard/crown.svg",
+            "/img/leaderboard/crown-gold.svg",
             "You're the Champion!",
             reward.map(|r| r.to_string()),
             "text-[#FFEF00]",
         ),
         PopupVariant::Silver { reward } => (
             Some("/img/leaderboard/sunburst-silver.svg"),
-            "/img/leaderboard/crown.svg",
+            "/img/leaderboard/crown-silver.svg",
             "Silver Star!",
             reward.map(|r| r.to_string()),
             "text-[#BFBFBF]",
         ),
         PopupVariant::Bronze { reward } => (
             Some("/img/leaderboard/sunburst-bronze.svg"),
-            "/img/leaderboard/crown.svg",
+            "/img/leaderboard/crown-bronze.svg",
             "Bronze Boss!",
             reward.map(|r| r.to_string()),
             "text-[#D99979]",
@@ -137,30 +137,26 @@ pub fn TournamentCompletionPopup(
                         // Main element - either reward badge for top 3, icon for 4-10, or emoji for 11+
                         {if matches!(&popup_variant, PopupVariant::Champion { .. } | PopupVariant::Silver { .. } | PopupVariant::Bronze { .. }) {
                             // For top 3: Always show reward badge with crown overlay
-                            let (border_color, bg_color, text_color, crown_filter) = match &popup_variant {
+                            let (border_color, bg_color, text_color) = match &popup_variant {
                                 PopupVariant::Champion { .. } => (
                                     "border-[rgba(255,244,86,0.43)]",
                                     "bg-[#1f1d17]",
                                     "text-[#FFC33A]",
-                                    "" // Gold - no filter needed, assuming crown is already gold
                                 ),
                                 PopupVariant::Silver { .. } => (
                                     "border-[rgba(255,255,253,0.43)]",
                                     "bg-[#1a1a18]",
                                     "text-[#FFF9EB]",
-                                    "filter: grayscale(100%) brightness(1.2);" // Silver filter
                                 ),
                                 PopupVariant::Bronze { .. } => (
                                     "border-[rgba(217,153,121,0.43)]",
                                     "bg-[#1a1715]",
                                     "text-[#FFB380]",
-                                    "filter: sepia(80%) saturate(1.5) hue-rotate(15deg) brightness(0.9);" // Bronze filter
                                 ),
                                 _ => (
                                     "border-[rgba(255,244,86,0.43)]",
                                     "bg-[#1f1d17]",
                                     "text-[#FFC33A]",
-                                    ""
                                 )
                             };
                             let reward_value = match &popup_variant {
@@ -182,7 +178,7 @@ pub fn TournamentCompletionPopup(
                                     <div class="relative mt-12 w-[260px] h-[70px]">
                                         // Crown overlay positioned at top-right corner of box
                                         <div class="absolute z-20" style="top: -45px; right: -36px; transform: rotate(15.625deg);">
-                                            <img src="/img/leaderboard/crown-popup.svg" alt="" class="w-[101px] h-[101px]" style=crown_filter />
+                                            <img src=icon alt="" class="w-[101px] h-[101px]" />
                                         </div>
                                         // Box content
                                         <div class=format!("relative z-10 flex flex-row items-center justify-center w-full h-full p-[10px] gap-2.5 {} border {} rounded-[20px]", bg_color, border_color)>
@@ -254,7 +250,7 @@ pub fn TournamentCompletionPopup(
                                             {format_with_commas(reward.unwrap_or(0))}
                                             " YRAL"
                                         </span>
-                                        " this week."
+                                        " today."
                                         <br />
                                         "Keep pushing—next week could be your golden moment!"
                                     </span>
@@ -268,7 +264,7 @@ pub fn TournamentCompletionPopup(
                                         8 => "8th".to_string(),
                                         9 => "9th".to_string(),
                                         10 => "10th".to_string(),
-                                        _ => format!("{}th", rank)
+                                        _ => format!("{rank}th")
                                     };
                                     view! {
                                         <span>
@@ -279,13 +275,13 @@ pub fn TournamentCompletionPopup(
                                                 {format_with_commas(reward.unwrap_or(0))}
                                                 " YRAL"
                                             </span>
-                                            " this week. Keep pushing—next week could be your golden moment!"
+                                            " today. Keep pushing—next week could be your golden moment!"
                                         </span>
                                     }.into_any()
                                 },
                                 PopupVariant::BetterLuck => view! {
                                     <span>
-                                        "You didn't make it to the top this week. Keep earning YRAL to climb the ranks and claim your spot!"
+                                        "You didn't make it to the top today. Keep earning YRAL to climb the ranks and claim your spot!"
                                     </span>
                                 }.into_any()
                             }}

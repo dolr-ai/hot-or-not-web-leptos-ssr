@@ -165,7 +165,7 @@ pub fn VideoDetailsOverlay(
     win_audio_ref: NodeRef<Audio>,
 ) -> impl IntoView {
     // No need for local context - using global context from App
-    
+
     let show_share = RwSignal::new(false);
     let show_report = RwSignal::new(false);
     let show_nsfw_permission = RwSignal::new(false);
@@ -550,13 +550,11 @@ pub fn VideoDetailsOverlay(
                     />
                     </button>
                 </div>
-                
                 // Add the rank badge here, below the profile/NSFW row
                 <div class="flex justify-end w-full mt-2 pointer-events-auto">
                     <GlobalRankBadge />
                 </div>
             </div>
-            
             // Bottom content stays at the bottom
             <div class="flex flex-col gap-2 w-full">
                 <div class="flex flex-col gap-6 items-end self-end text-2xl pointer-events-auto md:text-3xl lg:text-4xl">

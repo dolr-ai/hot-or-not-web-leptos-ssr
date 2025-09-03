@@ -41,11 +41,11 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
             let minutes = (remaining % 3600) / 60;
 
             if days > 0 {
-                format!("{}d {}h {}m", days, hours, minutes)
+                format!("{days}d {hours}h {minutes}m")
             } else if hours > 0 {
-                format!("{}h {}m", hours, minutes)
+                format!("{hours}h {minutes}m")
             } else {
-                format!("{}m", minutes)
+                format!("{minutes}m")
             }
         }
     };

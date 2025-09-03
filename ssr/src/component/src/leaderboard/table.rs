@@ -1,5 +1,5 @@
-use leptos::prelude::*;
 use super::types::{LeaderboardEntry, UserInfo};
+use leptos::prelude::*;
 
 #[component]
 pub fn LeaderboardTable(
@@ -9,7 +9,7 @@ pub fn LeaderboardTable(
     sort_order: String,
 ) -> impl IntoView {
     let current_user_id = current_user.as_ref().map(|u| u.principal_id.clone());
-    
+
     view! {
         <div class="w-full overflow-x-auto">
             <table class="w-full">
@@ -53,10 +53,10 @@ pub fn LeaderboardTable(
                             let is_current_user = current_user_id.as_ref()
                                 .map(|id| id == &entry.principal_id)
                                 .unwrap_or(false);
-                            
+
                             view! {
-                                <LeaderboardRow 
-                                    entry=entry 
+                                <LeaderboardRow
+                                    entry=entry
                                     is_current_user=is_current_user
                                 />
                             }
@@ -70,25 +70,26 @@ pub fn LeaderboardTable(
 }
 
 #[component]
-fn LeaderboardRow(
-    entry: LeaderboardEntry,
-    is_current_user: bool,
-) -> impl IntoView {
+fn LeaderboardRow(entry: LeaderboardEntry, is_current_user: bool) -> impl IntoView {
     // Determine rank styling
     let rank_class = match entry.rank {
-        1 => "bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent font-bold",
+        1 => {
+            "bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent font-bold"
+        }
         2 => "bg-gradient-to-r from-gray-300 to-gray-500 bg-clip-text text-transparent font-bold",
-        3 => "bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent font-bold",
+        3 => {
+            "bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent font-bold"
+        }
         _ => "text-white",
     };
-    
+
     // Row background for current user
     let row_class = if is_current_user {
         "bg-pink-500/20 border-l-4 border-pink-500"
     } else {
         "hover:bg-neutral-900/50 transition-colors"
     };
-    
+
     view! {
         <tr class=format!("border-b border-neutral-800 {}", row_class)>
             <td class="py-4 px-4">

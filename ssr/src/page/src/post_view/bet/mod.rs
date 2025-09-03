@@ -303,7 +303,9 @@ fn HNButtonOverlay(
                         );
 
                         // Trigger rank update after successful vote
-                        if let Some(rank_update_count) = use_context::<RwSignal<component::leaderboard::RankUpdateCounter>>() {
+                        if let Some(rank_update_count) =
+                            use_context::<RwSignal<component::leaderboard::RankUpdateCounter>>()
+                        {
                             rank_update_count.update(|c| c.0 += 1);
                         }
 
@@ -311,13 +313,13 @@ fn HNButtonOverlay(
                     }
                     Err(e) => {
                         let error_msg = format!("{e}");
-                        
+
                         // Only show low balance popup for insufficient funds errors
                         if error_msg.contains("InsufficientFunds") {
                             show_low_balance_popup.set(true);
                         }
-                        
-                        log::error!("{}", error_msg);
+
+                        log::error!("{error_msg}");
                         None
                     }
                 }

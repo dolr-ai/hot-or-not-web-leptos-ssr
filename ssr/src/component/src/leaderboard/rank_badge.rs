@@ -88,7 +88,7 @@ pub fn GlobalRankBadge() -> impl IntoView {
                     // Display rank or NA based on tournament status
                     let rank_text = if is_active {
                         match user_rank.rank {
-                            Some(rank) => format!("#{}", rank),
+                            Some(rank) => format!("#{rank}"),
                             None => "N/A".to_string(),
                         }
                     } else {

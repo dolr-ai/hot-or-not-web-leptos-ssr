@@ -146,7 +146,7 @@ pub fn Leaderboard() -> impl IntoView {
 
     // Sort function - toggles between asc and desc
     let on_sort = move |field: String| {
-        log::info!("Sorting by: {}", field);
+        log::info!("Sorting by: {field}");
 
         // Toggle sort order
         set_sort_order.update(|order| {
@@ -251,7 +251,7 @@ pub fn Leaderboard() -> impl IntoView {
                                                 <span class="text-xs text-neutral-400 font-medium">Rank</span>
                                                 <button
                                                     class="text-neutral-400 hover:text-white transition-colors"
-                                                    on:click={let on_sort = on_sort.clone(); move |_| on_sort("rank".to_string())}
+                                                    on:click={move |_| on_sort("rank".to_string())}
                                                 >
                                                     <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
                                                 </button>
@@ -266,7 +266,7 @@ pub fn Leaderboard() -> impl IntoView {
                                                 <span class="text-xs text-neutral-400 font-medium">Rewards</span>
                                                 <button
                                                     class="text-neutral-400 hover:text-white transition-colors"
-                                                    on:click={let on_sort = on_sort.clone(); move |_| on_sort("reward".to_string())}
+                                                    on:click={move |_| on_sort("reward".to_string())}
                                                 >
                                                     <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
                                                 </button>
@@ -349,7 +349,7 @@ pub fn Leaderboard() -> impl IntoView {
                                                     let _ = use_intersection_observer_with_options(
                                                         user_row_ref,
                                                         move |entries, _| {
-                                                            if let Some(entry) = entries.get(0) {
+                                                            if let Some(entry) = entries.first() {
                                                                 set_user_row_visible.set(entry.is_intersecting());
                                                             }
                                                         },

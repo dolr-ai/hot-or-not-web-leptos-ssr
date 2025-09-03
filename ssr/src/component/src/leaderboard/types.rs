@@ -21,7 +21,7 @@ pub struct LeaderboardEntry {
     pub username: String,
     pub rank: u32,
     pub score: f64,
-    pub reward: Option<u32>,  // Changed from u64 to u32 to match API
+    pub reward: Option<u32>, // Changed from u64 to u32 to match API
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
@@ -55,5 +55,5 @@ pub struct UserInfo {
     pub rank: u32,
     pub score: f64,
     pub percentile: f32,
-    pub reward: Option<u32>,  // Changed from u64 to u32 to match API
+    pub reward: Option<u32>, // Changed from u64 to u32 to match API
 }

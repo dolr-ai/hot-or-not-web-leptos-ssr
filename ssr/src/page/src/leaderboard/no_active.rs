@@ -38,9 +38,9 @@ pub fn NoActiveTournament() -> impl IntoView {
                 <div class="max-w-md w-full flex flex-col items-center text-center">
                 // Icon
                 <div class="mb-8">
-                    <img 
-                        src="/img/leaderboard/no-active.svg" 
-                        alt="No active tournament" 
+                    <img
+                        src="/img/leaderboard/no-active.svg"
+                        alt="No active tournament"
                         class="w-32 h-32 md:w-40 md:h-40"
                     />
                 </div>

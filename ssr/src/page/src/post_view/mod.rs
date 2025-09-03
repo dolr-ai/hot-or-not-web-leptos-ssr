@@ -357,9 +357,9 @@ pub fn PostView() -> impl IntoView {
     // Create a single global Resource for fetching rank
     let rank_update_count = use_context::<RwSignal<RankUpdateCounter>>()
         .expect("RankUpdateCounter should be provided globally");
-    let global_rank = use_context::<RwSignal<UserRank>>()
-        .expect("UserRank should be provided globally");
-    
+    let global_rank =
+        use_context::<RwSignal<UserRank>>().expect("UserRank should be provided globally");
+
     let global_rank_resource = LocalResource::new(move || {
         let counter = rank_update_count.get().0;
         let global_rank = global_rank;
@@ -371,7 +371,7 @@ pub fn PostView() -> impl IntoView {
                     return cached;
                 }
             }
-            
+
             // Get user principal
             let Some(principal) = auth.user_principal.await.ok() else {
                 return UserRank {
@@ -379,9 +379,13 @@ pub fn PostView() -> impl IntoView {
                     tournament_status: None,
                 };
             };
-            
-            leptos::logging::log!("PostView: Fetching rank for principal: {} (counter: {})", principal, counter);
-            
+
+            leptos::logging::log!(
+                "PostView: Fetching rank for principal: {} (counter: {})",
+                principal,
+                counter
+            );
+
             // Fetch rank and tournament status from API
             match fetch_user_rank_from_api(principal).await {
                 Ok(Some((rank, status))) => {

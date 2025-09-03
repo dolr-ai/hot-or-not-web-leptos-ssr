@@ -1,11 +1,11 @@
-use yral_canisters_common::cursored_data::{CursoredDataProvider, KeyedData, PageEntry};
-use super::types::LeaderboardEntry;
 use super::api::{fetch_leaderboard_page, search_users};
+use super::types::LeaderboardEntry;
+use yral_canisters_common::cursored_data::{CursoredDataProvider, KeyedData, PageEntry};
 
 // Make LeaderboardEntry implement KeyedData
 impl KeyedData for LeaderboardEntry {
     type Key = String;
-    
+
     fn key(&self) -> Self::Key {
         self.principal_id.clone()
     }
@@ -28,16 +28,12 @@ impl LeaderboardProvider {
             start_offset: 0,
         }
     }
-    
+
     pub fn with_search(mut self, query: String) -> Self {
-        self.search_query = if query.is_empty() { 
-            None 
-        } else { 
-            Some(query) 
-        };
+        self.search_query = if query.is_empty() { None } else { Some(query) };
         self
     }
-    
+
     pub fn with_start_offset(mut self, offset: usize) -> Self {
         self.start_offset = offset;
         self
@@ -58,7 +54,7 @@ impl std::error::Error for LeaderboardError {}
 impl CursoredDataProvider for LeaderboardProvider {
     type Data = LeaderboardEntry;
     type Error = LeaderboardError;
-    
+
     async fn get_by_cursor_inner(
         &self,
         start: usize,
@@ -68,31 +64,31 @@ impl CursoredDataProvider for LeaderboardProvider {
         let adjusted_start = start + self.start_offset;
         let adjusted_end = end + self.start_offset;
         let limit = (adjusted_end - adjusted_start).min(50); // Max 50 per request
-        
+
         let response = if let Some(query) = &self.search_query {
             // Search mode
             search_users(
-                query.clone(), 
-                adjusted_start as u32, 
-                limit as u32, 
-                Some(&self.sort_order)
+                query.clone(),
+                adjusted_start as u32,
+                limit as u32,
+                Some(&self.sort_order),
             )
             .await
-            .map_err(|e| LeaderboardError(e))?
+            .map_err(LeaderboardError)?
             .into()
         } else {
             // Normal leaderboard mode
             fetch_leaderboard_page(
-                adjusted_start as u32, 
-                limit as u32, 
-                self.user_id.clone(), 
+                adjusted_start as u32,
+                limit as u32,
+                self.user_id.clone(),
                 Some(&self.sort_order),
-                None // No tournament_id for current leaderboard
+                None, // No tournament_id for current leaderboard
             )
             .await
-            .map_err(|e| LeaderboardError(e))?
+            .map_err(LeaderboardError)?
         };
-        
+
         Ok(PageEntry {
             data: response.data,
             end: !response.cursor_info.has_more,
@@ -117,7 +113,7 @@ impl From<super::types::SearchResponse> for super::types::LeaderboardResponse {
             client_start_time: None,
             client_end_time: None,
         };
-        
+
         super::types::LeaderboardResponse {
             data: search.data,
             cursor_info: search.cursor_info,

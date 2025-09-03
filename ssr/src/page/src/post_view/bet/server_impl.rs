@@ -36,7 +36,7 @@ async fn update_leaderboard_score(
 
     let url = OFF_CHAIN_AGENT_URL
         .join("api/v1/leaderboard/score/update")
-        .map_err(|e| ServerFnError::new(format!("Failed to build URL: {}", e)))?;
+        .map_err(|e| ServerFnError::new(format!("Failed to build URL: {e}")))?;
 
     let request = LeaderboardUpdateRequest {
         principal_id: principal_id.to_string(),
@@ -52,7 +52,7 @@ async fn update_leaderboard_score(
         .json(&request)
         .send()
         .await
-        .map_err(|e| ServerFnError::new(format!("Failed to send leaderboard update: {}", e)))?;
+        .map_err(|e| ServerFnError::new(format!("Failed to send leaderboard update: {e}")))?;
 
     if !response.status().is_success() {
         let error_text = response
@@ -60,8 +60,7 @@ async fn update_leaderboard_score(
             .await
             .unwrap_or_else(|_| "Unknown error".to_string());
         return Err(ServerFnError::new(format!(
-            "Leaderboard update failed: {}",
-            error_text
+            "Leaderboard update failed: {error_text}"
         )));
     }
 

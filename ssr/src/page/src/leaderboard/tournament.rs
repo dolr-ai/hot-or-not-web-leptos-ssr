@@ -17,8 +17,7 @@ pub struct TournamentParams {
 }
 
 fn format_date(timestamp: i64) -> String {
-    let datetime =
-        DateTime::<Utc>::from_timestamp(timestamp, 0).unwrap_or_else(|| Utc::now().into());
+    let datetime = DateTime::<Utc>::from_timestamp(timestamp, 0).unwrap_or_else(Utc::now);
     datetime.format("%b %d").to_string()
 }
 
@@ -66,7 +65,7 @@ pub fn TournamentResults() -> impl IntoView {
 
     // Sort function - toggles between asc and desc
     let on_sort = move |field: String| {
-        log::info!("Sorting by: {}", field);
+        log::info!("Sorting by: {field}");
 
         // Toggle sort order
         set_sort_order.update(|order| {
@@ -161,7 +160,7 @@ pub fn TournamentResults() -> impl IntoView {
                                                     <span class="text-xs text-neutral-400 font-medium">Rank</span>
                                                     <button
                                                         class="text-neutral-400 hover:text-white transition-colors"
-                                                        on:click={let on_sort = on_sort.clone(); move |_| on_sort("rank".to_string())}
+                                                        on:click={move |_| on_sort("rank".to_string())}
                                                     >
                                                         <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
                                                     </button>
@@ -176,7 +175,7 @@ pub fn TournamentResults() -> impl IntoView {
                                                     <span class="text-xs text-neutral-400 font-medium">Rewards</span>
                                                     <button
                                                         class="text-neutral-400 hover:text-white transition-colors"
-                                                        on:click={let on_sort = on_sort.clone(); move |_| on_sort("reward".to_string())}
+                                                        on:click={move |_| on_sort("reward".to_string())}
                                                     >
                                                         <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
                                                     </button>

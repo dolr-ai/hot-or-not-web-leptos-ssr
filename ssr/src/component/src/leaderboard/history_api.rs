@@ -6,8 +6,8 @@ pub async fn fetch_tournament_history(limit: u32) -> Result<TournamentHistoryRes
 
     let mut url = OFF_CHAIN_AGENT_URL
         .join("api/v1/leaderboard/history")
-        .map_err(|e| format!("Failed to build URL: {}", e))?;
-    
+        .map_err(|e| format!("Failed to build URL: {e}"))?;
+
     // Add query parameters
     url.query_pairs_mut()
         .append_pair("limit", &limit.to_string());
@@ -17,15 +17,16 @@ pub async fn fetch_tournament_history(limit: u32) -> Result<TournamentHistoryRes
         .get(url)
         .send()
         .await
-        .map_err(|e| format!("Request failed: {}", e))?;
+        .map_err(|e| format!("Request failed: {e}"))?;
 
     if response.status().is_success() {
         let data: TournamentHistoryResponse = response
             .json()
             .await
-            .map_err(|e| format!("Failed to parse response: {}", e))?;
+            .map_err(|e| format!("Failed to parse response: {e}"))?;
         Ok(data)
     } else {
-        Err(format!("API error: {}", response.status()))
+        let status = response.status();
+        Err(format!("API error: {status}"))
     }
 }

@@ -1,6 +1,5 @@
 use component::leaderboard::{
-    history_api::fetch_tournament_history,
-    history_card::TournamentHistoryCard,
+    history_api::fetch_tournament_history, history_card::TournamentHistoryCard,
 };
 use component::title::TitleText;
 use leptos::prelude::*;
@@ -9,12 +8,11 @@ use leptos_router::hooks::use_navigate;
 #[component]
 pub fn LeaderboardHistory() -> impl IntoView {
     let navigate = use_navigate();
-    
+
     // Fetch tournament history
-    let history_resource = LocalResource::new(move || async move {
-        fetch_tournament_history(20).await
-    });
-    
+    let history_resource =
+        LocalResource::new(move || async move { fetch_tournament_history(20).await });
+
     view! {
         <div class="min-h-screen bg-black text-white">
             // Header

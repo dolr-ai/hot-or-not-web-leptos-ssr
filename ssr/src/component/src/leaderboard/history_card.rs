@@ -5,8 +5,7 @@ use leptos_router::hooks::use_navigate;
 
 // Helper function to format timestamps to readable dates
 fn format_date(timestamp: i64) -> String {
-    let datetime =
-        DateTime::<Utc>::from_timestamp(timestamp, 0).unwrap_or_else(|| Utc::now().into());
+    let datetime = DateTime::<Utc>::from_timestamp(timestamp, 0).unwrap_or_else(Utc::now);
     datetime.format("%b %d").to_string()
 }
 
@@ -23,7 +22,7 @@ pub fn TournamentHistoryCard(tournament: TournamentHistoryEntry) -> impl IntoVie
     let tournament_id = tournament.id.clone();
     let on_click = move |_| {
         navigate(
-            &format!("/leaderboard/tournament/{}", tournament_id),
+            &format!("/leaderboard/tournament/{tournament_id}"),
             Default::default(),
         );
     };
