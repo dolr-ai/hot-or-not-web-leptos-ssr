@@ -48,17 +48,15 @@ where
         })
     });
 
-    let post_details_with_prev_post = Resource::new(
-        post_with_prev,
-        |(current_post_resolver, prev_post_for_passthru)| async move {
-            let Some(resolver) = current_post_resolver else {
-                return Ok((None, prev_post_for_passthru));
-            };
-            // this send wrap looks error prone as we can't reason whether the
-            let post_details = send_wrap(resolver.get_post_details()).await?;
-            Ok::<_, ServerFnError>((Some(post_details), prev_post_for_passthru))
-        },
-    );
+    let post_details_with_prev_post = LocalResource::new(move || async move {
+        let (current_post_resolver, prev_post_for_passthru) = post_with_prev.get_untracked();
+        let Some(resolver) = current_post_resolver else {
+            return Ok((None, prev_post_for_passthru));
+        };
+        // this send wrap looks error prone as we can't reason whether the
+        let post_details = send_wrap(resolver.get_post_details()).await?;
+        Ok::<_, ServerFnError>((Some(post_details), prev_post_for_passthru))
+    });
 
     let uid = move || {
         post_with_prev()
