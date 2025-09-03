@@ -34,7 +34,7 @@ pub fn LeaderboardHistory() -> impl IntoView {
             </TitleText>
 
             // Main content
-            <div class="container mx-auto px-4 py-6 max-w-4xl">
+            <div class="container mx-auto px-4 pt-6 pb-24 max-w-4xl">
                 <Suspense fallback=move || view! {
                     <div class="flex justify-center py-12">
                         <div class="animate-spin h-8 w-8 border-t-2 border-pink-500 rounded-full"></div>
