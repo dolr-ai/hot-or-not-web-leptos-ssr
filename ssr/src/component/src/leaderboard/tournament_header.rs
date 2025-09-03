@@ -110,13 +110,10 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
     };
 
     view! {
-        <div class="relative w-full rounded-lg overflow-hidden mb-6 bg-gradient-to-br from-[#4A0E2E] via-[#3D1B47] to-[#1A0B2E] min-h-[140px]">
-            // Background pattern overlay (simulating the Figma design pattern)
-            <div class="absolute inset-0 opacity-30"
-                style="background-image: radial-gradient(circle at 20% 50%, rgba(226, 1, 123, 0.3) 0%, transparent 50%),
-                       radial-gradient(circle at 80% 80%, rgba(205, 41, 255, 0.2) 0%, transparent 50%),
-                       radial-gradient(circle at 40% 80%, rgba(226, 1, 123, 0.2) 0%, transparent 50%);">
-            </div>
+        <div class="relative w-full rounded-lg overflow-hidden mb-6 min-h-[140px]"
+            style="background-image: url('/img/leaderboard/header-bg.svg'); background-size: cover; background-position: center;">
+            // Optional gradient overlay for better text readability
+            <div class="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent"></div>
 
             // Content
             <div class="relative p-4 md:p-6 flex items-center justify-between">
