@@ -87,14 +87,15 @@ pub fn Leaderboard() -> impl IntoView {
                         let seen_list = seen_tournaments.get_untracked();
 
                         // Only show if not seen before and user is logged in
-                        // if !seen_list.contains(&tournament_id) { // TODO: for testing, uncomment later by human
-                        show_completion_popup.set(true);
+                        if !seen_list.contains(&tournament_id) {
+                            // TODO: for testing, uncomment later by human
+                            show_completion_popup.set(true);
 
-                        // Mark as seen
-                        let mut updated_seen = seen_list;
-                        updated_seen.push(tournament_id);
-                        set_seen_tournaments.set(updated_seen);
-                        // }
+                            // Mark as seen
+                            let mut updated_seen = seen_list;
+                            updated_seen.push(tournament_id);
+                            set_seen_tournaments.set(updated_seen);
+                        }
                     }
                 }
             }

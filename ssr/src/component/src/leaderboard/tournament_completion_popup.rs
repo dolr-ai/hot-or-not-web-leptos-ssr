@@ -51,9 +51,9 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
         _ => PopupVariant::BetterLuck,
     };
 
-    let popup_variant = PopupVariant::Silver {
-        reward: user_info.reward,
-    };
+    // let popup_variant = PopupVariant::Silver {
+    //     reward: user_info.reward,
+    // };
 
     // Get the appropriate content based on variant
     let (sunburst_svg, icon, title, reward_amount, title_color) = match &popup_variant {
@@ -69,7 +69,7 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
             "/img/leaderboard/crown.svg",
             "Silver Star!",
             reward.map(|r| r.to_string()),
-            "text-[#DCDCDC]",
+            "text-[#BFBFBF]",
         ),
         PopupVariant::Bronze { reward } => (
             Some("/img/leaderboard/sunburst-bronze.svg"),
@@ -136,11 +136,31 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
                         // Main element - either reward badge for top 3, icon for 4-10, or emoji for 11+
                         {if matches!(&popup_variant, PopupVariant::Champion { .. } | PopupVariant::Silver { .. } | PopupVariant::Bronze { .. }) {
                             // For top 3: Always show reward badge with crown overlay
-                            let border_color = match &popup_variant {
-                                PopupVariant::Champion { .. } => "border-[rgba(255,244,86,0.43)]", // Gold
-                                PopupVariant::Silver { .. } => "border-[rgba(220,220,220,0.43)]", // Silver
-                                PopupVariant::Bronze { .. } => "border-[rgba(217,153,121,0.43)]", // Bronze
-                                _ => "border-[rgba(255,244,86,0.43)]"
+                            let (border_color, bg_color, text_color, crown_filter) = match &popup_variant {
+                                PopupVariant::Champion { .. } => (
+                                    "border-[rgba(255,244,86,0.43)]",
+                                    "bg-[#1f1d17]",
+                                    "text-[#FFC33A]",
+                                    "" // Gold - no filter needed, assuming crown is already gold
+                                ),
+                                PopupVariant::Silver { .. } => (
+                                    "border-[rgba(255,255,253,0.43)]",
+                                    "bg-[#1a1a18]",
+                                    "text-[#FFF9EB]",
+                                    "filter: grayscale(100%) brightness(1.2);" // Silver filter
+                                ),
+                                PopupVariant::Bronze { .. } => (
+                                    "border-[rgba(217,153,121,0.43)]",
+                                    "bg-[#1a1715]",
+                                    "text-[#FFB380]",
+                                    "filter: sepia(80%) saturate(1.5) hue-rotate(15deg) brightness(0.9);" // Bronze filter
+                                ),
+                                _ => (
+                                    "border-[rgba(255,244,86,0.43)]",
+                                    "bg-[#1f1d17]",
+                                    "text-[#FFC33A]",
+                                    ""
+                                )
                             };
                             let reward_value = match &popup_variant {
                                 PopupVariant::Champion { reward } => reward.unwrap_or(0),
@@ -161,11 +181,11 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
                                     <div class="relative mt-12 w-[260px] h-[70px]">
                                         // Crown overlay positioned at top-right corner of box
                                         <div class="absolute z-20" style="top: -45px; right: -36px; transform: rotate(15.625deg);">
-                                            <img src="/img/leaderboard/crown-popup.svg" alt="" class="w-[101px] h-[101px]" />
+                                            <img src="/img/leaderboard/crown-popup.svg" alt="" class="w-[101px] h-[101px]" style=crown_filter />
                                         </div>
                                         // Box content
-                                        <div class=format!("relative z-10 flex flex-row items-center justify-center w-full h-full p-[10px] gap-2.5 bg-[#1f1d17] border {} rounded-[20px]", border_color)>
-                                            <span class="text-[#FFC33A] text-5xl font-bold tracking-[-1.44px]">
+                                        <div class=format!("relative z-10 flex flex-row items-center justify-center w-full h-full p-[10px] gap-2.5 {} border {} rounded-[20px]", bg_color, border_color)>
+                                            <span class=format!("{} text-5xl font-bold tracking-[-1.44px]", text_color)>
                                                 {format_with_commas(reward_value)}
                                             </span>
                                             <img src="/img/yral/yral-token.webp" alt="" class="w-12 h-[50px]" />
