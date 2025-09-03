@@ -15,7 +15,7 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
     let _navigate = leptos_router::hooks::use_navigate();
 
     // Determine popup variant based on rank and reward
-    let popup_variant = match user_info.rank {
+    let _popup_variant = match user_info.rank {
         1 => PopupVariant::Champion {
             reward: user_info.reward,
         },
@@ -34,8 +34,7 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
         _ => PopupVariant::BetterLuck,
     };
 
-    let popup_variant = PopupVariant::TopTen {
-        rank: user_info.rank,
+    let popup_variant = PopupVariant::Champion {
         reward: user_info.reward,
     };
 
@@ -90,8 +89,11 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
                 >
                     // Close button
                     <button
-                        class="absolute top-4 right-4 z-10 text-white/60 hover:text-white transition-colors"
-                        on:click=move |_| show.set(false)
+                        class="absolute top-4 right-4 z-20 text-white/60 hover:text-white transition-colors"
+                        on:click=move |e| {
+                            e.stop_propagation();
+                            show.set(false);
+                        }
                     >
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -118,7 +120,7 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
                     }}
 
                     // Content
-                    <div class="relative z-10 flex flex-col items-center justify-center px-6 py-10">
+                    <div class="relative z-5 flex flex-col items-center justify-center px-6 py-10">
                         // Icon or emoji
                         {if matches!(&popup_variant, PopupVariant::BetterLuck) {
                             view! {
