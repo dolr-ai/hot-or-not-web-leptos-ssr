@@ -27,6 +27,7 @@ pub fn Leaderboard() -> impl IntoView {
 
     // State management
     let (tournament_info, set_tournament_info) = signal(None::<TournamentInfo>);
+    let (upcoming_tournament_info, set_upcoming_tournament_info) = signal(None::<TournamentInfo>);
     let (current_user_info, set_current_user_info) = signal(None::<UserInfo>);
     let (sort_order, set_sort_order) = signal("desc".to_string());
     let (search_input, set_search_input) = signal(String::new()); // Immediate input value
@@ -78,6 +79,11 @@ pub fn Leaderboard() -> impl IntoView {
         if let Some(Ok(response)) = tournament_resource.get() {
             let tournament = response.tournament_info.clone();
             set_tournament_info.set(Some(tournament.clone()));
+            
+            // Set upcoming tournament info if present
+            if let Some(upcoming) = response.upcoming_tournament_info {
+                set_upcoming_tournament_info.set(Some(upcoming));
+            }
 
             // Parse user info if present
             if let Some(user_json) = response.user_info {
@@ -430,10 +436,25 @@ pub fn Leaderboard() -> impl IntoView {
 
             // Tournament completion popup
             <Show when=move || current_user_info.get().is_some() && show_completion_popup.get()>
-                <TournamentCompletionPopup
-                    show=show_completion_popup
-                    user_info=current_user_info.get().unwrap()
-                />
+                {
+                    let popup_view = if let Some(upcoming) = upcoming_tournament_info.get() {
+                        view! {
+                            <TournamentCompletionPopup
+                                show=show_completion_popup
+                                user_info=current_user_info.get().unwrap()
+                                upcoming_tournament=upcoming
+                            />
+                        }
+                    } else {
+                        view! {
+                            <TournamentCompletionPopup
+                                show=show_completion_popup
+                                user_info=current_user_info.get().unwrap()
+                            />
+                        }
+                    };
+                    popup_view
+                }
             </Show>
         </div>
     }

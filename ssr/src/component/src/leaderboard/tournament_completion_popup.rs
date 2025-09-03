@@ -1,4 +1,5 @@
-use super::types::UserInfo;
+use super::types::{TournamentInfo, UserInfo};
+use chrono::{DateTime, Datelike};
 use leptos::prelude::*;
 
 fn format_with_commas(n: u32) -> String {
@@ -28,7 +29,11 @@ enum PopupVariant {
 }
 
 #[component]
-pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> impl IntoView {
+pub fn TournamentCompletionPopup(
+    show: RwSignal<bool>,
+    user_info: UserInfo,
+    #[prop(optional)] upcoming_tournament: TournamentInfo,
+) -> impl IntoView {
     let _navigate = leptos_router::hooks::use_navigate();
 
     // Determine popup variant based on rank and reward
@@ -51,9 +56,9 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
         _ => PopupVariant::BetterLuck,
     };
 
-    // let popup_variant = PopupVariant::Silver {
-    //     reward: user_info.reward,
-    // };
+    let popup_variant = PopupVariant::Silver {
+        reward: user_info.reward,
+    };
 
     // Get the appropriate content based on variant
     let (sunburst_svg, icon, title, reward_amount, title_color) = match &popup_variant {
@@ -290,11 +295,67 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
                             }}
                         </div>
 
-                        // Contest starts badge
-                        <div class="bg-[#212121] rounded-full px-2 py-1 mb-5 flex items-center gap-1.5">
-                            <span class="text-[#A3A3A3] text-xs">Contest Starts on:</span>
-                            <span class="text-[#FAFAFA] text-xs font-medium">18th August, 10 AM IST</span>
-                        </div>
+                        // Contest starts badge - show if upcoming tournament info is available
+                        {Some(&upcoming_tournament).filter(|t| !t.id.is_empty()).map(|tournament| {
+                            // Format the start date
+                            let start_date = if let Some(client_time) = &tournament.client_start_time {
+                                // Parse ISO 8601 string and format for display
+                                DateTime::parse_from_rfc3339(client_time)
+                                    .map(|dt| {
+                                        // Extract timezone abbreviation if available
+                                        let tz_str = tournament.client_timezone.as_ref()
+                                            .and_then(|tz| tz.split('/').last())
+                                            .unwrap_or("Local Time");
+
+                                        // Format with day suffix handling
+                                        let day = dt.day();
+                                        let suffix = match day {
+                                            1 | 21 | 31 => "st",
+                                            2 | 22 => "nd",
+                                            3 | 23 => "rd",
+                                            _ => "th",
+                                        };
+
+                                        format!(
+                                            "{}{} {}, {} {}",
+                                            day,
+                                            suffix,
+                                            dt.format("%B"),
+                                            dt.format("%I:%M %p"),
+                                            tz_str
+                                        )
+                                    })
+                                    .unwrap_or_else(|_| client_time.clone())
+                            } else {
+                                // Fallback to UTC formatting
+                                DateTime::from_timestamp(tournament.start_time, 0)
+                                    .map(|dt| {
+                                        let day = dt.day();
+                                        let suffix = match day {
+                                            1 | 21 | 31 => "st",
+                                            2 | 22 => "nd",
+                                            3 | 23 => "rd",
+                                            _ => "th",
+                                        };
+
+                                        format!(
+                                            "{}{} {}, {} UTC",
+                                            day,
+                                            suffix,
+                                            dt.format("%B"),
+                                            dt.format("%I:%M %p")
+                                        )
+                                    })
+                                    .unwrap_or_else(|| "Soon".to_string())
+                            };
+
+                            view! {
+                                <div class="bg-[#212121] rounded-full px-2 py-1 mb-5 flex items-center gap-1.5">
+                                    <span class="text-[#A3A3A3] text-xs">Contest Starts on:</span>
+                                    <span class="text-[#FAFAFA] text-xs font-medium">{start_date}</span>
+                                </div>
+                            }
+                        })}
 
                         // View Leaderboard button
                         <button

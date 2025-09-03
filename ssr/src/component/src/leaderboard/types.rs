@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
 pub struct TournamentInfo {
     pub id: String,
     pub start_time: i64,
@@ -39,6 +39,7 @@ pub struct LeaderboardResponse {
     pub cursor_info: CursorInfo,
     pub tournament_info: TournamentInfo,
     pub user_info: Option<serde_json::Value>,
+    pub upcoming_tournament_info: Option<TournamentInfo>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]

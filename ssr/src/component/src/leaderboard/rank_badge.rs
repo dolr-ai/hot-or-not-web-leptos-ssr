@@ -8,12 +8,16 @@ use super::{api::fetch_user_rank_from_api, RankUpdateCounter, UserRank};
 /// Reusable rank badge view component
 #[component]
 fn RankBadgeView(
-    /// Text to display in the badge (e.g., "...", "#2")
+    /// Text to display in the badge (e.g., "...", "#2", "NA")
     rank_text: String,
+    /// Whether the tournament is active
+    #[prop(default = true)]
+    is_active: bool,
 ) -> impl IntoView {
     view! {
         <div
             class="relative cursor-pointer animate-fade-in"
+            style={if !is_active { "filter: grayscale(100%) opacity(60%)" } else { "" }}
             on:click=move |_| {
                 let navigate = use_navigate();
                 navigate("/leaderboard", Default::default());
@@ -31,10 +35,17 @@ fn RankBadgeView(
                 </div>
 
                 // Rank Badge positioned at the center of the trophy horizontally, at the base
-                <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#F14331] text-white
-                            rounded-[8px] px-1.5 py-0.5 text-xs font-bold min-w-[32px] 
-                            text-center border-[3px] border-white shadow-md
-                            group-hover:scale-110 transition-transform duration-200">
+                <div class={if is_active {
+                    "absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#F14331] text-white \
+                     rounded-[8px] px-1.5 py-0.5 text-xs font-bold min-w-[32px] \
+                     text-center border-[3px] border-white shadow-md \
+                     group-hover:scale-110 transition-transform duration-200"
+                } else {
+                    "absolute -bottom-2 left-1/2 -translate-x-1/2 bg-gray-400 text-white \
+                     rounded-[8px] px-1.5 py-0.5 text-xs font-bold min-w-[32px] \
+                     text-center border-[3px] border-white shadow-md \
+                     group-hover:scale-110 transition-transform duration-200"
+                }}>
                     {rank_text}
                 </div>
 
@@ -42,7 +53,7 @@ fn RankBadgeView(
                 <div class="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100
                             transition-opacity duration-200 pointer-events-none">
                     <div class="bg-black/80 text-white text-xs rounded px-2 py-1 whitespace-nowrap">
-                        "Your Tournament Rank"
+                        {if is_active { "Your Tournament Rank" } else { "Tournament Inactive" }}
                     </div>
                 </div>
             </div>
@@ -68,11 +79,15 @@ pub fn RankBadge() -> impl IntoView {
 
                 leptos::logging::log!("RankBadge: Fetching rank for principal: {}", principal);
 
-                // Fetch rank from API
+                // Fetch rank and tournament status from API
                 match fetch_user_rank_from_api(principal).await {
-                    Ok(rank) => {
-                        leptos::logging::log!("RankBadge: Fetched rank: {:?}", rank);
-                        rank
+                    Ok(Some((rank, status))) => {
+                        leptos::logging::log!("RankBadge: Fetched rank: {}, status: {}", rank, status);
+                        Some((rank, status))
+                    }
+                    Ok(None) => {
+                        leptos::logging::log!("RankBadge: No rank found for user");
+                        None
                     }
                     Err(e) => {
                         leptos::logging::error!("RankBadge: Failed to fetch user rank: {}", e);
@@ -87,15 +102,22 @@ pub fn RankBadge() -> impl IntoView {
         <Suspense
             fallback=move || view! {
                 // Show loading state with "..."
-                <RankBadgeView rank_text="...".to_string() />
+                <RankBadgeView rank_text="...".to_string() is_active=true />
             }
         >
             {move || {
-                rank_resource.get().map(|rank_option| {
-                    rank_option.map(|rank| {
-                        // Show badge with actual rank
+                rank_resource.get().map(|rank_data| {
+                    rank_data.map(|(rank, status)| {
+                        let is_active = status == "active";
+                        let rank_text = if is_active {
+                            format!("#{}", rank)
+                        } else {
+                            "NA".to_string()
+                        };
+                        
+                        // Show badge with rank or NA based on tournament status
                         view! {
-                            <RankBadgeView rank_text=format!("#{}", rank) />
+                            <RankBadgeView rank_text is_active />
                         }
                     })
                 }).flatten()
@@ -115,18 +137,28 @@ pub fn GlobalRankBadge() -> impl IntoView {
         <Suspense
             fallback=move || view! {
                 // Show loading state with "..."
-                <RankBadgeView rank_text="...".to_string() />
+                <RankBadgeView rank_text="...".to_string() is_active=true />
             }
         >
             {move || {
                 global_rank_resource.get().map(|user_rank| {
-                    // Always render the badge
-                    let rank_text = match user_rank.0 {
-                        Some(rank) => format!("#{}", rank),
-                        None => "...".to_string(),
+                    // Check if tournament is active
+                    let is_active = user_rank.tournament_status.as_ref()
+                        .map(|s| s == "active")
+                        .unwrap_or(false);
+                    
+                    // Display rank or NA based on tournament status
+                    let rank_text = if is_active {
+                        match user_rank.rank {
+                            Some(rank) => format!("#{}", rank),
+                            None => "...".to_string(),
+                        }
+                    } else {
+                        "NA".to_string()
                     };
+                    
                     view! {
-                        <RankBadgeView rank_text />
+                        <RankBadgeView rank_text is_active />
                     }
                 })
             }}

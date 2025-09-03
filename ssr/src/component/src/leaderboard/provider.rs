@@ -123,6 +123,7 @@ impl From<super::types::SearchResponse> for super::types::LeaderboardResponse {
             cursor_info: search.cursor_info,
             tournament_info: dummy_tournament,
             user_info: None,
+            upcoming_tournament_info: None,
         }
     }
 }

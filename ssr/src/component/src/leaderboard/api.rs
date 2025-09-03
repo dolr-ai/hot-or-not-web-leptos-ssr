@@ -13,16 +13,24 @@ pub struct UserRankInfo {
 }
 
 #[derive(Deserialize, Debug, Clone)]
+pub struct TournamentStatus {
+    pub id: String,
+    pub metric_type: String,
+    pub metric_display_name: String,
+    pub status: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
 pub struct LeaderboardRankResponse {
     pub user: UserRankInfo,
+    pub tournament: TournamentStatus,
     // We don't need the other fields for now
-    // pub tournament: ...,
     // pub surrounding_players: ...,
     // pub total_participants: u32,
 }
 
-// Client-side function to fetch rank
-pub async fn fetch_user_rank_from_api(principal: Principal) -> Result<Option<u32>, String> {
+// Client-side function to fetch rank with tournament status
+pub async fn fetch_user_rank_from_api(principal: Principal) -> Result<Option<(u32, String)>, String> {
     use consts::OFF_CHAIN_AGENT_URL;
 
     let url = OFF_CHAIN_AGENT_URL
@@ -41,7 +49,7 @@ pub async fn fetch_user_rank_from_api(principal: Principal) -> Result<Option<u32
             .json()
             .await
             .map_err(|e| format!("Failed to parse response: {}", e))?;
-        Ok(Some(data.user.rank))
+        Ok(Some((data.user.rank, data.tournament.status)))
     } else if response.status() == reqwest::StatusCode::NOT_FOUND {
         // User not in current tournament
         Ok(None)
