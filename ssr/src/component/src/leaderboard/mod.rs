@@ -15,7 +15,7 @@ pub mod types;
 
 use serde::{Deserialize, Serialize};
 
-pub use rank_badge::{GlobalRankBadge, RankBadge};
+pub use rank_badge::GlobalRankBadge;
 
 // Type for rank update counter to provide type safety
 #[derive(Clone, Copy, Debug, Default)]

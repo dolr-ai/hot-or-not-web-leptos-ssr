@@ -65,75 +65,6 @@ fn RankBadgeView(
     }
 }
 
-#[component]
-pub fn RankBadge() -> impl IntoView {
-    let auth = auth_state();
-
-    // Get update counter from context
-    let rank_update_count = use_context::<RwSignal<RankUpdateCounter>>()
-        .unwrap_or_else(|| RwSignal::new(RankUpdateCounter(0)));
-
-    // Use Resource to fetch rank - tracks the counter for updates
-    let rank_resource = Resource::new(
-        move || rank_update_count.get().0,
-        move |_| {
-            send_wrap(async move {
-                // Get user principal
-                let principal = auth.user_principal.await.ok()?;
-
-                leptos::logging::log!("RankBadge: Fetching rank for principal: {}", principal);
-
-                // Fetch rank and tournament status from API
-                match fetch_user_rank_from_api(principal).await {
-                    Ok(Some((rank, status))) => {
-                        leptos::logging::log!(
-                            "RankBadge: Fetched rank: {}, status: {}",
-                            rank,
-                            status
-                        );
-                        Some((rank, status))
-                    }
-                    Ok(None) => {
-                        leptos::logging::log!("RankBadge: No rank found for user");
-                        None
-                    }
-                    Err(e) => {
-                        leptos::logging::error!("RankBadge: Failed to fetch user rank: {}", e);
-                        None
-                    }
-                }
-            })
-        },
-    );
-
-    view! {
-        <Suspense
-            fallback=move || view! {
-                // Show loading state with "..."
-                <RankBadgeView rank_text="...".to_string() is_active=true />
-            }
-        >
-            {move || {
-                rank_resource.get().map(|rank_data| {
-                    rank_data.map(|(rank, status)| {
-                        let is_active = status == "active";
-                        let rank_text = if is_active {
-                            format!("#{}", rank)
-                        } else {
-                            "N/A".to_string()
-                        };
-
-                        // Show badge with rank or NA based on tournament status
-                        view! {
-                            <RankBadgeView rank_text is_active />
-                        }
-                    })
-                }).flatten()
-            }}
-        </Suspense>
-    }
-}
-
 /// Global rank badge that uses the single global LocalResource
 #[component]
 pub fn GlobalRankBadge() -> impl IntoView {
@@ -141,15 +72,47 @@ pub fn GlobalRankBadge() -> impl IntoView {
     let global_rank_resource = use_context::<LocalResource<UserRank>>()
         .expect("Global rank LocalResource should be provided");
 
+    // Local state to maintain current values
+    let (rank_text, set_rank_text) = signal("N/A".to_string());
+    let (is_active, set_is_active) = signal(false);
+
+    // Update local state when resource changes
+    // Effect::new(move |_| {
+    //     if let Some(user_rank) = global_rank_resource.get() {
+    //         let active = user_rank
+    //             .tournament_status
+    //             .as_ref()
+    //             .map(|s| s == "active")
+    //             .unwrap_or(false);
+
+    //         let text = if active {
+    //             match user_rank.rank {
+    //                 Some(rank) => format!("#{}", rank),
+    //                 None => "N/A".to_string(),
+    //             }
+    //         } else {
+    //             "N/A".to_string()
+    //         };
+
+    //         set_rank_text.set(text);
+    //         set_is_active.set(active);
+    //     }
+    // });
+
     view! {
         <Suspense
-            fallback=move || view! {
-                // Show loading state with "..."
-                <RankBadgeView rank_text="...".to_string() is_active=true />
+            fallback=move || {
+            let rank_text = rank_text.get_untracked();
+            let is_active = is_active.get_untracked();
+            view! {
+                // Use stored state in fallback
+                <RankBadgeView rank_text=rank_text is_active=is_active />
             }
+        }
         >
             {move || {
                 global_rank_resource.get().map(|user_rank| {
+
                     // Check if tournament is active
                     let is_active = user_rank.tournament_status.as_ref()
                         .map(|s| s == "active")
@@ -159,11 +122,14 @@ pub fn GlobalRankBadge() -> impl IntoView {
                     let rank_text = if is_active {
                         match user_rank.rank {
                             Some(rank) => format!("#{}", rank),
-                            None => "...".to_string(),
+                            None => "N/A".to_string(),
                         }
                     } else {
-                        "NA".to_string()
+                        "N/A".to_string()
                     };
+
+                    set_rank_text.set(rank_text.clone());
+                    set_is_active.set(is_active.clone());
 
                     view! {
                         <RankBadgeView rank_text is_active />
