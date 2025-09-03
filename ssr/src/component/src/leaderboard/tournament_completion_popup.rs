@@ -1,6 +1,23 @@
 use super::types::UserInfo;
 use leptos::prelude::*;
 
+fn format_with_commas(n: u32) -> String {
+    let s = n.to_string();
+    let mut result = String::new();
+    let mut count = 0;
+    
+    for c in s.chars().rev() {
+        if count == 3 {
+            result.push(',');
+            count = 0;
+        }
+        result.push(c);
+        count += 1;
+    }
+    
+    result.chars().rev().collect()
+}
+
 #[derive(Clone, Debug)]
 enum PopupVariant {
     Champion { reward: Option<u32> },
@@ -66,14 +83,14 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
             "/img/leaderboard/trophy.svg",
             "Climbing the Ranks!",
             reward.map(|r| r.to_string()),
-            "text-neutral-50",
+            "text-[#FAFAFA]",
         ),
         PopupVariant::BetterLuck => (
             None,
             "", // Will use emoji instead
             "Better luck next time!",
             None,
-            "text-white",
+            "text-[#FAFAFA]",
         ),
     };
 
@@ -100,10 +117,10 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
                         </svg>
                     </button>
 
-                    // Sunburst background (only for top 3)
+                    // Sunburst background (only for top 3) - centered on modal
                     {sunburst_svg.map(|svg| view! {
-                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <img src=svg alt="" class="w-[150%] h-auto opacity-30" />
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+                            <img src=svg alt="" class="w-[580px] h-[580px] opacity-50" style="transform: rotate(180deg);" />
                         </div>
                     })}
 
@@ -120,28 +137,37 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
                     }}
 
                     // Content
-                    <div class="relative z-5 flex flex-col items-center justify-center px-6 py-10">
+                    <div class="relative z-10 flex flex-col items-center justify-center px-6 pt-16 pb-8">
                         // Main element - either reward badge for top 3, icon for 4-10, or emoji for 11+
                         {if matches!(&popup_variant, PopupVariant::Champion { .. } | PopupVariant::Silver { .. } | PopupVariant::Bronze { .. }) {
-                            // For top 3: Show large reward badge with crown overlay
+                            // For top 3: Always show reward badge with crown overlay
                             let border_color = match &popup_variant {
                                 PopupVariant::Champion { .. } => "border-[rgba(255,244,86,0.43)]", // Gold
                                 PopupVariant::Silver { .. } => "border-[rgba(220,220,220,0.43)]", // Silver
                                 PopupVariant::Bronze { .. } => "border-[rgba(217,153,121,0.43)]", // Bronze
                                 _ => "border-[rgba(255,244,86,0.43)]"
                             };
-                            reward_amount.clone().map(|amount| view! {
-                                <div class="relative mb-6">
-                                    <div class=format!("bg-[#1f1d17] border {} rounded-[20px] px-5 py-3 flex items-center gap-2.5", border_color)>
-                                        <span class="text-[#ffc33a] text-5xl font-bold tracking-[-1.44px]">{amount}</span>
+                            let reward_value = match &popup_variant {
+                                PopupVariant::Champion { reward } => reward.unwrap_or(0),
+                                PopupVariant::Silver { reward } => reward.unwrap_or(0),
+                                PopupVariant::Bronze { reward } => reward.unwrap_or(0),
+                                _ => 0
+                            };
+                            view! {
+                                <div class="relative mb-10">
+                                    // Crown overlay positioned at top-right corner of box
+                                    <div class="absolute z-20" style="top: -45px; right: -15px; transform: rotate(15.625deg);">
+                                        <img src="/img/leaderboard/crown-popup.svg" alt="" class="w-[101px] h-[101px]" />
+                                    </div>
+                                    // Reward badge box with exact dimensions
+                                    <div class=format!("relative z-10 flex flex-row items-center justify-center w-[260px] h-[70px] p-[10px] gap-2.5 bg-[#1f1d17] border {} rounded-[20px]", border_color)>
+                                        <span class="text-[#FFC33A] text-5xl font-bold tracking-[-1.44px]">
+                                            {format_with_commas(reward_value)}
+                                        </span>
                                         <img src="/img/yral/yral-token.webp" alt="" class="w-12 h-[50px]" />
                                     </div>
-                                    // Crown overlay on top-right
-                                    <div class="absolute -top-3 -right-3">
-                                        <img src="/img/leaderboard/crown.svg" alt="" class="w-10 h-10" />
-                                    </div>
                                 </div>
-                            }.into_any()).unwrap_or_else(|| view! { <div></div> }.into_any())
+                            }.into_any()
                         } else if matches!(&popup_variant, PopupVariant::TopTen { .. }) {
                             // For 4-10: Show trophy icon with reward badge below
                             view! {
@@ -165,32 +191,46 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
                         }}
 
                         // Title
-                        <h2 class=format!("text-2xl font-bold mb-4 {}", title_color)>
+                        <h2 class=format!("text-2xl font-semibold mb-6 {}", title_color)>
                             {title}
                         </h2>
 
                         // Description
-                        <div class="text-neutral-300 text-center mb-6 leading-relaxed">
+                        <div class="text-[#A3A3A3] text-base text-center mb-6 leading-relaxed">
                             {match &popup_variant {
                                 PopupVariant::Champion { reward } => view! {
                                     <span>
                                         "Congrats on coming 1st on the leaderboard and winning a "
-                                        <span class="font-bold">{reward.unwrap_or(0)}" YRAL"</span>
-                                        "! Next week's leaderboard drops soon."
+                                        <span class="font-semibold">
+                                            {format_with_commas(reward.unwrap_or(0))}
+                                            " YRAL!"
+                                        </span>
+                                        <br />
+                                        "Next week's leaderboard drops soon."
                                     </span>
                                 }.into_any(),
                                 PopupVariant::Silver { reward } => view! {
                                     <span>
                                         "Amazing run! You've secured "
-                                        <span class="font-bold">{reward.unwrap_or(0)}" YRAL"</span>
-                                        " for finishing in 2nd place. You're just one step away — go for it next week!"
+                                        <span class="font-semibold">
+                                            {format_with_commas(reward.unwrap_or(0))}
+                                            " YRAL"
+                                        </span>
+                                        " for finishing in 2nd place."
+                                        <br />
+                                        "You're just one step away — go for it next week!"
                                     </span>
                                 }.into_any(),
                                 PopupVariant::Bronze { reward } => view! {
                                     <span>
                                         "Great hustle! You've earned "
-                                        <span class="font-bold">{reward.unwrap_or(0)}" YRAL"</span>
-                                        " this week. Keep pushing—next week could be your golden moment!"
+                                        <span class="font-semibold">
+                                            {format_with_commas(reward.unwrap_or(0))}
+                                            " YRAL"
+                                        </span>
+                                        " this week."
+                                        <br />
+                                        "Keep pushing—next week could be your golden moment!"
                                     </span>
                                 }.into_any(),
                                 PopupVariant::TopTen { rank, reward } => {
@@ -209,7 +249,10 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
                                             "Great effort! You've finished "
                                             {rank_str}
                                             " and earned "
-                                            <span class="font-bold">{reward.unwrap_or(0)}" YRAL"</span>
+                                            <span class="font-semibold">
+                                                {format_with_commas(reward.unwrap_or(0))}
+                                                " YRAL"
+                                            </span>
                                             " this week. Keep pushing—next week could be your golden moment!"
                                         </span>
                                     }.into_any()
@@ -222,15 +265,15 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
                             }}
                         </div>
 
-                        // Contest starts badge (placeholder for now)
-                        <div class="bg-[#212121] rounded-full px-3 py-1 mb-8 flex items-center gap-2">
-                            <span class="text-neutral-400 text-xs">Contest Starts on:</span>
-                            <span class="text-neutral-50 text-xs font-medium">18th August, 10 AM IST</span>
+                        // Contest starts badge
+                        <div class="bg-[#212121] rounded-full px-2 py-1 mb-5 flex items-center gap-1.5">
+                            <span class="text-[#A3A3A3] text-xs">Contest Starts on:</span>
+                            <span class="text-[#FAFAFA] text-xs font-medium">18th August, 10 AM IST</span>
                         </div>
 
                         // View Leaderboard button
                         <button
-                            class="w-full bg-neutral-50 text-black font-bold py-3 px-6 rounded-lg hover:bg-white transition-colors"
+                            class="w-full bg-[#FAFAFA] text-black font-bold py-3 px-5 rounded-lg hover:bg-white transition-colors"
                             on:click=move |_| {
                                 show.set(false);
                                 // Scroll to user's position if needed
