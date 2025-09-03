@@ -5,7 +5,7 @@ fn format_with_commas(n: u32) -> String {
     let s = n.to_string();
     let mut result = String::new();
     let mut count = 0;
-    
+
     for c in s.chars().rev() {
         if count == 3 {
             result.push(',');
@@ -14,7 +14,7 @@ fn format_with_commas(n: u32) -> String {
         result.push(c);
         count += 1;
     }
-    
+
     result.chars().rev().collect()
 }
 
@@ -117,12 +117,7 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
                         </svg>
                     </button>
 
-                    // Sunburst background (only for top 3) - centered on modal
-                    {sunburst_svg.map(|svg| view! {
-                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
-                            <img src=svg alt="" class="w-[580px] h-[580px] opacity-50" style="transform: rotate(180deg);" />
-                        </div>
-                    })}
+                    // Sunburst background will be rendered inside the reward box container for top 3
 
                     // Gradient background for ranks 4-10
                     {if matches!(&popup_variant, PopupVariant::TopTen { .. }) {
@@ -155,16 +150,26 @@ pub fn TournamentCompletionPopup(show: RwSignal<bool>, user_info: UserInfo) -> i
                             };
                             view! {
                                 <div class="relative mb-10">
-                                    // Crown overlay positioned at top-right corner of box
-                                    <div class="absolute z-20" style="top: -45px; right: -15px; transform: rotate(15.625deg);">
-                                        <img src="/img/leaderboard/crown-popup.svg" alt="" class="w-[101px] h-[101px]" />
-                                    </div>
-                                    // Reward badge box with exact dimensions
-                                    <div class=format!("relative z-10 flex flex-row items-center justify-center w-[260px] h-[70px] p-[10px] gap-2.5 bg-[#1f1d17] border {} rounded-[20px]", border_color)>
-                                        <span class="text-[#FFC33A] text-5xl font-bold tracking-[-1.44px]">
-                                            {format_with_commas(reward_value)}
-                                        </span>
-                                        <img src="/img/yral/yral-token.webp" alt="" class="w-12 h-[50px]" />
+                                    // Sunburst background centered on the reward box
+                                    {sunburst_svg.map(|svg| view! {
+                                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden"
+                                             style="top: -255px; left: -160px; width: 580px; height: 580px;">
+                                            <img src=svg alt="" class="w-full h-full opacity-50" style="transform: rotate(180deg);" />
+                                        </div>
+                                    })}
+                                    // Reward badge box with crown
+                                    <div class="relative mt-12 w-[260px] h-[70px]">
+                                        // Crown overlay positioned at top-right corner of box
+                                        <div class="absolute z-20" style="top: -45px; right: -36px; transform: rotate(15.625deg);">
+                                            <img src="/img/leaderboard/crown-popup.svg" alt="" class="w-[101px] h-[101px]" />
+                                        </div>
+                                        // Box content
+                                        <div class=format!("relative z-10 flex flex-row items-center justify-center w-full h-full p-[10px] gap-2.5 bg-[#1f1d17] border {} rounded-[20px]", border_color)>
+                                            <span class="text-[#FFC33A] text-5xl font-bold tracking-[-1.44px]">
+                                                {format_with_commas(reward_value)}
+                                            </span>
+                                            <img src="/img/yral/yral-token.webp" alt="" class="w-12 h-[50px]" />
+                                        </div>
                                     </div>
                                 </div>
                             }.into_any()
