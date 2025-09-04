@@ -756,7 +756,7 @@ pub fn HNGameOverlay(
                                 view! {
                                     <HNButtonOverlay
                                         post
-                                        prev_post=prev_post.clone()
+                                        prev_post
                                         bet_direction
                                         coin
                                         refetch_bet

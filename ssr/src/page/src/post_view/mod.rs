@@ -10,6 +10,7 @@ use consts::{MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_ENABLED_COOKIE};
 use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
 use indexmap::IndexSet;
 use priority_queue::DoublePriorityQueue;
+use serde::{Deserialize, Serialize};
 use state::canisters::{auth_state, unauth_canisters};
 use std::{cmp::Reverse, collections::HashMap};
 use yral_types::post::PostItemV3;
@@ -44,20 +45,38 @@ pub struct PostViewCtx {
     // We're using virtual lists for DOM, so this doesn't consume much memory
     // as uids only occupy 32 bytes each
     // but ideally this should be cleaned up
-    video_queue: RwSignal<IndexSet<PostDetails>>,
-    video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
+    video_queue: RwSignal<IndexSet<MlPostItem>>,
+    video_queue_for_feed: RwSignal<Vec<FeedPostCtx<MlPostItem>>>,
     current_idx: RwSignal<usize>,
     queue_end: RwSignal<bool>,
-    priority_q: RwSignal<DoublePriorityQueue<PostDetails, (usize, Reverse<usize>)>>, // we are using DoublePriorityQueue for GC in the future through pop_min
+    priority_q: RwSignal<DoublePriorityQueue<MlPostItem, (usize, Reverse<usize>)>>, // we are using DoublePriorityQueue for GC in the future through pop_min
     batch_cnt: RwSignal<usize>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MlPostItem {
     canister_id: Principal,
     post_id: u64,
     video_uid: String,
     nsfw_probability: f32,
+}
+
+// manually implementing PartialEq using the canister_id and post_id as it is
+// sufficient for equality check, avoiding the f32 (nsfw prob) which breaks
+// equality
+impl std::cmp::PartialEq for MlPostItem {
+    fn eq(&self, other: &Self) -> bool {
+        self.canister_id == other.canister_id && self.post_id == other.post_id
+    }
+}
+
+impl std::cmp::Eq for MlPostItem {}
+
+impl std::hash::Hash for MlPostItem {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.canister_id.hash(state);
+        state.write_u64(self.post_id);
+    }
 }
 
 impl From<PostItemV3> for MlPostItem {
@@ -130,7 +149,7 @@ pub struct PostDetailsCacheCtx {
 
 #[component]
 pub fn CommonPostViewWithUpdates(
-    initial_posts: Vec<PostDetails>,
+    initial_posts: Vec<MlPostItem>,
     fetch_video_action: Action<(), ()>,
     threshold_trigger_fetch: usize,
 ) -> impl IntoView {
@@ -224,7 +243,7 @@ pub fn CommonPostViewWithUpdates(
 }
 
 #[component]
-pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<PostDetails>) -> impl IntoView {
+pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<MlPostItem>) -> impl IntoView {
     leptos::logging::debug_warn!("trying to render ml feed");
     let PostViewCtx {
         fetch_cursor,
@@ -294,7 +313,11 @@ pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<PostDetails>) -> impl IntoVi
                 let cans_false: Canisters<false> = unauth_canisters();
                 let cans_true = auth.auth_cans_if_available();
 
-                let video_queue_c = video_queue.get_untracked().iter().cloned().collect();
+                let video_queue_c = video_queue
+                    .get_untracked()
+                    .iter()
+                    .map(|item| item.video_uid.clone())
+                    .collect();
                 let chunks = if let Some(cans_true) = cans_true.as_ref() {
                     let mut fetch_stream = new_video_fetch_stream_auth(cans_true, auth, cursor);
                     fetch_stream
@@ -312,8 +335,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<PostDetails>) -> impl IntoVi
                 let mut cnt = 0usize;
                 while let Some(chunk) = chunks.next().await {
                     leptos::logging::log!("recv a chunk");
-                    for uid in chunk {
-                        let post_detail = try_or_redirect!(uid);
+                    for post_detail in chunk {
                         if video_queue
                             .with_untracked(|vq| vq.len())
                             .saturating_sub(current_idx.get_untracked())
@@ -440,7 +462,12 @@ pub fn PostView() -> impl IntoView {
             ))
             .await
             {
-                Ok(post) => Ok(post),
+                Ok(post) => Ok(post.map(|post| MlPostItem {
+                    canister_id: post.canister_id,
+                    post_id: post.post_id,
+                    video_uid: post.uid,
+                    nsfw_probability: post.nsfw_probability,
+                })),
                 Err(e) => {
                     failure_redirect(e);
                     Err(())

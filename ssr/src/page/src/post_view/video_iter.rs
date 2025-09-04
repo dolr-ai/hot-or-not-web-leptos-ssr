@@ -1,7 +1,7 @@
 use std::pin::Pin;
 
 use candid::Principal;
-use futures::{stream::FuturesOrdered, Stream, StreamExt};
+use futures::Stream;
 use leptos::prelude::*;
 
 use state::canisters::AuthState;
@@ -13,9 +13,11 @@ use utils::{
     },
     posts::FetchCursor,
 };
-use yral_canisters_common::{utils::posts::PostDetails, Canisters, Error as CanistersError};
+use yral_canisters_common::Canisters;
 
-type PostsStream<'a> = Pin<Box<dyn Stream<Item = Vec<Result<PostDetails, CanistersError>>> + 'a>>;
+use crate::post_view::MlPostItem;
+
+type PostsStream<'a> = Pin<Box<dyn Stream<Item = Vec<MlPostItem>> + 'a>>;
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum FeedResultType {
@@ -111,8 +113,9 @@ impl<
         &self,
         chunks: usize,
         allow_nsfw: bool,
-        video_queue: Vec<PostDetails>,
+        video_queue: Vec<String>,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
+        let _ = chunks;
         let user_principal_id = self.user_principal().await?;
 
         let show_nsfw = allow_nsfw || show_nsfw_content();
@@ -136,25 +139,12 @@ impl<
             .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
         };
 
+        let top_posts = top_posts.into_iter().map(Into::into).collect();
+
         let end = false;
-        let chunk_stream = top_posts
-            .into_iter()
-            .map(move |item| {
-                // TODO: not changing now since this will be replaced with new post canister service
-                self.canisters.get_post_details_with_nsfw_info(
-                    Principal::from_text(item.canister_id).unwrap(),
-                    item.post_id.parse().expect(
-                        "In phase one, only the type changes but post id will remain a number",
-                    ),
-                    Some(item.nsfw_probability),
-                )
-            })
-            .collect::<FuturesOrdered<_>>()
-            .filter_map(|res| async { res.transpose() })
-            .chunks(chunks);
 
         Ok(FetchVideosRes {
-            posts_stream: Box::pin(chunk_stream),
+            posts_stream: Box::pin(futures::stream::once(async move { top_posts })),
             end,
             res_type: FeedResultType::MLFeed,
         })
@@ -164,8 +154,9 @@ impl<
         &self,
         chunks: usize,
         allow_nsfw: bool,
-        video_queue: Vec<PostDetails>,
+        video_queue: Vec<String>,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
+        let _ = chunks;
         let user_principal_id = self.user_principal().await?;
 
         let show_nsfw = allow_nsfw || show_nsfw_content();
@@ -189,24 +180,12 @@ impl<
             .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
         };
 
+        let top_posts = top_posts.into_iter().map(Into::into).collect();
+
         let end = false;
-        let chunk_stream = top_posts
-            .into_iter()
-            .map(move |item| {
-                self.canisters.get_post_details_with_nsfw_info(
-                    Principal::from_text(item.canister_id).unwrap(),
-                    item.post_id.parse().expect(
-                        "In phase one, only the type changes but post id will remain a number",
-                    ),
-                    Some(item.nsfw_probability),
-                )
-            })
-            .collect::<FuturesOrdered<_>>()
-            .filter_map(|res| async { res.transpose() })
-            .chunks(chunks);
 
         Ok(FetchVideosRes {
-            posts_stream: Box::pin(chunk_stream),
+            posts_stream: Box::pin(futures::stream::once(async move { top_posts })),
             end,
             res_type: FeedResultType::MLFeedCache,
         })
@@ -216,7 +195,7 @@ impl<
         &mut self,
         chunks: usize,
         allow_nsfw: bool,
-        video_queue: Vec<PostDetails>,
+        video_queue: Vec<String>,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
         if video_queue.len() < 10 {
             self.cursor.set_limit(30);

@@ -2,17 +2,15 @@ use candid::Principal;
 use codee::string::FromToStringCodec;
 use component::spinner::FullScreenSpinner;
 use consts::NSFW_ENABLED_COOKIE;
-use futures::{StreamExt, TryStreamExt};
 use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::hooks::use_query_map;
 use leptos_use::{use_cookie_with_options, UseCookieOptions};
-use state::canisters::{unauth_canisters, AuthState};
+use state::canisters::AuthState;
 use utils::host::show_nsfw_content;
 use utils::ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw};
-use utils::{send_wrap, try_or_redirect_opt};
-use yral_canisters_common::utils::posts::PostDetails;
+use utils::try_or_redirect_opt;
 use yral_types::post::PostItemV3;
 
 use crate::post_view::PostViewWithUpdatesMLFeed;
@@ -61,7 +59,7 @@ async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerF
 
     let ip_address = get_client_ip().await;
 
-    let posts = get_ml_feed_coldstart_clean(Principal::anonymous(), 5, vec![], ip_address)
+    let posts = get_ml_feed_coldstart_clean(Principal::anonymous(), 15, vec![], ip_address)
         .await
         .map_err(|e| {
             log::error!("Error getting top post id global clean feed: {e:?}");
@@ -77,7 +75,7 @@ async fn get_top_post_ids_global_nsfw_feed() -> Result<Vec<PostItemV3>, ServerFn
 
     let ip_address = get_client_ip().await;
 
-    let posts = get_ml_feed_coldstart_nsfw(Principal::anonymous(), 5, vec![], ip_address)
+    let posts = get_ml_feed_coldstart_nsfw(Principal::anonymous(), 15, vec![], ip_address)
         .await
         .map_err(|e| {
             log::error!("Error getting top post id global nsfw feed: {e:?}");
@@ -142,9 +140,7 @@ pub fn YralRootPage() -> impl IntoView {
     // once done, move loading to frontend in a client side suspense
     // bring back event signals, discuss with bhavna if any is changing is changing
 
-    let canisters = unauth_canisters();
-    let initial_posts = Resource::new(params, move |params_map| {
-        let canisters = canisters.clone();
+    let initial_posts = Resource::new_blocking(params, move |params_map| {
         async move {
             // Check query param first, then cookie, then show_nsfw_content
             let nsfw_from_query = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
@@ -157,43 +153,21 @@ pub fn YralRootPage() -> impl IntoView {
             );
 
             leptos::logging::debug_warn!("loading posts from cache");
+            let start = web_time::Instant::now();
             let posts = if nsfw_enabled {
                 get_top_post_ids_global_nsfw_feed().await
             } else {
                 get_top_post_ids_global_clean_feed().await
             }?;
-            leptos::logging::debug_warn!("loaded posts from cache: {}", posts.len());
+            leptos::logging::debug_warn!(
+                "loaded {} posts from cache in {:?}",
+                posts.len(),
+                start.elapsed()
+            );
 
-            let initial_posts = send_wrap(
-                futures::stream::iter(posts)
-                    .map(Ok::<_, ServerFnError>)
-                    .try_filter_map(|post_item| {
-                        let canisters = canisters.clone();
-                        async move {
-                            let details = canisters
-                                .get_post_details_with_nsfw_info(
-                                    post_item.canister_id.parse().expect("todo: handle this"),
-                                    post_item.post_id.parse().expect(
-                                        "until migration post id is a number larping as string",
-                                    ),
-                                    Some(post_item.nsfw_probability),
-                                )
-                                .await
-                                .map_err(|err| {
-                                    ServerFnError::new(format!("detail loading failed: {err:#?}"))
-                                })?;
+            let posts = posts.into_iter().map(Into::into).collect();
 
-                            leptos::logging::debug_warn!("fetched details");
-                            Ok(details)
-                        }
-                    })
-                    // .try_buffer_unordered(4)
-                    .try_collect::<Vec<PostDetails>>(),
-            )
-            .await?;
-
-            leptos::logging::debug_warn!("fetched all initial posts");
-            Ok::<_, ServerFnError>(initial_posts)
+            Ok::<_, ServerFnError>(posts)
         }
     });
 
@@ -209,25 +183,6 @@ pub fn YralRootPage() -> impl IntoView {
         <Suspense fallback=FullScreenSpinner>
             {move || {
                 Suspend::new(async move {
-                    // let url = match full_info.await {
-                    //     Ok((Some(post_item), utms, user_refer)) => {
-                    //         let canister_id = post_item.canister_id.clone();
-                    //         let post_id = post_item.post_id;
-
-                    //         let mut url = format!("/hot-or-not/{canister_id}/{post_id}");
-                    //         if let Some(user_refer) = user_refer {
-                    //             url.push_str(&format!("?user_refer={user_refer}"));
-                    //             if let Some(utms) = utms {
-                    //                 url.push_str(&format!("&{utms}"));
-                    //             }
-                    //         } else if let Some(utms) = utms {
-                    //             url.push_str(&format!("?{utms}"));
-                    //         }
-                    //         url
-                    //     },
-                    //     Ok((None, _, _)) => "/error?err=No Posts Found".to_string(),
-                    //     Err(e) => format!("/error?err={e}"),
-                    // };
                     let initial_posts = try_or_redirect_opt!(initial_posts.await);
 
                     Some(view! {

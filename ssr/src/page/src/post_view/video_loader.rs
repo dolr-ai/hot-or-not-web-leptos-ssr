@@ -3,19 +3,21 @@ use leptos::html::Audio;
 use leptos::logging;
 use leptos::{html::Video, prelude::*};
 use state::canisters::auth_state;
+// TODO: bring back video watched events
+#[allow(unused_imports)]
 use utils::event_streaming::events::VideoWatched;
 
 use component::video_player::VideoPlayer;
 use futures::FutureExt;
 use gloo::timers::future::TimeoutFuture;
-use utils::{bg_url, mp4_url, send_wrap, try_or_redirect, try_or_redirect_opt};
+use utils::{bg_url, mp4_url, send_wrap, try_or_redirect_opt};
 
 /// Maximum PostDetails, time in milliseconds to waitay promise to resolve
 const VIDEO_PLAY_TIMEOUT_MS: u64 = 5000;
 
 use crate::scrolling_post_view::{PostDetailResolver, QuickPostDetails};
 
-use super::{overlay::VideoDetailsOverlay, PostDetails};
+use super::overlay::VideoDetailsOverlay;
 
 #[component]
 pub fn BgView<DetailResolver>(
@@ -121,7 +123,7 @@ pub fn VideoView(
     });
 
     let auth = auth_state();
-    let ev_ctx = auth.event_ctx();
+    let _ev_ctx = auth.event_ctx();
 
     // Handles mute/unmute
     Effect::new(move |_| {

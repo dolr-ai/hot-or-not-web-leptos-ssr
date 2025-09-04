@@ -8,7 +8,7 @@ use leptos_icons::*;
 use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserverOptions};
 
 use state::audio_state::AudioState;
-use utils::{posts::FeedPostCtx, send_wrap};
+use utils::posts::FeedPostCtx;
 use yral_canisters_common::utils::posts::PostDetails;
 
 /// Piece of post details that should be available as quickly as possible to ensure fast loading of the infinite scroller
