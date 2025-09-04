@@ -59,7 +59,7 @@ pub fn YralRootPage() -> impl IntoView {
             .same_site(leptos_use::SameSite::Lax),
     );
 
-    let initial_posts = Resource::new_blocking(params, move |params_map| {
+    let initial_posts = Resource::new(params, move |params_map| {
         async move {
             // Check query param first, then cookie, then show_nsfw_content
             let nsfw_from_query = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);

@@ -71,6 +71,8 @@ where
             .unwrap_or_default()
     };
 
+    let high_priority = idx < 3;
+
     view! {
         <div class="overflow-hidden relative w-full h-full bg-transparent">
             <div
@@ -80,7 +82,7 @@ where
             <Suspense>
             {move || Suspend::new(async move {
                 let (post, prev_post) = try_or_redirect_opt!(post_details_with_prev_post.await);
-                Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref /> }.into_view())
+                Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref high_priority /> }.into_view())
             })}
             </Suspense>
             {children()}
@@ -98,6 +100,7 @@ pub fn VideoView(
     muted: RwSignal<bool>,
     volume: RwSignal<f64>,
     #[prop(optional, into)] is_current: Option<Signal<bool>>,
+    #[prop(optional, into)] high_priority: bool,
 ) -> impl IntoView {
     let post_for_uid = post;
     let uid = Memo::new(move |_| {
@@ -163,6 +166,7 @@ pub fn VideoView(
             autoplay=is_current.unwrap_or(false.into())
             view_bg_url=Signal::derive(view_bg_url)
             view_video_url=Signal::derive(view_video_url)
+            high_priority
         />
     }
     .into_any()
@@ -235,6 +239,8 @@ where
     // Create a signal that tracks whether this video is current
     let is_current_signal = Signal::derive(move || idx == current_idx());
 
+    let high_priority = idx < 3;
+
     view! {
         <VideoView
             post=quick_post_details
@@ -243,6 +249,7 @@ where
             muted
             volume
             is_current=is_current_signal
+            high_priority
         />
     }
     .into_any()

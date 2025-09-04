@@ -163,6 +163,7 @@ pub fn VideoDetailsOverlay(
     post: PostDetails,
     prev_post: Option<(Principal, u64)>,
     win_audio_ref: NodeRef<Audio>,
+    #[prop(optional, into)] high_priority: bool,
 ) -> impl IntoView {
     let show_share = RwSignal::new(false);
     let show_report = RwSignal::new(false);
@@ -504,7 +505,7 @@ pub fn VideoDetailsOverlay(
                             href=profile_url.clone()
                             class="w-10 h-10 rounded-full border-2 md:w-12 md:h-12 overflow-clip border-primary-600"
                         >
-                            <img class="object-cover w-full h-full" src=post.propic_url />
+                            <img class="object-cover w-full h-full" src=post.propic_url fetchpriority="low" loading={if high_priority { "eager" } else { "lazy" }} />
                         </a>
                     </div>
                     <div class="flex flex-col justify-center min-w-0">
