@@ -20,7 +20,6 @@ pub struct Notification(pub RwSignal<Option<serde_json::Value>>);
 
 #[component]
 pub fn CtxProvider(children: Children) -> impl IntoView {
-    leptos::logging::debug_warn!("setting up contexts");
     let auth = AuthState::default();
     provide_context(auth);
 
@@ -143,7 +142,6 @@ pub fn CtxProvider(children: Children) -> impl IntoView {
 
 #[component]
 pub fn BaseRoute() -> impl IntoView {
-    leptos::logging::debug_warn!("base route is being used");
     view! {
         <CtxProvider>
             <Outlet />

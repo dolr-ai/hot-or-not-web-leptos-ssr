@@ -162,7 +162,7 @@ pub fn App() -> impl IntoView {
                     // auth redirect routes exist outside main context
                     <GoogleAuthRedirectHandlerRoute />
                     <Route path=path!("/") view=YralRootPage />
-                    <ParentRoute path=path!("*") view=BaseRoute>
+                    <ParentRoute path=path!("") view=BaseRoute>
                         // TODO: enable when SATS are added back
                         // <Route
                         //     path=path!("/hot-or-not/withdraw")

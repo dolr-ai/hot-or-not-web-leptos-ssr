@@ -244,7 +244,6 @@ pub fn CommonPostViewWithUpdates(
 
 #[component]
 pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<MlPostItem>) -> impl IntoView {
-    leptos::logging::debug_warn!("trying to render ml feed");
     let PostViewCtx {
         fetch_cursor,
         video_queue,
@@ -257,7 +256,6 @@ pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<MlPostItem>) -> impl IntoVie
     } = expect_context();
 
     let auth = auth_state();
-    leptos::logging::debug_warn!("auth state exists here");
 
     let fetch_video_action = Action::new(move |_| {
         let (nsfw_enabled, _) = use_cookie_with_options::<bool, FromToStringCodec>(

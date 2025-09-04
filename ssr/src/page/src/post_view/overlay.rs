@@ -740,7 +740,7 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
                 <div class="relative w-fit -translate-y-0.5">
                     <div class="absolute inset-0 flex items-center pointer-events-none">
                         <div
-                            style:width=move || format!("calc({}% - 0.25%)", volume_.get() * 100.0)
+                            style:width=move || format!("calc({}% - 0.25%)", volume_.try_get().unwrap_or(0.0) * 100.0)
                             class="bg-white w-full h-1.5 translate-y-[0.15rem] rounded-full"
                             >
                         </div>
@@ -751,7 +751,7 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
                         max="1"
                         step="0.05"
                         class="z-[2] appearance-none bg-zinc-500 h-1.5 rounded-full accent-white"
-                        prop:value={move || volume_.get()}
+                        prop:value={move || volume_.try_get().unwrap_or(0.0)}
                         on:change=move |ev: leptos::ev::Event| {
                             let input = event_target_value(&ev);
                             if let Ok(value) = input.parse::<f64>() {

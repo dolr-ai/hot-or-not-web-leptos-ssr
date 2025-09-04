@@ -89,7 +89,6 @@ where
     .into_any()
 }
 
-// this can work with just the quick post details
 #[component]
 pub fn VideoView(
     #[prop(into)] post: Signal<Option<QuickPostDetails>>,
