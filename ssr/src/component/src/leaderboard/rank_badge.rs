@@ -65,7 +65,7 @@ fn RankBadgeView(
 /// Global rank badge that uses the single global LocalResource
 #[component]
 pub fn GlobalRankBadge() -> impl IntoView {
-    let global_rank_resource = use_context::<LocalResource<UserRank>>()
+    let global_rank_resource = use_context::<LocalResource<Result<UserRank, leptos::prelude::ServerFnError>>>()
         .expect("Global rank LocalResource should be provided");
 
     view! {
@@ -78,7 +78,11 @@ pub fn GlobalRankBadge() -> impl IntoView {
         }
         >
             {move || {
-                global_rank_resource.get().map(|user_rank| {
+                global_rank_resource.get().map(|result| {
+                    let user_rank = result.unwrap_or_else(|_| UserRank {
+                        rank: None,
+                        tournament_status: None,
+                    });
 
                     // Check if tournament is active
                     let is_active = user_rank.tournament_status.as_ref()

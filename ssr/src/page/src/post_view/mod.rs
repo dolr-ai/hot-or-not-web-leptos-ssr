@@ -358,61 +358,58 @@ pub fn PostView() -> impl IntoView {
     let global_rank =
         use_context::<RwSignal<UserRank>>().expect("UserRank should be provided globally");
 
-    let global_rank_resource = LocalResource::new(move || {
-        let counter = rank_update_count.get().0;
-        let global_rank = global_rank;
-        send_wrap(async move {
-            // If we already have a rank and counter is 0, return cached value
-            if counter == 0 {
-                let cached = global_rank.get_untracked();
-                if cached.rank.is_some() {
-                    return cached;
-                }
-            }
-
-            // Get user principal
-            let Some(principal) = auth.user_principal.await.ok() else {
-                return UserRank {
-                    rank: None,
-                    tournament_status: None,
-                };
-            };
-
-            leptos::logging::log!(
-                "PostView: Fetching rank for principal: {} (counter: {})",
-                principal,
-                counter
-            );
-
-            // Fetch rank and tournament status from API
-            match fetch_user_rank_from_api(principal).await {
-                Ok(Some((rank, status))) => {
-                    leptos::logging::log!("PostView: Fetched rank: {}, status: {}", rank, status);
-                    // Update global rank value
-                    let user_rank = UserRank {
-                        rank: Some(rank),
-                        tournament_status: Some(status),
-                    };
-                    global_rank.set(user_rank.clone());
-                    user_rank
-                }
-                Ok(None) => {
-                    leptos::logging::log!("PostView: No rank found for user");
-                    UserRank {
-                        rank: None,
-                        tournament_status: None,
+    let global_rank_resource = auth.derive_resource(
+        move || rank_update_count.get().0,
+        move |cans, counter| {
+            let global_rank = global_rank;
+            async move {
+                // If we already have a rank and counter is 0, return cached value
+                if counter == 0 {
+                    let cached = global_rank.get_untracked();
+                    if cached.rank.is_some() {
+                        return Ok(cached);
                     }
                 }
-                Err(e) => {
-                    leptos::logging::error!("PostView: Failed to fetch user rank: {}", e);
-                    UserRank {
-                        rank: None,
-                        tournament_status: None,
+
+                // Get user principal from canisters
+                let principal = cans.user_principal();
+
+                leptos::logging::log!(
+                    "PostView: Fetching rank for principal: {} (counter: {})",
+                    principal,
+                    counter
+                );
+
+                // Fetch rank and tournament status from API
+                match fetch_user_rank_from_api(principal).await {
+                    Ok(Some((rank, status))) => {
+                        leptos::logging::log!("PostView: Fetched rank: {}, status: {}", rank, status);
+                        // Update global rank value
+                        let user_rank = UserRank {
+                            rank: Some(rank),
+                            tournament_status: Some(status),
+                        };
+                        global_rank.set(user_rank.clone());
+                        Ok(user_rank)
+                    }
+                    Ok(None) => {
+                        leptos::logging::log!("PostView: No rank found for user");
+                        Ok(UserRank {
+                            rank: None,
+                            tournament_status: None,
+                        })
+                    }
+                    Err(e) => {
+                        leptos::logging::error!("PostView: Failed to fetch user rank: {}", e);
+                        Ok(UserRank {
+                            rank: None,
+                            tournament_status: None,
+                        })
                     }
                 }
             }
-        })
-    });
+        },
+    );
     provide_context(global_rank_resource);
 
     let canisters = unauth_canisters();
