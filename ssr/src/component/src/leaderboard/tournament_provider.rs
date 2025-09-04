@@ -9,6 +9,7 @@ pub struct TournamentLeaderboardProvider {
     pub tournament_id: String,
     pub user_id: Option<String>,
     pub sort_order: String,
+    pub start_offset: usize,
 }
 
 impl TournamentLeaderboardProvider {
@@ -17,7 +18,13 @@ impl TournamentLeaderboardProvider {
             tournament_id,
             user_id,
             sort_order,
+            start_offset: 0,
         }
+    }
+    
+    pub fn with_start_offset(mut self, offset: usize) -> Self {
+        self.start_offset = offset;
+        self
     }
 }
 
@@ -31,9 +38,12 @@ impl CursoredDataProvider for TournamentLeaderboardProvider {
         end: usize,
     ) -> Result<PageEntry<Self::Data>, Self::Error> {
         let limit = (end - start).min(50); // Max 50 per request
+        
+        // Apply start offset
+        let adjusted_start = start + self.start_offset;
 
         let response = fetch_leaderboard_page(
-            start as u32,
+            adjusted_start as u32,
             limit as u32,
             self.user_id.clone(),
             Some(&self.sort_order),

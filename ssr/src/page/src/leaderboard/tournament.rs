@@ -2,6 +2,7 @@ use chrono::{DateTime, Utc};
 use component::infinite_scroller::InfiniteScroller;
 use component::leaderboard::{
     api::fetch_leaderboard_page,
+    podium::TournamentPodium,
     tournament_provider::TournamentLeaderboardProvider,
     types::{LeaderboardEntry, TournamentInfo, UserInfo},
 };
@@ -9,7 +10,7 @@ use component::title::TitleText;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_navigate, use_params};
 use leptos_router::params::Params;
-use state::canisters::auth_state;
+use state::canisters::{auth_state, unauth_canisters};
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize, Params)]
 pub struct TournamentParams {
@@ -24,6 +25,7 @@ fn format_date(timestamp: i64) -> String {
 #[component]
 pub fn TournamentResults() -> impl IntoView {
     let auth = auth_state();
+    let canisters = unauth_canisters();
     let navigate = use_navigate();
     let params = use_params::<TournamentParams>();
 
@@ -44,6 +46,35 @@ pub fn TournamentResults() -> impl IntoView {
             Err("No tournament ID provided".to_string())
         } else {
             fetch_leaderboard_page(0, 1, uid, Some("desc"), Some(tid)).await
+        }
+    });
+
+    // Fetch top 3 winners and their profiles when tournament is completed
+    let top_winners_resource = LocalResource::new(move || {
+        let status = tournament_info.get().map(|t| t.status.clone());
+        let tid = tournament_id();
+        let canisters = canisters.clone();
+        async move {
+            if status == Some("completed".to_string()) && !tid.is_empty() {
+                // Fetch top 3 from leaderboard
+                let response = fetch_leaderboard_page(0, 3, None, Some("desc"), Some(tid)).await?;
+                let top_3 = response.data;
+
+                // Fetch profile details for each winner
+                let mut profiles = Vec::new();
+                for entry in &top_3 {
+                    let profile = canisters
+                        .get_profile_details(entry.principal_id.clone())
+                        .await
+                        .ok()
+                        .flatten();
+                    profiles.push(profile);
+                }
+
+                Ok((top_3, profiles))
+            } else {
+                Err("Not completed".to_string())
+            }
         }
     });
 
@@ -124,33 +155,33 @@ pub fn TournamentResults() -> impl IntoView {
                                     </div>
                                 }.into_any()
                             } else {
-                                let prov = TournamentLeaderboardProvider::new(tid, uid, order);
+                                let is_completed = tournament.status == "completed";
+                                let mut prov = TournamentLeaderboardProvider::new(tid.clone(), uid, order);
+
+                                // Skip top 3 entries if tournament is completed (they're shown in podium)
+                                if is_completed {
+                                    prov = prov.with_start_offset(3);
+                                }
+
                                 view! {
                                     <>
-                                        // Tournament info card
-                                        <div class="bg-black border border-[#212121] rounded-lg p-4 mb-6">
-                                            <div class="flex items-center justify-between mb-2">
-                                                <h2 class="text-lg font-bold">Tournament Details</h2>
-                                                <span class=move || {
-                                                    match tournament.status.as_str() {
-                                                        "active" => "text-green-500",
-                                                        "completed" => "text-gray-500",
-                                                        _ => "text-yellow-500"
-                                                    }
-                                                }>
-                                                    {tournament.status.clone()}
-                                                </span>
-                                            </div>
-                                            <div class="text-sm text-gray-400 space-y-1">
-                                                <div>
-                                                    "Prize Pool: "
-                                                    <span class="text-[#FFEF00] font-bold">
-                                                        {tournament.prize_pool} " " {tournament.prize_token}
-                                                    </span>
+
+                                        // Show podium if tournament is completed
+                                        <Show when=move || is_completed>
+                                            <Suspense fallback=move || view! {
+                                                <div class="flex justify-center py-8">
+                                                    <div class="animate-spin h-8 w-8 border-t-2 border-pink-500 rounded-full"></div>
                                                 </div>
-                                                <div>"Date: " {format_date(tournament.start_time)}</div>
-                                            </div>
-                                        </div>
+                                            }>
+                                                {move || {
+                                                    top_winners_resource.get().and_then(|result| {
+                                                        result.ok().map(|(winners, profiles)| {
+                                                            view! { <TournamentPodium winners winner_profiles=profiles /> }
+                                                        })
+                                                    })
+                                                }}
+                                            </Suspense>
+                                        </Show>
 
                                         // Leaderboard
                                         <div class="w-full">

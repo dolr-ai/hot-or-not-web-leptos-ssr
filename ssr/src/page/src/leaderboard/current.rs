@@ -3,7 +3,6 @@ use component::buttons::HighlightedButton;
 use component::infinite_scroller::InfiniteScroller;
 use component::leaderboard::{
     api::fetch_leaderboard_page,
-    podium::TournamentPodium,
     provider::LeaderboardProvider,
     search_bar::SearchBar,
     tournament_completion_popup::TournamentCompletionPopup,
@@ -18,12 +17,11 @@ use leptos_use::storage::use_local_storage;
 use leptos_use::use_debounce_fn;
 #[cfg(feature = "hydrate")]
 use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserverOptions};
-use state::canisters::{auth_state, unauth_canisters};
+use state::canisters::auth_state;
 
 #[component]
 pub fn Leaderboard() -> impl IntoView {
     let auth = auth_state();
-    let canisters = unauth_canisters();
     let navigate = use_navigate();
 
     // State management
@@ -41,34 +39,6 @@ pub fn Leaderboard() -> impl IntoView {
     let tournament_resource = LocalResource::new(move || async move {
         let user_id = auth.user_principal.await.ok().map(|p| p.to_string());
         fetch_leaderboard_page(0, 1, user_id, Some("desc"), None).await
-    });
-
-    // Fetch top 3 winners and their profiles when tournament is completed
-    let top_winners_resource = LocalResource::new(move || {
-        let status = tournament_info.get().map(|t| t.status.clone());
-        let canisters = canisters.clone();
-        async move {
-            if status == Some("completed".to_string()) {
-                // Fetch top 3 from leaderboard
-                let response = fetch_leaderboard_page(0, 3, None, Some("desc"), None).await?;
-                let top_3 = response.data;
-
-                // Fetch profile details for each winner
-                let mut profiles = Vec::new();
-                for entry in &top_3 {
-                    let profile = canisters
-                        .get_profile_details(entry.principal_id.clone())
-                        .await
-                        .ok()
-                        .flatten();
-                    profiles.push(profile);
-                }
-
-                Ok((top_3, profiles))
-            } else {
-                Err("Not completed".to_string())
-            }
-        }
     });
 
     // LocalStorage for tracking seen popups
@@ -246,7 +216,6 @@ pub fn Leaderboard() -> impl IntoView {
                                     } else {
                                         // Show active tournament UI
                                         tournament_info.get().map(|tournament| {
-                                            let is_completed = tournament.status == "completed";
 
                             // Create provider inside Suspense to avoid hydration warnings
                             provider_key.get(); // Subscribe to refresh key
@@ -258,40 +227,16 @@ pub fn Leaderboard() -> impl IntoView {
                             let order = sort_order.get();
                             let query = search_query.get();
 
-                            let mut provider = if query.is_empty() {
+                            let provider = if query.is_empty() {
                                 LeaderboardProvider::new(uid, order)
                             } else {
                                 LeaderboardProvider::new(uid, order).with_search(query.clone())
                             };
 
-                            // Skip top 3 entries if tournament is completed (they're shown in podium)
-                            if is_completed && query.is_empty() {
-                                provider = provider.with_start_offset(3);
-                            }
-
                             view! {
                                 <>
-                                    // Tournament header - only show if not completed
-                                    <Show when=move || !is_completed>
-                                        <TournamentHeader tournament=tournament.clone() />
-                                    </Show>
-
-                                    // Show podium if tournament is completed
-                                    <Show when=move || is_completed>
-                                        <Suspense fallback=move || view! {
-                                            <div class="flex justify-center py-8">
-                                                <div class="animate-spin h-8 w-8 border-t-2 border-pink-500 rounded-full"></div>
-                                            </div>
-                                        }>
-                                            {move || {
-                                                top_winners_resource.get().and_then(|result| {
-                                                    result.ok().map(|(winners, profiles)| {
-                                                        view! { <TournamentPodium winners winner_profiles=profiles /> }
-                                                    })
-                                                })
-                                            }}
-                                        </Suspense>
-                                    </Show>
+                                    // Tournament header
+                                    <TournamentHeader tournament=tournament.clone() />
 
                                     // Search bar
                                     <SearchBar on_search=on_search.get_value() />
