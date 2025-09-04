@@ -8,7 +8,7 @@ use leptos_router::hooks::use_location;
 use leptos_router::{components::*, path, MatchNestedRoutes};
 use page::about_us::AboutUs;
 use page::internal::clear_sats::ClearSats;
-use page::leaderboard::{Leaderboard, LeaderboardHistory, NoActiveTournament, TournamentResults};
+use page::leaderboard::{Leaderboard, LeaderboardHistory, TournamentResults};
 use page::post_view::PostDetailsCacheCtx;
 use page::pumpdump;
 use page::root::YralRootPage;
@@ -202,7 +202,6 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/wallet/:id") view=Wallet />
                         <Route path=path!("/wallet") view=Wallet />
                         <Route path=path!("/leaderboard") view=Leaderboard />
-                        <Route path=path!("/leaderboard/no-active") view=NoActiveTournament />
                         <Route path=path!("/leaderboard/history") view=LeaderboardHistory />
                         <Route path=path!("/leaderboard/tournament/:id") view=TournamentResults />
                         <Route path=path!("/logout") view=Logout />

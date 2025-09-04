@@ -17,11 +17,7 @@ fn RankBadgeView(
             style={if !is_active { "filter: grayscale(100%) opacity(60%)" } else { "" }}
             on:click=move |_| {
                 let navigate = use_navigate();
-                if is_active {
-                    navigate("/leaderboard", Default::default());
-                } else {
-                    navigate("/leaderboard/no-active", Default::default());
-                }
+                navigate("/leaderboard", Default::default());
             }
         >
             <div class="relative group">

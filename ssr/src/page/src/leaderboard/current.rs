@@ -1,4 +1,5 @@
 use codee::string::JsonSerdeCodec;
+use component::buttons::HighlightedButton;
 use component::infinite_scroller::InfiniteScroller;
 use component::leaderboard::{
     api::fetch_leaderboard_page,
@@ -161,6 +162,12 @@ pub fn Leaderboard() -> impl IntoView {
         set_provider_key.update(|k| *k += 1);
     };
 
+    // Clone navigators for closures
+    let navigate_back = navigate.clone();
+    let navigate_history = navigate.clone();
+    let navigate_no_active = navigate.clone();
+    let navigate_no_active_error = navigate.clone();
+
     view! {
         <div class="min-h-screen bg-black text-white">
             // Header
@@ -168,7 +175,7 @@ pub fn Leaderboard() -> impl IntoView {
                 <div class="flex items-center justify-between w-full px-4">
                     <button
                         class="p-2"
-                        on:click={let navigate = navigate.clone(); move |_| navigate("/", Default::default())}
+                        on:click=move |_| navigate_back("/", Default::default())
                     >
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -177,7 +184,7 @@ pub fn Leaderboard() -> impl IntoView {
                     <span class="text-xl font-bold">Leaderboard</span>
                     <button
                         class="text-pink-500 text-sm font-medium"
-                        on:click={let navigate = navigate.clone(); move |_| navigate("/leaderboard/history", Default::default())}
+                        on:click=move |_| navigate_history("/leaderboard/history", Default::default())
                     >
                         "View History"
                     </button>
@@ -192,8 +199,54 @@ pub fn Leaderboard() -> impl IntoView {
                     </div>
                 }>
                     {move || {
-                        tournament_info.get().map(|tournament| {
-                            let is_completed = tournament.status == "completed";
+                        // Check if we have tournament data
+                        tournament_resource.get().map(|result| {
+                            match result {
+                                Ok(response) => {
+                                    // Get tournament info from response
+                                    let tournament = response.tournament_info.clone();
+                                    let is_active = tournament.status == "active" || tournament.status == "completed";
+                                    
+                                    if !is_active {
+                                        // Show NoActiveTournament UI
+                                        view! {
+                                            <div class="flex items-center justify-center px-4 min-h-[calc(100vh-200px)]">
+                                                <div class="max-w-md w-full flex flex-col items-center text-center">
+                                                    // Icon
+                                                    <div class="mb-8">
+                                                        <img
+                                                            src="/img/leaderboard/no-active.svg"
+                                                            alt="No active tournament"
+                                                            class="w-32 h-32 md:w-40 md:h-40"
+                                                        />
+                                                    </div>
+
+                                                    // Heading
+                                                    <h1 class="text-2xl md:text-3xl font-bold mb-4 text-white">
+                                                        "No Active Tournament"
+                                                    </h1>
+
+                                                    // Description
+                                                    <p class="text-gray-400 text-base md:text-lg mb-8 leading-relaxed">
+                                                        "There's no tournament running right now. Check back soon for the next competition and your chance to win rewards!"
+                                                    </p>
+
+                                                    // Play Games button with pink gradient
+                                                    <div class="w-full max-w-xs">
+                                                        <HighlightedButton
+                                                            on_click={let nav = navigate_no_active.clone(); move || nav("/", Default::default())}
+                                                            classes="text-lg".to_string()
+                                                        >
+                                                            "Play Games"
+                                                        </HighlightedButton>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }.into_any()
+                                    } else {
+                                        // Show active tournament UI
+                                        tournament_info.get().map(|tournament| {
+                                            let is_completed = tournament.status == "completed";
 
                             // Create provider inside Suspense to avoid hydration warnings
                             provider_key.get(); // Subscribe to refresh key
@@ -425,6 +478,47 @@ pub fn Leaderboard() -> impl IntoView {
                                         />
                                     </div>
                                 </>
+                            }
+                        }).into_any()
+                                    }
+                                },
+                                Err(_) => {
+                                    // API error or no tournament - show NoActiveTournament UI
+                                    view! {
+                                        <div class="flex items-center justify-center px-4 min-h-[calc(100vh-200px)]">
+                                            <div class="max-w-md w-full flex flex-col items-center text-center">
+                                                // Icon
+                                                <div class="mb-8">
+                                                    <img
+                                                        src="/img/leaderboard/no-active.svg"
+                                                        alt="No active tournament"
+                                                        class="w-32 h-32 md:w-40 md:h-40"
+                                                    />
+                                                </div>
+
+                                                // Heading
+                                                <h1 class="text-2xl md:text-3xl font-bold mb-4 text-white">
+                                                    "No Active Tournament"
+                                                </h1>
+
+                                                // Description
+                                                <p class="text-gray-400 text-base md:text-lg mb-8 leading-relaxed">
+                                                    "There's no tournament running right now. Check back soon for the next competition and your chance to win rewards!"
+                                                </p>
+
+                                                // Play Games button with pink gradient
+                                                <div class="w-full max-w-xs">
+                                                    <HighlightedButton
+                                                        on_click={let nav = navigate_no_active_error.clone(); move || nav("/", Default::default())}
+                                                        classes="text-lg".to_string()
+                                                    >
+                                                        "Play Games"
+                                                    </HighlightedButton>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }.into_any()
+                                }
                             }
                         })
                     }}
