@@ -4,7 +4,7 @@ pub mod overlay;
 pub mod single_post;
 pub mod video_iter;
 pub mod video_loader;
-use crate::scrolling_post_view::ScrollingPostView;
+use crate::scrolling_post_view::{PostDetailResolver, QuickPostDetails, ScrollingPostView};
 use component::spinner::FullScreenSpinner;
 use consts::{MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_ENABLED_COOKIE};
 use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
@@ -50,6 +50,60 @@ pub struct PostViewCtx {
     queue_end: RwSignal<bool>,
     priority_q: RwSignal<DoublePriorityQueue<PostDetails, (usize, Reverse<usize>)>>, // we are using DoublePriorityQueue for GC in the future through pop_min
     batch_cnt: RwSignal<usize>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MlPostItem {
+    canister_id: Principal,
+    post_id: u64,
+    video_uid: String,
+    nsfw_probability: f32,
+}
+
+impl From<PostItemV3> for MlPostItem {
+    fn from(value: PostItemV3) -> Self {
+        // TODO: it might make more sense to impl TryForm, but this is changing soon I'm not bothering
+        Self {
+            canister_id: value
+                .canister_id
+                .parse()
+                .expect("ml feed to return correct value"),
+            post_id: value
+                .post_id
+                .parse()
+                .expect("ml feed to return a number as string"),
+            video_uid: value.video_id,
+            nsfw_probability: value.nsfw_probability,
+        }
+    }
+}
+
+impl PostDetailResolver for MlPostItem {
+    fn get_quick_post_details(&self) -> QuickPostDetails {
+        QuickPostDetails {
+            video_uid: self.video_uid.clone(),
+            canister_id: self.canister_id,
+            post_id: self.post_id,
+        }
+    }
+
+    async fn get_post_details(&self) -> Result<PostDetails, ServerFnError> {
+        let canisters = unauth_canisters();
+        let post_details = send_wrap(canisters.get_post_details_with_nsfw_info(
+            self.canister_id,
+            self.post_id,
+            Some(self.nsfw_probability),
+        ))
+        .await?;
+        let post_details = post_details.ok_or_else(|| {
+            ServerFnError::new(format!(
+                "Couldn't find post {}/{}",
+                self.canister_id, self.post_id
+            ))
+        })?;
+
+        Ok(post_details)
+    }
 }
 
 impl PostViewCtx {
