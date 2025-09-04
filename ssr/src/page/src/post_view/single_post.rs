@@ -48,7 +48,7 @@ fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
                     src="/img/hotornot/chaching.m4a"
                 />
                 <VideoDetailsOverlay post=post.clone() prev_post=None win_audio_ref />
-                <VideoView post=Some(post) muted volume autoplay_at_render=true to_load />
+                <VideoView post=Some(post.into()) muted volume autoplay_at_render=true to_load />
             </div>
             <MuteUnmuteOverlay muted />
         </div>

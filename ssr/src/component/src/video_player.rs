@@ -10,7 +10,10 @@ pub fn VideoPlayer(
     #[prop(into)] view_video_url: Signal<Option<String>>,
     #[prop(into)] muted: Signal<bool>,
     #[prop(into)] autoplay: Signal<bool>,
+    #[prop(into)] high_priority: bool,
 ) -> impl IntoView {
+    // TODO: experiment with preload attr to see how it affects ux
+    let _ = high_priority;
     view! {
         <label class="grid absolute top-0 left-0 grid-cols-1 justify-items-center items-center w-full h-full cursor-pointer z-3">
             <input
@@ -30,7 +33,7 @@ pub fn VideoPlayer(
                 playsinline
                 disablepictureinpicture
                 disableremoteplayback
-                preload="auto"
+                // preload={if high_priority { "auto" } else { "metadata" }}
             ></video>
         </label>
     }

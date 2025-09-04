@@ -1,4 +1,5 @@
 use crate::post_view::video_loader::{BgView, VideoViewForQueue};
+use candid::Principal;
 use indexmap::IndexSet;
 use leptos::html;
 use leptos::html::Audio;
@@ -9,6 +10,46 @@ use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserver
 use state::audio_state::AudioState;
 use utils::posts::FeedPostCtx;
 use yral_canisters_common::utils::posts::PostDetails;
+
+/// Piece of post details that should be available as quickly as possible to ensure fast loading of the infinite scroller
+pub struct QuickPostDetails {
+    pub video_uid: String,
+    pub canister_id: Principal,
+    pub post_id: u64,
+}
+
+/// A trait that requires some post details to be accessible instantly while others may be suspended
+pub trait PostDetailResolver {
+    fn get_quick_post_details(&self) -> QuickPostDetails;
+    fn get_post_details(
+        &self,
+    ) -> impl std::future::Future<Output = Result<PostDetails, ServerFnError>> + Send;
+}
+
+impl From<PostDetails> for QuickPostDetails {
+    fn from(value: PostDetails) -> Self {
+        Self {
+            video_uid: value.uid,
+            canister_id: value.canister_id,
+            post_id: value.post_id,
+        }
+    }
+}
+
+// Implementing this trait for post details for backwards compatibility
+impl PostDetailResolver for PostDetails {
+    fn get_quick_post_details(&self) -> QuickPostDetails {
+        QuickPostDetails {
+            video_uid: self.uid.clone(),
+            canister_id: self.canister_id,
+            post_id: self.post_id,
+        }
+    }
+
+    async fn get_post_details(&self) -> Result<PostDetails, ServerFnError> {
+        Ok(self.clone())
+    }
+}
 
 #[component]
 pub fn MuteUnmuteOverlay(muted: RwSignal<bool>) -> impl IntoView {
@@ -35,9 +76,13 @@ pub fn MuteUnmuteOverlay(muted: RwSignal<bool>) -> impl IntoView {
 }
 
 #[component]
-pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
-    video_queue: RwSignal<IndexSet<PostDetails>>,
-    video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
+pub fn ScrollingPostView<
+    F: Fn() -> V + Clone + 'static + Send + Sync,
+    V,
+    DetailResolver: PostDetailResolver + PartialEq + Clone + Sync + Send + 'static,
+>(
+    video_queue: RwSignal<IndexSet<DetailResolver>>,
+    video_queue_for_feed: RwSignal<Vec<FeedPostCtx<DetailResolver>>>,
     current_idx: RwSignal<usize>,
     #[prop(optional)] fetch_next_videos: Option<F>,
     recovering_state: RwSignal<bool>,

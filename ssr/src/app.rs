@@ -150,6 +150,9 @@ pub fn App() -> impl IntoView {
             href=format!("/{}/favicon-apple.png", app_state.asset_path())
         />
 
+        <Link rel="preconnect" href="https://customer-2p3jflss4r4hmpnz.cloudflarestream.com" />
+        <Link rel="preconnect" href="https://imagedelivery.net" />
+
         // Meta
         <Meta name="apple-mobile-web-app-title" content=app_state.name />
 
