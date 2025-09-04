@@ -49,11 +49,14 @@ where
     });
 
     let post_details_with_prev_post = LocalResource::new(move || async move {
-        let (current_post_resolver, prev_post_for_passthru) = post_with_prev.get_untracked();
+        let (current_post_resolver, prev_post_for_passthru) = post_with_prev.get();
         let Some(resolver) = current_post_resolver else {
+            leptos::logging::debug_warn!("returning None for post?");
             return Ok((None, prev_post_for_passthru));
         };
-        // this send wrap looks error prone as we can't reason whether the
+
+        // SAFETY: this send wrap is safe as we are guaranteed to run in a
+        // single threaded env due to LocalResource
         let post_details = send_wrap(resolver.get_post_details()).await?;
         Ok::<_, ServerFnError>((Some(post_details), prev_post_for_passthru))
     });
