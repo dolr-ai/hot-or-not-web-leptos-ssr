@@ -257,6 +257,14 @@ pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<MlPostItem>) -> impl IntoVie
 
     let auth = auth_state();
 
+    provide_context(RwSignal::new(
+        if auth.is_logged_in_with_oauth().get_untracked() {
+            DEFAULT_BET_COIN_FOR_LOGGED_IN
+        } else {
+            DEFAULT_BET_COIN_FOR_LOGGED_OUT
+        },
+    ));
+
     let fetch_video_action = Action::new(move |_| {
         let (nsfw_enabled, _) = use_cookie_with_options::<bool, FromToStringCodec>(
             NSFW_ENABLED_COOKIE,

@@ -59,15 +59,6 @@ pub fn YralRootPage() -> impl IntoView {
             .same_site(leptos_use::SameSite::Lax),
     );
 
-    provide_context(RwSignal::new(
-        // TODO: check auth state
-        if false {
-            DEFAULT_BET_COIN_FOR_LOGGED_IN
-        } else {
-            DEFAULT_BET_COIN_FOR_LOGGED_OUT
-        },
-    ));
-
     let initial_posts = Resource::new_blocking(params, move |params_map| {
         async move {
             // Check query param first, then cookie, then show_nsfw_content
