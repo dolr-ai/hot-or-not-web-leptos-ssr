@@ -189,12 +189,12 @@ pub fn TournamentResults() -> impl IntoView {
                                             <div class="flex items-center justify-between px-4 py-2 border-b border-white/10">
                                                 <div class="flex items-center gap-1 w-[80px]">
                                                     <span class="text-xs text-neutral-400 font-medium">Rank</span>
-                                                    <button
-                                                        class="text-neutral-400 hover:text-white transition-colors"
-                                                        on:click={move |_| on_sort("rank".to_string())}
-                                                    >
-                                                        <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
-                                                    </button>
+                                                    // <button
+                                                    //     class="text-neutral-400 hover:text-white transition-colors"
+                                                    //     on:click={move |_| on_sort("rank".to_string())}
+                                                    // >
+                                                    //     <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
+                                                    // </button>
                                                 </div>
                                                 <div class="flex-1">
                                                     <span class="text-xs text-neutral-400 font-medium">Username</span>
@@ -204,12 +204,12 @@ pub fn TournamentResults() -> impl IntoView {
                                                 </div>
                                                 <div class="flex items-center gap-1 w-[100px] justify-end">
                                                     <span class="text-xs text-neutral-400 font-medium">Rewards</span>
-                                                    <button
-                                                        class="text-neutral-400 hover:text-white transition-colors"
-                                                        on:click={move |_| on_sort("reward".to_string())}
-                                                    >
-                                                        <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
-                                                    </button>
+                                                    // <button
+                                                    //     class="text-neutral-400 hover:text-white transition-colors"
+                                                    //     on:click={move |_| on_sort("reward".to_string())}
+                                                    // >
+                                                    //     <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
+                                                    // </button>
                                                 </div>
                                             </div>
 
