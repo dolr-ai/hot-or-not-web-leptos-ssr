@@ -2,7 +2,6 @@ use candid::Principal;
 use codee::string::FromToStringCodec;
 use component::spinner::FullScreenSpinner;
 use consts::NSFW_ENABLED_COOKIE;
-use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::hooks::use_query_map;
