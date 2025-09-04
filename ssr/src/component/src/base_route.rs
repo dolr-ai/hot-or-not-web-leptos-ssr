@@ -19,7 +19,7 @@ use yral_metadata_client::MetadataClient;
 pub struct Notification(pub RwSignal<Option<serde_json::Value>>);
 
 #[component]
-pub fn CtxProvider(children: Children) -> impl IntoView {
+fn CtxProvider(children: Children) -> impl IntoView {
     let auth = AuthState::default();
     provide_context(auth);
 
