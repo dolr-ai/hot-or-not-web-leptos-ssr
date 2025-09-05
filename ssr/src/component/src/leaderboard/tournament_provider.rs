@@ -21,7 +21,7 @@ impl TournamentLeaderboardProvider {
             start_offset: 0,
         }
     }
-    
+
     pub fn with_start_offset(mut self, offset: usize) -> Self {
         self.start_offset = offset;
         self
@@ -38,7 +38,7 @@ impl CursoredDataProvider for TournamentLeaderboardProvider {
         end: usize,
     ) -> Result<PageEntry<Self::Data>, Self::Error> {
         let limit = (end - start).min(50); // Max 50 per request
-        
+
         // Apply start offset
         let adjusted_start = start + self.start_offset;
 

@@ -1,7 +1,6 @@
 use super::types::{TournamentInfo, UserInfo};
 use crate::buttons::HighlightedButton;
 use leptos::prelude::*;
-use utils::timezone::format_tournament_date_with_fallback;
 
 fn format_with_commas(n: u32) -> String {
     let s = n.to_string();
@@ -34,7 +33,7 @@ pub fn TournamentCompletionPopup(
     show: RwSignal<bool>,
     user_info: UserInfo,
     last_tournament_id: String,
-    #[prop(optional)] upcoming_tournament: TournamentInfo,
+    #[prop(optional)] _upcoming_tournament: TournamentInfo,
 ) -> impl IntoView {
     let navigate = leptos_router::hooks::use_navigate();
 
@@ -222,17 +221,17 @@ pub fn TournamentCompletionPopup(
                         // Description
                         <div class="text-[#A3A3A3] text-base text-center mb-6 leading-relaxed">
                             {match &popup_variant {
-                                PopupVariant::Champion { reward } => view! {
+                                PopupVariant::Champion { reward: _ } => view! {
                                     <span>
                                         "Congrats on coming 1st place on the leaderboard."
                                     </span>
                                 }.into_any(),
-                                PopupVariant::Silver { reward } => view! {
+                                PopupVariant::Silver { reward: _ } => view! {
                                     <span>
                                         "Congrats on coming 2nd place on the leaderboard."
                                     </span>
                                 }.into_any(),
-                                PopupVariant::Bronze { reward } => view! {
+                                PopupVariant::Bronze { reward: _ } => view! {
                                     <span>
                                         "Congrats on coming 3rd place on the leaderboard."
                                     </span>
@@ -276,7 +275,7 @@ pub fn TournamentCompletionPopup(
                                     let nav = navigate.clone();
                                     move || {
                                         show.set(false);
-                                        nav(&format!("/leaderboard/tournament/{}", tournament_id), Default::default());
+                                        nav(&format!("/leaderboard/tournament/{tournament_id}"), Default::default());
                                     }
                                 }
                                 classes="w-full".to_string()

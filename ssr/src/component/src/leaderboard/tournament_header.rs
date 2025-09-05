@@ -2,7 +2,6 @@ use super::types::TournamentInfo;
 use chrono::Utc;
 use leptos::prelude::*;
 use leptos_use::{use_interval, UseIntervalReturn};
-use utils::timezone::format_tournament_date_with_fallback;
 
 fn format_with_commas(n: u64) -> String {
     let s = n.to_string();

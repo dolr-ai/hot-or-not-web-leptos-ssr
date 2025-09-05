@@ -383,7 +383,11 @@ pub fn PostView() -> impl IntoView {
                 // Fetch rank and tournament status from API
                 match fetch_user_rank_from_api(principal).await {
                     Ok(Some((rank, status))) => {
-                        leptos::logging::log!("PostView: Fetched rank: {}, status: {}", rank, status);
+                        leptos::logging::log!(
+                            "PostView: Fetched rank: {}, status: {}",
+                            rank,
+                            status
+                        );
                         // Update global rank value
                         let user_rank = UserRank {
                             rank: Some(rank),

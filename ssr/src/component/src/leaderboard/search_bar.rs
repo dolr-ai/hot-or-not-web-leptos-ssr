@@ -1,7 +1,5 @@
-use leptos::html;
 use leptos::prelude::*;
 use leptos_use::use_debounce_fn;
-use wasm_bindgen::JsCast;
 
 #[component]
 pub fn SearchBar(on_search: impl Fn(String) + Clone + Send + Sync + 'static) -> impl IntoView {

@@ -142,7 +142,7 @@ pub fn Leaderboard() -> impl IntoView {
     });
 
     // Sort function - toggles between asc and desc
-    let on_sort = move |field: String| {
+    let _on_sort = move |field: String| {
         log::info!("Sorting by: {field}");
 
         // Toggle sort order
@@ -417,7 +417,7 @@ pub fn Leaderboard() -> impl IntoView {
                                     }}
                                 </>
                             }.into_any()
-                        }).unwrap_or_else(|| view! { <></> }.into_any())
+                        }).unwrap_or_else(|| ().into_any())
                                     }
                                 },
                                 Err(_) => {
@@ -439,7 +439,7 @@ pub fn Leaderboard() -> impl IntoView {
                                 show=show_completion_popup
                                 user_info=last_tournament_user_info.get().unwrap()
                                 last_tournament_id=last_tournament_id.get()
-                                upcoming_tournament=upcoming
+                                _upcoming_tournament=upcoming
                             />
                         }
                     } else {

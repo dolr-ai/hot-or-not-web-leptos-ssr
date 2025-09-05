@@ -27,7 +27,7 @@ pub fn TournamentHistoryCard(tournament: TournamentHistoryEntry) -> impl IntoVie
             Default::default(),
         );
     };
-    
+
     // Disabled state for button (always false for this use case)
     let disabled = Signal::derive(|| false);
 

@@ -30,7 +30,7 @@ pub struct TournamentParams {
     pub id: String,
 }
 
-fn format_date(timestamp: i64) -> String {
+fn _format_date(timestamp: i64) -> String {
     let datetime = DateTime::<Utc>::from_timestamp(timestamp, 0).unwrap_or_else(Utc::now);
     datetime.format("%b %d").to_string()
 }
@@ -109,7 +109,7 @@ pub fn TournamentResults() -> impl IntoView {
     // Provider will be created inside Suspense to avoid hydration warnings
 
     // Sort function - toggles between asc and desc
-    let on_sort = move |field: String| {
+    let _on_sort = move |field: String| {
         log::info!("Sorting by: {field}");
 
         // Toggle sort order
