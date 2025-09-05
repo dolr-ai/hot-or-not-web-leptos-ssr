@@ -38,7 +38,7 @@ pub fn TournamentHistoryCard(tournament: TournamentHistoryEntry) -> impl IntoVie
                     <span class="text-white text-lg font-semibold">
                         "Upto"
                     </span>
-                    <span class="text-[#FFEF00] text-2xl font-bold">
+                    <span class="text-[#FFEF00] text-lg font-semibold">
                         {tournament.prize_pool.to_string()}
                     </span>
                     // YRAL token icon

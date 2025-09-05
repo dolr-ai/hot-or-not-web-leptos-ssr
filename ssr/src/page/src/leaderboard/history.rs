@@ -19,7 +19,6 @@ pub fn LeaderboardHistory() -> impl IntoView {
             <TitleText>
                 <div class="flex items-center justify-between w-full px-4">
                     <button
-                        class="p-2"
                         on:click={let navigate = navigate.clone(); move |_| navigate("/leaderboard", Default::default())}
                     >
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
