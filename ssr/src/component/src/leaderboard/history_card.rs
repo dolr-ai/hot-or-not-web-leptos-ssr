@@ -1,4 +1,5 @@
 use super::history_types::TournamentHistoryEntry;
+use crate::buttons::HighlightedButton;
 use chrono::{DateTime, Utc};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
@@ -20,7 +21,7 @@ pub fn TournamentHistoryCard(tournament: TournamentHistoryEntry) -> impl IntoVie
 
     // Click handler for View Leaderboard button
     let tournament_id = tournament.id.clone();
-    let on_click = move |_| {
+    let on_click = move || {
         navigate(
             &format!("/leaderboard/tournament/{tournament_id}"),
             Default::default(),
@@ -29,59 +30,56 @@ pub fn TournamentHistoryCard(tournament: TournamentHistoryEntry) -> impl IntoVie
 
     view! {
         <div
-            class="relative rounded-lg p-6 transition-all hover:scale-[1.02]"
+            class="relative rounded-lg p-4 transition-all hover:scale-[1.02]"
             style="background: linear-gradient(135deg, rgba(241, 67, 49, 0.1) 0%, rgba(226, 1, 123, 0.1) 50%, rgba(105, 0, 57, 0.1) 100%); border: 1px solid rgba(255, 255, 255, 0.1);">
             // Content wrapper
             <div class="flex flex-col gap-3">
-                // First line - Prize pool (full width)
+                // First row - Prize pool line (full width)
                 <div class="flex items-center gap-2">
-                    <span class="text-white text-lg font-semibold">
+                    <span class="text-white text-base font-bold">
                         "Upto"
                     </span>
-                    <span class="text-[#FFEF00] text-lg font-semibold">
+                    <span class="text-[#FFEF00] text-base font-bold">
                         {tournament.prize_pool.to_string()}
                     </span>
                     // YRAL token icon
-                    <img src="/img/yral/yral-token.webp" alt="" class="w-5 h-5" />
-                    <span class="text-white/80 text-sm">
+                    <img src="/img/yral/yral-token.webp" alt="" class="w-[18px] h-[18px]" />
+                    <span class="text-white text-base font-bold">
                         "Shared by top 10 winners"
                     </span>
                 </div>
 
-                // Second section - Content and Trophy side by side
-                <div class="flex items-start justify-between">
+                // Second row - Content and Trophy side by side
+                <div class="flex items-start justify-between gap-4">
                     // Left side - Date, winner, button
-                    <div class="flex flex-col gap-3 flex-1">
-                        // Date range
-                        <div class="text-white/60 text-sm font-medium">
+                    <div class="flex flex-col gap-2.5 flex-1">
+                        // Date and participants line
+                        <div class="text-white text-xs">
                             {start_date}
+                            <span class="mx-1">"•"</span>
+                            {tournament.total_participants}" participants"
                         </div>
 
-                        // Winner info
-                        <div class="text-white/50 text-xs">
-                            <span class="font-semibold">"Winner:"</span>
-                            <span class="text-[#E2017B] ml-1">"@"{tournament.winner.username}</span>
-                            <span class="mx-2">"•"</span>
-                            <span>{tournament.total_participants}" participants"</span>
+                        // Winner line
+                        <div class="text-white text-xs">
+                            "Winner: @"{tournament.winner.username}
                         </div>
 
                         // View Leaderboard button
-                        <button
-                            class="bg-gradient-to-r from-[#F14331] to-[#E2017B] text-white px-6 py-2 rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity w-fit mt-2"
-                            on:click=on_click
+                        <HighlightedButton
+                            on_click=on_click
+                            classes="w-[140px]".to_string()
                         >
                             "View Leaderboard"
-                        </button>
+                        </HighlightedButton>
                     </div>
 
                     // Right side - Trophy illustration
-                    <div
-                        class="relative w-24 h-24 flex items-center justify-center"
-                    >
+                    <div class="relative flex-shrink-0">
                         <img
                             src="/img/leaderboard/trophy.svg"
                             alt="Trophy"
-                            class="w-16 h-16 object-contain drop-shadow-xl"
+                            class="w-[88px] h-[88px] object-contain"
                         />
                     </div>
                 </div>
