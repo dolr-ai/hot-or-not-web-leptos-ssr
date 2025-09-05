@@ -17,7 +17,7 @@ pub fn LeaderboardHistory() -> impl IntoView {
         <div class="min-h-screen bg-black text-white">
             // Header
             <TitleText>
-                <div class="flex items-center justify-between w-full px-4">
+                <div class="flex items-center justify-between w-full">
                     <button
                         on:click={let navigate = navigate.clone(); move |_| navigate("/leaderboard", Default::default())}
                     >

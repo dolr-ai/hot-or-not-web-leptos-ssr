@@ -1,5 +1,5 @@
 use super::history_types::TournamentHistoryEntry;
-use crate::buttons::HighlightedButton;
+use crate::buttons::GradientButton;
 use chrono::{DateTime, Utc};
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
@@ -27,6 +27,9 @@ pub fn TournamentHistoryCard(tournament: TournamentHistoryEntry) -> impl IntoVie
             Default::default(),
         );
     };
+    
+    // Disabled state for button (always false for this use case)
+    let disabled = Signal::derive(|| false);
 
     view! {
         <div
@@ -66,12 +69,13 @@ pub fn TournamentHistoryCard(tournament: TournamentHistoryEntry) -> impl IntoVie
                         </div>
 
                         // View Leaderboard button
-                        <HighlightedButton
+                        <GradientButton
                             on_click=on_click
-                            classes="w-[140px]".to_string()
+                            disabled=disabled
+                            classes="w-[180px] text-nowrap".to_string()
                         >
                             "View Leaderboard"
-                        </HighlightedButton>
+                        </GradientButton>
                     </div>
 
                     // Right side - Trophy illustration
