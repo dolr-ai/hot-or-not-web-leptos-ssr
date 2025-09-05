@@ -12,10 +12,49 @@ use component::title::TitleText;
 use leptos::{html, prelude::*};
 use leptos_router::hooks::use_navigate;
 #[cfg(feature = "hydrate")]
-use leptos_use::use_debounce_fn;
-#[cfg(feature = "hydrate")]
 use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserverOptions};
 use state::canisters::auth_state;
+
+// Component for No Active Tournament UI
+#[component]
+fn NoActiveTournament() -> impl IntoView {
+    let navigate = use_navigate();
+    
+    view! {
+        <div class="flex items-center justify-center px-4 min-h-[calc(100vh-200px)]">
+            <div class="max-w-md w-full flex flex-col items-center text-center">
+                // Icon
+                <div class="mb-8">
+                    <img
+                        src="/img/leaderboard/no-active.svg"
+                        alt="No active tournament"
+                        class="w-32 h-32 md:w-40 md:h-40"
+                    />
+                </div>
+                
+                // Heading
+                <h1 class="text-2xl md:text-3xl font-bold mb-4 text-white">
+                    "No Active Tournament"
+                </h1>
+                
+                // Description
+                <p class="text-gray-400 text-base md:text-lg mb-8 leading-relaxed">
+                    "There's no tournament running right now. Check back soon for the next competition and your chance to win rewards!"
+                </p>
+                
+                // Play Games button with pink gradient
+                <div class="w-full max-w-xs">
+                    <HighlightedButton
+                        on_click=move || navigate("/", Default::default())
+                        classes="text-lg".to_string()
+                    >
+                        "Play Games"
+                    </HighlightedButton>
+                </div>
+            </div>
+        </div>
+    }
+}
 
 #[component]
 pub fn Leaderboard() -> impl IntoView {
@@ -27,8 +66,7 @@ pub fn Leaderboard() -> impl IntoView {
     let (upcoming_tournament_info, set_upcoming_tournament_info) = signal(None::<TournamentInfo>);
     let (current_user_info, set_current_user_info) = signal(None::<UserInfo>);
     let (sort_order, set_sort_order) = signal("desc".to_string());
-    let (search_input, set_search_input) = signal(String::new()); // Immediate input value
-    let (search_query, set_search_query) = signal(String::new()); // Debounced search value
+    let (search_query, set_search_query) = signal(String::new()); // Search value (already debounced by SearchBar)
     let (provider_key, set_provider_key) = signal(0u32); // Key to force provider refresh
     let show_completion_popup = RwSignal::new(false);
     let (user_row_visible, set_user_row_visible) = signal(false); // Track if user's actual row is visible
@@ -85,40 +123,11 @@ pub fn Leaderboard() -> impl IntoView {
         }
     });
 
-    // Debounced search function - executes 300ms after user stops typing
-    // Only use debounce on client side to avoid SendWrapper thread issues in SSR
-    #[cfg(feature = "hydrate")]
-    let debounced_search = use_debounce_fn(
-        move || {
-            // Copy input value to search query after debounce
-            let input = search_input.get();
-            set_search_query.set(input);
-            // Force provider refresh
-            set_provider_key.update(|k| *k += 1);
-        },
-        800.0,
-    );
-
-    // For SSR, execute immediately without debounce
-    #[cfg(not(feature = "hydrate"))]
-    let debounced_search = move || {
-        let input = search_input.get();
-        set_search_query.set(input);
+    // Search function - now receives already debounced values from SearchBar
+    let on_search = StoredValue::new(move |query: String| {
+        set_search_query.set(query);
+        // Force provider refresh
         set_provider_key.update(|k| *k += 1);
-    };
-
-    // Search function that updates input and triggers debounced search
-    let on_search = StoredValue::new(move |input: String| {
-        set_search_input.set(input.clone());
-
-        if input.is_empty() {
-            // For empty input, clear search immediately
-            set_search_query.set(String::new());
-            set_provider_key.update(|k| *k += 1);
-        } else {
-            // For non-empty input, trigger debounced search
-            debounced_search();
-        }
     });
 
     // Sort function - toggles between asc and desc
@@ -141,8 +150,6 @@ pub fn Leaderboard() -> impl IntoView {
     // Clone navigators for closures
     let navigate_back = navigate.clone();
     let navigate_history = navigate.clone();
-    let navigate_no_active = navigate.clone();
-    let navigate_no_active_error = navigate.clone();
 
     view! {
         <div class="min-h-screen bg-black text-white">
@@ -185,70 +192,39 @@ pub fn Leaderboard() -> impl IntoView {
 
                                     if !is_active {
                                         // Show NoActiveTournament UI
-                                        view! {
-                                            <div class="flex items-center justify-center px-4 min-h-[calc(100vh-200px)]">
-                                                <div class="max-w-md w-full flex flex-col items-center text-center">
-                                                    // Icon
-                                                    <div class="mb-8">
-                                                        <img
-                                                            src="/img/leaderboard/no-active.svg"
-                                                            alt="No active tournament"
-                                                            class="w-32 h-32 md:w-40 md:h-40"
-                                                        />
-                                                    </div>
-
-                                                    // Heading
-                                                    <h1 class="text-2xl md:text-3xl font-bold mb-4 text-white">
-                                                        "No Active Tournament"
-                                                    </h1>
-
-                                                    // Description
-                                                    <p class="text-gray-400 text-base md:text-lg mb-8 leading-relaxed">
-                                                        "There's no tournament running right now. Check back soon for the next competition and your chance to win rewards!"
-                                                    </p>
-
-                                                    // Play Games button with pink gradient
-                                                    <div class="w-full max-w-xs">
-                                                        <HighlightedButton
-                                                            on_click={let nav = navigate_no_active.clone(); move || nav("/", Default::default())}
-                                                            classes="text-lg".to_string()
-                                                        >
-                                                            "Play Games"
-                                                        </HighlightedButton>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        }.into_any()
+                                        view! { <NoActiveTournament /> }.into_any()
                                     } else {
                                         // Show active tournament UI
                                         tournament_info.get().map(|tournament| {
-
-                            // Create provider inside Suspense to avoid hydration warnings
-                            provider_key.get(); // Subscribe to refresh key
-                            let uid = auth
-                                .user_principal
-                                .get()
-                                .and_then(|res| res.ok())
-                                .map(|p| p.to_string());
-                            let order = sort_order.get();
-                            let query = search_query.get();
-
-                            let provider = if query.is_empty() {
-                                LeaderboardProvider::new(uid, order)
-                            } else {
-                                LeaderboardProvider::new(uid, order).with_search(query.clone())
-                            };
-
-                            view! {
+                                            view! {
                                 <>
                                     // Tournament header
                                     <TournamentHeader tournament=tournament.clone() />
 
-                                    // Search bar
+                                    // Search bar - kept outside provider recreation
                                     <SearchBar on_search=on_search.get_value() />
 
-                                    // Infinite scrolling leaderboard
-                                    <div class="w-full">
+                                    // Leaderboard section that recreates with provider
+                                    {move || {
+                                        // Create provider inside this reactive block
+                                        provider_key.get(); // Subscribe to refresh key
+                                        let uid = auth
+                                            .user_principal
+                                            .get()
+                                            .and_then(|res| res.ok())
+                                            .map(|p| p.to_string());
+                                        let order = sort_order.get();
+                                        let query = search_query.get();
+
+                                        let provider = if query.is_empty() {
+                                            LeaderboardProvider::new(uid, order)
+                                        } else {
+                                            LeaderboardProvider::new(uid, order).with_search(query.clone())
+                                        };
+
+                                        view! {
+                                            // Infinite scrolling leaderboard
+                                            <div class="w-full">
                                         // Table header
                                         <div class="flex items-center justify-between px-4 py-2 border-b border-white/10">
                                             <div class="flex items-center gap-1 w-[80px]">
@@ -428,47 +404,16 @@ pub fn Leaderboard() -> impl IntoView {
                                             }
                                         />
                                     </div>
+                                        }
+                                    }}
                                 </>
-                            }
-                        }).into_any()
+                            }.into_any()
+                        }).unwrap_or_else(|| view! { <></> }.into_any())
                                     }
                                 },
                                 Err(_) => {
                                     // API error or no tournament - show NoActiveTournament UI
-                                    view! {
-                                        <div class="flex items-center justify-center px-4 min-h-[calc(100vh-200px)]">
-                                            <div class="max-w-md w-full flex flex-col items-center text-center">
-                                                // Icon
-                                                <div class="mb-8">
-                                                    <img
-                                                        src="/img/leaderboard/no-active.svg"
-                                                        alt="No active tournament"
-                                                        class="w-32 h-32 md:w-40 md:h-40"
-                                                    />
-                                                </div>
-
-                                                // Heading
-                                                <h1 class="text-2xl md:text-3xl font-bold mb-4 text-white">
-                                                    "No Active Tournament"
-                                                </h1>
-
-                                                // Description
-                                                <p class="text-gray-400 text-base md:text-lg mb-8 leading-relaxed">
-                                                    "There's no tournament running right now. Check back soon for the next competition and your chance to win rewards!"
-                                                </p>
-
-                                                // Play Games button with pink gradient
-                                                <div class="w-full max-w-xs">
-                                                    <HighlightedButton
-                                                        on_click={let nav = navigate_no_active_error.clone(); move || nav("/", Default::default())}
-                                                        classes="text-lg".to_string()
-                                                    >
-                                                        "Play Games"
-                                                    </HighlightedButton>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    }.into_any()
+                                    view! { <NoActiveTournament /> }.into_any()
                                 }
                             }
                         })
