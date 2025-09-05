@@ -4,6 +4,7 @@ use component::icons::sound_off_icon::SoundOffIcon;
 use component::icons::sound_on_icon::SoundOnIcon;
 use component::icons::volume_high_icon::VolumeHighIcon;
 use component::icons::volume_mute_icon::VolumeMuteIcon;
+use component::leaderboard::GlobalRankBadge;
 use component::overlay::ShadowOverlay;
 use component::spinner::SpinnerFit;
 use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption};
@@ -163,6 +164,8 @@ pub fn VideoDetailsOverlay(
     prev_post: Option<PostDetails>,
     win_audio_ref: NodeRef<Audio>,
 ) -> impl IntoView {
+    // No need for local context - using global context from App
+
     let show_share = RwSignal::new(false);
     let show_report = RwSignal::new(false);
     let show_nsfw_permission = RwSignal::new(false);
@@ -496,8 +499,10 @@ pub fn VideoDetailsOverlay(
     view! {
         <MuteUnmuteControl muted volume />
         <div class="flex absolute bottom-0 left-0 flex-col flex-nowrap justify-between pt-5 pb-20 w-full h-full text-white bg-transparent pointer-events-none px-[16px] z-4 md:px-[16px]">
-            <div class="flex flex-row justify-between items-center w-full pointer-events-auto">
-                <div class="flex flex-row gap-2 items-center p-2 w-9/12 rounded-s-full bg-linear-to-r from-black/25 via-80% via-black/10">
+            // Group top content together
+            <div class="flex flex-col w-full">
+                <div class="flex flex-row justify-between items-center w-full pointer-events-auto">
+                    <div class="flex flex-row gap-2 items-center p-2 w-9/12 rounded-s-full bg-linear-to-r from-black/25 via-80% via-black/10">
                     <div class="flex w-fit">
                         <a
                             href=profile_url.clone()
@@ -543,8 +548,14 @@ pub fn VideoDetailsOverlay(
                         class="object-contain w-[76px] h-[36px]"
                         alt="NSFW Toggle"
                     />
-                </button>
+                    </button>
+                </div>
+                // Add the rank badge here, below the profile/NSFW row
+                <div class="flex justify-end w-full mt-2 pointer-events-auto">
+                    <GlobalRankBadge />
+                </div>
             </div>
+            // Bottom content stays at the bottom
             <div class="flex flex-col gap-2 w-full">
                 <div class="flex flex-col gap-6 items-end self-end text-2xl pointer-events-auto md:text-3xl lg:text-4xl">
                     <button on:click=move |_| {

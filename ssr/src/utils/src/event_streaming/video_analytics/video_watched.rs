@@ -1,16 +1,23 @@
 use leptos::html::Video;
+use leptos::logging;
 use leptos::prelude::*;
-use leptos::{ev, logging};
-use leptos_use::use_event_listener;
-use wasm_bindgen::JsCast;
 
 use crate::event_streaming::events::EventCtx;
+#[cfg(all(feature = "hydrate", feature = "ga4"))]
+use crate::event_streaming::video_analytics::progress_tracker::ProgressLogInfo;
 use yral_canisters_common::utils::posts::PostDetails;
 
-use super::{
-    constants::*, progress_tracker::ProgressLogInfo, VideoAnalyticsEvent, VideoAnalyticsProvider,
-    VideoEventDataBuilder, VideoProgressTracker,
+use crate::event_streaming::video_analytics::VideoEventDataBuilder;
+#[cfg(feature = "ga4")]
+use crate::event_streaming::video_analytics::{VideoAnalyticsEvent, VideoAnalyticsProvider};
+use crate::event_streaming::video_analytics::{
+    EVENT_VIDEO_DURATION_WATCHED, EVENT_VIDEO_VIEWED, MIN_PAUSE_TIME_SECONDS,
+    VIDEO_COMPLETION_PERCENTAGE, VIDEO_VIEWED_THRESHOLD_SECONDS,
 };
+use leptos::ev;
+use leptos_use::use_event_listener;
+
+use super::VideoProgressTracker;
 
 #[cfg(feature = "ga4")]
 use crate::event_streaming::{send_event_ssr_spawn, send_event_warehouse_ssr_spawn};
@@ -100,6 +107,9 @@ impl VideoWatchedHandler {
         playing_started: RwSignal<bool>,
         progress_tracker: VideoProgressTracker,
     ) {
+        use leptos::ev;
+        use leptos_use::use_event_listener;
+
         let _ = use_event_listener(container_ref, ev::playing, move |_evt| {
             let Some(_) = container_ref.get() else {
                 return;
@@ -142,6 +152,8 @@ impl VideoWatchedHandler {
         params: TimeUpdateListenerParams,
     ) {
         let _ = use_event_listener(container_ref, ev::timeupdate, move |evt| {
+            use wasm_bindgen::JsCast;
+
             let Some(user) = ctx.user_details() else {
                 return;
             };
@@ -215,6 +227,8 @@ impl VideoWatchedHandler {
         progress_tracker: VideoProgressTracker,
     ) {
         let _ = use_event_listener(container_ref, ev::pause, move |evt| {
+            use wasm_bindgen::JsCast;
+
             progress_tracker.stop_tracking();
 
             let Some(user) = ctx.user_details() else {
