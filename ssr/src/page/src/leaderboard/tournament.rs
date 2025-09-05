@@ -208,11 +208,11 @@ pub fn TournamentResults() -> impl IntoView {
                                                 <div class="flex-1 text-left">
                                                     <span class="text-xs text-neutral-400 font-medium">Username</span>
                                                 </div>
-                                                <div class="flex items-center gap-1 w-[80px] justify-end">
+                                                <div class="flex items-center gap-1 w-[81px] justify-end">
                                                     <span class="text-xs text-neutral-400 font-medium">Games Played</span>
                                                 </div>
                                                 <div class="flex items-center gap-1 w-[80px] justify-end">
-                                                    <span class="text-xs text-neutral-400 font-medium">Rewards</span>
+                                                    <span class="text-xs text-neutral-400 font-medium">Prize</span>
                                                     // <button
                                                     //     class="text-neutral-400 hover:text-white transition-colors"
                                                     //     on:click={move |_| on_sort("reward".to_string())}

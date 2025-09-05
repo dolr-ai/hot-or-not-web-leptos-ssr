@@ -121,13 +121,12 @@ pub fn TournamentPodium(
                     }
                 })}
 
-                // Usernames and rewards layer (positioned below avatars)
-                <div class="absolute left-1/2 transform -translate-x-1/2 top-[308px] flex items-center justify-start gap-4">
-                    // 2nd Place username and reward
-                    {second.map(|winner| {
-                        view! {
+                // 1st Place username and reward (positioned higher)
+                {first.map(|winner| {
+                    view! {
+                        <div class="absolute left-1/2 transform -translate-x-1/2 top-[295px]">
                             <div class="flex flex-col gap-2 items-center w-[93px]">
-                                <div class="text-sm font-medium text-neutral-400">
+                                <div class="text-sm font-medium text-neutral-400 truncate w-full text-center">
                                     "@"{winner.username}
                                 </div>
                                 <div class="flex items-center justify-center gap-1">
@@ -137,14 +136,16 @@ pub fn TournamentPodium(
                                     <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
                                 </div>
                             </div>
-                        }
-                    })}
+                        </div>
+                    }
+                })}
 
-                    // 1st Place username and reward
-                    {first.map(|winner| {
-                        view! {
+                // 2nd Place username and reward (positioned under silver trophy)
+                {second.map(|winner| {
+                    view! {
+                        <div class="absolute left-1/2 transform -translate-x-1/2 top-[308px]" style="left: calc(50% - 97px);">
                             <div class="flex flex-col gap-2 items-center w-[93px]">
-                                <div class="text-sm font-medium text-neutral-400">
+                                <div class="text-sm font-medium text-neutral-400 truncate w-full text-center">
                                     "@"{winner.username}
                                 </div>
                                 <div class="flex items-center justify-center gap-1">
@@ -154,14 +155,16 @@ pub fn TournamentPodium(
                                     <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
                                 </div>
                             </div>
-                        }
-                    })}
+                        </div>
+                    }
+                })}
 
-                    // 3rd Place username and reward
-                    {third.map(|winner| {
-                        view! {
+                // 3rd Place username and reward (positioned under bronze trophy)
+                {third.map(|winner| {
+                    view! {
+                        <div class="absolute left-1/2 transform -translate-x-1/2 top-[308px]" style="left: calc(50% + 99px);">
                             <div class="flex flex-col gap-2 items-center w-[93px]">
-                                <div class="text-sm font-medium text-neutral-400">
+                                <div class="text-sm font-medium text-neutral-400 truncate w-full text-center">
                                     "@"{winner.username}
                                 </div>
                                 <div class="flex items-center justify-center gap-1">
@@ -171,9 +174,9 @@ pub fn TournamentPodium(
                                     <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
                                 </div>
                             </div>
-                        }
-                    })}
-                </div>
+                        </div>
+                    }
+                })}
             </div>
         </div>
     }.into_any()
