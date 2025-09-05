@@ -96,7 +96,7 @@ pub fn Leaderboard() -> impl IntoView {
             // Force provider refresh
             set_provider_key.update(|k| *k += 1);
         },
-        500.0,
+        800.0,
     );
 
     // For SSR, execute immediately without debounce

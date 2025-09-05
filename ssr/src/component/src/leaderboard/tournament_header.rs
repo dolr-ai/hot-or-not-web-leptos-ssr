@@ -1,6 +1,7 @@
 use super::types::TournamentInfo;
 use chrono::Utc;
 use leptos::prelude::*;
+use leptos_use::{use_interval, UseIntervalReturn};
 use utils::timezone::format_tournament_date_with_fallback;
 
 fn format_with_commas(n: u64) -> String {
@@ -23,9 +24,9 @@ fn format_with_commas(n: u64) -> String {
 #[component]
 pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
     // Calculate time remaining
-    let (_time_remaining, set_time_remaining) = signal(String::new());
+    let (time_remaining, set_time_remaining) = signal(String::new());
 
-    // Update countdown every minute
+    // Update countdown every second
     let end_time = tournament.end_time;
 
     // Calculate initial time remaining
@@ -39,13 +40,16 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
             let days = remaining / 86400;
             let hours = (remaining % 86400) / 3600;
             let minutes = (remaining % 3600) / 60;
+            let seconds = remaining % 60;
 
             if days > 0 {
                 format!("{days}d {hours}h {minutes}m")
             } else if hours > 0 {
-                format!("{hours}h {minutes}m")
+                format!("{hours}h {minutes}m {seconds}s")
+            } else if minutes > 0 {
+                format!("{minutes}m {seconds}s")
             } else {
-                format!("{minutes}m")
+                format!("{seconds}s")
             }
         }
     };
@@ -53,12 +57,14 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
     // Set initial value
     set_time_remaining.set(calculate_time_remaining());
 
-    // Format end date using the unified utility
-    let end_date = format_tournament_date_with_fallback(
-        tournament.end_time,
-        tournament.client_end_time.as_ref(),
-        tournament.client_timezone.as_ref(),
-    );
+    // Start interval timer to update every second
+    let UseIntervalReturn { counter, .. } = use_interval(1000);
+
+    // Update countdown on each interval tick
+    Effect::new(move |_| {
+        counter.get(); // Subscribe to counter changes
+        set_time_remaining.set(calculate_time_remaining());
+    });
 
     view! {
         <div class="relative w-full rounded-lg overflow-hidden mb-6 min-h-[140px]"
@@ -79,12 +85,12 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
                         "Top the leaderboard to win!"
                     </p>
 
-                    // Contest end badge
+                    // Contest countdown badge
                     <div class="mt-4 inline-flex items-center gap-1.5 bg-neutral-900 rounded-full px-2 py-1">
                         <span class="text-neutral-400 text-[10px] font-normal">
-                            "Contest ends on:"
+                            "Time remaining:"
                         </span>
-                        <span class="text-neutral-50 text-[10px] font-medium">{end_date}</span>
+                        <span class="text-neutral-50 text-[10px] font-medium">{move || time_remaining.get()}</span>
                     </div>
                 </div>
 
