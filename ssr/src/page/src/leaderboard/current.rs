@@ -76,7 +76,6 @@ pub fn Leaderboard() -> impl IntoView {
     let (tournament_info, set_tournament_info) = signal(None::<TournamentInfo>);
     let (upcoming_tournament_info, set_upcoming_tournament_info) = signal(None::<TournamentInfo>);
     let (current_user_info, set_current_user_info) = signal(None::<UserInfo>);
-    let (sort_order, set_sort_order) = signal("desc".to_string());
     let (search_query, set_search_query) = signal(String::new()); // Search value (already debounced by SearchBar)
     let (provider_key, set_provider_key) = signal(0u32); // Key to force provider refresh
     let show_completion_popup = RwSignal::new(false);
@@ -141,23 +140,6 @@ pub fn Leaderboard() -> impl IntoView {
         set_provider_key.update(|k| *k += 1);
     });
 
-    // Sort function - toggles between asc and desc
-    let _on_sort = move |field: String| {
-        log::info!("Sorting by: {field}");
-
-        // Toggle sort order
-        set_sort_order.update(|order| {
-            *order = if order == "asc" {
-                "desc".to_string()
-            } else {
-                "asc".to_string()
-            };
-        });
-
-        // Force provider refresh
-        set_provider_key.update(|k| *k += 1);
-    };
-
     // Clone navigators for closures
     let navigate_back = navigate.clone();
     let navigate_history = navigate.clone();
@@ -221,13 +203,12 @@ pub fn Leaderboard() -> impl IntoView {
                                             .get()
                                             .and_then(|res| res.ok())
                                             .map(|p| p.to_string());
-                                        let order = sort_order.get();
                                         let query = search_query.get();
 
                                         let provider = if query.is_empty() {
-                                            LeaderboardProvider::new(uid, order)
+                                            LeaderboardProvider::new(uid, "desc".to_string())
                                         } else {
-                                            LeaderboardProvider::new(uid, order).with_search(query.clone())
+                                            LeaderboardProvider::new(uid, "desc".to_string()).with_search(query.clone())
                                         };
 
                                         view! {
@@ -236,12 +217,6 @@ pub fn Leaderboard() -> impl IntoView {
                                         <div class="sticky top-[72px] z-30 flex items-center justify-between px-4 py-2 border-b border-white/10 bg-black">
                                             <div class="flex items-center gap-1 w-[60px]">
                                                 <span class="text-xs text-neutral-400 font-medium">Rank</span>
-                                                // <button
-                                                //     class="text-neutral-400 hover:text-white transition-colors"
-                                                //     on:click={move |_| on_sort("rank".to_string())}
-                                                // >
-                                                //     <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
-                                                // </button>
                                             </div>
                                             <div class="flex-1 text-left">
                                                 <span class="text-xs text-neutral-400 font-medium">Username</span>
@@ -251,12 +226,6 @@ pub fn Leaderboard() -> impl IntoView {
                                             </div>
                                             <div class="flex items-center gap-1 w-[80px] justify-end">
                                                 <span class="text-xs text-neutral-400 font-medium">Prize</span>
-                                                // <button
-                                                //     class="text-neutral-400 hover:text-white transition-colors"
-                                                //     on:click={move |_| on_sort("reward".to_string())}
-                                                // >
-                                                //     <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
-                                                // </button>
                                             </div>
                                         </div>
 

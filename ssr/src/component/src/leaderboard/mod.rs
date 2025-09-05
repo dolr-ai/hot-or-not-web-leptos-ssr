@@ -7,7 +7,6 @@ pub mod podium;
 pub mod provider;
 pub mod rank_badge;
 pub mod search_bar;
-pub mod table;
 pub mod tournament_completion_popup;
 pub mod tournament_header;
 pub mod tournament_provider;

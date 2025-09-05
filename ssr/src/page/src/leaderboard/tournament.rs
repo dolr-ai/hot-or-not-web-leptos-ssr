@@ -48,8 +48,7 @@ pub fn TournamentResults() -> impl IntoView {
     // State management
     let (tournament_info, set_tournament_info) = signal(None::<TournamentInfo>);
     let (current_user_info, set_current_user_info) = signal(None::<UserInfo>);
-    let (sort_order, set_sort_order) = signal("desc".to_string());
-    let (provider_key, set_provider_key) = signal(0u32); // Key to force provider refresh
+    let (provider_key, _set_provider_key) = signal(0u32); // Key to force provider refresh
     let (user_row_visible, set_user_row_visible) = signal(false);
 
     // Fetch tournament info and user info
@@ -106,25 +105,6 @@ pub fn TournamentResults() -> impl IntoView {
         }
     });
 
-    // Provider will be created inside Suspense to avoid hydration warnings
-
-    // Sort function - toggles between asc and desc
-    let _on_sort = move |field: String| {
-        log::info!("Sorting by: {field}");
-
-        // Toggle sort order
-        set_sort_order.update(|order| {
-            *order = if order == "asc" {
-                "desc".to_string()
-            } else {
-                "asc".to_string()
-            };
-        });
-
-        // Force provider refresh
-        set_provider_key.update(|k| *k += 1);
-    };
-
     view! {
         <div class="min-h-screen bg-black text-white">
             // Sticky Header with solid background
@@ -157,7 +137,6 @@ pub fn TournamentResults() -> impl IntoView {
                                 .get()
                                 .and_then(|res| res.ok())
                                 .map(|p| p.to_string());
-                            let order = sort_order.get();
 
                             if tid.is_empty() {
                                 view! {
@@ -167,7 +146,7 @@ pub fn TournamentResults() -> impl IntoView {
                                 }.into_any()
                             } else {
                                 let is_completed = tournament.status == "completed";
-                                let mut prov = TournamentLeaderboardProvider::new(tid.clone(), uid, order);
+                                let mut prov = TournamentLeaderboardProvider::new(tid.clone(), uid, "desc".to_string());
 
                                 // Skip top 3 entries if tournament is completed (they're shown in podium)
                                 if is_completed {
@@ -198,12 +177,6 @@ pub fn TournamentResults() -> impl IntoView {
                                         <div class="sticky top-[72px] z-30 flex items-center justify-between px-4 py-2 border-b border-white/10 bg-black">
                                                 <div class="flex items-center gap-1 w-[60px]">
                                                     <span class="text-xs text-neutral-400 font-medium">Rank</span>
-                                                    // <button
-                                                    //     class="text-neutral-400 hover:text-white transition-colors"
-                                                    //     on:click={move |_| on_sort("rank".to_string())}
-                                                    // >
-                                                    //     <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
-                                                    // </button>
                                                 </div>
                                                 <div class="flex-1 text-left">
                                                     <span class="text-xs text-neutral-400 font-medium">Username</span>
@@ -213,12 +186,6 @@ pub fn TournamentResults() -> impl IntoView {
                                                 </div>
                                                 <div class="flex items-center gap-1 w-[80px] justify-end">
                                                     <span class="text-xs text-neutral-400 font-medium">Prize</span>
-                                                    // <button
-                                                    //     class="text-neutral-400 hover:text-white transition-colors"
-                                                    //     on:click={move |_| on_sort("reward".to_string())}
-                                                    // >
-                                                    //     <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
-                                                    // </button>
                                                 </div>
                                         </div>
 
