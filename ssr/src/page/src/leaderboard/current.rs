@@ -234,8 +234,8 @@ pub fn Leaderboard() -> impl IntoView {
                                         view! {
                                             // Infinite scrolling leaderboard
                                             <div class="w-full">
-                                        // Table header
-                                        <div class="flex items-center justify-between px-4 py-2 border-b border-white/10">
+                                        // Table header - sticky below the main header
+                                        <div class="sticky top-[72px] z-30 flex items-center justify-between px-4 py-2 border-b border-white/10 bg-black">
                                             <div class="flex items-center gap-1 w-[60px]">
                                                 <span class="text-xs text-neutral-400 font-medium">Rank</span>
                                                 // <button
