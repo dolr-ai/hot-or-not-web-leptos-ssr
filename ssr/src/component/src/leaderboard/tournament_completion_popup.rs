@@ -219,6 +219,55 @@ pub fn TournamentCompletionPopup(
                             {title}
                         </h2>
 
+                        // Description
+                        <div class="text-[#A3A3A3] text-base text-center mb-6 leading-relaxed">
+                            {match &popup_variant {
+                                PopupVariant::Champion { reward } => view! {
+                                    <span>
+                                        "Congrats on coming 1st place on the leaderboard."
+                                    </span>
+                                }.into_any(),
+                                PopupVariant::Silver { reward } => view! {
+                                    <span>
+                                        "Congrats on coming 2nd place on the leaderboard."
+                                    </span>
+                                }.into_any(),
+                                PopupVariant::Bronze { reward } => view! {
+                                    <span>
+                                        "Congrats on coming 3rd place on the leaderboard."
+                                    </span>
+                                }.into_any(),
+                                PopupVariant::TopTen { rank, reward } => {
+                                    let rank_str = match rank {
+                                        4 => "4th".to_string(),
+                                        5 => "5th".to_string(),
+                                        6 => "6th".to_string(),
+                                        7 => "7th".to_string(),
+                                        8 => "8th".to_string(),
+                                        9 => "9th".to_string(),
+                                        10 => "10th".to_string(),
+                                        _ => format!("{rank}th")
+                                    };
+                                    view! {
+                                        <span>
+                                            "Great effort! You've finished "
+                                            {rank_str}
+                                            " and earned "
+                                            <span class="font-semibold">
+                                                {format_with_commas(reward.unwrap_or(0))}
+                                                " YRAL"
+                                            </span>
+                                        </span>
+                                    }.into_any()
+                                },
+                                PopupVariant::BetterLuck => view! {
+                                    <span>
+                                        "Keep playing more to climb the ranks and claim your spot!"
+                                    </span>
+                                }.into_any()
+                            }}
+                        </div>
+
                         // View Leaderboard button
                         <div class="w-full">
                             <HighlightedButton

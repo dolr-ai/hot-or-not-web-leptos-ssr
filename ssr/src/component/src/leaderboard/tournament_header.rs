@@ -96,7 +96,7 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
 
                 // Gift box graphic with floating coins
                 <div class="relative">
-                    <img src="/img/leaderboard/gift-box-header.svg" alt="Gift Box" class="w-32 h-32" />
+                    <img src="/img/leaderboard/gift-box-header.webp" alt="Gift Box" class="w-32 h-32" />
                 </div>
             </div>
         </div>

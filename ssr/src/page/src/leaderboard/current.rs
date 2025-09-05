@@ -173,7 +173,7 @@ pub fn Leaderboard() -> impl IntoView {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                     </svg>
                 </button>
-                <span class="text-xl font-bold">Leaderboard</span>
+                <span class="p-2 text-xl font-bold">Leaderboard</span>
                 <button
                     class="text-pink-500 text-sm font-medium"
                     on:click=move |_| navigate_history("/leaderboard/history", Default::default())

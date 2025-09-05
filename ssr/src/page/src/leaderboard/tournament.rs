@@ -6,11 +6,22 @@ use component::leaderboard::{
     tournament_provider::TournamentLeaderboardProvider,
     types::{LeaderboardEntry, TournamentInfo, UserInfo},
 };
-use component::title::TitleText;
 use leptos::prelude::*;
 use leptos_router::hooks::{use_navigate, use_params};
 use leptos_router::params::Params;
 use state::canisters::{auth_state, unauth_canisters};
+
+// Sticky header component for leaderboard with solid background
+#[component]
+fn StickyLeaderboardHeader(children: Children) -> impl IntoView {
+    view! {
+        <div class="sticky top-0 z-50 bg-black border-b border-white/10">
+            <div class="flex items-center justify-between w-full px-4 py-4">
+                {children()}
+            </div>
+        </div>
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize, Params)]
 pub struct TournamentParams {
@@ -113,21 +124,18 @@ pub fn TournamentResults() -> impl IntoView {
 
     view! {
         <div class="min-h-screen bg-black text-white">
-            // Header
-            <TitleText>
-                <div class="flex items-center justify-between w-full px-4">
-                    <button
-                        class="p-2"
-                        on:click={let navigate = navigate.clone(); move |_| navigate("/leaderboard/history", Default::default())}
-                    >
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                        </svg>
-                    </button>
-                    <span class="text-xl font-bold">Tournament Results</span>
-                    <div class="w-10"></div> // Spacer for centering
-                </div>
-            </TitleText>
+            // Sticky Header with solid background
+            <StickyLeaderboardHeader>
+                <button
+                    on:click={let navigate = navigate.clone(); move |_| navigate("/leaderboard/history", Default::default())}
+                >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <span class="p-2 text-xl font-bold">Tournament Results</span>
+                <div class="w-10"></div> // Spacer for centering
+            </StickyLeaderboardHeader>
 
             // Main content
             <div class="container mx-auto px-4 py-6 max-w-4xl">
@@ -183,11 +191,9 @@ pub fn TournamentResults() -> impl IntoView {
                                             </Suspense>
                                         </Show>
 
-                                        // Leaderboard
-                                        <div class="w-full">
-                                            // Table header
-                                            <div class="flex items-center justify-between px-4 py-2 border-b border-white/10">
-                                                <div class="flex items-center gap-1 w-[80px]">
+                                        // Table header - sticky below the main header
+                                        <div class="sticky top-[72px] z-30 flex items-center justify-between px-4 py-2 border-b border-white/10 bg-black">
+                                                <div class="flex items-center gap-1 w-[60px]">
                                                     <span class="text-xs text-neutral-400 font-medium">Rank</span>
                                                     // <button
                                                     //     class="text-neutral-400 hover:text-white transition-colors"
@@ -196,13 +202,13 @@ pub fn TournamentResults() -> impl IntoView {
                                                     //     <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
                                                     // </button>
                                                 </div>
-                                                <div class="flex-1">
+                                                <div class="flex-1 text-left">
                                                     <span class="text-xs text-neutral-400 font-medium">Username</span>
                                                 </div>
-                                                <div class="flex items-center gap-1 w-[100px] justify-end">
+                                                <div class="flex items-center gap-1 w-[80px] justify-end">
                                                     <span class="text-xs text-neutral-400 font-medium">Games Played</span>
                                                 </div>
-                                                <div class="flex items-center gap-1 w-[100px] justify-end">
+                                                <div class="flex items-center gap-1 w-[80px] justify-end">
                                                     <span class="text-xs text-neutral-400 font-medium">Rewards</span>
                                                     // <button
                                                     //     class="text-neutral-400 hover:text-white transition-colors"
@@ -211,9 +217,9 @@ pub fn TournamentResults() -> impl IntoView {
                                                     //     <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
                                                     // </button>
                                                 </div>
-                                            </div>
+                                        </div>
 
-                                            <InfiniteScroller
+                                        <InfiniteScroller
                                                 provider=prov
                                                 fetch_count=20
                                                 children=move |entry: LeaderboardEntry, node_ref| {
@@ -248,28 +254,28 @@ pub fn TournamentResults() -> impl IntoView {
                                                             }
                                                         >
                                                             // Rank column
-                                                            <div class="w-[80px]">
+                                                            <div class="w-[60px]">
                                                                 <span class=format!("text-lg font-bold {}", rank_class)>
                                                                     "#"{entry.rank}
                                                                 </span>
                                                             </div>
 
                                                             // Username column
-                                                            <div class="flex-1">
-                                                                <span class=format!("text-sm font-medium {}", username_color)>
+                                                            <div class="flex-1 text-left min-w-0">
+                                                                <span class=format!("text-sm font-medium truncate block {}", username_color)>
                                                                     "@"{entry.username}
                                                                 </span>
                                                             </div>
 
                                                             // Games Played column
-                                                            <div class="w-[100px] flex items-center justify-end gap-1">
+                                                            <div class="w-[80px] text-right">
                                                                 <span class="text-sm font-semibold text-white">
                                                                     {entry.score as u32}
                                                                 </span>
                                                             </div>
 
                                                             // Rewards column
-                                                            <div class="w-[100px] flex items-center justify-end gap-1">
+                                                            <div class="w-[80px] flex items-center justify-end gap-1">
                                                                 <span class="text-sm font-semibold text-white">
                                                                     {entry.reward.unwrap_or(0)}
                                                                 </span>
@@ -285,7 +291,6 @@ pub fn TournamentResults() -> impl IntoView {
                                                     </div>
                                                 }
                                             />
-                                        </div>
                                     </>
                                 }.into_any()
                             }
