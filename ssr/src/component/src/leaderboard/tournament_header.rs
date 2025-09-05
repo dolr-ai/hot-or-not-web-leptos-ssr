@@ -73,22 +73,29 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
             <div class="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent"></div>
 
             // Content
-            <div class="relative p-4 md:p-6 flex items-center justify-between">
+            <div class="relative p-4 flex items-center justify-between">
                 <div class="flex-1">
-                    <h2 class="text-xl md:text-2xl font-bold text-white mb-1 flex items-center flex-wrap">
-                        <span>"Win upto "</span>
-                        <span class="text-[#FFC33A] mx-1">{format_with_commas(tournament.prize_pool as u64)}</span>
-                        <img src="/img/yral/yral-token.webp" alt="" class="w-5 h-5 md:w-6 md:h-6 mr-1" />
-                        <span>"Today!"</span>
-                    </h2>
-                    <p class="text-white/80 text-xs md:text-sm">
-                        "Top the leaderboard to win!"
+                    // Prize pool line
+                    <div class="flex items-center gap-1.5 mb-1">
+                        <span class="text-xl font-bold text-white">"Win upto "</span>
+                        <span class="text-xl font-bold text-[#FFEF00]">{format_with_commas(tournament.prize_pool as u64)}</span>
+                        <img src="/img/yral/yral-token.webp" alt="" class="w-6 h-6" />
+                    </div>
+                    
+                    // Today text
+                    <div class="text-lg font-bold text-white mb-2">
+                        "Today!"
+                    </div>
+                    
+                    // Subtitle
+                    <p class="text-[10px] font-normal text-white mb-3">
+                        "Be on top 10 of the leaderboard to win!"
                     </p>
 
                     // Contest countdown badge
-                    <div class="mt-4 inline-flex items-center gap-1.5 bg-neutral-900 rounded-full px-2 py-1">
+                    <div class="inline-flex items-center gap-1.5 bg-neutral-900 rounded-full px-2 py-1">
                         <span class="text-neutral-400 text-[10px] font-normal">
-                            "Time remaining:"
+                            "Contest ends on:"
                         </span>
                         <span class="text-neutral-50 text-[10px] font-medium">{move || time_remaining.get()}</span>
                     </div>
@@ -96,7 +103,7 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
 
                 // Gift box graphic with floating coins
                 <div class="relative">
-                    <img src="/img/leaderboard/gift-box-header.webp" alt="Gift Box" class="w-32 h-32" />
+                    <img src="/img/leaderboard/gift-box-header.webp" alt="Gift Box" class="w-24 h-24" />
                 </div>
             </div>
         </div>
