@@ -19,7 +19,7 @@ use state::canisters::auth_state;
 #[component]
 fn NoActiveTournament() -> impl IntoView {
     let navigate = use_navigate();
-    
+
     view! {
         <div class="flex items-center justify-center px-4 min-h-[calc(100vh-200px)]">
             <div class="max-w-md w-full flex flex-col items-center text-center">
@@ -31,17 +31,17 @@ fn NoActiveTournament() -> impl IntoView {
                         class="w-32 h-32 md:w-40 md:h-40"
                     />
                 </div>
-                
+
                 // Heading
                 <h1 class="text-2xl md:text-3xl font-bold mb-4 text-white">
                     "No Active Tournament"
                 </h1>
-                
+
                 // Description
                 <p class="text-gray-400 text-base md:text-lg mb-8 leading-relaxed">
                     "There's no tournament running right now. Check back soon for the next competition and your chance to win rewards!"
                 </p>
-                
+
                 // Play Games button with pink gradient
                 <div class="w-full max-w-xs">
                     <HighlightedButton
@@ -227,7 +227,7 @@ pub fn Leaderboard() -> impl IntoView {
                                             <div class="w-full">
                                         // Table header
                                         <div class="flex items-center justify-between px-4 py-2 border-b border-white/10">
-                                            <div class="flex items-center gap-1 w-[80px]">
+                                            <div class="flex items-center gap-1 w-[60px]">
                                                 <span class="text-xs text-neutral-400 font-medium">Rank</span>
                                                 // <button
                                                 //     class="text-neutral-400 hover:text-white transition-colors"
@@ -236,13 +236,13 @@ pub fn Leaderboard() -> impl IntoView {
                                                 //     <span class="text-xs">{move || if sort_order.get() == "desc" { "↓" } else { "↑" }}</span>
                                                 // </button>
                                             </div>
-                                            <div class="flex-1">
+                                            <div class="flex-1 text-left">
                                                 <span class="text-xs text-neutral-400 font-medium">Username</span>
                                             </div>
-                                            <div class="flex items-center gap-1 w-[100px] justify-end">
+                                            <div class="flex items-center gap-1 w-[81px] justify-end">
                                                 <span class="text-xs text-neutral-400 font-medium">Games Played</span>
                                             </div>
-                                            <div class="flex items-center gap-1 w-[100px] justify-end">
+                                            <div class="flex items-center gap-1 w-[80px] justify-end">
                                                 <span class="text-xs text-neutral-400 font-medium">Prize</span>
                                                 // <button
                                                 //     class="text-neutral-400 hover:text-white transition-colors"
@@ -278,28 +278,28 @@ pub fn Leaderboard() -> impl IntoView {
                                                     view! {
                                                         <div class="flex items-center justify-between px-4 py-3 border-b border-[#212121] bg-[rgba(226,1,123,0.2)]">
                                                             // Rank column
-                                                            <div class="w-[80px]">
+                                                            <div class="w-[60px]">
                                                                 <span class=format!("text-lg font-bold {}", rank_class)>
                                                                     "#"{user_info.rank}
                                                                 </span>
                                                             </div>
 
                                                             // Username column
-                                                            <div class="flex-1">
-                                                                <span class=format!("text-sm font-medium {}", username_color)>
+                                                            <div class="flex-1 text-left min-w-0">
+                                                                <span class=format!("text-sm font-medium truncate block {}", username_color)>
                                                                     "@"{user_info.username}
                                                                 </span>
                                                             </div>
 
                                                             // Games Played column
-                                                            <div class="w-[100px] flex items-center justify-end gap-1">
+                                                            <div class="w-[80px] text-right">
                                                                 <span class="text-sm font-semibold text-white">
                                                                     {user_info.score as u32}
                                                                 </span>
                                                             </div>
 
                                                             // Rewards column
-                                                            <div class="w-[100px] flex items-center justify-end gap-1">
+                                                            <div class="w-[80px] flex items-center justify-end gap-1">
                                                                 <span class="text-sm font-semibold text-white">
                                                                     {user_info.reward.unwrap_or(0)}
                                                                 </span>
@@ -366,28 +366,28 @@ pub fn Leaderboard() -> impl IntoView {
                                                         }
                                                     >
                                                         // Rank column
-                                                        <div class="w-[80px]">
+                                                        <div class="w-[60px]">
                                                             <span class=format!("text-lg font-bold {}", rank_class)>
                                                                 "#"{entry.rank}
                                                             </span>
                                                         </div>
 
                                                         // Username column
-                                                        <div class="flex-1">
-                                                            <span class=format!("text-sm font-medium {}", username_color)>
+                                                        <div class="flex-1 text-left min-w-0">
+                                                            <span class=format!("text-sm font-medium truncate block {}", username_color)>
                                                                 "@"{entry.username}
                                                             </span>
                                                         </div>
 
                                                         // Games Played column
-                                                        <div class="w-[100px] flex items-center justify-end gap-1">
+                                                        <div class="w-[80px] text-right">
                                                             <span class="text-sm font-semibold text-white">
                                                                 {entry.score as u32}
                                                             </span>
                                                         </div>
 
                                                         // Rewards column
-                                                        <div class="w-[100px] flex items-center justify-end gap-1">
+                                                        <div class="w-[80px] flex items-center justify-end gap-1">
                                                             <span class="text-sm font-semibold text-white">
                                                                 {entry.reward.unwrap_or(0)}
                                                             </span>
