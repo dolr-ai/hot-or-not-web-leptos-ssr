@@ -1,4 +1,3 @@
-use codee::string::JsonSerdeCodec;
 use component::buttons::HighlightedButton;
 use component::infinite_scroller::InfiniteScroller;
 use component::leaderboard::{
@@ -12,7 +11,6 @@ use component::leaderboard::{
 use component::title::TitleText;
 use leptos::{html, prelude::*};
 use leptos_router::hooks::use_navigate;
-use leptos_use::storage::use_local_storage;
 #[cfg(feature = "hydrate")]
 use leptos_use::use_debounce_fn;
 #[cfg(feature = "hydrate")]
@@ -41,9 +39,9 @@ pub fn Leaderboard() -> impl IntoView {
         fetch_leaderboard_page(0, 1, user_id, Some("desc"), None).await
     });
 
-    // LocalStorage for tracking seen popups
-    let (seen_tournaments, set_seen_tournaments, _) =
-        use_local_storage::<Vec<String>, JsonSerdeCodec>("seen_tournament_completions");
+    // Store last tournament info for popup
+    let (last_tournament_user_info, set_last_tournament_user_info) = signal(None::<UserInfo>);
+    let (last_tournament_id, set_last_tournament_id) = signal(String::new());
 
     // Handle tournament info load
     Effect::new(move |_| {
@@ -56,24 +54,32 @@ pub fn Leaderboard() -> impl IntoView {
                 set_upcoming_tournament_info.set(Some(upcoming));
             }
 
-            // Parse user info if present
+            // Parse current user info if present
             if let Some(user_json) = response.user_info {
                 if let Ok(user_info) = serde_json::from_value::<UserInfo>(user_json) {
-                    set_current_user_info.set(Some(user_info.clone()));
+                    set_current_user_info.set(Some(user_info));
+                }
+            }
 
-                    // Check if should show completion popup
-                    if tournament.status == "completed" {
-                        let tournament_id = tournament.id.to_string();
-                        let seen_list = seen_tournaments.get_untracked();
-
-                        if !seen_list.contains(&tournament_id) {
-                            show_completion_popup.set(true);
-
-                            let mut updated_seen = seen_list;
-                            updated_seen.push(tournament_id);
-                            set_seen_tournaments.set(updated_seen);
-                        }
-                    }
+            // Check if should show completion popup based on last_tournament_info
+            if let Some(last_tournament) = response.last_tournament_info {
+                if last_tournament.status == "unseen" {
+                    // Store the tournament ID for navigation
+                    set_last_tournament_id.set(last_tournament.tournament_id.clone());
+                    // Create UserInfo from last tournament data for the popup
+                    let popup_user_info = UserInfo {
+                        principal_id: String::new(), // Not needed for popup
+                        username: current_user_info
+                            .get()
+                            .map(|u| u.username)
+                            .unwrap_or_default(),
+                        rank: last_tournament.rank,
+                        score: 0.0,      // Not used in popup
+                        percentile: 0.0, // Not used in popup
+                        reward: last_tournament.reward.map(|r| r as u32),
+                    };
+                    set_last_tournament_user_info.set(Some(popup_user_info));
+                    show_completion_popup.set(true);
                 }
             }
         }
@@ -175,7 +181,7 @@ pub fn Leaderboard() -> impl IntoView {
                                 Ok(response) => {
                                     // Get tournament info from response
                                     let tournament = response.tournament_info.clone();
-                                    let is_active = tournament.status == "active" || tournament.status == "completed";
+                                    let is_active = tournament.status == "active";
 
                                     if !is_active {
                                         // Show NoActiveTournament UI
@@ -261,7 +267,7 @@ pub fn Leaderboard() -> impl IntoView {
                                                 <span class="text-xs text-neutral-400 font-medium">Games Played</span>
                                             </div>
                                             <div class="flex items-center gap-1 w-[100px] justify-end">
-                                                <span class="text-xs text-neutral-400 font-medium">Rewards</span>
+                                                <span class="text-xs text-neutral-400 font-medium">Prize</span>
                                                 // <button
                                                 //     class="text-neutral-400 hover:text-white transition-colors"
                                                 //     on:click={move |_| on_sort("reward".to_string())}
@@ -471,13 +477,14 @@ pub fn Leaderboard() -> impl IntoView {
             </div>
 
             // Tournament completion popup
-            <Show when=move || current_user_info.get().is_some() && show_completion_popup.get()>
+            <Show when=move || last_tournament_user_info.get().is_some() && show_completion_popup.get()>
                 {
                     let popup_view = if let Some(upcoming) = upcoming_tournament_info.get() {
                         view! {
                             <TournamentCompletionPopup
                                 show=show_completion_popup
-                                user_info=current_user_info.get().unwrap()
+                                user_info=last_tournament_user_info.get().unwrap()
+                                last_tournament_id=last_tournament_id.get()
                                 upcoming_tournament=upcoming
                             />
                         }
@@ -485,7 +492,8 @@ pub fn Leaderboard() -> impl IntoView {
                         view! {
                             <TournamentCompletionPopup
                                 show=show_completion_popup
-                                user_info=current_user_info.get().unwrap()
+                                user_info=last_tournament_user_info.get().unwrap()
+                                last_tournament_id=last_tournament_id.get()
                             />
                         }
                     };

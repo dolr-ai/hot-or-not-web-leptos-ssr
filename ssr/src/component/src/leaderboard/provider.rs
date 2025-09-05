@@ -120,6 +120,7 @@ impl From<super::types::SearchResponse> for super::types::LeaderboardResponse {
             tournament_info: dummy_tournament,
             user_info: None,
             upcoming_tournament_info: None,
+            last_tournament_info: None,
         }
     }
 }

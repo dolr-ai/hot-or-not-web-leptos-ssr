@@ -1,4 +1,5 @@
 use super::types::{TournamentInfo, UserInfo};
+use crate::buttons::HighlightedButton;
 use leptos::prelude::*;
 use utils::timezone::format_tournament_date_with_fallback;
 
@@ -32,9 +33,10 @@ enum PopupVariant {
 pub fn TournamentCompletionPopup(
     show: RwSignal<bool>,
     user_info: UserInfo,
+    last_tournament_id: String,
     #[prop(optional)] upcoming_tournament: TournamentInfo,
 ) -> impl IntoView {
-    let _navigate = leptos_router::hooks::use_navigate();
+    let navigate = leptos_router::hooks::use_navigate();
 
     // Determine popup variant based on rank and reward
     let popup_variant = match user_info.rank {
@@ -217,106 +219,22 @@ pub fn TournamentCompletionPopup(
                             {title}
                         </h2>
 
-                        // Description
-                        <div class="text-[#A3A3A3] text-base text-center mb-6 leading-relaxed">
-                            {match &popup_variant {
-                                PopupVariant::Champion { reward } => view! {
-                                    <span>
-                                        "Congrats on coming 1st on the leaderboard and winning a "
-                                        <span class="font-semibold">
-                                            {format_with_commas(reward.unwrap_or(0))}
-                                            " YRAL!"
-                                        </span>
-                                        <br />
-                                        "Next week's leaderboard drops soon."
-                                    </span>
-                                }.into_any(),
-                                PopupVariant::Silver { reward } => view! {
-                                    <span>
-                                        "Amazing run! You've secured "
-                                        <span class="font-semibold">
-                                            {format_with_commas(reward.unwrap_or(0))}
-                                            " YRAL"
-                                        </span>
-                                        " for finishing in 2nd place."
-                                        <br />
-                                        "You're just one step away — go for it next week!"
-                                    </span>
-                                }.into_any(),
-                                PopupVariant::Bronze { reward } => view! {
-                                    <span>
-                                        "Great hustle! You've earned "
-                                        <span class="font-semibold">
-                                            {format_with_commas(reward.unwrap_or(0))}
-                                            " YRAL"
-                                        </span>
-                                        " today."
-                                        <br />
-                                        "Keep pushing—next week could be your golden moment!"
-                                    </span>
-                                }.into_any(),
-                                PopupVariant::TopTen { rank, reward } => {
-                                    let rank_str = match rank {
-                                        4 => "4th".to_string(),
-                                        5 => "5th".to_string(),
-                                        6 => "6th".to_string(),
-                                        7 => "7th".to_string(),
-                                        8 => "8th".to_string(),
-                                        9 => "9th".to_string(),
-                                        10 => "10th".to_string(),
-                                        _ => format!("{rank}th")
-                                    };
-                                    view! {
-                                        <span>
-                                            "Great effort! You've finished "
-                                            {rank_str}
-                                            " and earned "
-                                            <span class="font-semibold">
-                                                {format_with_commas(reward.unwrap_or(0))}
-                                                " YRAL"
-                                            </span>
-                                            " today. Keep pushing—next week could be your golden moment!"
-                                        </span>
-                                    }.into_any()
-                                },
-                                PopupVariant::BetterLuck => view! {
-                                    <span>
-                                        "You didn't make it to the top today. Keep earning YRAL to climb the ranks and claim your spot!"
-                                    </span>
-                                }.into_any()
-                            }}
-                        </div>
-
-                        // Contest starts badge - show if upcoming tournament info is available
-                        {Some(&upcoming_tournament).filter(|t| !t.id.is_empty()).map(|tournament| {
-                            // Format the start date using the unified utility
-                            let start_date = format_tournament_date_with_fallback(
-                                tournament.start_time,
-                                tournament.client_start_time.as_ref(),
-                                tournament.client_timezone.as_ref(),
-                            );
-
-                            view! {
-                                <div class="bg-[#212121] rounded-full px-2 py-1 mb-5 flex items-center gap-1.5">
-                                    <span class="text-[#A3A3A3] text-xs">Contest Starts on:</span>
-                                    <span class="text-[#FAFAFA] text-xs font-medium">{start_date}</span>
-                                </div>
-                            }
-                        })}
-
                         // View Leaderboard button
-                        <button
-                            class="w-full bg-[#FAFAFA] font-bold py-3 px-5 rounded-lg hover:bg-white transition-colors"
-                            on:click=move |_| {
-                                show.set(false);
-                                // Scroll to user's position if needed
-                                // This could be enhanced to scroll to the user's rank
-                            }
-                        >
-                            <span class="bg-gradient-to-r from-[#E2017B] to-[#CD29FF] bg-clip-text text-transparent">
+                        <div class="w-full">
+                            <HighlightedButton
+                                on_click={
+                                    let tournament_id = last_tournament_id.clone();
+                                    let nav = navigate.clone();
+                                    move || {
+                                        show.set(false);
+                                        nav(&format!("/leaderboard/tournament/{}", tournament_id), Default::default());
+                                    }
+                                }
+                                classes="w-full".to_string()
+                            >
                                 "View Leaderboard"
-                            </span>
-                        </button>
+                            </HighlightedButton>
+                        </div>
                     </div>
                 </div>
             </div>

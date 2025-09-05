@@ -34,12 +34,21 @@ pub struct CursorInfo {
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct LastTournamentInfo {
+    pub tournament_id: String,
+    pub rank: u32,
+    pub reward: Option<u64>,
+    pub status: String, // "seen" or "unseen"
+}
+
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct LeaderboardResponse {
     pub data: Vec<LeaderboardEntry>,
     pub cursor_info: CursorInfo,
     pub tournament_info: TournamentInfo,
     pub user_info: Option<serde_json::Value>,
     pub upcoming_tournament_info: Option<TournamentInfo>,
+    pub last_tournament_info: Option<LastTournamentInfo>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]
