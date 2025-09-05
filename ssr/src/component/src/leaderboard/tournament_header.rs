@@ -73,7 +73,7 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
             <div class="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent"></div>
 
             // Content
-            <div class="relative p-4 flex items-center justify-between">
+            <div class="relative p-4 pr-40">
                 <div class="flex-1">
                     // Prize pool line
                     <div class="flex items-center gap-1.5 mb-1">
@@ -81,12 +81,12 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
                         <span class="text-xl font-bold text-[#FFEF00]">{format_with_commas(tournament.prize_pool as u64)}</span>
                         <img src="/img/yral/yral-token.webp" alt="" class="w-6 h-6" />
                     </div>
-                    
+
                     // Today text
                     <div class="text-lg font-bold text-white mb-2">
                         "Today!"
                     </div>
-                    
+
                     // Subtitle
                     <p class="text-[10px] font-normal text-white mb-3">
                         "Be on top 10 of the leaderboard to win!"
@@ -100,11 +100,11 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
                         <span class="text-neutral-50 text-[10px] font-medium">{move || time_remaining.get()}</span>
                     </div>
                 </div>
+            </div>
 
-                // Gift box graphic with floating coins
-                <div class="relative">
-                    <img src="/img/leaderboard/gift-box-header.webp" alt="Gift Box" class="w-24 h-24" />
-                </div>
+            // Gift box graphic positioned at bottom-right
+            <div class="absolute bottom-0 right-4">
+                <img src="/img/leaderboard/gift-box-header.webp" alt="Gift Box" class="w-44 h-36" />
             </div>
         </div>
     }
