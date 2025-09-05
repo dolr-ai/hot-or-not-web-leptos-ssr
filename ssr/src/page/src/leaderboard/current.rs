@@ -8,7 +8,7 @@ use component::leaderboard::{
     tournament_header::TournamentHeader,
     types::{LeaderboardEntry, TournamentInfo, UserInfo},
 };
-use leptos::prelude::*;
+use leptos::{html, prelude::*};
 use leptos_router::hooks::use_navigate;
 #[cfg(feature = "hydrate")]
 use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserverOptions};
@@ -283,7 +283,7 @@ pub fn Leaderboard() -> impl IntoView {
                                                     };
 
                                                     view! {
-                                                        <div class="top-[72px] z-30 flex items-center justify-between px-4 py-3 border-b border-[#212121]" style="background: linear-gradient(90deg, rgba(226, 1, 123, 0.3), rgba(226, 1, 123, 0.1));">
+                                                        <div class="flex items-center justify-between px-4 py-3 border-b border-[#212121]" style="background: linear-gradient(90deg, rgba(226, 1, 123, 0.3), rgba(226, 1, 123, 0.1));">
                                                             // Rank column
                                                             <div class="w-[60px]">
                                                                 <span class=format!("text-lg font-bold {}", rank_class)>
@@ -328,11 +328,14 @@ pub fn Leaderboard() -> impl IntoView {
                                                     .map(|u| u.principal_id == entry.principal_id)
                                                     .unwrap_or(false);
 
+                                                // Create a node ref for the current user's row
+                                                let user_row_ref = NodeRef::<html::Div>::new();
+
                                                 // Set up intersection observer for current user's row (only on client side)
                                                 #[cfg(feature = "hydrate")]
                                                 if is_current_user {
                                                     let _ = use_intersection_observer_with_options(
-                                                        node_ref.unwrap_or_default(),
+                                                        user_row_ref,
                                                         move |entries, _| {
                                                             if let Some(entry) = entries.first() {
                                                                 set_user_row_visible.set(entry.is_intersecting());
@@ -362,7 +365,7 @@ pub fn Leaderboard() -> impl IntoView {
 
                                                 view! {
                                                     <div
-                                                        node_ref=node_ref.unwrap_or_default()
+                                                        node_ref=if is_current_user { user_row_ref } else { node_ref.unwrap_or_default() }
                                                         class=move || {
                                                             format!(
                                                                 "flex items-center justify-between px-4 py-3 border-b border-[#212121] hover:bg-white/5 transition-colors {}",
