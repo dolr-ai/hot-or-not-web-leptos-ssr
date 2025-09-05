@@ -9,6 +9,8 @@ use component::leaderboard::{
 use leptos::prelude::*;
 use leptos_router::hooks::{use_navigate, use_params};
 use leptos_router::params::Params;
+#[cfg(feature = "hydrate")]
+use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserverOptions};
 use state::canisters::{auth_state, unauth_canisters};
 
 // Sticky header component for leaderboard with solid background
@@ -48,6 +50,7 @@ pub fn TournamentResults() -> impl IntoView {
     let (current_user_info, set_current_user_info) = signal(None::<UserInfo>);
     let (sort_order, set_sort_order) = signal("desc".to_string());
     let (provider_key, set_provider_key) = signal(0u32); // Key to force provider refresh
+    let (user_row_visible, set_user_row_visible) = signal(false);
 
     // Fetch tournament info and user info
     let tournament_resource = LocalResource::new(move || async move {
@@ -219,13 +222,92 @@ pub fn TournamentResults() -> impl IntoView {
                                                 </div>
                                         </div>
 
-                                        <InfiniteScroller
+                                        // Sticky current user row (only shown when actual row is not visible and user is not in top 3)
+                                        <Show when=move || {
+                                            !user_row_visible.get() &&
+                                            current_user_info.get().is_some() &&
+                                            current_user_info.get().map(|u| u.rank > 3).unwrap_or(false)
+                                        }>
+                                            {move || {
+                                                current_user_info.get().map(|user_info| {
+                                                    // Get rank styling based on position
+                                                    let rank_class = match user_info.rank {
+                                                        1 => "bg-gradient-to-r from-[#BF760B] via-[#FFE89F] to-[#C38F14] bg-clip-text text-transparent",
+                                                        2 => "bg-gradient-to-r from-[#2F2F30] via-[#FFFFFF] to-[#4B4B4B] bg-clip-text text-transparent",
+                                                        3 => "bg-gradient-to-r from-[#6D4C35] via-[#DBA374] to-[#9F7753] bg-clip-text text-transparent",
+                                                        _ => "text-white"
+                                                    };
+
+                                                    // Get username color based on rank
+                                                    let username_color = match user_info.rank {
+                                                        1 => "text-[#FDBF01]",
+                                                        2 => "text-[#DCDCDC]",
+                                                        3 => "text-[#D99979]",
+                                                        _ => "text-white"
+                                                    };
+
+                                                    view! {
+                                                        <div class="top-[120px] z-25 flex items-center justify-between px-4 py-3 border-b border-[#212121]"
+                                                            style="background: linear-gradient(90deg, rgba(226, 1, 123, 0.3), rgba(226, 1, 123, 0.1));">
+                                                            // Rank column
+                                                            <div class="w-[60px]">
+                                                                <span class=format!("text-lg font-bold {}", rank_class)>
+                                                                    "#"{user_info.rank}
+                                                                </span>
+                                                            </div>
+
+                                                            // Username column
+                                                            <div class="flex-1 text-left min-w-0">
+                                                                <span class=format!("text-sm font-medium truncate block {}", username_color)>
+                                                                    "@"{user_info.username}
+                                                                </span>
+                                                            </div>
+
+                                                            // Games Played column
+                                                            <div class="w-[80px] text-right">
+                                                                <span class="text-sm font-semibold text-white">
+                                                                    {user_info.score as u32}
+                                                                </span>
+                                                            </div>
+
+                                                            // Rewards column
+                                                            <div class="w-[80px] flex items-center justify-end gap-1">
+                                                                <span class="text-sm font-semibold text-white">
+                                                                    {user_info.reward.unwrap_or(0)}
+                                                                </span>
+                                                                // YRAL token icon
+                                                                <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                })
+                                            }}
+                                        </Show>
+
+                                        <div class="w-full">
+                                            <InfiniteScroller
                                                 provider=prov
                                                 fetch_count=20
                                                 children=move |entry: LeaderboardEntry, node_ref| {
                                                     let is_current_user = current_user_info.get()
                                                         .map(|u| u.principal_id == entry.principal_id)
                                                         .unwrap_or(false);
+
+                                                    // Set up intersection observer for current user's row (only on client side)
+                                                    #[cfg(feature = "hydrate")]
+                                                    if is_current_user {
+                                                        let _ = use_intersection_observer_with_options(
+                                                            node_ref.unwrap_or_default(),
+                                                            move |entries, _| {
+                                                                if let Some(entry) = entries.first() {
+                                                                    set_user_row_visible.set(entry.is_intersecting());
+                                                                }
+                                                            },
+                                                            UseIntersectionObserverOptions::default()
+                                                                .root_margin("0px".to_string())
+                                                                .thresholds(vec![0.1]),
+                                                        );
+                                                    }
 
                                                     // Get rank styling based on position
                                                     let rank_class = match entry.rank {
@@ -291,6 +373,7 @@ pub fn TournamentResults() -> impl IntoView {
                                                     </div>
                                                 }
                                             />
+                                        </div>
                                     </>
                                 }.into_any()
                             }
