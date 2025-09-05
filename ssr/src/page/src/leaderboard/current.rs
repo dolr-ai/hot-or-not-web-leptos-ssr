@@ -8,12 +8,23 @@ use component::leaderboard::{
     tournament_header::TournamentHeader,
     types::{LeaderboardEntry, TournamentInfo, UserInfo},
 };
-use component::title::TitleText;
-use leptos::{html, prelude::*};
+use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
 #[cfg(feature = "hydrate")]
 use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserverOptions};
 use state::canisters::auth_state;
+
+// Sticky header component for leaderboard with solid background
+#[component]
+fn StickyLeaderboardHeader(children: Children) -> impl IntoView {
+    view! {
+        <div class="sticky top-0 z-50 bg-black border-b border-white/10">
+            <div class="flex items-center justify-between w-full px-4 py-4">
+                {children()}
+            </div>
+        </div>
+    }
+}
 
 // Component for No Active Tournament UI
 #[component]
@@ -153,26 +164,24 @@ pub fn Leaderboard() -> impl IntoView {
 
     view! {
         <div class="min-h-screen bg-black text-white">
-            // Header
-            <TitleText>
-                <div class="flex items-center justify-between w-full px-4">
-                    <button
-                        class="p-2"
-                        on:click=move |_| navigate_back("/", Default::default())
-                    >
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-                        </svg>
-                    </button>
-                    <span class="text-xl font-bold">Leaderboard</span>
-                    <button
-                        class="text-pink-500 text-sm font-medium"
-                        on:click=move |_| navigate_history("/leaderboard/history", Default::default())
-                    >
-                        "View History"
-                    </button>
-                </div>
-            </TitleText>
+            // Sticky Header with solid background
+            <StickyLeaderboardHeader>
+                <button
+                    class="p-2"
+                    on:click=move |_| navigate_back("/", Default::default())
+                >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <span class="text-xl font-bold">Leaderboard</span>
+                <button
+                    class="text-pink-500 text-sm font-medium"
+                    on:click=move |_| navigate_history("/leaderboard/history", Default::default())
+                >
+                    "View History"
+                </button>
+            </StickyLeaderboardHeader>
 
             // Main content
             <div class="container mx-auto px-4 py-6 max-w-4xl">
@@ -252,6 +261,7 @@ pub fn Leaderboard() -> impl IntoView {
                                                 // </button>
                                             </div>
                                         </div>
+                                            </div>
 
                                         // Sticky current user row (only shown when actual row is not visible and no search is active)
                                         <Show when=move || {
@@ -276,7 +286,7 @@ pub fn Leaderboard() -> impl IntoView {
                                                     };
 
                                                     view! {
-                                                        <div class="flex items-center justify-between px-4 py-3 border-b border-[#212121] bg-[rgba(226,1,123,0.2)]">
+                                                        <div class="sticky top-[72px] z-30 flex items-center justify-between px-4 py-3 border-b border-[#212121]" style="background: linear-gradient(90deg, rgba(226, 1, 123, 0.3), rgba(226, 1, 123, 0.1));">
                                                             // Rank column
                                                             <div class="w-[60px]">
                                                                 <span class=format!("text-lg font-bold {}", rank_class)>
@@ -312,6 +322,7 @@ pub fn Leaderboard() -> impl IntoView {
                                             }}
                                         </Show>
 
+                                        <div class="w-full">
                                         <InfiniteScroller
                                             provider
                                             fetch_count=20
@@ -320,14 +331,11 @@ pub fn Leaderboard() -> impl IntoView {
                                                     .map(|u| u.principal_id == entry.principal_id)
                                                     .unwrap_or(false);
 
-                                                // Create a node ref for the current user's row
-                                                let user_row_ref = NodeRef::<html::Div>::new();
-
                                                 // Set up intersection observer for current user's row (only on client side)
                                                 #[cfg(feature = "hydrate")]
                                                 if is_current_user {
                                                     let _ = use_intersection_observer_with_options(
-                                                        user_row_ref,
+                                                        node_ref.unwrap_or_default(),
                                                         move |entries, _| {
                                                             if let Some(entry) = entries.first() {
                                                                 set_user_row_visible.set(entry.is_intersecting());
@@ -357,7 +365,7 @@ pub fn Leaderboard() -> impl IntoView {
 
                                                 view! {
                                                     <div
-                                                        node_ref=if is_current_user { user_row_ref } else { node_ref.unwrap_or_default() }
+                                                        node_ref=node_ref.unwrap_or_default()
                                                         class=move || {
                                                             format!(
                                                                 "flex items-center justify-between px-4 py-3 border-b border-[#212121] hover:bg-white/5 transition-colors {}",
@@ -403,7 +411,7 @@ pub fn Leaderboard() -> impl IntoView {
                                                 </div>
                                             }
                                         />
-                                    </div>
+                                        </div>
                                         }
                                     }}
                                 </>
