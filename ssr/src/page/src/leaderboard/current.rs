@@ -286,7 +286,7 @@ pub fn Leaderboard() -> impl IntoView {
                                                     };
 
                                                     view! {
-                                                        <div class="sticky top-[72px] z-30 flex items-center justify-between px-4 py-3 border-b border-[#212121]" style="background: linear-gradient(90deg, rgba(226, 1, 123, 0.3), rgba(226, 1, 123, 0.1));">
+                                                        <div class="top-[72px] z-30 flex items-center justify-between px-4 py-3 border-b border-[#212121]" style="background: linear-gradient(90deg, rgba(226, 1, 123, 0.3), rgba(226, 1, 123, 0.1));">
                                                             // Rank column
                                                             <div class="w-[60px]">
                                                                 <span class=format!("text-lg font-bold {}", rank_class)>
