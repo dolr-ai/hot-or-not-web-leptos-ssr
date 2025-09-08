@@ -1,5 +1,6 @@
 mod server_impl;
 
+use candid::Principal;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
@@ -115,7 +116,7 @@ async fn fetch_and_update_balance(
 #[component]
 fn HNButtonOverlay(
     post: PostDetails,
-    prev_post: Option<PostDetails>,
+    prev_post: Option<(Principal, String)>,
     coin: RwSignal<CoinState>,
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
@@ -196,131 +197,134 @@ fn HNButtonOverlay(
                 vote_amount: bet_amount as u128,
                 direction: bet_direction.into(),
             };
-            let prev_post = prev_post
-                .as_ref()
-                .map(|p| (p.canister_id, p.post_id.clone()));
 
             let post_mix = post.clone();
-            send_wrap(async move {
-                let res = check_show_login_nudge();
-                if res.is_err() {
-                    return None;
-                }
-                let cans = auth.auth_cans().await.ok()?;
-
-                let is_logged_in = is_connected.get_untracked();
-                let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-                MixPanelEvent::track_game_clicked(
-                    global,
-                    post_mix.poster_principal.to_text(),
-                    post_mix.likes,
-                    post_mix.views,
-                    true,
-                    post_mix.uid.clone(),
-                    MixpanelPostGameType::HotOrNot,
-                    bet_direction.into(),
-                    bet_amount,
-                    StakeType::Sats,
-                    post.is_nsfw,
-                );
-
-                // Check balance and refetch if insufficient
-                let current_balance = wallet_balance_store.get_untracked();
-                if bet_amount > current_balance {
-                    fetch_and_update_balance(&auth, set_wallet_balance_store).await;
-
-                    let current_balance = wallet_balance_store.get_untracked();
-
-                    if bet_amount > current_balance {
-                        show_low_balance_popup.set(true);
+            send_wrap({
+                let prev_post_clone = prev_post.clone();
+                async move {
+                    let res = check_show_login_nudge();
+                    if res.is_err() {
                         return None;
                     }
-                }
+                    let cans = auth.auth_cans().await.ok()?;
 
-                let identity = cans.identity();
-                let sender = identity.sender().unwrap();
-                let sig = sign_vote_request_v4(identity, req_v3).ok()?;
+                    let is_logged_in = is_connected.get_untracked();
+                    let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
+                    MixPanelEvent::track_game_clicked(
+                        global,
+                        post_mix.poster_principal.to_text(),
+                        post_mix.likes,
+                        post_mix.views,
+                        true,
+                        post_mix.uid.clone(),
+                        MixpanelPostGameType::HotOrNot,
+                        bet_direction.into(),
+                        bet_amount,
+                        StakeType::Sats,
+                        post.is_nsfw,
+                    );
 
-                let res = vote_with_cents_post_v2(sender, req, sig, prev_post).await;
-                refetch_bet.notify();
-                match res {
-                    Ok(res) => {
-                        let is_logged_in = is_connected.get_untracked();
-                        let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
-                        let game_conclusion = match res.game_result.game_result {
-                            GameResultV2::Win { .. } => GameConclusion::Win,
-                            GameResultV2::Loss { .. } => GameConclusion::Loss,
-                        };
-                        let win_loss_amount = match res.game_result.game_result.clone() {
-                            GameResultV2::Win {
-                                win_amt,
-                                updated_balance: _,
-                            } => TokenBalance::new((win_amt + bet_amount).into(), 0).humanize(),
-                            GameResultV2::Loss {
-                                lose_amt,
-                                updated_balance: _,
-                            } => TokenBalance::new((lose_amt + 0u64).into(), 0).humanize(),
-                        };
+                    // Check balance and refetch if insufficient
+                    let current_balance = wallet_balance_store.get_untracked();
+                    if bet_amount > current_balance {
+                        fetch_and_update_balance(&auth, set_wallet_balance_store).await;
 
-                        HnBetState::set(post_mix.uid.clone(), res.video_comparison_result);
+                        let current_balance = wallet_balance_store.get_untracked();
 
-                        let (wallet_balance_store, set_wallet_balance_store, _) =
-                            use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
-                        let current_balance = wallet_balance_store.get_untracked() - bet_amount;
-
-                        let balance = match res.game_result.game_result.clone() {
-                            GameResultV2::Win {
-                                win_amt: _,
-                                updated_balance,
-                            } => updated_balance.to_u64().unwrap_or(current_balance),
-                            GameResultV2::Loss {
-                                lose_amt: _,
-                                updated_balance,
-                            } => updated_balance.to_u64().unwrap_or(current_balance),
-                        };
-                        HnBetState::set_balance(balance);
-                        set_wallet_balance_store.set(balance);
-
-                        MixPanelEvent::track_game_played(
-                            global,
-                            post_mix.uid.clone(),
-                            post_mix.poster_principal.to_text(),
-                            MixpanelPostGameType::HotOrNot,
-                            bet_amount,
-                            StakeType::Sats,
-                            bet_direction.into(),
-                            post_mix.likes,
-                            post_mix.views,
-                            true,
-                            game_conclusion,
-                            win_loss_amount,
-                            CREATOR_COMMISSION_PERCENT,
-                            post.is_nsfw,
-                        );
-                        play_win_sound_and_vibrate(
-                            audio_ref,
-                            matches!(res.game_result.game_result, GameResultV2::Win { .. }),
-                        );
-
-                        // Trigger rank update after successful vote
-                        if let Some(rank_update_count) =
-                            use_context::<RwSignal<component::leaderboard::RankUpdateCounter>>()
-                        {
-                            rank_update_count.update(|c| c.0 += 1);
-                        }
-
-                        Some(())
-                    }
-                    Err(e) => {
-                        let error_msg = format!("{e}");
-
-                        // Only show low balance popup for insufficient funds errors
-                        if error_msg.contains("InsufficientFunds") {
+                        if bet_amount > current_balance {
                             show_low_balance_popup.set(true);
+                            return None;
                         }
+                    }
 
-                        log::error!("{error_msg}");
-                        None
+                    let identity = cans.identity();
+                    let sender = identity.sender().unwrap();
+                    let sig = sign_vote_request_v4(identity, req_v3).ok()?;
+
+                    let res =
+                        vote_with_cents_post_v2(sender, req, sig, prev_post_clone.clone()).await;
+                    refetch_bet.notify();
+                    match res {
+                        Ok(res) => {
+                            let is_logged_in = is_connected.get_untracked();
+                            let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
+                            let game_conclusion = match res.game_result.game_result {
+                                GameResultV2::Win { .. } => GameConclusion::Win,
+                                GameResultV2::Loss { .. } => GameConclusion::Loss,
+                            };
+                            let win_loss_amount = match res.game_result.game_result.clone() {
+                                GameResultV2::Win {
+                                    win_amt,
+                                    updated_balance: _,
+                                } => TokenBalance::new((win_amt + bet_amount).into(), 0).humanize(),
+                                GameResultV2::Loss {
+                                    lose_amt,
+                                    updated_balance: _,
+                                } => TokenBalance::new((lose_amt + 0u64).into(), 0).humanize(),
+                            };
+
+                            HnBetState::set(post_mix.uid.clone(), res.video_comparison_result);
+
+                            let (wallet_balance_store, set_wallet_balance_store, _) =
+                                use_local_storage::<u64, FromToStringCodec>(
+                                    WALLET_BALANCE_STORE_KEY,
+                                );
+                            let current_balance = wallet_balance_store.get_untracked() - bet_amount;
+
+                            let balance = match res.game_result.game_result.clone() {
+                                GameResultV2::Win {
+                                    win_amt: _,
+                                    updated_balance,
+                                } => updated_balance.to_u64().unwrap_or(current_balance),
+                                GameResultV2::Loss {
+                                    lose_amt: _,
+                                    updated_balance,
+                                } => updated_balance.to_u64().unwrap_or(current_balance),
+                            };
+                            HnBetState::set_balance(balance);
+                            set_wallet_balance_store.set(balance);
+
+                            MixPanelEvent::track_game_played(
+                                global,
+                                post_mix.uid.clone(),
+                                post_mix.poster_principal.to_text(),
+                                MixpanelPostGameType::HotOrNot,
+                                bet_amount,
+                                StakeType::Sats,
+                                bet_direction.into(),
+                                post_mix.likes,
+                                post_mix.views,
+                                true,
+                                game_conclusion,
+                                win_loss_amount,
+                                CREATOR_COMMISSION_PERCENT,
+                                post.is_nsfw,
+                            );
+                            play_win_sound_and_vibrate(
+                                audio_ref,
+                                matches!(res.game_result.game_result, GameResultV2::Win { .. }),
+                            );
+
+                            // Trigger rank update after successful vote
+                            if let Some(rank_update_count) =
+                                use_context::<RwSignal<component::leaderboard::RankUpdateCounter>>()
+                            {
+                                rank_update_count.update(|c| c.0 += 1);
+                            }
+
+                            Some(())
+                        }
+                        Err(e) => {
+                            let error_msg = format!("{e}");
+
+                            // Only show low balance popup for insufficient funds errors
+                            if error_msg.contains("InsufficientFunds") {
+                                show_low_balance_popup.set(true);
+                            }
+
+                            log::error!("{error_msg}");
+                            None
+                        }
                     }
                 }
             })
@@ -700,7 +704,7 @@ fn ShadowBg() -> impl IntoView {
 #[component]
 pub fn HNGameOverlay(
     post: PostDetails,
-    prev_post: Option<PostDetails>,
+    prev_post: Option<(Principal, String)>,
     win_audio_ref: NodeRef<Audio>,
     show_tutorial: RwSignal<bool>,
     show_low_balance_popup: RwSignal<bool>,
@@ -742,46 +746,43 @@ pub fn HNGameOverlay(
     );
 
     view! {
-        <>
-            <Suspense fallback=LoaderWithShadowBg>
-                {move || {
-                    create_game_info
-                        .get()
-                        .and_then(|res| {
-                            let participation = try_or_redirect_opt!(res.as_ref());
-                            let post = post.get_value();
-                            Some(
-                                if let Some(participation) = participation {
-                                    view! {
-                                        <HNUserParticipation
-                                            post
-                                            refetch_bet
-                                            participation=participation.clone()
-                                            bet_direction
-                                            show_tutorial
-                                        />
-                                    }
-                                        .into_any()
-                                } else {
-                                    view! {
-                                        <HNButtonOverlay
-                                            post
-                                            prev_post=prev_post.clone()
-                                            bet_direction
-                                            coin
-                                            refetch_bet
-                                            audio_ref=win_audio_ref
-                                            show_low_balance_popup
-                                        />
-                                    }
-                                        .into_any()
-                                },
-                            )
-                        })
-                        .unwrap_or_else(|| view! { <LoaderWithShadowBg /> }.into_any())
-                }}
-
+        <Suspense fallback=LoaderWithShadowBg>
+            {move || {
+                create_game_info
+                    .get()
+                    .and_then(|res| {
+                        let participation = try_or_redirect_opt!(res.as_ref());
+                        let post = post.get_value();
+                        Some(
+                            if let Some(participation) = participation {
+                                view! {
+                                    <HNUserParticipation
+                                        post
+                                        refetch_bet
+                                        participation=participation.clone()
+                                        bet_direction
+                                        show_tutorial
+                                    />
+                                }
+                                    .into_any()
+                            } else {
+                                view! {
+                                    <HNButtonOverlay
+                                        post
+                                        prev_post = prev_post.clone()
+                                        bet_direction
+                                        coin
+                                        refetch_bet
+                                        audio_ref=win_audio_ref
+                                        show_low_balance_popup
+                                    />
+                                }
+                                    .into_any()
+                            },
+                        )
+                    })
+                    .unwrap_or_else(|| view! { <LoaderWithShadowBg /> }.into_any())
+            }}
             </Suspense>
-        </>
     }
 }

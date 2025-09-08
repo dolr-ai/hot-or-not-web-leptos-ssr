@@ -50,7 +50,7 @@ impl FetchCursor {
 // }
 
 #[derive(Clone, Default)]
-pub struct FeedPostCtx {
+pub struct FeedPostCtx<DetailResolver: Sync + Send + 'static = PostDetails> {
     pub key: usize,
-    pub value: RwSignal<Option<PostDetails>>,
+    pub value: RwSignal<Option<DetailResolver>>,
 }

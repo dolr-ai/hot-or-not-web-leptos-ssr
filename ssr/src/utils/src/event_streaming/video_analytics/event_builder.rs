@@ -1,7 +1,9 @@
-use crate::event_streaming::events::{EventCtx, EventUserDetails};
+use crate::{
+    event_streaming::events::{EventCtx, EventUserDetails},
+    ml_feed::QuickPostDetails,
+};
 use candid::Principal;
 use serde::{Deserialize, Serialize};
-use yral_canisters_common::utils::posts::PostDetails;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct VideoEventData {
@@ -75,7 +77,7 @@ impl VideoEventDataBuilder {
 
     pub fn from_context(
         user: &EventUserDetails,
-        post: Option<&PostDetails>,
+        post: Option<&QuickPostDetails>,
         ctx: &EventCtx,
     ) -> Self {
         let nsfw_probability = post.map(|p| p.nsfw_probability);
@@ -83,20 +85,20 @@ impl VideoEventDataBuilder {
 
         Self {
             data: VideoEventData {
-                publisher_user_id: post.map(|p| p.poster_principal),
+                publisher_user_id: post.map(|p| p.publisher_user_id),
                 user_id: user.details.principal,
                 is_logged_in: ctx.is_connected(),
                 display_name: user.details.display_name.clone(),
                 canister_id: user.canister_id,
-                video_id: post.map(|p| p.uid.clone()),
+                video_id: post.map(|p| p.video_uid.clone()),
                 video_category: "NA".to_string(),
                 creator_category: "NA".to_string(),
-                hashtag_count: post.map(|p| p.hastags.len()),
+                hashtag_count: None,
                 is_nsfw,
-                is_hotor_not: post.map(|p| p.is_hot_or_not()),
+                is_hotor_not: None,
                 feed_type: "NA".to_string(),
-                view_count: post.map(|p| p.views),
-                like_count: post.map(|p| p.likes),
+                view_count: None,
+                like_count: None,
                 share_count: 0,
                 post_id: post.map(|p| p.post_id.clone()),
                 publisher_canister_id: post.map(|p| p.canister_id),

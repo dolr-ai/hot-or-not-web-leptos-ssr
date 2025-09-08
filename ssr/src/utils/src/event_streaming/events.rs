@@ -97,6 +97,7 @@ impl HistoryCtx {
 
 #[cfg(feature = "ga4")]
 use crate::event_streaming::send_event_ssr_spawn;
+use crate::ml_feed::QuickPostDetails;
 use leptos::html::Video;
 use yral_canisters_common::{
     utils::{posts::PostDetails, profile::ProfileDetails},
@@ -162,7 +163,7 @@ impl VideoWatched {
     pub fn send_event(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         muted: RwSignal<bool>,
     ) {
@@ -175,7 +176,7 @@ impl VideoWatched {
     pub fn send_event_with_current(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         muted: RwSignal<bool>,
         is_current: Signal<bool>,

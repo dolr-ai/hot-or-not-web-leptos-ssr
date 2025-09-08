@@ -1,3 +1,4 @@
+use candid::Principal;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::buttons::HighlightedButton;
 use component::icons::sound_off_icon::SoundOffIcon;
@@ -86,14 +87,11 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
                 let is_hot_or_not = true;
                 MixPanelEvent::track_video_clicked(
                     global,
-                    post_clone.poster_principal.to_text(),
-                    post_clone.likes,
-                    post_clone.views,
+                    post.poster_principal.to_text(),
                     is_hot_or_not,
                     post_clone.uid.clone(),
                     MixpanelPostGameType::HotOrNot,
                     MixpanelVideoClickedCTAType::Like,
-                    post_clone.is_nsfw,
                 );
             } else {
                 likes.update(|l| *l -= 1);
@@ -165,8 +163,9 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
 #[component]
 pub fn VideoDetailsOverlay(
     post: PostDetails,
-    prev_post: Option<PostDetails>,
+    prev_post: Option<(Principal, String)>,
     win_audio_ref: NodeRef<Audio>,
+    #[prop(optional, into)] high_priority: bool,
 ) -> impl IntoView {
     // No need for local context - using global context from App
 
@@ -188,7 +187,6 @@ pub fn VideoDetailsOverlay(
             .unwrap_or_default()
     });
 
-    println!("{}", post_clone.uid);
     let display_name = post.display_name_or_fallback();
 
     let auth = auth_state();
@@ -218,7 +216,6 @@ pub fn VideoDetailsOverlay(
         }
     });
 
-    let post_clone = post.clone();
     let track_video_clicked = move |cta_type: MixpanelVideoClickedCTAType| {
         let video_id = track_video_id.clone();
         let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
@@ -227,14 +224,11 @@ pub fn VideoDetailsOverlay(
         let is_hot_or_not = true;
         MixPanelEvent::track_video_clicked(
             global,
-            post_clone.poster_principal.to_text(),
-            post_clone.likes,
-            post_clone.views,
+            post.poster_principal.to_text(),
             is_hot_or_not,
             video_id,
             MixpanelPostGameType::HotOrNot,
             cta_type,
-            post_clone.is_nsfw,
         );
     };
     let track_video_share = track_video_clicked.clone();
@@ -330,14 +324,11 @@ pub fn VideoDetailsOverlay(
                     let is_hot_or_not = true;
                     MixPanelEvent::track_video_clicked(
                         global,
-                        post_clone.poster_principal.to_text(),
-                        post_clone.likes,
-                        post_clone.views,
+                        post.poster_principal.to_text(),
                         is_hot_or_not,
                         video_id,
                         MixpanelPostGameType::HotOrNot,
                         MixpanelVideoClickedCTAType::NsfwToggle,
-                        post_clone.is_nsfw,
                     );
                 }
             } else {
@@ -364,14 +355,11 @@ pub fn VideoDetailsOverlay(
                         let is_hot_or_not = true;
                         MixPanelEvent::track_video_clicked(
                             global,
-                            post_clone.poster_principal.to_text(),
-                            post_clone.likes,
-                            post_clone.views,
+                            post.poster_principal.to_text(),
                             is_hot_or_not,
                             video_id,
                             MixpanelPostGameType::HotOrNot,
                             MixpanelVideoClickedCTAType::NsfwToggle,
-                            post_clone.is_nsfw,
                         );
                     }
                 }
@@ -387,7 +375,6 @@ pub fn VideoDetailsOverlay(
 
     let post_clone = post.clone();
     let mixpanel_track_profile_click = move || {
-        let post_clone = post_clone.clone();
         let video_id = profile_click_video_id.clone();
         let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
             return;
@@ -395,14 +382,11 @@ pub fn VideoDetailsOverlay(
         let is_hot_or_not = true;
         MixPanelEvent::track_video_clicked(
             global,
-            post_clone.poster_principal.to_string(),
-            post_clone.likes,
-            post_clone.views,
+            post.poster_principal.to_string(),
             is_hot_or_not,
             video_id,
             MixpanelPostGameType::HotOrNot,
             MixpanelVideoClickedCTAType::CreatorProfile,
-            post_clone.is_nsfw,
         );
     };
 
@@ -522,7 +506,7 @@ pub fn VideoDetailsOverlay(
                             href=profile_url.clone()
                             class="w-10 h-10 rounded-full border-2 md:w-12 md:h-12 overflow-clip border-primary-600"
                         >
-                            <img class="object-cover w-full h-full" src=post.propic_url />
+                            <img class="object-cover w-full h-full" src=post.propic_url fetchpriority="low" loading={if high_priority { "eager" } else { "lazy" }} />
                         </a>
                     </div>
                     <div class="flex flex-col justify-center min-w-0">
@@ -764,7 +748,7 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
                 <div class="relative w-fit -translate-y-0.5">
                     <div class="absolute inset-0 flex items-center pointer-events-none">
                         <div
-                            style:width=move || format!("calc({}% - 0.25%)", volume_.get() * 100.0)
+                            style:width=move || format!("calc({}% - 0.25%)", volume_.try_get().unwrap_or(0.0) * 100.0)
                             class="bg-white w-full h-1.5 translate-y-[0.15rem] rounded-full"
                             >
                         </div>
@@ -775,7 +759,7 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
                         max="1"
                         step="0.05"
                         class="z-[2] appearance-none bg-zinc-500 h-1.5 rounded-full accent-white"
-                        prop:value={move || volume_.get()}
+                        prop:value={move || volume_.try_get().unwrap_or(0.0)}
                         on:change=move |ev: leptos::ev::Event| {
                             let input = event_target_value(&ev);
                             if let Ok(value) = input.parse::<f64>() {

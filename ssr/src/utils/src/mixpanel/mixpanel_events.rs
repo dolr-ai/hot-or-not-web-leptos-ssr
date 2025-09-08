@@ -720,13 +720,10 @@ derive_event!(track_nsfw_false = "NSFW_false" => {
 
 derive_event!(track_video_clicked {
     publisher_user_id: String,
-    like_count: u64,
-    view_count: u64,
     is_game_enabled: bool,
     video_id: String,
     game_type: MixpanelPostGameType,
-    cta_type: MixpanelVideoClickedCTAType,
-    is_nsfw: bool
+    cta_type: MixpanelVideoClickedCTAType
 });
 
 derive_event!(track_video_reported {
@@ -758,9 +755,6 @@ derive_event!(track_video_viewed {
     video_id: String,
     publiser_user_id: String,
     game_type: MixpanelPostGameType,
-    like_count: u64,
-    view_count: u64,
-    is_nsfw: bool,
     is_game_enabled: bool
 });
 
@@ -778,9 +772,6 @@ derive_event!(track_video_started {
     video_id: String,
     publisher_user_id: String,
     game_type: MixpanelPostGameType,
-    like_count: u64,
-    view_count: u64,
-    is_nsfw: bool,
     is_game_enabled: bool
 });
 

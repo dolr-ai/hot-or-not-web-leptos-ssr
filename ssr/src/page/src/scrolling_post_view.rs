@@ -7,8 +7,33 @@ use leptos_icons::*;
 use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserverOptions};
 
 use state::audio_state::AudioState;
-use utils::posts::FeedPostCtx;
+use utils::{ml_feed::QuickPostDetails, posts::FeedPostCtx};
 use yral_canisters_common::utils::posts::PostDetails;
+
+/// A trait that requires some post details to be accessible instantly while others may be suspended
+pub trait PostDetailResolver {
+    fn get_quick_post_details(&self) -> QuickPostDetails;
+    fn get_post_details(
+        &self,
+    ) -> impl std::future::Future<Output = Result<PostDetails, ServerFnError>> + Send;
+}
+
+// Implementing this trait for post details for backwards compatibility
+impl PostDetailResolver for PostDetails {
+    fn get_quick_post_details(&self) -> QuickPostDetails {
+        QuickPostDetails {
+            video_uid: self.uid.clone(),
+            canister_id: self.canister_id,
+            post_id: self.post_id.clone(),
+            publisher_user_id: self.poster_principal,
+            nsfw_probability: self.nsfw_probability,
+        }
+    }
+
+    async fn get_post_details(&self) -> Result<PostDetails, ServerFnError> {
+        Ok(self.clone())
+    }
+}
 
 #[component]
 pub fn MuteUnmuteOverlay(muted: RwSignal<bool>) -> impl IntoView {
@@ -35,9 +60,13 @@ pub fn MuteUnmuteOverlay(muted: RwSignal<bool>) -> impl IntoView {
 }
 
 #[component]
-pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
-    video_queue: RwSignal<IndexSet<PostDetails>>,
-    video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
+pub fn ScrollingPostView<
+    F: Fn() -> V + Clone + 'static + Send + Sync,
+    V,
+    DetailResolver: PostDetailResolver + PartialEq + Clone + Sync + Send + 'static,
+>(
+    video_queue: RwSignal<IndexSet<DetailResolver>>,
+    video_queue_for_feed: RwSignal<Vec<FeedPostCtx<DetailResolver>>>,
     current_idx: RwSignal<usize>,
     #[prop(optional)] fetch_next_videos: Option<F>,
     recovering_state: RwSignal<bool>,
