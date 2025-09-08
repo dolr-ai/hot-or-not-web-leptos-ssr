@@ -102,7 +102,7 @@ mod alloydb {
     use super::*;
     use futures::try_join;
     use hon_worker_common::WORKER_URL;
-    use hon_worker_common::{HoNGameVoteReqV3, HotOrNot, VoteRequestV3, VoteResV2};
+    use hon_worker_common::{GameResultV2, HoNGameVoteReqV3, HotOrNot, VoteRequestV3, VoteResV2};
     use yral_canisters_client::individual_user_template::PostDetailsForFrontend;
     use yral_canisters_common::Canisters;
 
@@ -229,26 +229,28 @@ mod alloydb {
         // huh?
         let vote_res: VoteResV2 = res.json().await?;
 
-        // Update leaderboard - track games played
+        // Update leaderboard - track games won
         // This is fire-and-forget: spawn a task so we don't block the response
         #[cfg(feature = "ssr")]
-        tokio::spawn(async move {
-            if let Err(e) = update_leaderboard_score(
-                sender,
-                1.0, // Increment games played by 1
-                "games_played",
-            )
-            .await
-            {
-                leptos::logging::error!(
-                    "Failed to update leaderboard for user {}: {:?}",
+        if matches!(vote_res.game_result, GameResultV2::Win { .. }) {
+            tokio::spawn(async move {
+                if let Err(e) = update_leaderboard_score(
                     sender,
-                    e
-                );
-            } else {
-                leptos::logging::log!("Successfully updated leaderboard for user {}", sender);
-            }
-        });
+                    1.0, // Increment games played by 1
+                    "games_played",
+                )
+                .await
+                {
+                    leptos::logging::error!(
+                        "Failed to update leaderboard for user {}: {:?}",
+                        sender,
+                        e
+                    );
+                } else {
+                    leptos::logging::log!("Successfully updated leaderboard for user {}", sender);
+                }
+            });
+        }
 
         Ok(VoteAPIRes {
             game_result: vote_res,
