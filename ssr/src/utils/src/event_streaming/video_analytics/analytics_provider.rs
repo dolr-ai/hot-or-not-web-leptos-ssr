@@ -1,7 +1,7 @@
 use crate::event_streaming::events::EventCtx;
-use crate::mixpanel::mixpanel_events::{
-    MixPanelEvent, MixpanelGlobalProps, MixpanelPostGameType, MixpanelVideoClickedCTAType,
-};
+use crate::mixpanel::mixpanel_events::MixpanelGlobalProps;
+use crate::mixpanel::mixpanel_events::MixpanelVideoClickedCTAType;
+use crate::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelPostGameType};
 use yral_canisters_common::utils::posts::PostDetails;
 
 #[derive(Clone)]
