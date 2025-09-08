@@ -1,6 +1,7 @@
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_meta::*;
+use::leptos::logging::log;
 
 use component::icons::information_icon::Information;
 use component::{back_btn::BackButton, buttons::HighlightedButton, title::TitleText};
@@ -157,7 +158,7 @@ fn DailyMissionsContent() -> impl IntoView {
                 is_claimable=true
                 on_action=|| {
                     // Handle claim login streak
-                    web_sys::console::log_1(&"Claim login streak".into());
+                    log!("Claim login streak");
                 }
             />
 
@@ -168,7 +169,7 @@ fn DailyMissionsContent() -> impl IntoView {
                 info_text="Play 10 games in 24 hours to earn 10 YRAL tokens.".to_string()
                 on_action=|| {
                     // Handle play games
-                    web_sys::console::log_1(&"Play games".into());
+                    log!("Play games");
                 }
             />
 
@@ -179,7 +180,7 @@ fn DailyMissionsContent() -> impl IntoView {
                 info_text="Generate 3 AI videos to earn 30 YRAL tokens.".to_string()
                 on_action=|| {
                     // Handle create AI video
-                    web_sys::console::log_1(&"Create AI video".into());
+                    log!("Create AI video");
                 }
             />
 
@@ -190,7 +191,7 @@ fn DailyMissionsContent() -> impl IntoView {
                 info_text="Refer 3 friends to earn 15 YRAL tokens.".to_string()
                 on_action=|| {
                     // Handle referral
-                    web_sys::console::log_1(&"Refer a friend".into());
+                    log!("Refer a friend");
                 }
             />
         </div>
