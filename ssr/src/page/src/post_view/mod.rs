@@ -4,7 +4,7 @@ pub mod overlay;
 pub mod single_post;
 pub mod video_iter;
 pub mod video_loader;
-use crate::scrolling_post_view::{PostDetailResolver, QuickPostDetails, ScrollingPostView};
+use crate::scrolling_post_view::{PostDetailResolver, ScrollingPostView};
 use component::leaderboard::{api::fetch_user_rank_from_api, RankUpdateCounter, UserRank};
 use component::spinner::FullScreenSpinner;
 use consts::{MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_ENABLED_COOKIE};
@@ -14,6 +14,7 @@ use priority_queue::DoublePriorityQueue;
 use serde::{Deserialize, Serialize};
 use state::canisters::{auth_state, unauth_canisters};
 use std::{cmp::Reverse, collections::HashMap};
+use utils::ml_feed::QuickPostDetails;
 use yral_types::post::PostItemV3;
 
 use candid::Principal;
@@ -59,6 +60,7 @@ pub struct MlPostItem {
     canister_id: Principal,
     post_id: u64,
     video_uid: String,
+    publisher_user_id: Principal,
     nsfw_probability: f32,
 }
 
@@ -94,6 +96,10 @@ impl From<PostItemV3> for MlPostItem {
                 .expect("ml feed to return a number as string"),
             video_uid: value.video_id,
             nsfw_probability: value.nsfw_probability,
+            publisher_user_id: value
+                .publisher_user_id
+                .parse()
+                .expect("ml feed to return correct value"),
         }
     }
 }
@@ -104,6 +110,8 @@ impl PostDetailResolver for MlPostItem {
             video_uid: self.video_uid.clone(),
             canister_id: self.canister_id,
             post_id: self.post_id,
+            publisher_user_id: self.publisher_user_id,
+            nsfw_probability: self.nsfw_probability,
         }
     }
 
@@ -538,6 +546,7 @@ pub fn PostView() -> impl IntoView {
                     post_id: post.post_id,
                     video_uid: post.uid,
                     nsfw_probability: post.nsfw_probability,
+                    publisher_user_id: post.poster_principal,
                 })),
                 Err(e) => {
                     failure_redirect(e);

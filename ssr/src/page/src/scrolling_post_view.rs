@@ -1,5 +1,4 @@
 use crate::post_view::video_loader::{BgView, VideoViewForQueue};
-use candid::Principal;
 use indexmap::IndexSet;
 use leptos::html;
 use leptos::html::Audio;
@@ -8,15 +7,8 @@ use leptos_icons::*;
 use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserverOptions};
 
 use state::audio_state::AudioState;
-use utils::posts::FeedPostCtx;
+use utils::{ml_feed::QuickPostDetails, posts::FeedPostCtx};
 use yral_canisters_common::utils::posts::PostDetails;
-
-/// Piece of post details that should be available as quickly as possible to ensure fast loading of the infinite scroller
-pub struct QuickPostDetails {
-    pub video_uid: String,
-    pub canister_id: Principal,
-    pub post_id: u64,
-}
 
 /// A trait that requires some post details to be accessible instantly while others may be suspended
 pub trait PostDetailResolver {
@@ -26,16 +18,6 @@ pub trait PostDetailResolver {
     ) -> impl std::future::Future<Output = Result<PostDetails, ServerFnError>> + Send;
 }
 
-impl From<PostDetails> for QuickPostDetails {
-    fn from(value: PostDetails) -> Self {
-        Self {
-            video_uid: value.uid,
-            canister_id: value.canister_id,
-            post_id: value.post_id,
-        }
-    }
-}
-
 // Implementing this trait for post details for backwards compatibility
 impl PostDetailResolver for PostDetails {
     fn get_quick_post_details(&self) -> QuickPostDetails {
@@ -43,6 +25,8 @@ impl PostDetailResolver for PostDetails {
             video_uid: self.uid.clone(),
             canister_id: self.canister_id,
             post_id: self.post_id,
+            publisher_user_id: self.poster_principal,
+            nsfw_probability: self.nsfw_probability,
         }
     }
 

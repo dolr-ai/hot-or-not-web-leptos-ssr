@@ -90,13 +90,10 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
                 MixPanelEvent::track_video_clicked(
                     global,
                     post.poster_principal.to_text(),
-                    post.likes,
-                    post.views,
                     is_hot_or_not,
                     video_id,
                     MixpanelPostGameType::HotOrNot,
                     MixpanelVideoClickedCTAType::Like,
-                    post.is_nsfw,
                 );
             } else {
                 likes.update(|l| *l -= 1);
@@ -220,13 +217,10 @@ pub fn VideoDetailsOverlay(
         MixPanelEvent::track_video_clicked(
             global,
             post.poster_principal.to_text(),
-            post.likes,
-            post.views,
             is_hot_or_not,
             video_id,
             MixpanelPostGameType::HotOrNot,
             cta_type,
-            post.is_nsfw,
         );
     };
     let track_video_share = track_video_clicked.clone();
@@ -321,13 +315,10 @@ pub fn VideoDetailsOverlay(
                     MixPanelEvent::track_video_clicked(
                         global,
                         post.poster_principal.to_text(),
-                        post.likes,
-                        post.views,
                         is_hot_or_not,
                         video_id,
                         MixpanelPostGameType::HotOrNot,
                         MixpanelVideoClickedCTAType::NsfwToggle,
-                        post.is_nsfw,
                     );
                 }
             } else {
@@ -355,13 +346,10 @@ pub fn VideoDetailsOverlay(
                         MixPanelEvent::track_video_clicked(
                             global,
                             post.poster_principal.to_text(),
-                            post.likes,
-                            post.views,
                             is_hot_or_not,
                             video_id,
                             MixpanelPostGameType::HotOrNot,
                             MixpanelVideoClickedCTAType::NsfwToggle,
-                            post.is_nsfw,
                         );
                     }
                 }
@@ -384,13 +372,10 @@ pub fn VideoDetailsOverlay(
         MixPanelEvent::track_video_clicked(
             global,
             post.poster_principal.to_string(),
-            post.likes,
-            post.views,
             is_hot_or_not,
             video_id,
             MixpanelPostGameType::HotOrNot,
             MixpanelVideoClickedCTAType::CreatorProfile,
-            post.is_nsfw,
         );
     };
 

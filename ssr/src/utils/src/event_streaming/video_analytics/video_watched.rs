@@ -5,7 +5,7 @@ use leptos::prelude::*;
 use crate::event_streaming::events::EventCtx;
 #[cfg(all(feature = "hydrate", feature = "ga4"))]
 use crate::event_streaming::video_analytics::progress_tracker::ProgressLogInfo;
-use yral_canisters_common::utils::posts::PostDetails;
+use crate::ml_feed::QuickPostDetails;
 
 use crate::event_streaming::video_analytics::VideoEventDataBuilder;
 #[cfg(feature = "ga4")]
@@ -54,7 +54,7 @@ impl VideoWatchedHandler {
     pub fn setup_event_tracking(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         muted: RwSignal<bool>,
     ) {
@@ -64,7 +64,7 @@ impl VideoWatchedHandler {
     pub fn setup_event_tracking_with_current(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         muted: RwSignal<bool>,
         is_current: Option<Signal<bool>>,
@@ -102,7 +102,7 @@ impl VideoWatchedHandler {
     fn setup_playing_listener(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         playing_started: RwSignal<bool>,
         progress_tracker: VideoProgressTracker,
@@ -147,7 +147,7 @@ impl VideoWatchedHandler {
     fn setup_timeupdate_listener(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         params: TimeUpdateListenerParams,
     ) {
@@ -157,7 +157,7 @@ impl VideoWatchedHandler {
             let Some(user) = ctx.user_details() else {
                 return;
             };
-            let post_o = vid_details();
+            let post_o = vid_details.get();
             let post = post_o.as_ref();
 
             let Some(target) = evt.target() else {
@@ -222,7 +222,7 @@ impl VideoWatchedHandler {
     fn setup_pause_listener(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         progress_tracker: VideoProgressTracker,
     ) {
@@ -264,7 +264,7 @@ impl VideoWatchedHandler {
     fn setup_mute_listener(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         muted: RwSignal<bool>,
         is_current: Option<Signal<bool>>,
     ) {
@@ -299,10 +299,10 @@ impl VideoWatchedHandler {
     }
 
     #[cfg(all(feature = "hydrate", feature = "ga4"))]
-    fn create_log_info(vid_details: Signal<Option<PostDetails>>) -> ProgressLogInfo {
+    fn create_log_info(vid_details: Signal<Option<QuickPostDetails>>) -> ProgressLogInfo {
         let video_id = vid_details.with(|post| {
             post.as_ref()
-                .map(|p| p.uid.clone())
+                .map(|p| p.video_uid.clone())
                 .unwrap_or_else(|| "unknown".to_string())
         });
 

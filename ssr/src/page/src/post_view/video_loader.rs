@@ -10,12 +10,13 @@ use utils::event_streaming::events::VideoWatched;
 use component::video_player::VideoPlayer;
 use futures::FutureExt;
 use gloo::timers::future::TimeoutFuture;
+use utils::ml_feed::QuickPostDetails;
 use utils::{bg_url, mp4_url, send_wrap, try_or_redirect_opt};
 
 /// Maximum PostDetails, time in milliseconds to waitay promise to resolve
 const VIDEO_PLAY_TIMEOUT_MS: u64 = 5000;
 
-use crate::scrolling_post_view::{PostDetailResolver, QuickPostDetails};
+use crate::scrolling_post_view::PostDetailResolver;
 
 use super::overlay::VideoDetailsOverlay;
 
@@ -125,7 +126,7 @@ pub fn VideoView(
     });
 
     let auth = auth_state();
-    let _ev_ctx = auth.event_ctx();
+    let ev_ctx = auth.event_ctx();
 
     // Handles mute/unmute
     Effect::new(move |_| {
@@ -153,11 +154,11 @@ pub fn VideoView(
         Some(())
     });
 
-    // if let Some(is_current) = is_current {
-    //     VideoWatched.send_event_with_current(ev_ctx, post, _ref, muted, is_current);
-    // } else {
-    //     VideoWatched.send_event(ev_ctx, post, _ref, muted);
-    // }
+    if let Some(is_current) = is_current {
+        VideoWatched.send_event_with_current(ev_ctx, post, _ref, muted, is_current);
+    } else {
+        VideoWatched.send_event(ev_ctx, post, _ref, muted);
+    }
 
     view! {
         <VideoPlayer

@@ -15,12 +15,12 @@ rustflags = ["--cfg=web_sys_unstable_apis"]
 [profile.dev]
 debug = 1 # Reduce debug info size
 
-[target.aarch64-apple-darwin]
-rustflags = [
-  "-C",
-  "link-arg=-undefined",
-  "-C",
-  "link-arg=dynamic_lookup",
-  "-C",
-  "link-arg=-fuse-ld=lld",
-]
+# [target.aarch64-apple-darwin]
+# rustflags = [
+#   "-C",
+#   "link-arg=-undefined",
+#   "-C",
+#   "link-arg=dynamic_lookup",
+#   "-C",
+#   "link-arg=-fuse-ld=lld",
+# ]
