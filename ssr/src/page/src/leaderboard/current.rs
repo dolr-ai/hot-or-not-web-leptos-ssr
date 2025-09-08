@@ -222,7 +222,7 @@ pub fn Leaderboard() -> impl IntoView {
                                                 <span class="text-xs text-neutral-400 font-medium">Username</span>
                                             </div>
                                             <div class="flex items-center gap-1 w-[81px] justify-end">
-                                                <span class="text-xs text-neutral-400 font-medium">Games Played</span>
+                                                <span class="text-xs text-neutral-400 font-medium">{tournament_info.get().map(|t| t.metric_display_name.clone()).unwrap_or_else(|| "Score".to_string())}</span>
                                             </div>
                                             <div class="flex items-center gap-1 w-[80px] justify-end">
                                                 <span class="text-xs text-neutral-400 font-medium">Prize</span>
@@ -267,7 +267,7 @@ pub fn Leaderboard() -> impl IntoView {
                                                                 </span>
                                                             </div>
 
-                                                            // Games Played column
+                                                            // Metric score column
                                                             <div class="w-[80px] text-right">
                                                                 <span class="text-sm font-semibold text-white">
                                                                     {user_info.score as u32}
@@ -356,7 +356,7 @@ pub fn Leaderboard() -> impl IntoView {
                                                             </span>
                                                         </div>
 
-                                                        // Games Played column
+                                                        // Metric score column
                                                         <div class="w-[80px] text-right">
                                                             <span class="text-sm font-semibold text-white">
                                                                 {entry.score as u32}
