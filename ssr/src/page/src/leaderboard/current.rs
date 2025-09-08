@@ -277,10 +277,15 @@ pub fn Leaderboard() -> impl IntoView {
                                                             // Rewards column
                                                             <div class="w-[80px] flex items-center justify-end gap-1">
                                                                 <span class="text-sm font-semibold text-white">
-                                                                    {user_info.reward.unwrap_or(0)}
+                                                                    {match user_info.reward {
+                                                                        Some(r) if r > 0 => r.to_string(),
+                                                                        _ => "-".to_string()
+                                                                    }}
                                                                 </span>
-                                                                // YRAL token icon
-                                                                <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
+                                                                // YRAL token icon - only show if reward > 0
+                                                                <Show when=move || user_info.reward.map(|r| r > 0).unwrap_or(false)>
+                                                                    <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
+                                                                </Show>
                                                             </div>
                                                         </div>
                                                     }
@@ -366,10 +371,15 @@ pub fn Leaderboard() -> impl IntoView {
                                                         // Rewards column
                                                         <div class="w-[80px] flex items-center justify-end gap-1">
                                                             <span class="text-sm font-semibold text-white">
-                                                                {entry.reward.unwrap_or(0)}
+                                                                {match entry.reward {
+                                                                    Some(r) if r > 0 => r.to_string(),
+                                                                    _ => "-".to_string()
+                                                                }}
                                                             </span>
-                                                            // YRAL token icon
-                                                            <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
+                                                            // YRAL token icon - only show if reward > 0
+                                                            <Show when=move || entry.reward.map(|r| r > 0).unwrap_or(false)>
+                                                                <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
+                                                            </Show>
                                                         </div>
                                                     </div>
                                                 }
