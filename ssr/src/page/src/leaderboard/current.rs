@@ -4,6 +4,7 @@ use component::leaderboard::{
     api::fetch_leaderboard_page,
     provider::LeaderboardProvider,
     search_bar::SearchBar,
+    table_header::LeaderboardTableHeader,
     tournament_completion_popup::TournamentCompletionPopup,
     tournament_header::TournamentHeader,
     types::{LeaderboardEntry, TournamentInfo, UserInfo},
@@ -214,20 +215,7 @@ pub fn Leaderboard() -> impl IntoView {
                                         view! {
                                             <>
                                         // Table header - sticky below the main header
-                                        <div class="sticky top-[72px] z-30 flex items-center justify-between px-4 py-2 border-b border-white/10 bg-black">
-                                            <div class="flex items-center gap-1 w-[60px]">
-                                                <span class="text-xs text-neutral-400 font-medium">Rank</span>
-                                            </div>
-                                            <div class="flex-1 text-left">
-                                                <span class="text-xs text-neutral-400 font-medium">Username</span>
-                                            </div>
-                                            <div class="flex items-center gap-1 w-[81px] justify-end">
-                                                <span class="text-xs text-neutral-400 font-medium">{tournament_info.get().map(|t| t.metric_display_name.clone()).unwrap_or_else(|| "Score".to_string())}</span>
-                                            </div>
-                                            <div class="flex items-center gap-1 w-[80px] justify-end">
-                                                <span class="text-xs text-neutral-400 font-medium">Prize</span>
-                                            </div>
-                                        </div>
+                                        <LeaderboardTableHeader tournament_info=tournament_info.into() />
 
                                         // Sticky current user row (only shown when actual row is not visible and no search is active)
                                         <Show when=move || {

@@ -7,6 +7,7 @@ pub mod podium;
 pub mod provider;
 pub mod rank_badge;
 pub mod search_bar;
+pub mod table_header;
 pub mod tournament_completion_popup;
 pub mod tournament_header;
 pub mod tournament_provider;
@@ -15,6 +16,7 @@ pub mod types;
 use serde::{Deserialize, Serialize};
 
 pub use rank_badge::GlobalRankBadge;
+pub use table_header::LeaderboardTableHeader;
 
 // Type for rank update counter to provide type safety
 #[derive(Clone, Copy, Debug, Default)]
