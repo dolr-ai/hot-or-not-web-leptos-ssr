@@ -1,7 +1,7 @@
+use ::leptos::logging::log;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_meta::*;
-use::leptos::logging::log;
 
 use component::icons::information_icon::Information;
 use component::{back_btn::BackButton, buttons::HighlightedButton, title::TitleText};
