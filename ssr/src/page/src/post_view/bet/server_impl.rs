@@ -237,7 +237,7 @@ mod alloydb {
                 if let Err(e) = update_leaderboard_score(
                     sender,
                     1.0, // Increment games played by 1
-                    "games_played",
+                    "games_won",
                 )
                 .await
                 {
