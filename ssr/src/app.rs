@@ -179,8 +179,8 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/hot-or-not/:canister_id/:post_id") view=PostView />
                         <Route path=path!("/post/:canister_id/:post_id") view=SinglePost />
                         <Route path=path!("/profile/:canister_id/post/:post_id") view=ProfilePost />
-                        // <Route path=path!("/upload") view=UploadPostPage />
-                        // <Route path=path!("/upload-ai") view=UploadAiPostPage />
+                        <Route path=path!("/upload") view=UploadPostPage />
+                        <Route path=path!("/upload-ai") view=UploadAiPostPage />
                         <Route path=path!("/upload-options") view=UploadOptionsPage />
                         <Route path=path!("/error") view=ServerErrorPage />
                         <Route path=path!("/menu") view=Menu />
