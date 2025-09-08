@@ -103,7 +103,7 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
 
             // Gift box graphic positioned at bottom-right
             <div class="absolute bottom-0 right-4">
-                <img src="/img/leaderboard/gift-box-header.webp" alt="Gift Box" class="w-44 h-36" />
+                <img src="/img/leaderboard/gift-box-header.svg" alt="Gift Box" class="w-44 h-36" />
             </div>
         </div>
     }

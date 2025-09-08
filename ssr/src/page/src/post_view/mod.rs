@@ -78,7 +78,7 @@ impl std::cmp::Eq for MlPostItem {}
 impl std::hash::Hash for MlPostItem {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.canister_id.hash(state);
-        state.write(&self.post_id.as_bytes());
+        state.write(self.post_id.as_bytes());
     }
 }
 

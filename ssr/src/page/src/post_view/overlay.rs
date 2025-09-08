@@ -14,6 +14,7 @@ use global_constants::REFERRAL_REWARD_SATS;
 use consts::{
     UserOnboardingStore, NSFW_ENABLED_COOKIE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
 };
+use gloo::timers::callback::Timeout;
 use leptos::html::Audio;
 use leptos::{prelude::*, task::spawn_local};
 use leptos_icons::*;
@@ -254,8 +255,8 @@ pub fn VideoDetailsOverlay(
 
     let click_copy = move |text: String| {
         _ = copy_to_clipboard(&text);
-        // show_copied_popup.set(true);
-        // Timeout::new(1200, move || show_copied_popup.set(false)).forget();
+        show_copied_popup.set(true);
+        Timeout::new(1200, move || show_copied_popup.set(false)).forget();
     };
 
     let post_details_report = post.clone();
@@ -373,7 +374,6 @@ pub fn VideoDetailsOverlay(
         }
     });
 
-    let post_clone = post.clone();
     let mixpanel_track_profile_click = move || {
         let video_id = profile_click_video_id.clone();
         let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
@@ -580,7 +580,7 @@ pub fn VideoDetailsOverlay(
                 <span class="text-lg">Share</span>
                 <div class="flex flex-row gap-2 w-full">
                     <p class="overflow-x-scroll p-2 max-w-full whitespace-nowrap rounded-full text-md bg-white/10">
-                        // {move  || { video_url()}}
+                        {move  || { video_url()}}
                     </p>
                     <button on:click=move |_| click_copy(video_url())>
                         <Icon attr:class="text-xl" icon=icondata::FaCopyRegular />
