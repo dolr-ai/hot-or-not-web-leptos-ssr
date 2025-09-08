@@ -1,9 +1,10 @@
-use leptos_use::use_window;
 use std::sync::LazyLock;
 
 pub fn get_host() -> String {
     #[cfg(feature = "hydrate")]
     {
+        use leptos_use::use_window;
+
         use_window()
             .as_ref()
             .unwrap()

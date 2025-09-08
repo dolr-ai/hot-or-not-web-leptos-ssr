@@ -1,5 +1,3 @@
-use std::env;
-
 use leptos::prelude::*;
 use serde_json::json;
 
