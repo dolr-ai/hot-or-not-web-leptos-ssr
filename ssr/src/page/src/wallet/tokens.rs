@@ -17,7 +17,7 @@
 //! Which renders to [`FastWalletCard`].
 //! Then seed the list with static items before loading the dynamic tokens.
 //!
-//! This will ensure we keep the near instant loading time while also fetching items dynmically.
+//! This will ensure we keep the near instant loading time while also fetching items dynamically.
 
 use std::time::Duration;
 
