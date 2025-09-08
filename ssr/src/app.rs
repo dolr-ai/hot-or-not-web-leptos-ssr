@@ -14,6 +14,7 @@ use page::pumpdump;
 use page::root::YralRootPage;
 use page::terms_android::TermsAndroid;
 use page::terms_ios::TermsIos;
+use page::upload::{UploadAiPostPage, UploadPostPage};
 use page::{
     err::ServerErrorPage,
     logout::Logout,

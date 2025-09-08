@@ -115,6 +115,8 @@ pub async fn stream_to_offchain_agent(
     event: String,
     params: &serde_json::Value,
 ) -> Result<(), ServerFnError> {
+    use std::env;
+
     use consts::OFF_CHAIN_AGENT_URL;
     use reqwest::Client;
 
