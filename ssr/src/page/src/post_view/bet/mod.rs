@@ -132,6 +132,23 @@ fn HNButtonOverlay(
     let (wallet_balance_store, set_wallet_balance_store, _) =
         use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
 
+    // Track previous user principal to detect account switches
+    let prev_principal = StoredValue::new(None::<Principal>);
+
+    // Clear wallet balance when user authentication changes
+    Effect::new(move |_| {
+        // Track the user principal to detect account switches
+        if let Some(Ok(current_principal)) = auth.user_principal.get() {
+            let previous = prev_principal.get_value();
+            if previous.is_some() && previous != Some(current_principal) {
+                // User has switched accounts, clear cached balance
+                set_wallet_balance_store.set(0);
+                HnBetState::set_balance(0);
+            }
+            prev_principal.set_value(Some(current_principal));
+        }
+    });
+
     fn play_win_sound_and_vibrate(audio_ref: NodeRef<Audio>, won: bool) {
         #[cfg(not(feature = "hydrate"))]
         {
@@ -206,8 +223,9 @@ fn HNButtonOverlay(
                 if res.is_err() {
                     return None;
                 }
-                let fresh_auth = auth_state();
-                let cans = fresh_auth.auth_cans().await.ok()?;
+                // The auth.auth_cans() call will fetch the current canisters from the resource
+                // which tracks identity changes and updates automatically
+                let cans = auth.auth_cans().await.ok()?;
 
                 let is_logged_in = is_connected.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
@@ -228,7 +246,7 @@ fn HNButtonOverlay(
                 // Check balance and refetch if insufficient
                 let current_balance = wallet_balance_store.get_untracked();
                 if bet_amount > current_balance {
-                    fetch_and_update_balance(&fresh_auth, set_wallet_balance_store).await;
+                    fetch_and_update_balance(&auth, set_wallet_balance_store).await;
 
                     let current_balance = wallet_balance_store.get_untracked();
 
