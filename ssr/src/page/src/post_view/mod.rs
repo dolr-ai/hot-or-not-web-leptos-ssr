@@ -325,7 +325,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<MlPostItem>) -> impl IntoVie
                     return;
                 };
                 leptos::logging::log!("fetching ml feed");
-                let cans_false: Canisters<false> = unauth_canisters();
+                let cans_false: Canisters<false> = Default::default();
                 let cans_true = auth.auth_cans_if_available();
 
                 let video_queue_c = video_queue
