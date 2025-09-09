@@ -54,7 +54,7 @@ pub fn TournamentHistoryCard(tournament: TournamentHistoryEntry) -> impl IntoVie
                             <img src="/img/yral/yral-token.webp" alt="" class="w-[18px] h-[18px]" />
                         }.into_any()
                     } else {
-                        view! { 
+                        view! {
                             <img src="/img/hotornot/bitcoin.svg" alt="" class="w-[18px] h-[18px]" />
                         }.into_any()
                     }}

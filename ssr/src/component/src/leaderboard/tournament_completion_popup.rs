@@ -211,7 +211,7 @@ pub fn TournamentCompletionPopup(
                                         <div class="bg-[#1f1d17] border border-[rgba(255,244,86,0.43)] rounded-2xl px-4 py-2 mb-6 flex items-center gap-2">
                                             <span class="text-[#ffc33a] text-3xl font-bold">
                                                 {if prize_token == "CKBTC" {
-                                                    format!("${}", amount)
+                                                    format!("${amount}")
                                                 } else {
                                                     amount.clone()
                                                 }}

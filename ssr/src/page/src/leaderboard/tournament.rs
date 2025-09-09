@@ -234,14 +234,14 @@ pub fn TournamentResults() -> impl IntoView {
                                                                     let is_ckbtc = tournament_info.get()
                                                                         .map(|t| t.prize_token == "CKBTC")
                                                                         .unwrap_or(false);
-                                                                    
+
                                                                     match user_info.reward {
                                                                         Some(r) if r > 0 => {
                                                                             view! {
                                                                                 <>
                                                                                     <span class="text-sm font-semibold text-white">
                                                                                         {if is_ckbtc {
-                                                                                            format!("${}", r)
+                                                                                            format!("${r}")
                                                                                         } else {
                                                                                             r.to_string()
                                                                                         }}
@@ -347,14 +347,14 @@ pub fn TournamentResults() -> impl IntoView {
                                                                     let is_ckbtc = tournament_info.get()
                                                                         .map(|t| t.prize_token == "CKBTC")
                                                                         .unwrap_or(false);
-                                                                    
+
                                                                     match entry.reward {
                                                                         Some(r) if r > 0 => {
                                                                             view! {
                                                                                 <>
                                                                                     <span class="text-sm font-semibold text-white">
                                                                                         {if is_ckbtc {
-                                                                                            format!("${}", r)
+                                                                                            format!("${r}")
                                                                                         } else {
                                                                                             r.to_string()
                                                                                         }}
