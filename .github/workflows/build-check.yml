@@ -108,7 +108,7 @@ jobs:
             RUSTFLAGS_VALUE="--cfg=erase_components"
           fi
           echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
-          RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release --lib-features release-lib --bin-features release-bin
+          RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --lib-features release-lib --bin-features release-bin
         env:
           RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
           LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
