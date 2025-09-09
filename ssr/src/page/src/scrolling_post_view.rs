@@ -7,8 +7,33 @@ use leptos_icons::*;
 use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserverOptions};
 
 use state::audio_state::AudioState;
-use utils::posts::FeedPostCtx;
+use utils::{ml_feed::QuickPostDetails, posts::FeedPostCtx};
 use yral_canisters_common::utils::posts::PostDetails;
+
+/// A trait that requires some post details to be accessible instantly while others may be suspended
+pub trait PostDetailResolver {
+    fn get_quick_post_details(&self) -> QuickPostDetails;
+    fn get_post_details(
+        &self,
+    ) -> impl std::future::Future<Output = Result<PostDetails, ServerFnError>> + Send;
+}
+
+// Implementing this trait for post details for backwards compatibility
+impl PostDetailResolver for PostDetails {
+    fn get_quick_post_details(&self) -> QuickPostDetails {
+        QuickPostDetails {
+            video_uid: self.uid.clone(),
+            canister_id: self.canister_id,
+            post_id: self.post_id,
+            publisher_user_id: self.poster_principal,
+            nsfw_probability: self.nsfw_probability,
+        }
+    }
+
+    async fn get_post_details(&self) -> Result<PostDetails, ServerFnError> {
+        Ok(self.clone())
+    }
+}
 
 #[component]
 pub fn MuteUnmuteOverlay(muted: RwSignal<bool>) -> impl IntoView {
@@ -35,21 +60,47 @@ pub fn MuteUnmuteOverlay(muted: RwSignal<bool>) -> impl IntoView {
 }
 
 #[component]
-pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
-    video_queue: RwSignal<IndexSet<PostDetails>>,
-    video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
+pub fn ScrollingPostView<
+    F: Fn() -> V + Clone + 'static + Send + Sync,
+    V,
+    DetailResolver: PostDetailResolver + PartialEq + Clone + Sync + Send + 'static,
+>(
+    video_queue: RwSignal<IndexSet<DetailResolver>>,
+    video_queue_for_feed: RwSignal<Vec<FeedPostCtx<DetailResolver>>>,
     current_idx: RwSignal<usize>,
     #[prop(optional)] fetch_next_videos: Option<F>,
     recovering_state: RwSignal<bool>,
     queue_end: RwSignal<bool>,
     #[prop(optional, into)] overlay: Option<ViewFn>,
     threshold_trigger_fetch: usize,
-    #[prop(optional, into)] hard_refresh_target: RwSignal<String>,
+    #[prop(optional, into)] _hard_refresh_target: RwSignal<String>,
 ) -> impl IntoView {
     let AudioState { muted, volume } = AudioState::get();
 
     let scroll_root: NodeRef<html::Div> = NodeRef::new();
     let win_audio_ref = NodeRef::<Audio>::new();
+
+    // Monitor current_idx and trigger hard refresh when reaching the end
+    Effect::new(move |_| {
+        let current = current_idx.get();
+        let queue_len = video_queue_for_feed.with(|vqf| vqf.len());
+
+        // Check if we're at the last video (or second to last to be safe)
+        if queue_len > 0 && current >= queue_len.saturating_sub(2) {
+            if let Some(win) = leptos::web_sys::window() {
+                let target = _hard_refresh_target.get_untracked();
+                if !target.is_empty() {
+                    leptos::logging::log!(
+                        "Hard refresh triggered: current={}, queue_len={}, target={}",
+                        current,
+                        queue_len,
+                        target
+                    );
+                    let _ = win.location().set_href(&target);
+                }
+            }
+        }
+    });
 
     let var_name = view! {
         <div class="overflow-hidden overflow-y-auto w-full h-full">
@@ -73,9 +124,10 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                     children=move |feedpost| {
                         let queue_idx = feedpost.key;
                         let post = feedpost.value;
-                        let hard_refresh_target = hard_refresh_target;
                         let container_ref = NodeRef::<html::Div>::new();
                         let next_videos = fetch_next_videos.clone();
+
+                        // Simplified intersection observer without recursive updates
                         use_intersection_observer_with_options(
                             container_ref,
                             move |entry, _| {
@@ -83,39 +135,47 @@ pub fn ScrollingPostView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                                 else {
                                     return;
                                 };
-                                let rect = visible.bounding_client_rect();
-                                if rect.y() == rect.height()
-                                    || queue_idx == current_idx.get_untracked()
-                                {
+
+                                // Avoid updating if already at this index
+                                let current = current_idx.get_untracked();
+                                if queue_idx == current {
                                     return;
                                 }
+
+                                let rect = visible.bounding_client_rect();
+                                // Check if the element is actually visible enough
+                                if rect.y() == rect.height() {
+                                    return;
+                                }
+
+                                // Update current index
                                 current_idx.set(queue_idx);
 
-                                if video_queue.with_untracked(|q| q.len()).saturating_sub(queue_idx)
-                                    <= threshold_trigger_fetch
-                                {
-                                    next_videos.as_ref().map(|nv| { nv() });
+                                // Trigger fetch if needed (without recursive calls)
+                                let queue_len = video_queue.with_untracked(|q| q.len());
+                                let remaining = queue_len.saturating_sub(queue_idx);
+
+                                if remaining <= threshold_trigger_fetch {
+                                    if let Some(fetch_fn) = next_videos.as_ref() {
+                                        // The fetch function itself checks if it's already pending
+                                        fetch_fn();
+                                    }
                                 }
                             },
                             UseIntersectionObserverOptions::default()
                                 .thresholds(vec![0.83])
                                 .root(Some(scroll_root)),
                         );
-                        Effect::new(move |_| {
-                            if current_idx() >= video_queue_for_feed.with_untracked(|vqf| vqf.len()) - 1 {
-                                let window = window();
-                                let _ = window
-                                    .location()
-                                    .set_href(&hard_refresh_target.get_untracked());
-                            }
-                            let Some(container) = container_ref.get() else {
-                                return;
-                            };
-                            if current_idx() == queue_idx && recovering_state.get_untracked() {
-                                container.scroll_into_view();
-                                recovering_state.set(false);
-                            }
-                        });
+
+                        // Handle initial scroll position recovery only
+                        if recovering_state.get_untracked() && current_idx.get_untracked() == queue_idx {
+                            Effect::new(move |_| {
+                                if let Some(container) = container_ref.get() {
+                                    container.scroll_into_view();
+                                    recovering_state.set(false);
+                                }
+                            });
+                        }
                         let show_video = Memo::new(move |_| {
                             (queue_idx as i32 - current_idx() as i32) >= -2
                         });

@@ -1,10 +1,73 @@
 use candid::Principal;
 use hon_worker_common::VoteRequest;
 use leptos::prelude::*;
+use serde::{Deserialize, Serialize};
 use tracing;
 use yral_identity::Signature;
 
 use crate::post_view::bet::VoteAPIRes;
+
+#[derive(Serialize, Deserialize, Debug)]
+struct LeaderboardUpdateRequest {
+    principal_id: String,
+    metric_value: f64,
+    metric_type: String,
+    source: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct LeaderboardUpdateResponse {
+    success: bool,
+    new_score: f64,
+    operation: String,
+}
+
+/// Helper function to update leaderboard score for games played
+#[cfg(feature = "ssr")]
+async fn update_leaderboard_score(
+    principal_id: Principal,
+    metric_value: f64,
+    metric_type: &str,
+) -> Result<(), ServerFnError> {
+    use consts::OFF_CHAIN_AGENT_URL;
+
+    // Get auth token from environment
+    let mut auth_token = std::env::var("GRPC_AUTH_TOKEN")
+        .map_err(|_| ServerFnError::new("Missing auth token for leaderboard update"))?;
+    auth_token.retain(|c| !c.is_whitespace());
+
+    let url = OFF_CHAIN_AGENT_URL
+        .join("api/v1/leaderboard/score/update")
+        .map_err(|e| ServerFnError::new(format!("Failed to build URL: {e}")))?;
+
+    let request = LeaderboardUpdateRequest {
+        principal_id: principal_id.to_string(),
+        metric_value,
+        metric_type: metric_type.to_string(),
+        source: "web_app".to_string(),
+    };
+
+    let client = reqwest::Client::new();
+    let response = client
+        .post(url)
+        .bearer_auth(auth_token)
+        .json(&request)
+        .send()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to send leaderboard update: {e}")))?;
+
+    if !response.status().is_success() {
+        let error_text = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string());
+        return Err(ServerFnError::new(format!(
+            "Leaderboard update failed: {error_text}"
+        )));
+    }
+
+    Ok(())
+}
 
 #[server(endpoint = "vote", input = server_fn::codec::Json)]
 #[tracing::instrument(skip(sig))]
@@ -39,7 +102,7 @@ mod alloydb {
     use super::*;
     use futures::try_join;
     use hon_worker_common::WORKER_URL;
-    use hon_worker_common::{HoNGameVoteReqV3, HotOrNot, VoteRequestV3, VoteResV2};
+    use hon_worker_common::{GameResultV2, HoNGameVoteReqV3, HotOrNot, VoteRequestV3, VoteResV2};
     use yral_canisters_client::individual_user_template::PostDetailsForFrontend;
     use yral_canisters_common::Canisters;
 
@@ -166,6 +229,29 @@ mod alloydb {
         // huh?
         let vote_res: VoteResV2 = res.json().await?;
 
+        // Update leaderboard - track games won
+        // This is fire-and-forget: spawn a task so we don't block the response
+        #[cfg(feature = "ssr")]
+        if matches!(vote_res.game_result, GameResultV2::Win { .. }) {
+            tokio::spawn(async move {
+                if let Err(e) = update_leaderboard_score(
+                    sender,
+                    1.0, // Increment games played by 1
+                    "games_won",
+                )
+                .await
+                {
+                    leptos::logging::error!(
+                        "Failed to update leaderboard for user {}: {:?}",
+                        sender,
+                        e
+                    );
+                } else {
+                    leptos::logging::log!("Successfully updated leaderboard for user {}", sender);
+                }
+            });
+        }
+
         Ok(VoteAPIRes {
             game_result: vote_res,
             video_comparison_result,
@@ -176,6 +262,7 @@ mod alloydb {
 #[cfg(not(feature = "alloydb"))]
 mod mock {
     use hon_worker_common::{GameResultV2, VoteResV2};
+    use leptos::task::{spawn, spawn_local};
     use state::hn_bet_state::VideoComparisonResult;
 
     use super::*;
@@ -183,7 +270,7 @@ mod mock {
     #[allow(dead_code)]
     #[tracing::instrument(skip(_sig))]
     pub async fn vote_with_cents_on_post(
-        _sender: Principal,
+        sender: Principal,
         _req: VoteRequest,
         _sig: Signature,
         _prev_video_info: Option<(Principal, u64)>,
@@ -194,6 +281,31 @@ mod mock {
                 updated_balance: 0u32.into(),
             },
         };
+
+        // Update leaderboard in mock mode as well (for testing)
+        // Making it synchronous for now
+        #[cfg(feature = "ssr")]
+        tokio::spawn(async move {
+            if let Err(e) = super::update_leaderboard_score(
+                sender,
+                1.0, // Increment games played by 1
+                "games_played",
+            )
+            .await
+            {
+                leptos::logging::error!(
+                    "Failed to update leaderboard for user {} in mock mode: {:?}",
+                    sender,
+                    e
+                );
+            } else {
+                leptos::logging::log!(
+                    "Successfully updated leaderboard for user {} in mock mode",
+                    sender
+                );
+            }
+        });
+
         Ok(VoteAPIRes {
             game_result,
             video_comparison_result: VideoComparisonResult {

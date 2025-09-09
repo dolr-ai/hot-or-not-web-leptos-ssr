@@ -6726,6 +6726,7 @@ dependencies = [
  "bb8",
  "bb8-redis",
  "candid",
+ "chrono",
  "ciborium",
  "circular-buffer",
  "codee",

@@ -3,25 +3,33 @@ use leptos::html::Audio;
 use leptos::logging;
 use leptos::{html::Video, prelude::*};
 use state::canisters::auth_state;
+// TODO: bring back video watched events
+#[allow(unused_imports)]
 use utils::event_streaming::events::VideoWatched;
 
 use component::video_player::VideoPlayer;
 use futures::FutureExt;
 use gloo::timers::future::TimeoutFuture;
-use utils::{bg_url, mp4_url};
+use utils::ml_feed::QuickPostDetails;
+use utils::{bg_url, mp4_url, send_wrap, try_or_redirect_opt};
 
 /// Maximum PostDetails, time in milliseconds to waitay promise to resolve
 const VIDEO_PLAY_TIMEOUT_MS: u64 = 5000;
 
-use super::{overlay::VideoDetailsOverlay, PostDetails};
+use crate::scrolling_post_view::PostDetailResolver;
+
+use super::overlay::VideoDetailsOverlay;
 
 #[component]
-pub fn BgView(
-    video_queue: RwSignal<IndexSet<PostDetails>>,
+pub fn BgView<DetailResolver>(
+    video_queue: RwSignal<IndexSet<DetailResolver>>,
     idx: usize,
     win_audio_ref: NodeRef<Audio>,
     children: Children,
-) -> impl IntoView {
+) -> impl IntoView
+where
+    DetailResolver: PostDetailResolver + Clone + PartialEq + Sync + Send + 'static,
+{
     let post_with_prev = Memo::new(move |_| {
         video_queue.with(|q| {
             let cur_post = q.get_index(idx).cloned();
@@ -30,17 +38,41 @@ pub fn BgView(
             } else {
                 None
             };
+            let prev_post = prev_post.map(|p| {
+                let QuickPostDetails {
+                    canister_id,
+                    post_id,
+                    ..
+                } = p.get_quick_post_details();
+
+                (canister_id, post_id)
+            });
             (cur_post, prev_post)
         })
+    });
+
+    let post_details_with_prev_post = LocalResource::new(move || async move {
+        let (current_post_resolver, prev_post_for_passthru) = post_with_prev.get();
+        let Some(resolver) = current_post_resolver else {
+            leptos::logging::debug_warn!("returning None for post?");
+            return Ok((None, prev_post_for_passthru));
+        };
+
+        // SAFETY: this send wrap is safe as we are guaranteed to run in a
+        // single threaded env due to LocalResource
+        let post_details = send_wrap(resolver.get_post_details()).await?;
+        Ok::<_, ServerFnError>((Some(post_details), prev_post_for_passthru))
     });
 
     let uid = move || {
         post_with_prev()
             .0
             .as_ref()
-            .map(|q| q.uid.clone())
+            .map(|q| q.get_quick_post_details().video_uid)
             .unwrap_or_default()
     };
+
+    let high_priority = idx < 3;
 
     view! {
         <div class="overflow-hidden relative w-full h-full bg-transparent">
@@ -48,10 +80,12 @@ pub fn BgView(
                 class="absolute top-0 left-0 w-full h-full bg-center bg-cover z-1 blur-lg bg-black"
                 style:background-image=move || format!("url({})", bg_url(uid()))
             ></div>
-            {move || {
-                let (post, prev_post) = post_with_prev.get();
-                Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref /> })
-            }}
+            <Suspense>
+            {move || Suspend::new(async move {
+                let (post, prev_post) = try_or_redirect_opt!(post_details_with_prev_post.await);
+                Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref high_priority /> }.into_view())
+            })}
+            </Suspense>
             {children()}
         </div>
     }
@@ -60,20 +94,21 @@ pub fn BgView(
 
 #[component]
 pub fn VideoView(
-    #[prop(into)] post: Signal<Option<PostDetails>>,
+    #[prop(into)] post: Signal<Option<QuickPostDetails>>,
     #[prop(optional)] _ref: NodeRef<Video>,
     #[prop(optional)] autoplay_at_render: bool,
     to_load: Memo<bool>,
     muted: RwSignal<bool>,
     volume: RwSignal<f64>,
     #[prop(optional, into)] is_current: Option<Signal<bool>>,
+    #[prop(optional, into)] high_priority: bool,
 ) -> impl IntoView {
     let post_for_uid = post;
     let uid = Memo::new(move |_| {
         if !to_load() {
             return None;
         }
-        post_for_uid.with(|p| p.as_ref().map(|p| p.uid.clone()))
+        post_for_uid.with(|p| p.as_ref().map(|p| p.video_uid.clone()))
     });
     let view_bg_url = move || uid().map(bg_url);
     let view_video_url = move || uid().map(mp4_url);
@@ -132,21 +167,28 @@ pub fn VideoView(
             autoplay=is_current.unwrap_or(false.into())
             view_bg_url=Signal::derive(view_bg_url)
             view_video_url=Signal::derive(view_video_url)
+            high_priority
         />
     }
     .into_any()
 }
 
 #[component]
-pub fn VideoViewForQueue(
-    post: RwSignal<Option<PostDetails>>,
+pub fn VideoViewForQueue<DetailResolver>(
+    post: RwSignal<Option<DetailResolver>>,
     current_idx: RwSignal<usize>,
     idx: usize,
     muted: RwSignal<bool>,
     volume: RwSignal<f64>,
     to_load: Memo<bool>,
-) -> impl IntoView {
+) -> impl IntoView
+where
+    DetailResolver: PostDetailResolver + Clone + Sync + Send + 'static,
+{
     let container_ref = NodeRef::<Video>::new();
+
+    let quick_post_details =
+        Signal::derive(move || post.get().map(|post| post.get_quick_post_details()));
 
     // Track if video is already playing to prevent multiple play attempts
     let is_playing = RwSignal::new(false);
@@ -198,14 +240,17 @@ pub fn VideoViewForQueue(
     // Create a signal that tracks whether this video is current
     let is_current_signal = Signal::derive(move || idx == current_idx());
 
+    let high_priority = idx < 3;
+
     view! {
         <VideoView
-            post
+            post=quick_post_details
             _ref=container_ref
             to_load
             muted
             volume
             is_current=is_current_signal
+            high_priority
         />
     }
     .into_any()

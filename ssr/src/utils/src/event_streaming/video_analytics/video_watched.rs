@@ -1,16 +1,23 @@
 use leptos::html::Video;
+use leptos::logging;
 use leptos::prelude::*;
-use leptos::{ev, logging};
-use leptos_use::use_event_listener;
-use wasm_bindgen::JsCast;
 
 use crate::event_streaming::events::EventCtx;
-use yral_canisters_common::utils::posts::PostDetails;
+#[cfg(all(feature = "hydrate", feature = "ga4"))]
+use crate::event_streaming::video_analytics::progress_tracker::ProgressLogInfo;
+use crate::ml_feed::QuickPostDetails;
 
-use super::{
-    constants::*, progress_tracker::ProgressLogInfo, VideoAnalyticsEvent, VideoAnalyticsProvider,
-    VideoEventDataBuilder, VideoProgressTracker,
+use crate::event_streaming::video_analytics::VideoEventDataBuilder;
+#[cfg(feature = "ga4")]
+use crate::event_streaming::video_analytics::{VideoAnalyticsEvent, VideoAnalyticsProvider};
+use crate::event_streaming::video_analytics::{
+    EVENT_VIDEO_DURATION_WATCHED, EVENT_VIDEO_VIEWED, MIN_PAUSE_TIME_SECONDS,
+    VIDEO_COMPLETION_PERCENTAGE, VIDEO_VIEWED_THRESHOLD_SECONDS,
 };
+use leptos::ev;
+use leptos_use::use_event_listener;
+
+use super::VideoProgressTracker;
 
 #[cfg(feature = "ga4")]
 use crate::event_streaming::{send_event_ssr_spawn, send_event_warehouse_ssr_spawn};
@@ -47,7 +54,7 @@ impl VideoWatchedHandler {
     pub fn setup_event_tracking(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         muted: RwSignal<bool>,
     ) {
@@ -57,7 +64,7 @@ impl VideoWatchedHandler {
     pub fn setup_event_tracking_with_current(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         muted: RwSignal<bool>,
         is_current: Option<Signal<bool>>,
@@ -95,11 +102,14 @@ impl VideoWatchedHandler {
     fn setup_playing_listener(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         playing_started: RwSignal<bool>,
         progress_tracker: VideoProgressTracker,
     ) {
+        use leptos::ev;
+        use leptos_use::use_event_listener;
+
         let _ = use_event_listener(container_ref, ev::playing, move |_evt| {
             let Some(_) = container_ref.get() else {
                 return;
@@ -137,15 +147,17 @@ impl VideoWatchedHandler {
     fn setup_timeupdate_listener(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         params: TimeUpdateListenerParams,
     ) {
         let _ = use_event_listener(container_ref, ev::timeupdate, move |evt| {
+            use wasm_bindgen::JsCast;
+
             let Some(user) = ctx.user_details() else {
                 return;
             };
-            let post_o = vid_details();
+            let post_o = vid_details.get();
             let post = post_o.as_ref();
 
             let Some(target) = evt.target() else {
@@ -210,11 +222,13 @@ impl VideoWatchedHandler {
     fn setup_pause_listener(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         progress_tracker: VideoProgressTracker,
     ) {
         let _ = use_event_listener(container_ref, ev::pause, move |evt| {
+            use wasm_bindgen::JsCast;
+
             progress_tracker.stop_tracking();
 
             let Some(user) = ctx.user_details() else {
@@ -250,7 +264,7 @@ impl VideoWatchedHandler {
     fn setup_mute_listener(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         muted: RwSignal<bool>,
         is_current: Option<Signal<bool>>,
     ) {
@@ -285,10 +299,10 @@ impl VideoWatchedHandler {
     }
 
     #[cfg(all(feature = "hydrate", feature = "ga4"))]
-    fn create_log_info(vid_details: Signal<Option<PostDetails>>) -> ProgressLogInfo {
+    fn create_log_info(vid_details: Signal<Option<QuickPostDetails>>) -> ProgressLogInfo {
         let video_id = vid_details.with(|post| {
             post.as_ref()
-                .map(|p| p.uid.clone())
+                .map(|p| p.video_uid.clone())
                 .unwrap_or_else(|| "unknown".to_string())
         });
 

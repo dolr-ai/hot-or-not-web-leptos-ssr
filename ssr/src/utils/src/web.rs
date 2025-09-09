@@ -1,3 +1,4 @@
+#[cfg(feature = "hydrate")]
 use gloo::file::ObjectUrl;
 use leptos_use::use_window;
 

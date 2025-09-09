@@ -4,25 +4,25 @@ pub mod overlay;
 pub mod single_post;
 pub mod video_iter;
 pub mod video_loader;
-use crate::scrolling_post_view::ScrollingPostView;
+use crate::scrolling_post_view::{PostDetailResolver, ScrollingPostView};
+use component::leaderboard::{api::fetch_user_rank_from_api, RankUpdateCounter, UserRank};
 use component::spinner::FullScreenSpinner;
 use consts::{MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_ENABLED_COOKIE};
 use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
 use indexmap::IndexSet;
 use priority_queue::DoublePriorityQueue;
+use serde::{Deserialize, Serialize};
 use state::canisters::{auth_state, unauth_canisters};
 use std::{cmp::Reverse, collections::HashMap};
+use utils::ml_feed::QuickPostDetails;
 use yral_types::post::PostItemV3;
 
 use candid::Principal;
 use codee::string::FromToStringCodec;
 use futures::StreamExt;
 use leptos::prelude::*;
-use leptos_router::{
-    hooks::{use_navigate, use_params},
-    params::Params,
-};
-use leptos_use::{use_cookie_with_options, use_debounce_fn, UseCookieOptions};
+use leptos_router::{hooks::use_params, params::Params};
+use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use utils::{
     mixpanel::mixpanel_events::*,
     posts::{FeedPostCtx, FetchCursor},
@@ -47,12 +47,91 @@ pub struct PostViewCtx {
     // We're using virtual lists for DOM, so this doesn't consume much memory
     // as uids only occupy 32 bytes each
     // but ideally this should be cleaned up
-    video_queue: RwSignal<IndexSet<PostDetails>>,
-    video_queue_for_feed: RwSignal<Vec<FeedPostCtx>>,
+    video_queue: RwSignal<IndexSet<MlPostItem>>,
+    video_queue_for_feed: RwSignal<Vec<FeedPostCtx<MlPostItem>>>,
     current_idx: RwSignal<usize>,
     queue_end: RwSignal<bool>,
-    priority_q: RwSignal<DoublePriorityQueue<PostDetails, (usize, Reverse<usize>)>>, // we are using DoublePriorityQueue for GC in the future through pop_min
+    priority_q: RwSignal<DoublePriorityQueue<MlPostItem, (usize, Reverse<usize>)>>, // we are using DoublePriorityQueue for GC in the future through pop_min
     batch_cnt: RwSignal<usize>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MlPostItem {
+    canister_id: Principal,
+    post_id: u64,
+    video_uid: String,
+    publisher_user_id: Principal,
+    nsfw_probability: f32,
+}
+
+// manually implementing PartialEq using the canister_id and post_id as it is
+// sufficient for equality check, avoiding the f32 (nsfw prob) which breaks
+// equality
+impl std::cmp::PartialEq for MlPostItem {
+    fn eq(&self, other: &Self) -> bool {
+        self.canister_id == other.canister_id && self.post_id == other.post_id
+    }
+}
+
+impl std::cmp::Eq for MlPostItem {}
+
+impl std::hash::Hash for MlPostItem {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.canister_id.hash(state);
+        state.write_u64(self.post_id);
+    }
+}
+
+impl From<PostItemV3> for MlPostItem {
+    fn from(value: PostItemV3) -> Self {
+        // TODO: it might make more sense to impl TryForm, but this is changing soon I'm not bothering
+        Self {
+            canister_id: value
+                .canister_id
+                .parse()
+                .expect("ml feed to return correct value"),
+            post_id: value
+                .post_id
+                .parse()
+                .expect("ml feed to return a number as string"),
+            video_uid: value.video_id,
+            nsfw_probability: value.nsfw_probability,
+            publisher_user_id: value
+                .publisher_user_id
+                .parse()
+                .expect("ml feed to return correct value"),
+        }
+    }
+}
+
+impl PostDetailResolver for MlPostItem {
+    fn get_quick_post_details(&self) -> QuickPostDetails {
+        QuickPostDetails {
+            video_uid: self.video_uid.clone(),
+            canister_id: self.canister_id,
+            post_id: self.post_id,
+            publisher_user_id: self.publisher_user_id,
+            nsfw_probability: self.nsfw_probability,
+        }
+    }
+
+    async fn get_post_details(&self) -> Result<PostDetails, ServerFnError> {
+        let canisters = unauth_canisters();
+        let post_details = send_wrap(canisters.get_post_details_with_nsfw_info(
+            self.canister_id,
+            self.post_id,
+            Some(self.nsfw_probability),
+        ))
+        .await?;
+        let post_details = post_details.ok_or_else(|| {
+            ServerFnError::new(format!(
+                "Couldn't find post {}/{}",
+                self.canister_id, self.post_id
+            ))
+        })?;
+
+        Ok(post_details)
+    }
 }
 
 impl PostViewCtx {
@@ -79,7 +158,7 @@ pub struct PostDetailsCacheCtx {
 
 #[component]
 pub fn CommonPostViewWithUpdates(
-    initial_post: Option<PostDetails>,
+    initial_posts: Vec<MlPostItem>,
     fetch_video_action: Action<(), ()>,
     threshold_trigger_fetch: usize,
 ) -> impl IntoView {
@@ -93,7 +172,7 @@ pub fn CommonPostViewWithUpdates(
     } = expect_context();
 
     let recovering_state = RwSignal::new(false);
-    if let Some(initial_post) = initial_post.clone() {
+    if !initial_posts.is_empty() {
         fetch_cursor.update_untracked(|f| {
             // we've already fetched the first posts
             if f.start > 1 || queue_end.get_untracked() {
@@ -107,9 +186,11 @@ pub fn CommonPostViewWithUpdates(
                 return;
             }
             *v = IndexSet::new();
-            v.insert(initial_post.clone());
+            v.extend(initial_posts.clone());
             video_queue_for_feed.update(|vq| {
-                vq[0].value.set(Some(initial_post.clone()));
+                for (idx, post) in initial_posts.into_iter().enumerate() {
+                    vq[idx].value.set(Some(post));
+                }
             });
         })
     }
@@ -121,14 +202,12 @@ pub fn CommonPostViewWithUpdates(
             fetch_video_action.dispatch(());
         }
     });
-    let next_videos = use_debounce_fn(
-        move || {
-            if !fetch_video_action.pending().get_untracked() && !queue_end.get_untracked() {
-                fetch_video_action.dispatch(());
-            }
-        },
-        200.0,
-    );
+    // Simplified fetch trigger without debounce - the fetching guard in ScrollingPostView handles rate limiting
+    let next_videos = move || {
+        if !fetch_video_action.pending().get_untracked() && !queue_end.get_untracked() {
+            fetch_video_action.dispatch(());
+        }
+    };
 
     let current_post_base = Memo::new(move |_| {
         video_queue.with(|q| {
@@ -146,10 +225,13 @@ pub fn CommonPostViewWithUpdates(
             canister_id,
             post_id,
         }));
-        use_navigate()(
-            &format!("/hot-or-not/{canister_id}/{post_id}",),
-            Default::default(),
-        );
+
+        // Using browser history push to ensure that the browser doesn't try
+        // to load PostView component when rendering under any other parent.
+        // PostView has its own loading strategy and will cause a refresh
+        use gloo::history::History;
+        gloo::history::BrowserHistory::new()
+            .replace(format!("/hot-or-not/{canister_id}/{post_id}"));
     });
 
     let hard_refresh_target = RwSignal::new("/".to_string());
@@ -163,14 +245,14 @@ pub fn CommonPostViewWithUpdates(
             fetch_next_videos=next_videos
             queue_end
             threshold_trigger_fetch
-            hard_refresh_target
+            _hard_refresh_target=hard_refresh_target
         />
     }
     .into_any()
 }
 
 #[component]
-pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl IntoView {
+pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<MlPostItem>) -> impl IntoView {
     let PostViewCtx {
         fetch_cursor,
         video_queue,
@@ -183,6 +265,14 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
     } = expect_context();
 
     let auth = auth_state();
+
+    provide_context(RwSignal::new(
+        if auth.is_logged_in_with_oauth().get_untracked() {
+            DEFAULT_BET_COIN_FOR_LOGGED_IN
+        } else {
+            DEFAULT_BET_COIN_FOR_LOGGED_OUT
+        },
+    ));
 
     let fetch_video_action = Action::new(move |_| {
         let (nsfw_enabled, _) = use_cookie_with_options::<bool, FromToStringCodec>(
@@ -238,7 +328,11 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                 let cans_false: Canisters<false> = unauth_canisters();
                 let cans_true = auth.auth_cans_if_available();
 
-                let video_queue_c = video_queue.get_untracked().iter().cloned().collect();
+                let video_queue_c = video_queue
+                    .get_untracked()
+                    .iter()
+                    .map(|item| item.video_uid.clone())
+                    .collect();
                 let chunks = if let Some(cans_true) = cans_true.as_ref() {
                     let mut fetch_stream = new_video_fetch_stream_auth(cans_true, auth, cursor);
                     fetch_stream
@@ -256,8 +350,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
                 let mut cnt = 0usize;
                 while let Some(chunk) = chunks.next().await {
                     leptos::logging::log!("recv a chunk");
-                    for uid in chunk {
-                        let post_detail = try_or_redirect!(uid);
+                    for post_detail in chunk {
                         if video_queue
                             .with_untracked(|vq| vq.len())
                             .saturating_sub(current_idx.get_untracked())
@@ -301,7 +394,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_post: Option<PostDetails>) -> impl Into
         })
     });
 
-    view! { <CommonPostViewWithUpdates initial_post fetch_video_action threshold_trigger_fetch=20 /> }.into_any()
+    view! { <CommonPostViewWithUpdates initial_posts fetch_video_action threshold_trigger_fetch=20 /> }.into_any()
 }
 
 #[component]
@@ -353,6 +446,70 @@ pub fn PostView() -> impl IntoView {
         },
     ));
 
+    // Create a single global Resource for fetching rank
+    let rank_update_count = use_context::<RwSignal<RankUpdateCounter>>()
+        .expect("RankUpdateCounter should be provided globally");
+    let global_rank =
+        use_context::<RwSignal<UserRank>>().expect("UserRank should be provided globally");
+
+    let global_rank_resource = auth.derive_resource(
+        move || rank_update_count.get().0,
+        move |cans, counter| {
+            let global_rank = global_rank;
+            async move {
+                // If we already have a rank and counter is 0, return cached value
+                if counter == 0 {
+                    let cached = global_rank.get_untracked();
+                    if cached.rank.is_some() {
+                        return Ok(cached);
+                    }
+                }
+
+                // Get user principal from canisters
+                let principal = cans.user_principal();
+
+                leptos::logging::log!(
+                    "PostView: Fetching rank for principal: {} (counter: {})",
+                    principal,
+                    counter
+                );
+
+                // Fetch rank and tournament status from API
+                match fetch_user_rank_from_api(principal).await {
+                    Ok(Some((rank, status))) => {
+                        leptos::logging::log!(
+                            "PostView: Fetched rank: {}, status: {}",
+                            rank,
+                            status
+                        );
+                        // Update global rank value
+                        let user_rank = UserRank {
+                            rank: Some(rank),
+                            tournament_status: Some(status),
+                        };
+                        global_rank.set(user_rank.clone());
+                        Ok(user_rank)
+                    }
+                    Ok(None) => {
+                        leptos::logging::log!("PostView: No rank found for user");
+                        Ok(UserRank {
+                            rank: None,
+                            tournament_status: None,
+                        })
+                    }
+                    Err(e) => {
+                        leptos::logging::error!("PostView: Failed to fetch user rank: {}", e);
+                        Ok(UserRank {
+                            rank: None,
+                            tournament_status: None,
+                        })
+                    }
+                }
+            }
+        },
+    );
+    provide_context(global_rank_resource);
+
     let canisters = unauth_canisters();
     let post_details_cache: PostDetailsCacheCtx = expect_context();
 
@@ -370,6 +527,8 @@ pub fn PostView() -> impl IntoView {
             if let Some(post) = cached_post {
                 return Ok(Some(post));
             }
+
+            // this cache is never written to? so what's the point of this?
             let post_nsfw_prob = post_details_cache.post_details.with_untracked(|p| {
                 p.get(&(params.canister_id, params.post_id))
                     .map(|i| i.nsfw_probability)
@@ -382,7 +541,13 @@ pub fn PostView() -> impl IntoView {
             ))
             .await
             {
-                Ok(post) => Ok(post),
+                Ok(post) => Ok(post.map(|post| MlPostItem {
+                    canister_id: post.canister_id,
+                    post_id: post.post_id,
+                    video_uid: post.uid,
+                    nsfw_probability: post.nsfw_probability,
+                    publisher_user_id: post.poster_principal,
+                })),
                 Err(e) => {
                     failure_redirect(e);
                     Err(())
@@ -395,7 +560,11 @@ pub fn PostView() -> impl IntoView {
         <Suspense fallback=FullScreenSpinner>
             {move || Suspend::new(async move {
                 let initial_post = fetch_first_video_uid.await.ok()?;
-                { Some(view! { <PostViewWithUpdatesMLFeed initial_post /> }.into_any()) }
+                let initial_posts = match initial_post {
+                    Some(post) => vec![post],
+                    None => vec![],
+                };
+                { Some(view! { <PostViewWithUpdatesMLFeed initial_posts /> }.into_any()) }
             })}
         </Suspense>
     }

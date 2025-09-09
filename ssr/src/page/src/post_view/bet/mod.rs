@@ -1,5 +1,6 @@
 mod server_impl;
 
+use candid::Principal;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::login_modal::LoginModal;
 use component::login_nudge_popup::LoginNudgePopup;
@@ -117,7 +118,7 @@ async fn fetch_and_update_balance(
 #[component]
 fn HNButtonOverlay(
     post: PostDetails,
-    prev_post: Option<PostDetails>,
+    prev_post: Option<(Principal, u64)>,
     coin: RwSignal<CoinState>,
     bet_direction: RwSignal<Option<VoteKind>>,
     refetch_bet: Trigger,
@@ -198,7 +199,6 @@ fn HNButtonOverlay(
                 vote_amount: bet_amount as u128,
                 direction: bet_direction.into(),
             };
-            let prev_post = prev_post.as_ref().map(|p| (p.canister_id, p.post_id));
 
             let post_mix = post.clone();
             send_wrap(async move {
@@ -301,11 +301,25 @@ fn HNButtonOverlay(
                             audio_ref,
                             matches!(res.game_result.game_result, GameResultV2::Win { .. }),
                         );
+
+                        // Trigger rank update after successful vote
+                        if let Some(rank_update_count) =
+                            use_context::<RwSignal<component::leaderboard::RankUpdateCounter>>()
+                        {
+                            rank_update_count.update(|c| c.0 += 1);
+                        }
+
                         Some(())
                     }
                     Err(e) => {
-                        show_low_balance_popup.set(true);
-                        log::error!("{e}");
+                        let error_msg = format!("{e}");
+
+                        // Only show low balance popup for insufficient funds errors
+                        if error_msg.contains("InsufficientFunds") {
+                            show_low_balance_popup.set(true);
+                        }
+
+                        log::error!("{error_msg}");
                         None
                     }
                 }
@@ -686,7 +700,7 @@ fn ShadowBg() -> impl IntoView {
 #[component]
 pub fn HNGameOverlay(
     post: PostDetails,
-    prev_post: Option<PostDetails>,
+    prev_post: Option<(Principal, u64)>,
     win_audio_ref: NodeRef<Audio>,
     show_tutorial: RwSignal<bool>,
     show_low_balance_popup: RwSignal<bool>,
@@ -756,7 +770,7 @@ pub fn HNGameOverlay(
                                 view! {
                                     <HNButtonOverlay
                                         post
-                                        prev_post=prev_post.clone()
+                                        prev_post
                                         bet_direction
                                         coin
                                         refetch_bet
@@ -770,7 +784,6 @@ pub fn HNGameOverlay(
                     })
                     .unwrap_or_else(|| view! { <LoaderWithShadowBg /> }.into_any())
             }}
-
-        </Suspense>
+            </Suspense>
     }
 }

@@ -1,9 +1,11 @@
+use candid::Principal;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::buttons::HighlightedButton;
 use component::icons::sound_off_icon::SoundOffIcon;
 use component::icons::sound_on_icon::SoundOnIcon;
 use component::icons::volume_high_icon::VolumeHighIcon;
 use component::icons::volume_mute_icon::VolumeMuteIcon;
+use component::leaderboard::GlobalRankBadge;
 use component::overlay::ShadowOverlay;
 use component::spinner::SpinnerFit;
 use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption};
@@ -88,13 +90,10 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
                 MixPanelEvent::track_video_clicked(
                     global,
                     post.poster_principal.to_text(),
-                    post.likes,
-                    post.views,
                     is_hot_or_not,
                     video_id,
                     MixpanelPostGameType::HotOrNot,
                     MixpanelVideoClickedCTAType::Like,
-                    post.is_nsfw,
                 );
             } else {
                 likes.update(|l| *l -= 1);
@@ -160,9 +159,12 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
 #[component]
 pub fn VideoDetailsOverlay(
     post: PostDetails,
-    prev_post: Option<PostDetails>,
+    prev_post: Option<(Principal, u64)>,
     win_audio_ref: NodeRef<Audio>,
+    #[prop(optional, into)] high_priority: bool,
 ) -> impl IntoView {
+    // No need for local context - using global context from App
+
     let show_share = RwSignal::new(false);
     let show_report = RwSignal::new(false);
     let show_nsfw_permission = RwSignal::new(false);
@@ -215,13 +217,10 @@ pub fn VideoDetailsOverlay(
         MixPanelEvent::track_video_clicked(
             global,
             post.poster_principal.to_text(),
-            post.likes,
-            post.views,
             is_hot_or_not,
             video_id,
             MixpanelPostGameType::HotOrNot,
             cta_type,
-            post.is_nsfw,
         );
     };
     let track_video_share = track_video_clicked.clone();
@@ -316,13 +315,10 @@ pub fn VideoDetailsOverlay(
                     MixPanelEvent::track_video_clicked(
                         global,
                         post.poster_principal.to_text(),
-                        post.likes,
-                        post.views,
                         is_hot_or_not,
                         video_id,
                         MixpanelPostGameType::HotOrNot,
                         MixpanelVideoClickedCTAType::NsfwToggle,
-                        post.is_nsfw,
                     );
                 }
             } else {
@@ -350,13 +346,10 @@ pub fn VideoDetailsOverlay(
                         MixPanelEvent::track_video_clicked(
                             global,
                             post.poster_principal.to_text(),
-                            post.likes,
-                            post.views,
                             is_hot_or_not,
                             video_id,
                             MixpanelPostGameType::HotOrNot,
                             MixpanelVideoClickedCTAType::NsfwToggle,
-                            post.is_nsfw,
                         );
                     }
                 }
@@ -379,13 +372,10 @@ pub fn VideoDetailsOverlay(
         MixPanelEvent::track_video_clicked(
             global,
             post.poster_principal.to_string(),
-            post.likes,
-            post.views,
             is_hot_or_not,
             video_id,
             MixpanelPostGameType::HotOrNot,
             MixpanelVideoClickedCTAType::CreatorProfile,
-            post.is_nsfw,
         );
     };
 
@@ -496,14 +486,16 @@ pub fn VideoDetailsOverlay(
     view! {
         <MuteUnmuteControl muted volume />
         <div class="flex absolute bottom-0 left-0 flex-col flex-nowrap justify-between pt-5 pb-20 w-full h-full text-white bg-transparent pointer-events-none px-[16px] z-4 md:px-[16px]">
-            <div class="flex flex-row justify-between items-center w-full pointer-events-auto">
-                <div class="flex flex-row gap-2 items-center p-2 w-9/12 rounded-s-full bg-linear-to-r from-black/25 via-80% via-black/10">
+            // Group top content together
+            <div class="flex flex-col w-full">
+                <div class="flex flex-row justify-between items-center w-full pointer-events-auto">
+                    <div class="flex flex-row gap-2 items-center p-2 w-9/12 rounded-s-full bg-linear-to-r from-black/25 via-80% via-black/10">
                     <div class="flex w-fit">
                         <a
                             href=profile_url.clone()
                             class="w-10 h-10 rounded-full border-2 md:w-12 md:h-12 overflow-clip border-primary-600"
                         >
-                            <img class="object-cover w-full h-full" src=post.propic_url />
+                            <img class="object-cover w-full h-full" src=post.propic_url fetchpriority="low" loading={if high_priority { "eager" } else { "lazy" }} />
                         </a>
                     </div>
                     <div class="flex flex-col justify-center min-w-0">
@@ -543,8 +535,14 @@ pub fn VideoDetailsOverlay(
                         class="object-contain w-[76px] h-[36px]"
                         alt="NSFW Toggle"
                     />
-                </button>
+                    </button>
+                </div>
+                // Add the rank badge here, below the profile/NSFW row
+                <div class="flex justify-end w-full mt-2 pointer-events-auto">
+                    <GlobalRankBadge />
+                </div>
             </div>
+            // Bottom content stays at the bottom
             <div class="flex flex-col gap-2 w-full">
                 <div class="flex flex-col gap-6 items-end self-end text-2xl pointer-events-auto md:text-3xl lg:text-4xl">
                     <button on:click=move |_| {
@@ -739,7 +737,7 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
                 <div class="relative w-fit -translate-y-0.5">
                     <div class="absolute inset-0 flex items-center pointer-events-none">
                         <div
-                            style:width=move || format!("calc({}% - 0.25%)", volume_.get() * 100.0)
+                            style:width=move || format!("calc({}% - 0.25%)", volume_.try_get().unwrap_or(0.0) * 100.0)
                             class="bg-white w-full h-1.5 translate-y-[0.15rem] rounded-full"
                             >
                         </div>
@@ -750,7 +748,7 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
                         max="1"
                         step="0.05"
                         class="z-[2] appearance-none bg-zinc-500 h-1.5 rounded-full accent-white"
-                        prop:value={move || volume_.get()}
+                        prop:value={move || volume_.try_get().unwrap_or(0.0)}
                         on:change=move |ev: leptos::ev::Event| {
                             let input = event_target_value(&ev);
                             if let Ok(value) = input.parse::<f64>() {
