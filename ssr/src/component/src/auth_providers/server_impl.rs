@@ -5,7 +5,7 @@ use hon_worker_common::ReferralReqWithSignature;
 use leptos::prelude::*;
 #[cfg(not(feature = "backend-admin"))]
 use no_op::*;
-use state::canisters::auth_state;
+use state::canisters::unauth_canisters;
 
 pub async fn issue_referral_rewards(
     worker_req: ReferralReqWithSignature,
@@ -18,9 +18,13 @@ pub async fn issue_referral_rewards(
 pub async fn mark_user_registered(user_principal: Principal) -> Result<bool, ServerFnError> {
     ensure_user_logged_in_with_oauth(user_principal).await?;
 
-    let cans = auth_state();
-    let canisters = cans.auth_cans().await?;
-    let user_canister = canisters.user_canister();
+    let unauth_canisters = unauth_canisters();
+
+    let user_canister = unauth_canisters
+        .get_individual_canister_v2(user_principal.to_text())
+        .await?
+        .ok_or(ServerFnError::new("user canister not found"))?;
+
     mark_user_registered_impl(user_principal, user_canister).await
 }
 
