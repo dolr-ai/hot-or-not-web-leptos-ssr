@@ -206,7 +206,8 @@ fn HNButtonOverlay(
                 if res.is_err() {
                     return None;
                 }
-                let cans = auth.auth_cans().await.ok()?;
+                let fresh_auth = auth_state();
+                let cans = fresh_auth.auth_cans().await.ok()?;
 
                 let is_logged_in = is_connected.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&cans, is_logged_in);
@@ -227,7 +228,7 @@ fn HNButtonOverlay(
                 // Check balance and refetch if insufficient
                 let current_balance = wallet_balance_store.get_untracked();
                 if bet_amount > current_balance {
-                    fetch_and_update_balance(&auth, set_wallet_balance_store).await;
+                    fetch_and_update_balance(&fresh_auth, set_wallet_balance_store).await;
 
                     let current_balance = wallet_balance_store.get_untracked();
 
