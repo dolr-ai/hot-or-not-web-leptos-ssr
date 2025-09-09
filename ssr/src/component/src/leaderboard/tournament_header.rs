@@ -77,8 +77,20 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
                     // Prize pool line
                     <div class="flex items-center gap-1.5 mb-1">
                         <span class="text-xl font-bold text-white">"Win upto "</span>
-                        <span class="text-xl font-bold text-[#FFEF00]">{format_with_commas(tournament.prize_pool as u64)}</span>
-                        <img src="/img/yral/yral-token.webp" alt="" class="w-6 h-6" />
+                        <span class="text-xl font-bold text-[#FFEF00]">
+                            {if tournament.prize_token == "CKBTC" {
+                                format!("${}", format_with_commas(tournament.prize_pool as u64))
+                            } else {
+                                format_with_commas(tournament.prize_pool as u64)
+                            }}
+                        </span>
+                        {if tournament.prize_token != "CKBTC" {
+                            view! {
+                                <img src="/img/yral/yral-token.webp" alt="" class="w-6 h-6" />
+                            }.into_any()
+                        } else {
+                            view! { <img src="/img/hotornot/bitcoin.svg" alt="" class="w-6 h-6" /> }.into_any()
+                        }}
                     </div>
 
                     // Today text
@@ -103,7 +115,11 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
 
             // Gift box graphic positioned at bottom-right
             <div class="absolute bottom-0 right-4">
-                <img src="/img/leaderboard/gift-box-header.svg" alt="Gift Box" class="w-44 h-36" />
+                <img src={if tournament.prize_token == "CKBTC" {
+                    "/img/leaderboard/gift-box-btc-header.svg"
+                } else {
+                    "/img/leaderboard/gift-box-header.svg"
+                }} alt="Gift Box" class="w-44 h-36" />
             </div>
         </div>
     }
