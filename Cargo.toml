@@ -229,15 +229,15 @@ videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch =
 ] }
 
 # OpenTelemetry dependencies for telemetry_axum
-opentelemetry = { version = "*", features = ["trace"] }
-opentelemetry_sdk = { version = "*", features = ["rt-tokio"] }
-opentelemetry-otlp = { version = "*", default-features = false, features = [
+opentelemetry = { version = "0.24.0", features = ["trace"] }
+opentelemetry_sdk = { version = "0.24.1", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.17.0", default-features = false, features = [
     "reqwest-rustls",
     "http-proto",
     "tls",
     "grpc-tonic"
 ] }
-opentelemetry-appender-tracing = { version = "*" }
-opentelemetry-http = { version = "*" }
-tracing-opentelemetry = { version = "*" }
+opentelemetry-appender-tracing = { version = "0.5.0" }
+opentelemetry-http = { version = "0.13.0" }
+tracing-opentelemetry = { version = "0.25.0" }
 telemetry_axum = { path = "./telemetry_axum" }
