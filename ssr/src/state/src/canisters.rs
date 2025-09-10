@@ -237,7 +237,7 @@ impl Default for AuthState {
                 MockPartialEq(())
             },
             move |_| async move {
-                if let Some(princ) = user_principal_cookie.0.get_untracked() {
+                if let Some(princ) = user_principal_cookie.0.try_get_untracked().flatten() {
                     return Ok(princ);
                 }
 
