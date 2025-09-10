@@ -1,12 +1,12 @@
 use candid::Principal;
 use hon_worker_common::GameInfo;
-use hon_worker_common::GameRes;
+use hon_worker_common::GameResV4WithCanister;
 use hon_worker_common::GameResult;
 use leptos::html;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::hooks::use_location;
-use yral_canisters_common::cursored_data::vote::VotesWithSatsProviderV3;
+use yral_canisters_common::cursored_data::vote::VotesWithSatsProviderV4;
 use yral_canisters_common::utils::token::balance::TokenBalance;
 use yral_metadata_client::MetadataClient;
 
@@ -68,19 +68,23 @@ pub fn FallbackUser() -> impl IntoView {
 }
 
 #[component]
-pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView {
+pub fn Speculation(details: GameResV4WithCanister, _ref: NodeRef<html::Div>) -> impl IntoView {
     // TODO: enable scrolling videos for bets
-    let profile_post_url = format!("/post/{}/{}", details.post_canister, details.post_id);
+    let profile_post_url = format!(
+        "/post/{}/{}",
+        details.post_creator_canister, details.post_id
+    );
 
-    let bet_canister = details.post_canister;
+    let bet_canister = details.post_creator_canister;
 
+    let post_id = details.post_id.clone();
     let post_details = Resource::new(
-        move || (bet_canister, details.post_id),
+        move || (bet_canister, post_id.clone()),
         move |(canister_id, post_id)| {
             send_wrap(async move {
                 let canister = unauth_canisters();
                 canister
-                    .get_post_details(canister_id, post_id)
+                    .get_post_details(canister_id, post_id.to_string())
                     .await
                     .ok()
                     .flatten()
@@ -194,7 +198,7 @@ pub fn Speculation(details: GameRes, _ref: NodeRef<html::Div>) -> impl IntoView 
 pub fn ProfileSpeculations(user_canister: Principal, user_principal: Principal) -> impl IntoView {
     let _ = user_canister;
     let metadata_client = MetadataClient::default();
-    let provider = VotesWithSatsProviderV3::new(user_principal, metadata_client);
+    let provider = VotesWithSatsProviderV4::new(user_principal, metadata_client);
     let location = use_location();
     let empty_text = if location
         .pathname

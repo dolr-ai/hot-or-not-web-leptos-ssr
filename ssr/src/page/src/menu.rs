@@ -94,7 +94,7 @@ fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
         <img class="size-12 md:size-14 lg:size-16 rounded-full aspect-square object-cover" src=user_details.profile_pic_or_random() />
         <div class="flex flex-col gap-2 w-full">
             <span class="text-lg md:text-xl text-neutral-50 text-ellipsis line-clamp-1 font-semibold">
-                @{user_details.display_name_or_fallback()}
+                @{user_details.username_or_fallback()}
             </span>
             <span class="text-xs md:text-sm text-neutral-400 line-clamp-1">{user_details.principal()}</span>
         </div>
