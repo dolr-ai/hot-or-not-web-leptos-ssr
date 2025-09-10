@@ -105,7 +105,7 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
                     // Contest countdown badge
                     <div class="inline-flex items-center gap-1.5 bg-neutral-900 rounded-full px-2 py-1">
                         <span class="text-neutral-400 text-[10px] font-normal">
-                            "Contest ends on:"
+                            "Contest ends in:"
                         </span>
                         <span class="text-neutral-50 text-[10px] font-medium">{move || time_remaining.get()}</span>
                     </div>
