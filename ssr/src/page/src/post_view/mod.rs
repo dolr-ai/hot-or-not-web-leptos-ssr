@@ -34,10 +34,10 @@ use utils::{
 use video_iter::{new_video_fetch_stream, new_video_fetch_stream_auth, FeedResultType};
 use yral_canisters_common::{utils::posts::PostDetails, Canisters};
 
-#[derive(Params, PartialEq, Clone, Copy)]
+#[derive(Params, PartialEq, Clone)]
 struct PostParams {
     canister_id: Principal,
-    post_id: u64,
+    post_id: String,
 }
 
 #[derive(Clone, Default)]
@@ -58,7 +58,7 @@ pub struct PostViewCtx {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MlPostItem {
     canister_id: Principal,
-    post_id: u64,
+    post_id: String,
     video_uid: String,
     publisher_user_id: Principal,
     nsfw_probability: f32,
@@ -78,7 +78,7 @@ impl std::cmp::Eq for MlPostItem {}
 impl std::hash::Hash for MlPostItem {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.canister_id.hash(state);
-        state.write_u64(self.post_id);
+        state.write(self.post_id.as_bytes());
     }
 }
 
@@ -109,7 +109,7 @@ impl PostDetailResolver for MlPostItem {
         QuickPostDetails {
             video_uid: self.video_uid.clone(),
             canister_id: self.canister_id,
-            post_id: self.post_id,
+            post_id: self.post_id.clone(),
             publisher_user_id: self.publisher_user_id,
             nsfw_probability: self.nsfw_probability,
         }
@@ -119,14 +119,14 @@ impl PostDetailResolver for MlPostItem {
         let canisters = unauth_canisters();
         let post_details = send_wrap(canisters.get_post_details_with_nsfw_info(
             self.canister_id,
-            self.post_id,
+            self.post_id.clone(),
             Some(self.nsfw_probability),
         ))
         .await?;
         let post_details = post_details.ok_or_else(|| {
             ServerFnError::new(format!(
                 "Couldn't find post {}/{}",
-                self.canister_id, self.post_id
+                self.canister_id, &self.post_id
             ))
         })?;
 
@@ -215,7 +215,7 @@ pub fn CommonPostViewWithUpdates(
         video_queue.with(|q| {
             let cur_idx = current_idx();
             let details = q.get_index(cur_idx)?;
-            Some((details.canister_id, details.post_id))
+            Some((details.canister_id, details.post_id.clone()))
         })
     });
 
@@ -225,7 +225,7 @@ pub fn CommonPostViewWithUpdates(
         };
         current_post_params.set(Some(utils::types::PostParams {
             canister_id,
-            post_id,
+            post_id: post_id.clone(),
         }));
 
         // Using browser history push to ensure that the browser doesn't try
@@ -532,13 +532,13 @@ pub fn PostView() -> impl IntoView {
 
             // this cache is never written to? so what's the point of this?
             let post_nsfw_prob = post_details_cache.post_details.with_untracked(|p| {
-                p.get(&(params.canister_id, params.post_id))
+                p.get(&(params.canister_id, params.post_id.clone()))
                     .map(|i| i.nsfw_probability)
             });
 
             match send_wrap(canisters.get_post_details_with_nsfw_info(
                 params.canister_id,
-                params.post_id,
+                params.post_id.clone(),
                 post_nsfw_prob,
             ))
             .await

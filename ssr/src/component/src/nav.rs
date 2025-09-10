@@ -145,7 +145,8 @@ fn NavIcon(
             .same_site(leptos_use::SameSite::Lax),
     );
 
-    let on_click = move |_| {
+    let on_click = move |ev: leptos::ev::MouseEvent| {
+        // Track Mixpanel event first
         if let (Some(user), Some(canister)) = (
             user_principal.get_untracked(),
             user_canister.get_untracked(),
@@ -163,6 +164,14 @@ fn NavIcon(
                 MixPanelEvent::track_bottom_navigation_clicked(global, category_name);
             }
         }
+
+        // Check if this is the Home button and perform hard refresh
+        // if icon == HomeSymbol {
+        //     ev.prevent_default();
+        //     if let Some(window) = use_window().as_ref() {
+        //         let _ = window.location().set_href("/");
+        //     }
+        // }
     };
     view! {
         <a href=href on:click=on_click class="flex justify-center items-center">

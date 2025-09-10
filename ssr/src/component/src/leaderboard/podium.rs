@@ -6,6 +6,7 @@ use yral_canisters_common::utils::profile::ProfileDetails;
 pub fn TournamentPodium(
     winners: Vec<LeaderboardEntry>,
     winner_profiles: Vec<Option<ProfileDetails>>,
+    #[prop(optional)] prize_token: String,
 ) -> impl IntoView {
     // Ensure we have exactly 3 winners
     if winners.len() < 3 {
@@ -131,9 +132,17 @@ pub fn TournamentPodium(
                                 </div>
                                 <div class="flex items-center justify-center gap-1">
                                     <span class="text-sm font-bold text-white">
-                                        {winner.reward.unwrap_or(0)}
+                                        {if prize_token == "CKBTC" {
+                                            format!("${}", winner.reward.unwrap_or(0))
+                                        } else {
+                                            winner.reward.unwrap_or(0).to_string()
+                                        }}
                                     </span>
-                                    <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
+                                    <img src={if prize_token == "CKBTC" {
+                                        "/img/hotornot/bitcoin.svg"
+                                    } else {
+                                        "/img/yral/yral-token.webp"
+                                    }} alt="" class="w-[17px] h-[18px]" />
                                 </div>
                             </div>
                         </div>
@@ -150,9 +159,17 @@ pub fn TournamentPodium(
                                 </div>
                                 <div class="flex items-center justify-center gap-1">
                                     <span class="text-sm font-bold text-white">
-                                        {winner.reward.unwrap_or(0)}
+                                        {if prize_token == "CKBTC" {
+                                            format!("${}", winner.reward.unwrap_or(0))
+                                        } else {
+                                            winner.reward.unwrap_or(0).to_string()
+                                        }}
                                     </span>
-                                    <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
+                                    <img src={if prize_token == "CKBTC" {
+                                        "/img/hotornot/bitcoin.svg"
+                                    } else {
+                                        "/img/yral/yral-token.webp"
+                                    }} alt="" class="w-[17px] h-[18px]" />
                                 </div>
                             </div>
                         </div>
@@ -169,9 +186,17 @@ pub fn TournamentPodium(
                                 </div>
                                 <div class="flex items-center justify-center gap-1">
                                     <span class="text-sm font-bold text-white">
-                                        {winner.reward.unwrap_or(0)}
+                                        {if prize_token == "CKBTC" {
+                                            format!("${}", winner.reward.unwrap_or(0))
+                                        } else {
+                                            winner.reward.unwrap_or(0).to_string()
+                                        }}
                                     </span>
-                                    <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
+                                    <img src={if prize_token == "CKBTC" {
+                                        "/img/hotornot/bitcoin.svg"
+                                    } else {
+                                        "/img/yral/yral-token.webp"
+                                    }} alt="" class="w-[17px] h-[18px]" />
                                 </div>
                             </div>
                         </div>

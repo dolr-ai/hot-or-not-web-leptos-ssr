@@ -14,6 +14,7 @@ use page::pumpdump;
 use page::root::YralRootPage;
 use page::terms_android::TermsAndroid;
 use page::terms_ios::TermsIos;
+use page::upload::{UploadAiPostPage, UploadPostPage};
 use page::{
     err::ServerErrorPage,
     logout::Logout,
@@ -29,7 +30,7 @@ use page::{
     settings::Settings,
     terms::TermsOfService,
     token::{info::TokenInfo, transfer::TokenTransfer},
-    upload::{UploadAiPostPage, UploadOptionsPage, UploadPostPage},
+    upload::UploadOptionsPage,
     wallet::Wallet,
 };
 use state::app_state::AppState;

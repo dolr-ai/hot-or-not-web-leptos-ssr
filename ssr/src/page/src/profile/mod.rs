@@ -125,7 +125,7 @@ fn ListSwitcher1(user_canister: Principal, user_principal: Principal) -> impl In
 
         <div class="flex flex-col gap-y-12 justify-center pb-12 w-11/12 sm:w-7/12">
             <Show when=move || current_tab() == 0>
-                <ProfilePosts user_canister />
+                <ProfilePosts user_canister user_principal />
             </Show>
             <Show when=move || current_tab() == 1>
                 <ProfileSpeculations user_canister user_principal />
