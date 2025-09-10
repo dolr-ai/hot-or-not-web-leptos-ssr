@@ -145,7 +145,7 @@ fn NavIcon(
             .same_site(leptos_use::SameSite::Lax),
     );
 
-    let on_click = move |ev: leptos::ev::MouseEvent| {
+    let on_click = move |_ev: leptos::ev::MouseEvent| {
         // Track Mixpanel event first
         if let (Some(user), Some(canister)) = (
             user_principal.get_untracked(),
