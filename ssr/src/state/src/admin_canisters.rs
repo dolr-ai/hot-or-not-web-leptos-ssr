@@ -2,7 +2,8 @@ use candid::Principal;
 use ic_agent::Identity;
 use leptos::prelude::*;
 use yral_canisters_client::{
-    individual_user_template::IndividualUserTemplate, sns_swap::SnsSwap, user_index::UserIndex,
+    ic::USER_INFO_SERVICE_ID, individual_user_template::IndividualUserTemplate, sns_swap::SnsSwap,
+    user_index::UserIndex, user_info_service::UserInfoService,
 };
 use yral_canisters_common::agent_wrapper::AgentWrapper;
 
@@ -20,6 +21,11 @@ impl AdminCanisters {
 
     pub fn principal(&self) -> Principal {
         self.agent.principal().unwrap()
+    }
+
+    pub async fn user_info_service(&self) -> UserInfoService<'_> {
+        let agent = self.agent.get_agent().await;
+        UserInfoService(USER_INFO_SERVICE_ID, agent)
     }
 
     pub async fn get_agent(&self) -> &ic_agent::Agent {

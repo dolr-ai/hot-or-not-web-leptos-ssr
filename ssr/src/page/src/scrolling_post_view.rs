@@ -24,7 +24,7 @@ impl PostDetailResolver for PostDetails {
         QuickPostDetails {
             video_uid: self.uid.clone(),
             canister_id: self.canister_id,
-            post_id: self.post_id,
+            post_id: self.post_id.clone(),
             publisher_user_id: self.poster_principal,
             nsfw_probability: self.nsfw_probability,
         }

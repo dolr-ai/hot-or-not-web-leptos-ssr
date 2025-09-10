@@ -16,7 +16,7 @@ pub struct QuickPostDetails {
     pub canister_id: Principal,
     pub publisher_user_id: Principal,
     pub nsfw_probability: f32,
-    pub post_id: u64,
+    pub post_id: String,
 }
 
 impl From<PostDetails> for QuickPostDetails {
