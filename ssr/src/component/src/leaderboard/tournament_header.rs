@@ -76,8 +76,8 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
                 <div class="flex-1">
                     // Prize pool line
                     <div class="flex items-center gap-1.5 mb-1">
-                        <span class="text-xl font-bold text-white">"Win upto "</span>
-                        <span class="text-xl font-bold text-[#FFEF00]">
+                        <span class={if tournament.prize_token == "CKBTC" { "text-md font-bold text-white" } else { "text-xl font-bold text-white" }}>"Win upto "</span>
+                        <span class={if tournament.prize_token == "CKBTC" { "text-md font-bold text-[#FFEF00]" } else { "text-xl font-bold text-[#FFEF00]" }}>
                             {if tournament.prize_token == "CKBTC" {
                                 format!("${} BITCOIN", format_with_commas(tournament.prize_pool as u64))
                             } else {
@@ -95,7 +95,6 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
 
                     // Today text
                     <div class="text-lg font-bold text-white mb-2">
-                        "Today!"
                     </div>
 
                     // Subtitle
