@@ -9,6 +9,7 @@ use component::leaderboard::{
     tournament_header::TournamentHeader,
     types::{LeaderboardEntry, TournamentInfo, UserInfo},
 };
+use component::login_modal::LoginModal;
 use leptos::{html, prelude::*};
 use leptos_router::hooks::use_navigate;
 #[cfg(feature = "hydrate")]
@@ -73,6 +74,10 @@ pub fn Leaderboard() -> impl IntoView {
     let auth = auth_state();
     let navigate = use_navigate();
 
+    // Login modal state
+    let show_login_modal = RwSignal::new(false);
+    let is_logged_in = auth.is_logged_in_with_oauth();
+
     // State management
     let (tournament_info, set_tournament_info) = signal(None::<TournamentInfo>);
     let (upcoming_tournament_info, set_upcoming_tournament_info) = signal(None::<TournamentInfo>);
@@ -81,6 +86,13 @@ pub fn Leaderboard() -> impl IntoView {
     let (provider_key, set_provider_key) = signal(0u32); // Key to force provider refresh
     let show_completion_popup = RwSignal::new(false);
     let (user_row_visible, set_user_row_visible) = signal(false); // Track if user's actual row is visible
+
+    // Check login status on mount
+    Effect::new(move |_| {
+        if !is_logged_in.get() {
+            show_login_modal.set(true);
+        }
+    });
 
     // Fetch tournament info and user info once
     let tournament_resource = LocalResource::new(move || async move {
@@ -467,6 +479,13 @@ pub fn Leaderboard() -> impl IntoView {
                     popup_view
                 }
             </Show>
+
+            // Login Modal
+            <LoginModal
+                show=show_login_modal
+                redirect_to=None
+                text="Login to participate in leaderboard and earn Bitcoin.".to_string()
+            />
         </div>
     }
 }
