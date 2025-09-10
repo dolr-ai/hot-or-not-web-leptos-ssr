@@ -152,6 +152,7 @@ pub fn LoginProviders(
     lock_closing: RwSignal<bool>,
     redirect_to: Option<String>,
     #[prop(optional, into)] reload_window: bool,
+    #[prop(optional)] text: String,
 ) -> impl IntoView {
     let auth = auth_state();
 
@@ -264,7 +265,21 @@ pub fn LoginProviders(
                 <div class="flex relative flex-col gap-8 justify-center items-center py-10 px-12 text-white z-[2]">
                     <img src="/img/common/join-yral.webp" class="object-contain h-52" />
                     <div class="text-base font-bold text-center">
-                        "Login in to watch, play & earn Bitcoin."
+                        {if text.is_empty() {
+                            view! {
+                                <span>
+                                    "Login in to watch, play & earn Bitcoin"
+                                    <img src="/img/hotornot/bitcoin.svg" alt="Bitcoin" class="w-4 h-4 inline ml-0.5 -mt-0.5" />
+                                </span>
+                            }.into_any()
+                        } else {
+                            view! {
+                                <span>
+                                    {text}
+                                    <img src="/img/hotornot/bitcoin.svg" alt="Bitcoin" class="w-4 h-4 inline ml-0.5 -mt-0.5" />
+                                </span>
+                            }.into_any()
+                        }}
                     </div>
                     <div class="flex flex-col gap-4 items-center w-full">
                         {
