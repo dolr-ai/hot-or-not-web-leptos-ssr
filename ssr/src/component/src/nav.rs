@@ -46,12 +46,7 @@ fn yral_nav_items() -> Vec<NavItem> {
             render_data: NavItemRenderData::Icon {
                 icon: HomeSymbol,
                 filled_icon: Some(HomeSymbolFilled),
-                href: Signal::derive(move || {
-                    current_post_params
-                        .get()
-                        .map(|f| format!("/hot-or-not/{}/{}", f.canister_id, f.post_id))
-                        .unwrap_or("/".to_string())
-                }),
+                href: "/".into(),
             },
             cur_selected: Signal::derive(move || {
                 matches!(path.get().as_str(), "/") || path.get().contains("/hot-or-not")

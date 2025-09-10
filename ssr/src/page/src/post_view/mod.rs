@@ -47,7 +47,7 @@ pub struct PostViewCtx {
     // We're using virtual lists for DOM, so this doesn't consume much memory
     // as uids only occupy 32 bytes each
     // but ideally this should be cleaned up
-    video_queue: RwSignal<IndexSet<MlPostItem>>,
+    pub video_queue: RwSignal<IndexSet<MlPostItem>>,
     video_queue_for_feed: RwSignal<Vec<FeedPostCtx<MlPostItem>>>,
     current_idx: RwSignal<usize>,
     queue_end: RwSignal<bool>,
@@ -172,15 +172,17 @@ pub fn CommonPostViewWithUpdates(
     } = expect_context();
 
     let recovering_state = RwSignal::new(false);
+    fetch_cursor.update_untracked(|f| {
+        // we've already fetched posts
+        if video_queue.with_untracked(|q| !q.is_empty()) || queue_end.get_untracked() {
+            recovering_state.set(true);
+            return;
+        }
+
+        // ngl, not sure what this does
+        f.start = 1;
+    });
     if !initial_posts.is_empty() {
-        fetch_cursor.update_untracked(|f| {
-            // we've already fetched the first posts
-            if f.start > 1 || queue_end.get_untracked() {
-                recovering_state.set(true);
-                return;
-            }
-            f.start = 1;
-        });
         video_queue.update_untracked(|v| {
             if v.len() > 1 {
                 return;
