@@ -39,15 +39,26 @@ pub fn TournamentHistoryCard(tournament: TournamentHistoryEntry) -> impl IntoVie
             <div class="flex flex-col gap-3">
                 // First row - Prize pool line (full width)
                 <div class="flex items-center gap-2">
-                    <span class="text-white text-base font-bold">
+                    <span class={if tournament.prize_token == "CKBTC" { "text-white text-sm font-bold" } else { "text-white text-base font-bold" }}>
                         "Upto"
                     </span>
-                    <span class="text-[#FFEF00] text-base font-bold">
-                        {tournament.prize_pool.to_string()}
+                    <span class={if tournament.prize_token == "CKBTC" { "text-[#FFEF00] text-sm font-bold" } else { "text-[#FFEF00] text-base font-bold" }}>
+                        {if tournament.prize_token == "CKBTC" {
+                            format!("${} BITCOIN", tournament.prize_pool as u64)
+                        } else {
+                            tournament.prize_pool.to_string()
+                        }}
                     </span>
-                    // YRAL token icon
-                    <img src="/img/yral/yral-token.webp" alt="" class="w-[18px] h-[18px]" />
-                    <span class="text-white text-base font-bold">
+                    {if tournament.prize_token != "CKBTC" {
+                        view! {
+                            <img src="/img/yral/yral-token.webp" alt="" class="w-[18px] h-[18px]" />
+                        }.into_any()
+                    } else {
+                        view! {
+                            <img src="/img/hotornot/bitcoin.svg" alt="" class="w-[18px] h-[18px]" />
+                        }.into_any()
+                    }}
+                    <span class={if tournament.prize_token == "CKBTC" { "text-white text-sm font-bold" } else { "text-white text-base font-bold" }}>
                         "Shared by top 10 winners"
                     </span>
                 </div>
