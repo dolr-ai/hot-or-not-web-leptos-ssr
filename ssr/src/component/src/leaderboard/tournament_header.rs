@@ -79,7 +79,7 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
                         <span class="text-xl font-bold text-white">"Win upto "</span>
                         <span class="text-xl font-bold text-[#FFEF00]">
                             {if tournament.prize_token == "CKBTC" {
-                                format!("${}", format_with_commas(tournament.prize_pool as u64))
+                                format!("${} BITCOIN", format_with_commas(tournament.prize_pool as u64))
                             } else {
                                 format_with_commas(tournament.prize_pool as u64)
                             }}

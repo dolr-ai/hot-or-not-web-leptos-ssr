@@ -8,7 +8,7 @@ use consts::{
 use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_router::hooks::use_location;
-use leptos_use::{use_cookie, use_cookie_with_options, UseCookieOptions};
+use leptos_use::{use_cookie, use_cookie_with_options, use_window, UseCookieOptions};
 use utils::{
     mixpanel::mixpanel_events::{BottomNavigationCategory, MixPanelEvent, MixpanelGlobalProps},
     types::PostParams,
@@ -152,7 +152,8 @@ fn NavIcon(
             .same_site(leptos_use::SameSite::Lax),
     );
 
-    let on_click = move |_| {
+    let on_click = move |ev: leptos::ev::MouseEvent| {
+        // Track Mixpanel event first
         if let (Some(user), Some(canister)) = (
             user_principal.get_untracked(),
             user_canister.get_untracked(),
@@ -168,6 +169,14 @@ fn NavIcon(
                     None,
                 );
                 MixPanelEvent::track_bottom_navigation_clicked(global, category_name);
+            }
+        }
+
+        // Check if this is the Home button and perform hard refresh
+        if icon == HomeSymbol {
+            ev.prevent_default();
+            if let Some(window) = use_window().as_ref() {
+                let _ = window.location().set_href("/");
             }
         }
     };

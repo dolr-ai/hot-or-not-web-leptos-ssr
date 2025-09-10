@@ -44,7 +44,7 @@ pub fn TournamentHistoryCard(tournament: TournamentHistoryEntry) -> impl IntoVie
                     </span>
                     <span class="text-[#FFEF00] text-base font-bold">
                         {if tournament.prize_token == "CKBTC" {
-                            format!("${}", tournament.prize_pool as u64)
+                            format!("${} BITCOIN", tournament.prize_pool as u64)
                         } else {
                             tournament.prize_pool.to_string()
                         }}
