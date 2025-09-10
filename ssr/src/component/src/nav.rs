@@ -9,9 +9,8 @@ use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_router::hooks::use_location;
 use leptos_use::{use_cookie, use_cookie_with_options, UseCookieOptions};
-use utils::{
-    mixpanel::mixpanel_events::{BottomNavigationCategory, MixPanelEvent, MixpanelGlobalProps},
-    types::PostParams,
+use utils::mixpanel::mixpanel_events::{
+    BottomNavigationCategory, MixPanelEvent, MixpanelGlobalProps,
 };
 
 #[derive(Clone)]
