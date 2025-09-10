@@ -14,7 +14,7 @@ use utils::ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw};
 use utils::try_or_redirect_opt;
 use yral_types::post::PostItemV3;
 
-use crate::post_view::PostViewWithUpdatesMLFeed;
+use crate::post_view::{PostViewCtx, PostViewWithUpdatesMLFeed};
 
 #[server]
 async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerFnError> {
@@ -60,8 +60,15 @@ pub fn YralRootPage() -> impl IntoView {
             .same_site(leptos_use::SameSite::Lax),
     );
 
+    let PostViewCtx { video_queue, .. } = expect_context();
+
     let initial_posts = Resource::new(params, move |params_map| {
         async move {
+            // we already have videos and can therefore avoid loading more posts
+            if video_queue.with_untracked(|q| !q.is_empty()) {
+                return Ok(Default::default());
+            }
+
             // Check query param first, then cookie, then show_nsfw_content
             let nsfw_from_query = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
             let nsfw_enabled = nsfw_from_query
