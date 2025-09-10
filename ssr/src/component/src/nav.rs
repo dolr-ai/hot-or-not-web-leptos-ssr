@@ -39,7 +39,6 @@ fn yral_nav_items() -> Vec<NavItem> {
             .path("/")
             .max_age(AUTH_UTIL_COOKIES_MAX_AGE_MS),
     );
-    let current_post_params: RwSignal<Option<PostParams>> = expect_context();
 
     vec![
         NavItem {
