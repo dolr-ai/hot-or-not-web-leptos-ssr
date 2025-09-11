@@ -3174,7 +3174,7 @@ checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 [[package]]
 name = "global-constants"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata#562aa69c04321142806f741356cd9f95c99bab53"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#2b21ebab12c43ef35d233ef8ad8e2772794a497a"
 dependencies = [
  "candid",
  "num-bigint",
@@ -3820,7 +3820,7 @@ dependencies = [
 [[package]]
 name = "hon-worker-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata#562aa69c04321142806f741356cd9f95c99bab53"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#2b21ebab12c43ef35d233ef8ad8e2772794a497a"
 dependencies = [
  "candid",
  "global-constants",
@@ -3830,7 +3830,7 @@ dependencies = [
  "serde_with 3.14.0",
  "thiserror 2.0.16",
  "url",
- "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata)",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
 ]
 
 [[package]]
@@ -6755,7 +6755,7 @@ dependencies = [
  "web-time",
  "yral-canisters-client",
  "yral-canisters-common",
- "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata)",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
  "yral-metadata-client",
  "yral-metadata-types",
  "yral-pump-n-dump-common",
@@ -7242,7 +7242,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be769465445e8c1474e9c5dac2018218498557af32d9ed057325ec9a41ae81bf"
 dependencies = [
  "heck 0.4.1",
- "itertools 0.14.0",
+ "itertools 0.10.5",
  "log",
  "multimap",
  "once_cell",
@@ -7262,7 +7262,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a56d757972c98b346a9b766e3f02746cde6dd1cd1d1d563472929fdd74bec4d"
 dependencies = [
  "anyhow",
- "itertools 0.14.0",
+ "itertools 0.10.5",
  "proc-macro2",
  "quote",
  "syn 2.0.106",
@@ -8965,7 +8965,7 @@ dependencies = [
 [[package]]
 name = "sns-validation"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata#562aa69c04321142806f741356cd9f95c99bab53"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#2b21ebab12c43ef35d233ef8ad8e2772794a497a"
 dependencies = [
  "candid",
  "humantime",
@@ -10474,7 +10474,7 @@ dependencies = [
  "web-time",
  "yral-canisters-client",
  "yral-canisters-common",
- "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata)",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
  "yral-metadata-client",
  "yral-metadata-types",
  "yral-testcontainers",
@@ -10576,7 +10576,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 [[package]]
 name = "videogen-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata#562aa69c04321142806f741356cd9f95c99bab53"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#2b21ebab12c43ef35d233ef8ad8e2772794a497a"
 dependencies = [
  "candid",
  "enum_dispatch",
@@ -10591,7 +10591,7 @@ dependencies = [
  "utoipa",
  "web-sys",
  "yral-canisters-client",
- "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata)",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
  "yral-types",
 ]
 
@@ -11265,7 +11265,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-client"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata#562aa69c04321142806f741356cd9f95c99bab53"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#2b21ebab12c43ef35d233ef8ad8e2772794a497a"
 dependencies = [
  "anyhow",
  "candid",
@@ -11285,7 +11285,7 @@ dependencies = [
 [[package]]
 name = "yral-canisters-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata#562aa69c04321142806f741356cd9f95c99bab53"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#2b21ebab12c43ef35d233ef8ad8e2772794a497a"
 dependencies = [
  "async-trait",
  "candid",
@@ -11312,7 +11312,7 @@ dependencies = [
  "url",
  "web-time",
  "yral-canisters-client",
- "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata)",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
  "yral-metadata-client",
  "yral-metadata-types",
  "yral-pump-n-dump-common",
@@ -11323,7 +11323,7 @@ dependencies = [
 [[package]]
 name = "yral-identity"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata#562aa69c04321142806f741356cd9f95c99bab53"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#2b21ebab12c43ef35d233ef8ad8e2772794a497a"
 dependencies = [
  "candid",
  "getrandom 0.2.16",
@@ -11338,7 +11338,7 @@ dependencies = [
 [[package]]
 name = "yral-identity"
 version = "0.1.0"
-source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#0e1b43c3955f1cd61c7fd9f11f7735713c2da717"
+source = "git+https://github.com/yral-dapp/yral-common.git?branch=master#2b21ebab12c43ef35d233ef8ad8e2772794a497a"
 dependencies = [
  "candid",
  "ic-agent",
@@ -11377,7 +11377,7 @@ dependencies = [
 [[package]]
 name = "yral-pump-n-dump-common"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata#562aa69c04321142806f741356cd9f95c99bab53"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#2b21ebab12c43ef35d233ef8ad8e2772794a497a"
 dependencies = [
  "candid",
  "ic-agent",
@@ -11386,7 +11386,7 @@ dependencies = [
  "url",
  "uuid",
  "yral-canisters-client",
- "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata)",
+ "yral-identity 0.1.0 (git+https://github.com/dolr-ai/yral-common.git?branch=master)",
 ]
 
 [[package]]
@@ -11403,7 +11403,7 @@ dependencies = [
 [[package]]
 name = "yral-types"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata#562aa69c04321142806f741356cd9f95c99bab53"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#2b21ebab12c43ef35d233ef8ad8e2772794a497a"
 dependencies = [
  "ic-agent",
  "k256",
@@ -11416,7 +11416,7 @@ dependencies = [
 [[package]]
 name = "yral-username-gen"
 version = "0.1.0"
-source = "git+https://github.com/dolr-ai/yral-common.git?branch=feat%2Fupdate-post-details-utils-functions-to-fetch-username-from-metadata#562aa69c04321142806f741356cd9f95c99bab53"
+source = "git+https://github.com/dolr-ai/yral-common.git?branch=master#2b21ebab12c43ef35d233ef8ad8e2772794a497a"
 dependencies = [
  "candid",
  "rand 0.9.2",

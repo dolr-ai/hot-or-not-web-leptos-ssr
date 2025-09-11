@@ -25,10 +25,9 @@ pub struct Notification(pub RwSignal<Option<serde_json::Value>>);
 fn CtxProvider(children: Children) -> impl IntoView {
     let auth = AuthState::default();
 
-    let rank_update_count = use_context::<RwSignal<RankUpdateCounter>>()
-        .expect("RankUpdateCounter should be provided globally");
-    let global_rank =
-        use_context::<RwSignal<UserRank>>().expect("UserRank should be provided globally");
+    let rank_update_count = expect_context::<RwSignal<RankUpdateCounter>>();
+
+    let global_rank = expect_context::<RwSignal<UserRank>>();
 
     let global_rank_resource = auth.derive_resource(
         move || rank_update_count.get().0,
