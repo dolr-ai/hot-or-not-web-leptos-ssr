@@ -170,8 +170,8 @@ pub fn App() -> impl IntoView {
                 <Routes fallback=|| view! { <NotFound /> }.into_view()>
                     // auth redirect routes exist outside main context
                     <GoogleAuthRedirectHandlerRoute />
-                    <Route path=path!("/") view=YralRootPage />
                     <ParentRoute path=path!("") view=BaseRoute>
+                    <Route path=path!("/") view=YralRootPage />
                         // TODO: enable when SATS are added back
                         // <Route
                         //     path=path!("/hot-or-not/withdraw")

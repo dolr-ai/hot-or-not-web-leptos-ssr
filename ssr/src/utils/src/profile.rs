@@ -19,6 +19,7 @@ pub struct PostsProvider {
     canisters: Canisters<false>,
     video_queue: RwSignal<IndexSet<PostDetails>>,
     start_index: RwSignal<usize>,
+    username: Option<String>,
     user_principal: Principal,
     user_canister: Principal,
 }
@@ -28,12 +29,14 @@ impl PostsProvider {
         canisters: Canisters<false>,
         video_queue: RwSignal<IndexSet<PostDetails>>,
         start_index: RwSignal<usize>,
+        username: String,
         user_principal: Principal,
         user_canister: Principal,
     ) -> Self {
         Self {
             canisters,
             video_queue,
+            username: Some(username),
             user_principal,
             start_index,
             user_canister,
@@ -77,7 +80,13 @@ impl CursoredDataProvider for PostsProvider {
 
                 let post_details: Vec<PostDetails> = posts
                     .into_iter()
-                    .map(|post| PostDetails::from_service_post_anonymous(self.user_canister, post))
+                    .map(|post| {
+                        PostDetails::from_service_post_anonymous(
+                            self.username.clone(),
+                            self.user_canister,
+                            post,
+                        )
+                    })
                     .collect();
 
                 let post_details_indexset: IndexSet<PostDetails> =
@@ -115,7 +124,12 @@ impl CursoredDataProvider for PostsProvider {
                 let post_details: Vec<PostDetails> = posts
                     .into_iter()
                     .map(|details| {
-                        PostDetails::from_canister_post(false, self.user_canister, details)
+                        PostDetails::from_canister_post(
+                            false,
+                            self.username.clone(),
+                            self.user_canister,
+                            details,
+                        )
                     })
                     .collect();
                 let post_details_indexset: IndexSet<PostDetails> =
