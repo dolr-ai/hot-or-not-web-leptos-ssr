@@ -186,12 +186,15 @@ mod alloydb {
         use yral_canisters_common::Canisters;
 
         let cans: Canisters<false> = expect_context();
-        
+
         tracing::info!("Fetching post details for post_id: {}", req.post_id);
         let post_details_span = tracing::info_span!("fetch_post_details");
-        let Some(post_info) = post_details_span.in_scope(|| async {
-            cans.get_post_details(req.post_canister, req.post_id.clone()).await
-        }).await?
+        let Some(post_info) = post_details_span
+            .in_scope(|| async {
+                cans.get_post_details(req.post_canister, req.post_id.clone())
+                    .await
+            })
+            .await?
         else {
             tracing::warn!("Post not found: {}", req.post_id);
             return Err(ServerFnError::new("post not found"));
@@ -244,9 +247,9 @@ mod alloydb {
         tracing::info!("Executing AlloyDB video comparison query");
         let alloydb_span = tracing::info_span!("alloydb_video_comparison");
         let alloydb: AlloyDbInstance = expect_context();
-        let mut res = alloydb_span.in_scope(|| async {
-            alloydb.execute_sql_raw(query).await
-        }).await?;
+        let mut res = alloydb_span
+            .in_scope(|| async { alloydb.execute_sql_raw(query).await })
+            .await?;
         let mut res = res.sql_results.pop().ok_or_else(|| {
             ServerFnError::new(
                 "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a result",
@@ -289,17 +292,19 @@ mod alloydb {
         let req_url = format!("{WORKER_URL}v4/vote/{sender}");
         let client = reqwest::Client::new();
         let jwt = expect_context::<HonWorkerJwt>();
-        
+
         tracing::info!("Sending vote request to worker API");
         let worker_span = tracing::info_span!("worker_api_call", url = %req_url);
-        let res = worker_span.in_scope(|| async {
-            client
-                .post(&req_url)
-                .json(&worker_req)
-                .header("Authorization", format!("Bearer {}", jwt.0))
-                .send()
-                .await
-        }).await?;
+        let res = worker_span
+            .in_scope(|| async {
+                client
+                    .post(&req_url)
+                    .json(&worker_req)
+                    .header("Authorization", format!("Bearer {}", jwt.0))
+                    .send()
+                    .await
+            })
+            .await?;
 
         if res.status() != reqwest::StatusCode::OK {
             return Err(ServerFnError::new(format!(
@@ -319,7 +324,7 @@ mod alloydb {
             tokio::spawn(async move {
                 let leaderboard_span = tracing::info_span!("leaderboard_update", user = %sender);
                 let _guard = leaderboard_span.enter();
-                
+
                 if let Err(e) = update_leaderboard_score(
                     sender,
                     1.0, // Increment games played by 1
@@ -327,11 +332,7 @@ mod alloydb {
                 )
                 .await
                 {
-                    tracing::error!(
-                        "Failed to update leaderboard for user {}: {:?}",
-                        sender,
-                        e
-                    );
+                    tracing::error!("Failed to update leaderboard for user {}: {:?}", sender, e);
                 } else {
                     tracing::info!("Successfully updated leaderboard for user {}", sender);
                 }
