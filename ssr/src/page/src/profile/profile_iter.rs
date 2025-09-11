@@ -50,7 +50,12 @@ impl<const LIMIT: u64> ProfVideoStream<LIMIT> for ProfileVideoStream<LIMIT> {
                     .into_iter()
                     .map(|mut details| {
                         details.created_by_unique_user_name = username.clone();
-                        PostDetails::from_canister_post(AUTH, user_canister, details)
+                        PostDetails::from_canister_post(
+                            AUTH,
+                            username.clone(),
+                            user_canister,
+                            details,
+                        )
                     })
                     .collect::<Vec<_>>();
                 Ok(PostsRes { posts, end })
