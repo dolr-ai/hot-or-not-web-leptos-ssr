@@ -171,7 +171,7 @@ ssr = [
     "dep:tracing-futures",
     "dep:sentry",
     "dep:sentry-tower",
-    # "enable-oltp",
+    "enable-oltp",
 ]
 # Fetch mock referral history instead of history via canister
 mock-referral-history = [
