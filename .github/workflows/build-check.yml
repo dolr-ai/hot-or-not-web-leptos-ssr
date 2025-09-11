@@ -49,8 +49,8 @@ jobs:
       - name: cargo-leptos setup
         run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked
 
-      - name: Cache rust dependencies and build output
-        uses: Swatinem/rust-cache@v2
+      # - name: Cache rust dependencies and build output
+      #   uses: Swatinem/rust-cache@v2
 
       - name: Install Node.js
         uses: actions/setup-node@v4
