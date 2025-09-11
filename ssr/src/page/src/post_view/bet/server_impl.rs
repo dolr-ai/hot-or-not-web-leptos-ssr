@@ -96,7 +96,7 @@ pub async fn vote_with_cents_on_post(
 }
 
 #[server(endpoint = "v2/vote", input = server_fn::codec::Json)]
-#[tracing::instrument(skip(sig), fields(sender = %sender, post_id = %req.post_id, vote_amount = %req.vote_amount))]
+#[tracing::instrument(skip(sig))]
 pub async fn vote_with_cents_post_v2(
     sender: Principal,
     req: ServerVoteRequest,
@@ -176,7 +176,7 @@ mod alloydb {
         .await
     }
 
-    #[tracing::instrument(skip(sig), fields(sender = %sender, post_id = %req.post_id, vote_amount = %req.vote_amount))]
+    #[tracing::instrument(skip(sig))]
     pub async fn vote_with_cents_on_post_v2(
         sender: Principal,
         req: ServerVoteRequest,
