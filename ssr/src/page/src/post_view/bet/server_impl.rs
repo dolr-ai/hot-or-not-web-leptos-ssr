@@ -250,44 +250,80 @@ mod alloydb {
         let mut res = alloydb_span
             .in_scope(|| async { alloydb.execute_sql_raw(query).await })
             .await?;
-        let mut res = res.sql_results.pop().ok_or_else(|| {
-            ServerFnError::new(
-                "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a result",
-            )
-        })?;
-        let mut res = res.rows.pop().ok_or_else(|| {
-            ServerFnError::new(
-                "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a row",
-            )
-        })?;
-        let res = res.values.pop().ok_or_else(|| {
-            ServerFnError::new(
-                "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a value",
-            )
+
+        tracing::info!("Parsing AlloyDB response");
+        let parse_span = tracing::info_span!("parse_alloydb_response");
+        let res = parse_span.in_scope(|| {
+            let mut sql_results = res.sql_results.pop().ok_or_else(|| {
+                tracing::error!("No SQL results returned from compare_videos_hot_or_not_v3");
+                ServerFnError::new(
+                    "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a result",
+                )
+            })?;
+
+            let mut rows = sql_results.rows.pop().ok_or_else(|| {
+                tracing::error!("No rows returned from compare_videos_hot_or_not_v3");
+                ServerFnError::new(
+                    "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a row",
+                )
+            })?;
+
+            let value = rows.values.pop().ok_or_else(|| {
+                tracing::error!("No values returned from compare_videos_hot_or_not_v3");
+                ServerFnError::new(
+                    "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a value",
+                )
+            })?;
+
+            tracing::info!("Successfully parsed AlloyDB response");
+            Ok::<_, ServerFnError>(value)
         })?;
 
-        let video_comparison_result = match res.value {
-            Some(val) => VideoComparisonResult::parse_video_comparison_result(&val)
-                .map_err(ServerFnError::new)?,
-            None => {
-                return Err(ServerFnError::new(
-                    "hot_or_not_evaluator.compare_videos_hot_or_not_v3 returned no value",
-                ))
+        tracing::info!("Parsing video comparison result");
+        let comparison_span = tracing::info_span!("parse_video_comparison");
+        let (video_comparison_result, sentiment) = comparison_span.in_scope(|| {
+            let video_comparison_result = match res.value {
+                Some(val) => {
+                    tracing::info!("Parsing video comparison value");
+                    VideoComparisonResult::parse_video_comparison_result(&val).map_err(|e| {
+                        tracing::error!("Failed to parse video comparison: {}", e);
+                        ServerFnError::new(e)
+                    })?
+                }
+                None => {
+                    tracing::error!("No value in video comparison result");
+                    return Err(ServerFnError::new(
+                        "hot_or_not_evaluator.compare_videos_hot_or_not_v3 returned no value",
+                    ));
+                }
+            };
+
+            let sentiment = match video_comparison_result.hot_or_not {
+                true => {
+                    tracing::info!("Sentiment determined: Hot");
+                    HotOrNot::Hot
+                }
+                false => {
+                    tracing::info!("Sentiment determined: Not");
+                    HotOrNot::Not
+                }
+            };
+
+            Ok((video_comparison_result, sentiment))
+        })?;
+
+        tracing::info!("Preparing worker request");
+        let request_prep_span = tracing::info_span!("prepare_worker_request");
+        let worker_req = request_prep_span.in_scope(|| {
+            let post_creator_principal = vote_request.publisher_principal;
+
+            HoNGameVoteReqV4 {
+                request: vote_request,
+                fetched_sentiment: sentiment,
+                signature: request_signature,
+                post_creator: Some(post_creator_principal),
             }
-        };
-        let sentiment = match video_comparison_result.hot_or_not {
-            true => HotOrNot::Hot,
-            false => HotOrNot::Not,
-        };
-
-        let post_creator_principal = vote_request.publisher_principal;
-
-        let worker_req = HoNGameVoteReqV4 {
-            request: vote_request,
-            fetched_sentiment: sentiment,
-            signature: request_signature,
-            post_creator: Some(post_creator_principal),
-        };
+        });
 
         let req_url = format!("{WORKER_URL}v4/vote/{sender}");
         let client = reqwest::Client::new();
@@ -306,15 +342,29 @@ mod alloydb {
             })
             .await?;
 
-        if res.status() != reqwest::StatusCode::OK {
-            return Err(ServerFnError::new(format!(
-                "worker error: {}",
-                res.text().await?
-            )));
-        }
+        tracing::info!("Processing worker response");
+        let response_span = tracing::info_span!("process_worker_response");
+        let vote_res = response_span
+            .in_scope(|| async {
+                let status = res.status();
+                tracing::info!("Worker response status: {}", status);
 
-        // huh?
-        let vote_res: VoteResV2 = res.json().await?;
+                if status != reqwest::StatusCode::OK {
+                    let error_text = res.text().await?;
+                    tracing::error!("Worker returned error: {}", error_text);
+                    return Err(ServerFnError::new(format!("worker error: {error_text}")));
+                }
+
+                tracing::info!("Deserializing vote response");
+                let deserialize_span = tracing::info_span!("deserialize_vote_response");
+                let vote_res: VoteResV2 = deserialize_span
+                    .in_scope(|| async { res.json().await })
+                    .await?;
+
+                tracing::info!("Successfully processed worker response");
+                Ok(vote_res)
+            })
+            .await?;
 
         // Update leaderboard - track games won
         // This is fire-and-forget: spawn a task so we don't block the response
