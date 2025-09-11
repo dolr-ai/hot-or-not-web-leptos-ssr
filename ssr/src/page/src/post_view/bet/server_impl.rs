@@ -188,12 +188,8 @@ mod alloydb {
         let cans: Canisters<false> = expect_context();
 
         tracing::info!("Fetching post details for post_id: {}", req.post_id);
-        let post_details_span = tracing::info_span!("fetch_post_details");
-        let Some(post_info) = post_details_span
-            .in_scope(|| async {
-                cans.get_post_details(req.post_canister, req.post_id.clone())
-                    .await
-            })
+        let Some(post_info) = cans
+            .get_post_details(req.post_canister, req.post_id.clone())
             .await?
         else {
             tracing::warn!("Post not found: {}", req.post_id);
@@ -228,7 +224,7 @@ mod alloydb {
         .await
     }
 
-    #[tracing::instrument(skip(request_signature), fields(sender = %sender, post_uid = %post_uid, previous_post_uid = %previous_post_uid, vote_amount = %vote_request.vote_amount))]
+    #[tracing::instrument(skip(request_signature))]
     async fn compare_video_with_uid(
         sender: Principal,
         vote_request: VoteRequestV4,
@@ -243,127 +239,86 @@ mod alloydb {
             "select hot_or_not_evaluator.compare_videos_hot_or_not_v3('{post_uid}', {previous_post_uid})",
         );
 
-        // TODO: figure out the overhead from this alloydb call in prod
-        tracing::info!("Executing AlloyDB video comparison query");
-        let alloydb_span = tracing::info_span!("alloydb_video_comparison");
         let alloydb: AlloyDbInstance = expect_context();
-        let mut res = alloydb_span
-            .in_scope(|| async { alloydb.execute_sql_raw(query).await })
-            .await?;
+        let mut res = alloydb.execute_sql_raw(query).await?;
 
-        tracing::info!("Parsing AlloyDB response");
-        let parse_span = tracing::info_span!("parse_alloydb_response");
-        let res = parse_span.in_scope(|| {
-            let mut sql_results = res.sql_results.pop().ok_or_else(|| {
-                tracing::error!("No SQL results returned from compare_videos_hot_or_not_v3");
-                ServerFnError::new(
-                    "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a result",
-                )
-            })?;
-
-            let mut rows = sql_results.rows.pop().ok_or_else(|| {
-                tracing::error!("No rows returned from compare_videos_hot_or_not_v3");
-                ServerFnError::new(
-                    "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a row",
-                )
-            })?;
-
-            let value = rows.values.pop().ok_or_else(|| {
-                tracing::error!("No values returned from compare_videos_hot_or_not_v3");
-                ServerFnError::new(
-                    "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a value",
-                )
-            })?;
-
-            tracing::info!("Successfully parsed AlloyDB response");
-            Ok::<_, ServerFnError>(value)
+        let mut sql_results = res.sql_results.pop().ok_or_else(|| {
+            tracing::error!("No SQL results returned from compare_videos_hot_or_not_v3");
+            ServerFnError::new(
+                "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a result",
+            )
         })?;
 
-        tracing::info!("Parsing video comparison result");
-        let comparison_span = tracing::info_span!("parse_video_comparison");
-        let (video_comparison_result, sentiment) = comparison_span.in_scope(|| {
-            let video_comparison_result = match res.value {
-                Some(val) => {
-                    tracing::info!("Parsing video comparison value");
-                    VideoComparisonResult::parse_video_comparison_result(&val).map_err(|e| {
-                        tracing::error!("Failed to parse video comparison: {}", e);
-                        ServerFnError::new(e)
-                    })?
-                }
-                None => {
-                    tracing::error!("No value in video comparison result");
-                    return Err(ServerFnError::new(
-                        "hot_or_not_evaluator.compare_videos_hot_or_not_v3 returned no value",
-                    ));
-                }
-            };
-
-            let sentiment = match video_comparison_result.hot_or_not {
-                true => {
-                    tracing::info!("Sentiment determined: Hot");
-                    HotOrNot::Hot
-                }
-                false => {
-                    tracing::info!("Sentiment determined: Not");
-                    HotOrNot::Not
-                }
-            };
-
-            Ok((video_comparison_result, sentiment))
+        let mut rows = sql_results.rows.pop().ok_or_else(|| {
+            tracing::error!("No rows returned from compare_videos_hot_or_not_v3");
+            ServerFnError::new(
+                "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a row",
+            )
         })?;
 
-        tracing::info!("Preparing worker request");
-        let request_prep_span = tracing::info_span!("prepare_worker_request");
-        let worker_req = request_prep_span.in_scope(|| {
-            let post_creator_principal = vote_request.publisher_principal;
+        let res = rows.values.pop().ok_or_else(|| {
+            tracing::error!("No values returned from compare_videos_hot_or_not_v3");
+            ServerFnError::new(
+                "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a value",
+            )
+        })?;
 
-            HoNGameVoteReqV4 {
-                request: vote_request,
-                fetched_sentiment: sentiment,
-                signature: request_signature,
-                post_creator: Some(post_creator_principal),
+        let video_comparison_result = match res.value {
+            Some(val) => {
+                tracing::info!("Parsing video comparison value");
+                VideoComparisonResult::parse_video_comparison_result(&val).map_err(|e| {
+                    tracing::error!("Failed to parse video comparison: {}", e);
+                    ServerFnError::new(e)
+                })?
             }
-        });
+            None => {
+                tracing::error!("No value in video comparison result");
+                return Err(ServerFnError::new(
+                    "hot_or_not_evaluator.compare_videos_hot_or_not_v3 returned no value",
+                ));
+            }
+        };
+
+        let sentiment = match video_comparison_result.hot_or_not {
+            true => {
+                tracing::info!("Sentiment determined: Hot");
+                HotOrNot::Hot
+            }
+            false => {
+                tracing::info!("Sentiment determined: Not");
+                HotOrNot::Not
+            }
+        };
+
+        let worker_req = HoNGameVoteReqV4 {
+            fetched_sentiment: sentiment,
+            signature: request_signature,
+            post_creator: Some(vote_request.publisher_principal),
+            request: vote_request,
+        };
 
         let req_url = format!("{WORKER_URL}v4/vote/{sender}");
         let client = reqwest::Client::new();
         let jwt = expect_context::<HonWorkerJwt>();
 
-        tracing::info!("Sending vote request to worker API");
-        let worker_span = tracing::info_span!("worker_api_call", url = %req_url);
-        let res = worker_span
-            .in_scope(|| async {
-                client
-                    .post(&req_url)
-                    .json(&worker_req)
-                    .header("Authorization", format!("Bearer {}", jwt.0))
-                    .send()
-                    .await
-            })
+        let res = client
+            .post(&req_url)
+            .json(&worker_req)
+            .header("Authorization", format!("Bearer {}", jwt.0))
+            .send()
             .await?;
 
-        tracing::info!("Processing worker response");
-        let response_span = tracing::info_span!("process_worker_response");
-        let vote_res = response_span
-            .in_scope(|| async {
-                let status = res.status();
-                tracing::info!("Worker response status: {}", status);
+        let status = res.status();
 
-                if status != reqwest::StatusCode::OK {
-                    let error_text = res.text().await?;
-                    tracing::error!("Worker returned error: {}", error_text);
-                    return Err(ServerFnError::new(format!("worker error: {error_text}")));
-                }
+        if status != reqwest::StatusCode::OK {
+            let error_text = res.text().await?;
+            tracing::error!("Worker returned error: {}", error_text);
+            return Err(ServerFnError::new(format!("worker error: {error_text}")));
+        }
 
-                tracing::info!("Deserializing vote response");
-                let deserialize_span = tracing::info_span!("deserialize_vote_response");
-                let vote_res: VoteResV2 = deserialize_span
-                    .in_scope(|| async { res.json().await })
-                    .await?;
-
-                tracing::info!("Successfully processed worker response");
-                Ok(vote_res)
-            })
+        let deserialize_span = tracing::info_span!("deserialize_vote_response");
+        let vote_res: VoteResV2 = deserialize_span
+            .in_scope(|| async { res.json().await })
             .await?;
 
         // Update leaderboard - track games won
@@ -389,7 +344,6 @@ mod alloydb {
             });
         }
 
-        tracing::info!("Vote processed successfully for user {}", sender);
         Ok(VoteAPIRes {
             game_result: vote_res,
             video_comparison_result,
