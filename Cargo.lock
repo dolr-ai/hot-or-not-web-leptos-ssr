@@ -3896,6 +3896,7 @@ dependencies = [
  "log",
  "once_cell",
  "openidconnect",
+ "opentelemetry_sdk",
  "page",
  "priority-queue",
  "prost",

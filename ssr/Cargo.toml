@@ -90,6 +90,7 @@ tracing-futures = { workspace = true, optional = true }
 sentry = { workspace = true, optional = true }
 sentry-tower = { workspace = true, optional = true }
 telemetry_axum = { workspace = true, optional = true }
+opentelemetry_sdk = { workspace = true, optional = true }
 google-cloud-alloydb-v1 = { workspace = true, optional = true }
 google-cloud-auth = { version = "0.22.1", optional = true }
 jsonwebtoken = { workspace = true, optional = true }
@@ -170,7 +171,7 @@ ssr = [
     "dep:tracing-futures",
     "dep:sentry",
     "dep:sentry-tower",
-    "dep:telemetry_axum",
+    # "enable-oltp",
 ]
 # Fetch mock referral history instead of history via canister
 mock-referral-history = [
@@ -282,6 +283,10 @@ sats-airdrop = [
     "dep:sats-airdrop",
     "state/sats-airdrop",
     "page/sats-airdrop",
+]
+enable-oltp = [
+    "dep:telemetry_axum",
+    "dep:opentelemetry_sdk",
 ]
 release-bin = [
     "ssr",
