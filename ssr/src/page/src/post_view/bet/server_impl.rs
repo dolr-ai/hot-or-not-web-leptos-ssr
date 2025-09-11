@@ -96,6 +96,7 @@ pub async fn vote_with_cents_on_post(
 }
 
 #[server(endpoint = "v2/vote", input = server_fn::codec::Json)]
+#[tracing::instrument(skip(sig))]
 pub async fn vote_with_cents_post_v2(
     sender: Principal,
     req: ServerVoteRequest,
@@ -125,6 +126,7 @@ mod alloydb {
     use crate::post_view::bet::{VideoComparisonResult, VoteAPIRes};
 
     use super::*;
+    use futures::try_join;
     use hon_worker_common::HoNGameVoteReqV4;
     use hon_worker_common::VoteRequestV4;
     use hon_worker_common::WORKER_URL;
@@ -175,6 +177,7 @@ mod alloydb {
         .await
     }
 
+    #[tracing::instrument(skip(sig))]
     pub async fn vote_with_cents_on_post_v2(
         sender: Principal,
         req: ServerVoteRequest,
@@ -184,23 +187,32 @@ mod alloydb {
         use yral_canisters_common::Canisters;
 
         let cans: Canisters<false> = expect_context();
-        let Some(post_info) = cans
-            .get_post_details(req.post_canister, req.post_id.clone())
-            .await?
-        else {
+
+        let (post_info, prev_post_info) = try_join!(
+            cans.get_post_details_from_canister(req.post_canister, &req.post_id),
+            async {
+                match prev_video_info {
+                    Some((canister_id, post_id)) => {
+                        cans.get_post_details_from_canister(canister_id, &post_id)
+                            .await
+                    }
+                    None => Ok(None),
+                }
+            }
+        )?;
+
+        let Some(post_info) = post_info else {
             return Err(ServerFnError::new("post not found"));
         };
-        let prev_uid_formatted = if let Some((canister_id, post_id)) = prev_video_info {
-            let details = cans
-                .get_post_details(canister_id, post_id)
-                .await?
-                .ok_or_else(|| ServerFnError::new("previous post not found"))?;
+
+        let prev_uid_formatted = if let Some(details) = prev_post_info {
             format!("'{}'", details.uid)
         } else {
             "NULL".to_string()
         };
-        // sanitization is not required here, as get_post_details verifies that the post is valid
-        // and exists on cloudflare
+
+        // sanitization is not required here, as get_post_details_from_canister
+        // verifies that the post is valid and exists on cloudflare
 
         let vote_request = VoteRequestV4 {
             publisher_principal: post_info.poster_principal,
@@ -219,6 +231,7 @@ mod alloydb {
         .await
     }
 
+    #[tracing::instrument(skip(request_signature))]
     async fn compare_video_with_uid(
         sender: Principal,
         vote_request: VoteRequestV4,
@@ -233,51 +246,68 @@ mod alloydb {
             "select hot_or_not_evaluator.compare_videos_hot_or_not_v3('{post_uid}', {previous_post_uid})",
         );
 
-        // TODO: figure out the overhead from this alloydb call in prod
         let alloydb: AlloyDbInstance = expect_context();
         let mut res = alloydb.execute_sql_raw(query).await?;
-        let mut res = res.sql_results.pop().ok_or_else(|| {
+
+        let mut sql_results = res.sql_results.pop().ok_or_else(|| {
+            tracing::error!("No SQL results returned from compare_videos_hot_or_not_v3");
             ServerFnError::new(
                 "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a result",
             )
         })?;
-        let mut res = res.rows.pop().ok_or_else(|| {
+
+        let mut rows = sql_results.rows.pop().ok_or_else(|| {
+            tracing::error!("No rows returned from compare_videos_hot_or_not_v3");
             ServerFnError::new(
                 "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a row",
             )
         })?;
-        let res = res.values.pop().ok_or_else(|| {
+
+        let res = rows.values.pop().ok_or_else(|| {
+            tracing::error!("No values returned from compare_videos_hot_or_not_v3");
             ServerFnError::new(
                 "hot_or_not_evaluator.compare_videos_hot_or_not_v3 MUST return a value",
             )
         })?;
 
         let video_comparison_result = match res.value {
-            Some(val) => VideoComparisonResult::parse_video_comparison_result(&val)
-                .map_err(ServerFnError::new)?,
+            Some(val) => {
+                tracing::info!("Parsing video comparison value");
+                VideoComparisonResult::parse_video_comparison_result(&val).map_err(|e| {
+                    tracing::error!("Failed to parse video comparison: {}", e);
+                    ServerFnError::new(e)
+                })?
+            }
             None => {
+                tracing::error!("No value in video comparison result");
                 return Err(ServerFnError::new(
                     "hot_or_not_evaluator.compare_videos_hot_or_not_v3 returned no value",
-                ))
+                ));
             }
         };
+
         let sentiment = match video_comparison_result.hot_or_not {
-            true => HotOrNot::Hot,
-            false => HotOrNot::Not,
+            true => {
+                tracing::info!("Sentiment determined: Hot");
+                HotOrNot::Hot
+            }
+            false => {
+                tracing::info!("Sentiment determined: Not");
+                HotOrNot::Not
+            }
         };
 
-        let post_creator_principal = vote_request.publisher_principal;
-
         let worker_req = HoNGameVoteReqV4 {
-            request: vote_request,
             fetched_sentiment: sentiment,
             signature: request_signature,
-            post_creator: Some(post_creator_principal),
+            post_creator: Some(vote_request.publisher_principal),
+            request: vote_request,
         };
 
         let req_url = format!("{WORKER_URL}v4/vote/{sender}");
         let client = reqwest::Client::new();
         let jwt = expect_context::<HonWorkerJwt>();
+
         let res = client
             .post(&req_url)
             .json(&worker_req)
@@ -285,21 +315,28 @@ mod alloydb {
             .send()
             .await?;
 
-        if res.status() != reqwest::StatusCode::OK {
-            return Err(ServerFnError::new(format!(
-                "worker error: {}",
-                res.text().await?
-            )));
+        let status = res.status();
+
+        if status != reqwest::StatusCode::OK {
+            let error_text = res.text().await?;
+            tracing::error!("Worker returned error: {}", error_text);
+            return Err(ServerFnError::new(format!("worker error: {error_text}")));
         }
 
-        // huh?
-        let vote_res: VoteResV2 = res.json().await?;
+        let deserialize_span = tracing::info_span!("deserialize_vote_response");
+        let vote_res: VoteResV2 = deserialize_span
+            .in_scope(|| async { res.json().await })
+            .await?;
 
         // Update leaderboard - track games won
         // This is fire-and-forget: spawn a task so we don't block the response
         #[cfg(feature = "ssr")]
         if matches!(vote_res.game_result, GameResultV2::Win { .. }) {
+            tracing::info!("User won game, updating leaderboard");
             tokio::spawn(async move {
+                let leaderboard_span = tracing::info_span!("leaderboard_update", user = %sender);
+                let _guard = leaderboard_span.enter();
+
                 if let Err(e) = update_leaderboard_score(
                     sender,
                     1.0, // Increment games played by 1
@@ -307,13 +344,9 @@ mod alloydb {
                 )
                 .await
                 {
-                    leptos::logging::error!(
-                        "Failed to update leaderboard for user {}: {:?}",
-                        sender,
-                        e
-                    );
+                    tracing::error!("Failed to update leaderboard for user {}: {:?}", sender, e);
                 } else {
-                    leptos::logging::log!("Successfully updated leaderboard for user {}", sender);
+                    tracing::info!("Successfully updated leaderboard for user {}", sender);
                 }
             });
         }
