@@ -76,14 +76,25 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
                 <div class="flex-1">
                     // Prize pool line
                     <div class="flex items-center gap-1.5 mb-1">
-                        <span class="text-xl font-bold text-white">"Win upto "</span>
-                        <span class="text-xl font-bold text-[#FFEF00]">{format_with_commas(tournament.prize_pool as u64)}</span>
-                        <img src="/img/yral/yral-token.webp" alt="" class="w-6 h-6" />
+                        <span class={if tournament.prize_token == "CKBTC" { "text-md font-bold text-white" } else { "text-xl font-bold text-white" }}>"Win upto "</span>
+                        <span class={if tournament.prize_token == "CKBTC" { "text-md font-bold text-[#FFEF00]" } else { "text-xl font-bold text-[#FFEF00]" }}>
+                            {if tournament.prize_token == "CKBTC" {
+                                format!("${} BITCOIN", format_with_commas(tournament.prize_pool as u64))
+                            } else {
+                                format_with_commas(tournament.prize_pool as u64)
+                            }}
+                        </span>
+                        {if tournament.prize_token != "CKBTC" {
+                            view! {
+                                <img src="/img/yral/yral-token.webp" alt="" class="w-6 h-6" />
+                            }.into_any()
+                        } else {
+                            view! { <img src="/img/hotornot/bitcoin.svg" alt="" class="w-6 h-6" /> }.into_any()
+                        }}
                     </div>
 
                     // Today text
                     <div class="text-lg font-bold text-white mb-2">
-                        "Today!"
                     </div>
 
                     // Subtitle
@@ -94,7 +105,7 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
                     // Contest countdown badge
                     <div class="inline-flex items-center gap-1.5 bg-neutral-900 rounded-full px-2 py-1">
                         <span class="text-neutral-400 text-[10px] font-normal">
-                            "Contest ends on:"
+                            "Contest ends in:"
                         </span>
                         <span class="text-neutral-50 text-[10px] font-medium">{move || time_remaining.get()}</span>
                     </div>
@@ -103,7 +114,11 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
 
             // Gift box graphic positioned at bottom-right
             <div class="absolute bottom-0 right-4">
-                <img src="/img/leaderboard/gift-box-header.svg" alt="Gift Box" class="w-44 h-36" />
+                <img src={if tournament.prize_token == "CKBTC" {
+                    "/img/leaderboard/gift-box-btc-header.svg"
+                } else {
+                    "/img/leaderboard/gift-box-header.svg"
+                }} alt="Gift Box" class="w-44 h-36" />
             </div>
         </div>
     }

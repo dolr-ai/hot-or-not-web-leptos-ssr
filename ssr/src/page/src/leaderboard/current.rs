@@ -9,6 +9,7 @@ use component::leaderboard::{
     tournament_header::TournamentHeader,
     types::{LeaderboardEntry, TournamentInfo, UserInfo},
 };
+use component::login_modal::LoginModal;
 use leptos::{html, prelude::*};
 use leptos_router::hooks::use_navigate;
 #[cfg(feature = "hydrate")]
@@ -73,6 +74,10 @@ pub fn Leaderboard() -> impl IntoView {
     let auth = auth_state();
     let navigate = use_navigate();
 
+    // Login modal state
+    let show_login_modal = RwSignal::new(false);
+    let is_logged_in = auth.is_logged_in_with_oauth();
+
     // State management
     let (tournament_info, set_tournament_info) = signal(None::<TournamentInfo>);
     let (upcoming_tournament_info, set_upcoming_tournament_info) = signal(None::<TournamentInfo>);
@@ -81,6 +86,13 @@ pub fn Leaderboard() -> impl IntoView {
     let (provider_key, set_provider_key) = signal(0u32); // Key to force provider refresh
     let show_completion_popup = RwSignal::new(false);
     let (user_row_visible, set_user_row_visible) = signal(false); // Track if user's actual row is visible
+
+    // Check login status on mount
+    Effect::new(move |_| {
+        if !is_logged_in.get() {
+            show_login_modal.set(true);
+        }
+    });
 
     // Fetch tournament info and user info once
     let tournament_resource = LocalResource::new(move || async move {
@@ -264,16 +276,35 @@ pub fn Leaderboard() -> impl IntoView {
 
                                                             // Rewards column
                                                             <div class="w-[80px] flex items-center justify-end gap-1">
-                                                                <span class="text-sm font-semibold text-white">
-                                                                    {match user_info.reward {
-                                                                        Some(r) if r > 0 => r.to_string(),
-                                                                        _ => "-".to_string()
-                                                                    }}
-                                                                </span>
-                                                                // YRAL token icon - only show if reward > 0
-                                                                <Show when=move || user_info.reward.map(|r| r > 0).unwrap_or(false)>
-                                                                    <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
-                                                                </Show>
+                                                                {move || {
+                                                                    let is_ckbtc = tournament_info.get()
+                                                                        .map(|t| t.prize_token == "CKBTC")
+                                                                        .unwrap_or(false);
+
+                                                                    match user_info.reward {
+                                                                        Some(r) if r > 0 => {
+                                                                            view! {
+                                                                                <>
+                                                                                    <span class="text-sm font-semibold text-white">
+                                                                                        {if is_ckbtc {
+                                                                                            format!("${r}")
+                                                                                        } else {
+                                                                                            r.to_string()
+                                                                                        }}
+                                                                                    </span>
+                                                                                    <img src={if is_ckbtc {
+                                                                                        "/img/hotornot/bitcoin.svg"
+                                                                                    } else {
+                                                                                        "/img/yral/yral-token.webp"
+                                                                                    }} alt="" class="w-[17px] h-[18px]" />
+                                                                                </>
+                                                                            }.into_any()
+                                                                        },
+                                                                        _ => view! {
+                                                                            <span class="text-sm font-semibold text-white">"-"</span>
+                                                                        }.into_any()
+                                                                    }
+                                                                }}
                                                             </div>
                                                         </div>
                                                     }
@@ -358,16 +389,35 @@ pub fn Leaderboard() -> impl IntoView {
 
                                                         // Rewards column
                                                         <div class="w-[80px] flex items-center justify-end gap-1">
-                                                            <span class="text-sm font-semibold text-white">
-                                                                {match entry.reward {
-                                                                    Some(r) if r > 0 => r.to_string(),
-                                                                    _ => "-".to_string()
-                                                                }}
-                                                            </span>
-                                                            // YRAL token icon - only show if reward > 0
-                                                            <Show when=move || entry.reward.map(|r| r > 0).unwrap_or(false)>
-                                                                <img src="/img/yral/yral-token.webp" alt="" class="w-[17px] h-[18px]" />
-                                                            </Show>
+                                                            {move || {
+                                                                let is_ckbtc = tournament_info.get()
+                                                                    .map(|t| t.prize_token == "CKBTC")
+                                                                    .unwrap_or(false);
+
+                                                                match entry.reward {
+                                                                    Some(r) if r > 0 => {
+                                                                        view! {
+                                                                            <>
+                                                                                <span class="text-sm font-semibold text-white">
+                                                                                    {if is_ckbtc {
+                                                                                        format!("${r}")
+                                                                                    } else {
+                                                                                        r.to_string()
+                                                                                    }}
+                                                                                </span>
+                                                                                <img src={if is_ckbtc {
+                                                                                    "/img/hotornot/bitcoin.svg"
+                                                                                } else {
+                                                                                    "/img/yral/yral-token.webp"
+                                                                                }} alt="" class="w-[17px] h-[18px]" />
+                                                                            </>
+                                                                        }.into_any()
+                                                                    },
+                                                                    _ => view! {
+                                                                        <span class="text-sm font-semibold text-white">"-"</span>
+                                                                    }.into_any()
+                                                                }
+                                                            }}
                                                         </div>
                                                     </div>
                                                 }
@@ -400,6 +450,12 @@ pub fn Leaderboard() -> impl IntoView {
             // Tournament completion popup
             <Show when=move || last_tournament_user_info.get().is_some() && show_completion_popup.get()>
                 {
+                    // Get prize_token from current tournament info (assuming last tournament has same type)
+                    // In a real scenario, we'd fetch the last tournament's details
+                    let prize_token = tournament_info.get()
+                        .map(|t| t.prize_token.clone())
+                        .unwrap_or_else(|| "YRAL".to_string());
+
                     let popup_view = if let Some(upcoming) = upcoming_tournament_info.get() {
                         view! {
                             <TournamentCompletionPopup
@@ -407,6 +463,7 @@ pub fn Leaderboard() -> impl IntoView {
                                 user_info=last_tournament_user_info.get().unwrap()
                                 last_tournament_id=last_tournament_id.get()
                                 _upcoming_tournament=upcoming
+                                prize_token=prize_token.clone()
                             />
                         }
                     } else {
@@ -415,12 +472,20 @@ pub fn Leaderboard() -> impl IntoView {
                                 show=show_completion_popup
                                 user_info=last_tournament_user_info.get().unwrap()
                                 last_tournament_id=last_tournament_id.get()
+                                prize_token
                             />
                         }
                     };
                     popup_view
                 }
             </Show>
+
+            // Login Modal
+            <LoginModal
+                show=show_login_modal
+                redirect_to=None
+                text="Login to participate in leaderboard and earn Bitcoin.".to_string()
+            />
         </div>
     }
 }

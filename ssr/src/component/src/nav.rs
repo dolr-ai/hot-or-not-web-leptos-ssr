@@ -9,9 +9,8 @@ use leptos::{either::Either, prelude::*};
 use leptos_icons::*;
 use leptos_router::hooks::use_location;
 use leptos_use::{use_cookie, use_cookie_with_options, UseCookieOptions};
-use utils::{
-    mixpanel::mixpanel_events::{BottomNavigationCategory, MixPanelEvent, MixpanelGlobalProps},
-    types::PostParams,
+use utils::mixpanel::mixpanel_events::{
+    BottomNavigationCategory, MixPanelEvent, MixpanelGlobalProps,
 };
 
 #[derive(Clone)]
@@ -39,19 +38,13 @@ fn yral_nav_items() -> Vec<NavItem> {
             .path("/")
             .max_age(AUTH_UTIL_COOKIES_MAX_AGE_MS),
     );
-    let current_post_params: RwSignal<Option<PostParams>> = expect_context();
 
     vec![
         NavItem {
             render_data: NavItemRenderData::Icon {
                 icon: HomeSymbol,
                 filled_icon: Some(HomeSymbolFilled),
-                href: Signal::derive(move || {
-                    current_post_params
-                        .get()
-                        .map(|f| format!("/hot-or-not/{}/{}", f.canister_id, f.post_id))
-                        .unwrap_or("/".to_string())
-                }),
+                href: "/".into(),
             },
             cur_selected: Signal::derive(move || {
                 matches!(path.get().as_str(), "/") || path.get().contains("/hot-or-not")
@@ -152,7 +145,8 @@ fn NavIcon(
             .same_site(leptos_use::SameSite::Lax),
     );
 
-    let on_click = move |_| {
+    let on_click = move |_ev: leptos::ev::MouseEvent| {
+        // Track Mixpanel event first
         if let (Some(user), Some(canister)) = (
             user_principal.get_untracked(),
             user_canister.get_untracked(),
@@ -170,6 +164,14 @@ fn NavIcon(
                 MixPanelEvent::track_bottom_navigation_clicked(global, category_name);
             }
         }
+
+        // Check if this is the Home button and perform hard refresh
+        // if icon == HomeSymbol {
+        //     ev.prevent_default();
+        //     if let Some(window) = use_window().as_ref() {
+        //         let _ = window.location().set_href("/");
+        //     }
+        // }
     };
     view! {
         <a href=href on:click=on_click class="flex justify-center items-center">
