@@ -1,14 +1,11 @@
 use candid::Principal;
 use codee::string::FromToStringCodec;
-use component::leaderboard::api::fetch_user_rank_from_api;
-use component::leaderboard::{RankUpdateCounter, UserRank};
 use component::spinner::FullScreenSpinner;
 use consts::NSFW_ENABLED_COOKIE;
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::hooks::use_query_map;
 use leptos_use::{use_cookie_with_options, UseCookieOptions};
-use state::canisters::AuthState;
 use utils::host::show_nsfw_content;
 use utils::ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw};
 use utils::try_or_redirect_opt;
