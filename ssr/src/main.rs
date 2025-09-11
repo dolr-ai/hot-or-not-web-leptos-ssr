@@ -160,8 +160,79 @@ async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Create HTTP tracing layer with OpenTelemetry semantic conventions
+    let sentry_tower_layer = ServiceBuilder::new()
+        .layer(NewSentryLayer::new_from_top())
+        .layer(SentryHttpLayer::with_transaction());
+
+    // build our application with a route
+    let app = Router::new()
+        .route(
+            "/api/{*fn_name}",
+            get(server_fn_handler).post(server_fn_handler),
+        )
+        .layer(
+            CorsLayer::new()
+                .allow_credentials(true)
+                .allow_headers([
+                    header::AUTHORIZATION,
+                    header::CONTENT_TYPE,
+                    header::ACCEPT,
+                    HeaderName::from_static("sentry-trace"),
+                    HeaderName::from_static("baggage"),
+                ])
+                .allow_methods([Method::POST, Method::GET, Method::PUT, Method::OPTIONS])
+                .allow_origin(AllowOrigin::predicate(|origin, _| {
+                    if let Ok(host) = origin.to_str() {
+                        is_host_or_origin_from_preview_domain(host) || host == "yral.com"
+                    } else {
+                        false
+                    }
+                })),
+        )
+        .leptos_routes_with_handler(routes, get(leptos_routes_handler))
+        .fallback(file_and_error_handler)
+        .layer(sentry_tower_layer)
+        .with_state(res.app_state);
+
     #[cfg(feature = "enable-oltp")]
-    let trace_layer = tower_http::trace::TraceLayer::new_for_http()
+    let app = with_telemetry(app);
+
+    // run our app with hyper
+    // `axum::Server` is a re-export of `hyper::Server`
+    println!("listening on http://{}", &addr);
+    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .with_graceful_shutdown(terminate)
+    .await
+    .unwrap();
+
+    // Cleanup telemetry providers if they were initialized
+    #[cfg(feature = "enable-oltp")]
+    if let Some((logger_provider, tracer_provider, metrics_provider)) = telemetry_handles {
+        if let Some(logger_provider) = logger_provider {
+            if let Err(e) = logger_provider.shutdown() {
+                eprintln!("Error shutting down logger provider: {e}");
+            }
+        }
+        if let Err(e) = tracer_provider.shutdown() {
+            eprintln!("Error shutting down tracer provider: {e}");
+        }
+        if let Some(metrics_provider) = metrics_provider {
+            if let Err(e) = metrics_provider.shutdown() {
+                eprintln!("Error shutting down metrics provider: {e}");
+            }
+        }
+        tracing::info!("Telemetry providers shut down");
+    }
+    Ok(())
+}
+
+#[cfg(feature = "enable-oltp")]
+fn with_telemetry<S: Clone + Send + Sync + 'static>(app: Router<S>) -> Router<S> {
+    let layer = tower_http::trace::TraceLayer::new_for_http()
         .make_span_with(|request: &axum::extract::Request<_>| {
             let method = request.method();
             let uri = request.uri();
@@ -197,75 +268,7 @@ async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
             },
         );
 
-    let sentry_tower_layer = ServiceBuilder::new()
-        .layer(NewSentryLayer::new_from_top())
-        .layer(SentryHttpLayer::with_transaction());
-
-    // build our application with a route
-    let app = Router::new()
-        .route(
-            "/api/{*fn_name}",
-            get(server_fn_handler).post(server_fn_handler),
-        )
-        .layer(
-            CorsLayer::new()
-                .allow_credentials(true)
-                .allow_headers([
-                    header::AUTHORIZATION,
-                    header::CONTENT_TYPE,
-                    header::ACCEPT,
-                    HeaderName::from_static("sentry-trace"),
-                    HeaderName::from_static("baggage"),
-                ])
-                .allow_methods([Method::POST, Method::GET, Method::PUT, Method::OPTIONS])
-                .allow_origin(AllowOrigin::predicate(|origin, _| {
-                    if let Ok(host) = origin.to_str() {
-                        is_host_or_origin_from_preview_domain(host) || host == "yral.com"
-                    } else {
-                        false
-                    }
-                })),
-        )
-        .leptos_routes_with_handler(routes, get(leptos_routes_handler))
-        .fallback(file_and_error_handler)
-        // .layer(trace_layer)
-        .layer(sentry_tower_layer)
-        .with_state(res.app_state);
-
-    #[cfg(feature = "enable-oltp")]
-    let app = app.layer(trace_layer);
-
-    // run our app with hyper
-    // `axum::Server` is a re-export of `hyper::Server`
-    println!("listening on http://{}", &addr);
-    let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
-    axum::serve(
-        listener,
-        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
-    )
-    .with_graceful_shutdown(terminate)
-    .await
-    .unwrap();
-
-    // Cleanup telemetry providers if they were initialized
-    #[cfg(feature = "enable-oltp")]
-    if let Some((logger_provider, tracer_provider, metrics_provider)) = telemetry_handles {
-        if let Some(logger_provider) = logger_provider {
-            if let Err(e) = logger_provider.shutdown() {
-                eprintln!("Error shutting down logger provider: {e}");
-            }
-        }
-        if let Err(e) = tracer_provider.shutdown() {
-            eprintln!("Error shutting down tracer provider: {e}");
-        }
-        if let Some(metrics_provider) = metrics_provider {
-            if let Err(e) = metrics_provider.shutdown() {
-                eprintln!("Error shutting down metrics provider: {e}");
-            }
-        }
-        tracing::info!("Telemetry providers shut down");
-    }
-    Ok(())
+    app.layer(layer)
 }
 
 #[cfg(feature = "enable-oltp")]
