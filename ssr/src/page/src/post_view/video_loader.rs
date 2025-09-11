@@ -16,6 +16,7 @@ use utils::{bg_url, mp4_url, send_wrap, try_or_redirect_opt};
 /// Maximum PostDetails, time in milliseconds to waitay promise to resolve
 const VIDEO_PLAY_TIMEOUT_MS: u64 = 5000;
 
+use crate::post_view::PostDetailsCacheCtx;
 use crate::scrolling_post_view::PostDetailResolver;
 
 use super::overlay::VideoDetailsOverlay;
@@ -51,6 +52,10 @@ where
         })
     });
 
+    let PostDetailsCacheCtx {
+        post_details: post_details_cache,
+    } = expect_context();
+
     let post_details_with_prev_post = LocalResource::new(move || async move {
         let (current_post_resolver, prev_post_for_passthru) = post_with_prev.get();
         let Some(resolver) = current_post_resolver else {
@@ -58,9 +63,28 @@ where
             return Ok((None, prev_post_for_passthru));
         };
 
+        let QuickPostDetails {
+            canister_id,
+            post_id,
+            ..
+        } = resolver.get_quick_post_details();
+
+        let post_id_c = post_id.clone();
+        let cached_post_details = post_details_cache
+            .try_with_value(|m| m.get(&(canister_id, post_id_c)).cloned())
+            .flatten();
+
         // SAFETY: this send wrap is safe as we are guaranteed to run in a
         // single threaded env due to LocalResource
-        let post_details = send_wrap(resolver.get_post_details()).await?;
+        let post_details = match cached_post_details {
+            Some(details) => details,
+            None => {
+                let details = send_wrap(resolver.get_post_details()).await?;
+                post_details_cache
+                    .try_update_value(|m| m.insert((canister_id, post_id), details.clone()));
+                details
+            }
+        };
         Ok::<_, ServerFnError>((Some(post_details), prev_post_for_passthru))
     });
 
