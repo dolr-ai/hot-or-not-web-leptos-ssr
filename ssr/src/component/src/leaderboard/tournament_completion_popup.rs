@@ -34,6 +34,7 @@ pub fn TournamentCompletionPopup(
     user_info: UserInfo,
     last_tournament_id: String,
     #[prop(optional)] _upcoming_tournament: TournamentInfo,
+    #[prop(optional)] prize_token: String,
 ) -> impl IntoView {
     let navigate = leptos_router::hooks::use_navigate();
 
@@ -184,9 +185,17 @@ pub fn TournamentCompletionPopup(
                                         // Box content
                                         <div class=format!("relative z-10 flex flex-row items-center justify-center w-full h-full p-[10px] gap-2.5 {} border {} rounded-[20px]", bg_color, border_color)>
                                             <span class=format!("{} text-5xl font-bold tracking-[-1.44px]", text_color)>
-                                                {format_with_commas(reward_value)}
+                                                {if prize_token == "CKBTC" {
+                                                    format!("${}", format_with_commas(reward_value))
+                                                } else {
+                                                    format_with_commas(reward_value)
+                                                }}
                                             </span>
-                                            <img src="/img/yral/yral-token.webp" alt="" class="w-12 h-[50px]" />
+                                            <img src={if prize_token == "CKBTC" {
+                                                "/img/hotornot/bitcoin.svg"
+                                            } else {
+                                                "/img/yral/yral-token.webp"
+                                            }} alt="" class="w-12 h-[50px]" />
                                         </div>
                                     </div>
                                 </div>
@@ -200,8 +209,18 @@ pub fn TournamentCompletionPopup(
                                     </div>
                                     {reward_amount.clone().map(|amount| view! {
                                         <div class="bg-[#1f1d17] border border-[rgba(255,244,86,0.43)] rounded-2xl px-4 py-2 mb-6 flex items-center gap-2">
-                                            <span class="text-[#ffc33a] text-3xl font-bold">{amount}</span>
-                                            <img src="/img/yral/yral-token.webp" alt="" class="w-8 h-8" />
+                                            <span class="text-[#ffc33a] text-3xl font-bold">
+                                                {if prize_token == "CKBTC" {
+                                                    format!("${amount}")
+                                                } else {
+                                                    amount.clone()
+                                                }}
+                                            </span>
+                                            <img src={if prize_token == "CKBTC" {
+                                                "/img/hotornot/bitcoin.svg"
+                                            } else {
+                                                "/img/yral/yral-token.webp"
+                                            }} alt="" class="w-8 h-8" />
                                         </div>
                                     })}
                                 </>
@@ -253,8 +272,11 @@ pub fn TournamentCompletionPopup(
                                             {rank_str}
                                             " and earned "
                                             <span class="font-semibold">
-                                                {format_with_commas(reward.unwrap_or(0))}
-                                                " YRAL"
+                                                {if prize_token == "CKBTC" {
+                                                    format!("${}", format_with_commas(reward.unwrap_or(0)))
+                                                } else {
+                                                    format!("{} YRAL", format_with_commas(reward.unwrap_or(0)))
+                                                }}
                                             </span>
                                         </span>
                                     }.into_any()

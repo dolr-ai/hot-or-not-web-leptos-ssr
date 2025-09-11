@@ -25,7 +25,7 @@ pub struct VideoEventData {
     pub view_count: Option<u64>,
     pub like_count: Option<u64>,
     pub share_count: u64,
-    pub post_id: Option<u64>,
+    pub post_id: Option<String>,
     pub publisher_canister_id: Option<Principal>,
     pub nsfw_probability: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -100,7 +100,7 @@ impl VideoEventDataBuilder {
                 view_count: None,
                 like_count: None,
                 share_count: 0,
-                post_id: post.map(|p| p.post_id),
+                post_id: post.map(|p| p.post_id.clone()),
                 publisher_canister_id: post.map(|p| p.canister_id),
                 nsfw_probability,
                 percentage_watched: None,

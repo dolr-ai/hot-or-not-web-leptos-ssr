@@ -34,10 +34,10 @@ use utils::{
 use video_iter::{new_video_fetch_stream, new_video_fetch_stream_auth, FeedResultType};
 use yral_canisters_common::{utils::posts::PostDetails, Canisters};
 
-#[derive(Params, PartialEq, Clone, Copy)]
+#[derive(Params, PartialEq, Clone)]
 struct PostParams {
     canister_id: Principal,
-    post_id: u64,
+    post_id: String,
 }
 
 #[derive(Clone, Default)]
@@ -47,7 +47,7 @@ pub struct PostViewCtx {
     // We're using virtual lists for DOM, so this doesn't consume much memory
     // as uids only occupy 32 bytes each
     // but ideally this should be cleaned up
-    video_queue: RwSignal<IndexSet<MlPostItem>>,
+    pub video_queue: RwSignal<IndexSet<MlPostItem>>,
     video_queue_for_feed: RwSignal<Vec<FeedPostCtx<MlPostItem>>>,
     current_idx: RwSignal<usize>,
     queue_end: RwSignal<bool>,
@@ -58,7 +58,7 @@ pub struct PostViewCtx {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MlPostItem {
     canister_id: Principal,
-    post_id: u64,
+    post_id: String,
     video_uid: String,
     publisher_user_id: Principal,
     nsfw_probability: f32,
@@ -78,7 +78,7 @@ impl std::cmp::Eq for MlPostItem {}
 impl std::hash::Hash for MlPostItem {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.canister_id.hash(state);
-        state.write_u64(self.post_id);
+        state.write(self.post_id.as_bytes());
     }
 }
 
@@ -109,7 +109,7 @@ impl PostDetailResolver for MlPostItem {
         QuickPostDetails {
             video_uid: self.video_uid.clone(),
             canister_id: self.canister_id,
-            post_id: self.post_id,
+            post_id: self.post_id.clone(),
             publisher_user_id: self.publisher_user_id,
             nsfw_probability: self.nsfw_probability,
         }
@@ -119,14 +119,14 @@ impl PostDetailResolver for MlPostItem {
         let canisters = unauth_canisters();
         let post_details = send_wrap(canisters.get_post_details_with_nsfw_info(
             self.canister_id,
-            self.post_id,
+            self.post_id.clone(),
             Some(self.nsfw_probability),
         ))
         .await?;
         let post_details = post_details.ok_or_else(|| {
             ServerFnError::new(format!(
                 "Couldn't find post {}/{}",
-                self.canister_id, self.post_id
+                self.canister_id, &self.post_id
             ))
         })?;
 
@@ -172,15 +172,17 @@ pub fn CommonPostViewWithUpdates(
     } = expect_context();
 
     let recovering_state = RwSignal::new(false);
+    fetch_cursor.update_untracked(|f| {
+        // we've already fetched posts
+        if video_queue.with_untracked(|q| !q.is_empty()) || queue_end.get_untracked() {
+            recovering_state.set(true);
+            return;
+        }
+
+        // ngl, not sure what this does
+        f.start = 1;
+    });
     if !initial_posts.is_empty() {
-        fetch_cursor.update_untracked(|f| {
-            // we've already fetched the first posts
-            if f.start > 1 || queue_end.get_untracked() {
-                recovering_state.set(true);
-                return;
-            }
-            f.start = 1;
-        });
         video_queue.update_untracked(|v| {
             if v.len() > 1 {
                 return;
@@ -213,7 +215,7 @@ pub fn CommonPostViewWithUpdates(
         video_queue.with(|q| {
             let cur_idx = current_idx();
             let details = q.get_index(cur_idx)?;
-            Some((details.canister_id, details.post_id))
+            Some((details.canister_id, details.post_id.clone()))
         })
     });
 
@@ -223,7 +225,7 @@ pub fn CommonPostViewWithUpdates(
         };
         current_post_params.set(Some(utils::types::PostParams {
             canister_id,
-            post_id,
+            post_id: post_id.clone(),
         }));
 
         // Using browser history push to ensure that the browser doesn't try
@@ -325,7 +327,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<MlPostItem>) -> impl IntoVie
                     return;
                 };
                 leptos::logging::log!("fetching ml feed");
-                let cans_false: Canisters<false> = unauth_canisters();
+                let cans_false: Canisters<false> = Default::default();
                 let cans_true = auth.auth_cans_if_available();
 
                 let video_queue_c = video_queue
@@ -530,13 +532,13 @@ pub fn PostView() -> impl IntoView {
 
             // this cache is never written to? so what's the point of this?
             let post_nsfw_prob = post_details_cache.post_details.with_untracked(|p| {
-                p.get(&(params.canister_id, params.post_id))
+                p.get(&(params.canister_id, params.post_id.clone()))
                     .map(|i| i.nsfw_probability)
             });
 
             match send_wrap(canisters.get_post_details_with_nsfw_info(
                 params.canister_id,
-                params.post_id,
+                params.post_id.clone(),
                 post_nsfw_prob,
             ))
             .await

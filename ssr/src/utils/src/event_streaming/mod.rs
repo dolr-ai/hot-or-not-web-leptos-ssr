@@ -117,31 +117,41 @@ pub async fn stream_to_offchain_agent(
 ) -> Result<(), ServerFnError> {
     use std::env;
 
-    use tonic::metadata::MetadataValue;
-    use tonic::transport::Channel;
-    use tonic::Request;
-
-    let channel: Channel = expect_context();
+    use consts::OFF_CHAIN_AGENT_URL;
+    use reqwest::Client;
 
     let mut off_chain_agent_grpc_auth_token = env::var("GRPC_AUTH_TOKEN").expect("GRPC_AUTH_TOKEN");
     // removing whitespaces and new lines for proper parsing
     off_chain_agent_grpc_auth_token.retain(|c| !c.is_whitespace());
 
-    let token: MetadataValue<_> = format!("Bearer {off_chain_agent_grpc_auth_token}").parse()?;
+    let off_chain_agent_url = OFF_CHAIN_AGENT_URL
+        .join("api/v2/events")
+        .map_err(|e| ServerFnError::new(format!("failed to construct url {e}")))?;
 
-    let mut client =
-        warehouse_events::warehouse_events_client::WarehouseEventsClient::with_interceptor(
-            channel,
-            move |mut req: Request<()>| {
-                req.metadata_mut().insert("authorization", token.clone());
-                Ok(req)
-            },
-        );
+    let payload = json!({
+        "event": event,
+        "params": params.to_string()
+    });
 
-    let params = params.to_string();
-    let request = tonic::Request::new(warehouse_events::WarehouseEvent { event, params });
+    let client = Client::new();
 
-    client.send_event(request).await?;
+    let response = client
+        .post(off_chain_agent_url)
+        .bearer_auth(off_chain_agent_grpc_auth_token)
+        .header("Content-Type", "application/json")
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| ServerFnError::new(format!("failed to send request {e}")))?;
+
+    if response.status() != reqwest::StatusCode::OK {
+        let status = response.status();
+        let text = response.text().await.unwrap_or_default();
+        log::error!("Failed to send event to offchain agent: status: {status}, response: {text}");
+        return Err(ServerFnError::new(format!(
+            "failed to send event, status: {status}, {text}"
+        )));
+    }
 
     Ok(())
 }
