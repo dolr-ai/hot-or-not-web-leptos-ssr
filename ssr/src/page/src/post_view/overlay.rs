@@ -188,7 +188,7 @@ pub fn VideoDetailsOverlay(
             .unwrap_or_default()
     });
 
-    let display_name = post.display_name_or_fallback();
+    let display_name = post.username_or_fallback();
 
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
