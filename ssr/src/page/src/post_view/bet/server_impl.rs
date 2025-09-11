@@ -126,6 +126,7 @@ mod alloydb {
     use crate::post_view::bet::{VideoComparisonResult, VoteAPIRes};
 
     use super::*;
+    use futures::try_join;
     use hon_worker_common::HoNGameVoteReqV4;
     use hon_worker_common::VoteRequestV4;
     use hon_worker_common::WORKER_URL;
@@ -187,25 +188,31 @@ mod alloydb {
 
         let cans: Canisters<false> = expect_context();
 
-        tracing::info!("Fetching post details for post_id: {}", req.post_id);
-        let Some(post_info) = cans
-            .get_post_details(req.post_canister, req.post_id.clone())
-            .await?
-        else {
-            tracing::warn!("Post not found: {}", req.post_id);
+        let (post_info, prev_post_info) = try_join!(
+            cans.get_post_details_from_canister(req.post_canister, &req.post_id),
+            async {
+                match prev_video_info {
+                    Some((canister_id, post_id)) => {
+                        cans.get_post_details_from_canister(canister_id, &post_id)
+                            .await
+                    }
+                    None => Ok(None),
+                }
+            }
+        )?;
+
+        let Some(post_info) = post_info else {
             return Err(ServerFnError::new("post not found"));
         };
-        let prev_uid_formatted = if let Some((canister_id, post_id)) = prev_video_info {
-            let details = cans
-                .get_post_details(canister_id, post_id)
-                .await?
-                .ok_or_else(|| ServerFnError::new("previous post not found"))?;
+
+        let prev_uid_formatted = if let Some(details) = prev_post_info {
             format!("'{}'", details.uid)
         } else {
             "NULL".to_string()
         };
-        // sanitization is not required here, as get_post_details verifies that the post is valid
-        // and exists on cloudflare
+
+        // sanitization is not required here, as get_post_details_from_canister
+        // verifies that the post is valid and exists on cloudflare
 
         let vote_request = VoteRequestV4 {
             publisher_principal: post_info.poster_principal,
