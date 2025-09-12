@@ -153,7 +153,7 @@ impl PostViewCtx {
 
 #[derive(Clone, Default)]
 pub struct PostDetailsCacheCtx {
-    pub post_details: RwSignal<HashMap<PostId, PostItemV3>>,
+    pub post_details: StoredValue<HashMap<PostId, PostDetails>>,
 }
 
 #[component]
@@ -530,11 +530,13 @@ pub fn PostView() -> impl IntoView {
                 return Ok(Some(post));
             }
 
-            // this cache is never written to? so what's the point of this?
-            let post_nsfw_prob = post_details_cache.post_details.with_untracked(|p| {
-                p.get(&(params.canister_id, params.post_id.clone()))
-                    .map(|i| i.nsfw_probability)
-            });
+            let post_nsfw_prob = post_details_cache
+                .post_details
+                .try_with_value(|p| {
+                    p.get(&(params.canister_id, params.post_id.clone()))
+                        .map(|i| i.nsfw_probability)
+                })
+                .flatten();
 
             match send_wrap(canisters.get_post_details_with_nsfw_info(
                 params.canister_id,
