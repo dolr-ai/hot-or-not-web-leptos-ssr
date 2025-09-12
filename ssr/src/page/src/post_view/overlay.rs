@@ -537,7 +537,7 @@ pub fn VideoDetailsOverlay(
                             let _ = click_nsfw.dispatch(());
                         }
                         src=move || {
-                            if post.is_nsfw {
+                            if nsfw_enabled().unwrap_or(false) {
                                 "/img/yral/nsfw/nsfw-toggle-on.webp"
                             } else {
                                 "/img/yral/nsfw/nsfw-toggle-off.webp"
