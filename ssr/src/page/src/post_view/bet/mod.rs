@@ -571,7 +571,7 @@ fn HNWonLost(
                             current_score=bet_res.current_video_score
                             previous_score=bet_res.previous_video_score
                             won
-                            show_score=coin==CoinState::C1
+                            show_score=false
                         />
                     }})
             }
@@ -708,11 +708,13 @@ pub fn HNGameOverlay(
     win_audio_ref: NodeRef<Audio>,
     show_tutorial: RwSignal<bool>,
     show_low_balance_popup: RwSignal<bool>,
+    #[prop(default = true)] show_game_overlay: bool,
 ) -> impl IntoView {
     let bet_direction = RwSignal::new(None::<VoteKind>);
 
     let refetch_bet = Trigger::new();
     let post = StoredValue::new(post);
+    let prev_post = StoredValue::new(prev_post);
 
     let auth = auth_state();
 
@@ -746,43 +748,45 @@ pub fn HNGameOverlay(
     );
 
     view! {
-        <Suspense fallback=LoaderWithShadowBg>
-            {move || {
-                create_game_info
-                    .get()
-                    .and_then(|res| {
-                        let participation = try_or_redirect_opt!(res.as_ref());
-                        let post = post.get_value();
-                        Some(
-                            if let Some(participation) = participation {
-                                view! {
-                                    <HNUserParticipation
-                                        post
-                                        refetch_bet
-                                        participation=participation.clone()
-                                        bet_direction
-                                        show_tutorial
-                                    />
-                                }
-                                    .into_any()
-                            } else {
-                                view! {
-                                    <HNButtonOverlay
-                                        post
-                                        prev_post = prev_post.clone()
-                                        bet_direction
-                                        coin
-                                        refetch_bet
-                                        audio_ref=win_audio_ref
-                                        show_low_balance_popup
-                                    />
-                                }
-                                    .into_any()
-                            },
-                        )
-                    })
-                    .unwrap_or_else(|| view! { <LoaderWithShadowBg /> }.into_any())
-            }}
-            </Suspense>
+        <Show when=move || show_game_overlay fallback=|| ()>
+            <Suspense fallback=LoaderWithShadowBg>
+                {move || {
+                    create_game_info
+                        .get()
+                        .and_then(|res| {
+                            let participation = try_or_redirect_opt!(res.as_ref());
+                            let post = post.get_value();
+                            Some(
+                                if let Some(participation) = participation {
+                                    view! {
+                                        <HNUserParticipation
+                                            post
+                                            refetch_bet
+                                            participation=participation.clone()
+                                            bet_direction
+                                            show_tutorial
+                                        />
+                                    }
+                                        .into_any()
+                                } else {
+                                    view! {
+                                        <HNButtonOverlay
+                                            post
+                                            prev_post = prev_post.get_value()
+                                            bet_direction
+                                            coin
+                                            refetch_bet
+                                            audio_ref=win_audio_ref
+                                            show_low_balance_popup
+                                        />
+                                    }
+                                        .into_any()
+                                },
+                            )
+                        })
+                        .unwrap_or_else(|| view! { <LoaderWithShadowBg /> }.into_any())
+                }}
+                </Suspense>
+        </Show>
     }
 }

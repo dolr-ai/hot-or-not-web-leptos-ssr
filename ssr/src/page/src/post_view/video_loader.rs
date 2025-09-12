@@ -26,6 +26,7 @@ pub fn BgView<DetailResolver>(
     idx: usize,
     win_audio_ref: NodeRef<Audio>,
     children: Children,
+    #[prop(default = true)] show_game_overlay: bool,
 ) -> impl IntoView
 where
     DetailResolver: PostDetailResolver + Clone + PartialEq + Sync + Send + 'static,
@@ -83,7 +84,7 @@ where
             <Suspense>
             {move || Suspend::new(async move {
                 let (post, prev_post) = try_or_redirect_opt!(post_details_with_prev_post.await);
-                Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref high_priority /> }.into_view())
+                Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref high_priority show_game_overlay /> }.into_view())
             })}
             </Suspense>
             {children()}
