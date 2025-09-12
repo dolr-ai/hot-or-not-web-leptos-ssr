@@ -571,7 +571,7 @@ fn HNWonLost(
                             current_score=bet_res.current_video_score
                             previous_score=bet_res.previous_video_score
                             won
-                            show_score=coin==CoinState::C1
+                            show_score=false
                         />
                     }})
             }
