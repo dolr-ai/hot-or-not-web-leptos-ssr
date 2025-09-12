@@ -167,6 +167,7 @@ pub fn VideoDetailsOverlay(
     prev_post: Option<(Principal, String)>,
     win_audio_ref: NodeRef<Audio>,
     #[prop(optional, into)] high_priority: bool,
+    #[prop(default = true)] show_game_overlay: bool,
 ) -> impl IntoView {
     // No need for local context - using global context from App
 
@@ -571,7 +572,7 @@ pub fn VideoDetailsOverlay(
                     </button>
                 </div>
                 <div class="w-full bg-transparent pointer-events-auto max-w-lg mx-auto">
-                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref show_tutorial show_low_balance_popup />
+                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref show_tutorial show_low_balance_popup show_game_overlay />
                 </div>
             </div>
         </div>

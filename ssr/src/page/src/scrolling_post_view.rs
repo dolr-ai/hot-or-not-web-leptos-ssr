@@ -74,6 +74,7 @@ pub fn ScrollingPostView<
     #[prop(optional, into)] overlay: Option<ViewFn>,
     threshold_trigger_fetch: usize,
     #[prop(optional, into)] _hard_refresh_target: RwSignal<String>,
+    #[prop(default = true)] show_game_overlay: bool,
 ) -> impl IntoView {
     let AudioState { muted, volume } = AudioState::get();
 
@@ -186,7 +187,7 @@ pub fn ScrollingPostView<
                         view! {
                             <div node_ref=container_ref class="w-full h-full snap-always snap-end" class:hidden=move || post.get().is_none()>
                                 <Show when=show_video>
-                                    <BgView win_audio_ref video_queue idx=queue_idx>
+                                    <BgView win_audio_ref video_queue idx=queue_idx show_game_overlay>
                                         <VideoViewForQueue
                                             post
                                             current_idx
