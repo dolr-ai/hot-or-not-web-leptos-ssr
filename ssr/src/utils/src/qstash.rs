@@ -52,6 +52,9 @@ impl QStashClient {
             .header(CONTENT_TYPE, "application/json")
             .header("upstash-method", "POST")
             .header("Upstash-Forward-Authorization", format!("Bearer {token}"))
+            .header("Upstash-Retries", "0") // TODO: change to 1 on Mon 15th Sept 2025
+            .header("Upstash-Flow-Control-Key", "MIXPANEL_ANALYTICS")
+            .header("Upstash-Flow-Control-Value", "Parallelism=100")
             .send()
             .await?;
         if res.status() != 200 {
