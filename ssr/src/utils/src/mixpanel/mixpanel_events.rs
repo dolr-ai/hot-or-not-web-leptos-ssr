@@ -451,7 +451,7 @@ pub enum MixpanelVideoClickedCTAType {
     VideoPlay,
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum MixpanelMenuClickedCTAType {
     TalkToTheTeam,
