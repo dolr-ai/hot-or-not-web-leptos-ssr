@@ -7,13 +7,16 @@ use leptos_meta::*;
 use leptos_router::hooks::use_query_map;
 use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use utils::host::show_nsfw_content;
-use utils::ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw};
+use utils::ml_feed::{
+    get_ml_feed_clean, get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw, get_ml_feed_nsfw,
+};
 use utils::try_or_redirect_opt;
 use yral_types::post::PostItemV3;
 
 use crate::post_view::{PostViewCtx, PostViewWithUpdatesMLFeed};
 
 #[server]
+#[tracing::instrument]
 async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerFnError> {
     let posts = get_ml_feed_coldstart_clean(Principal::anonymous(), 15, vec![], None)
         .await
@@ -22,10 +25,22 @@ async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerF
             ServerFnError::new(e.to_string())
         })?;
 
-    Ok(posts)
+    if posts.is_empty() {
+        log::error!("Coldstart clean feed returned 0 results, falling back to ML feed");
+        let posts = get_ml_feed_clean(Principal::anonymous(), 15, vec![], None)
+            .await
+            .map_err(|e| {
+                log::error!("Error getting ML feed clean fallback: {e:?}");
+                ServerFnError::new(e.to_string())
+            })?;
+        Ok(posts)
+    } else {
+        Ok(posts)
+    }
 }
 
 #[server]
+#[tracing::instrument]
 async fn get_top_post_ids_global_nsfw_feed() -> Result<Vec<PostItemV3>, ServerFnError> {
     let posts = get_ml_feed_coldstart_nsfw(Principal::anonymous(), 15, vec![], None)
         .await
@@ -34,7 +49,18 @@ async fn get_top_post_ids_global_nsfw_feed() -> Result<Vec<PostItemV3>, ServerFn
             ServerFnError::new(e.to_string())
         })?;
 
-    Ok(posts)
+    if posts.is_empty() {
+        log::error!("Coldstart nsfw feed returned 0 results, falling back to ML feed");
+        let posts = get_ml_feed_nsfw(Principal::anonymous(), 15, vec![], None)
+            .await
+            .map_err(|e| {
+                log::error!("Error getting ML feed nsfw fallback: {e:?}");
+                ServerFnError::new(e.to_string())
+            })?;
+        Ok(posts)
+    } else {
+        Ok(posts)
+    }
 }
 
 #[component]
@@ -74,7 +100,8 @@ pub fn YralRootPage() -> impl IntoView {
             } else {
                 get_top_post_ids_global_clean_feed().await
             }?;
-            leptos::logging::debug_warn!(
+            leptos::logging::log!(
+                // TODO: switch to debug later
                 "loaded {} posts from cache in {:?}",
                 posts.len(),
                 start.elapsed()
