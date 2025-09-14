@@ -15,22 +15,57 @@ use yral_types::post::PostItemV3;
 
 use crate::post_view::{PostViewCtx, PostViewWithUpdatesMLFeed};
 
+fn generate_random_principal() -> Principal {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    // Get current timestamp as source of randomness
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos() as u64;
+
+    // Add some additional variation
+    let thread_id = std::thread::current().id();
+    let thread_hash = format!("{thread_id:?}")
+        .chars()
+        .map(|c| c as u64)
+        .fold(0u64, |acc, x| acc.wrapping_add(x));
+
+    // Combine timestamp with thread hash for uniqueness
+    let unique_id = timestamp.wrapping_mul(1000000).wrapping_add(thread_hash);
+
+    // Create principal from bytes
+    let mut bytes = vec![0u8; 29];
+    bytes[0] = (unique_id & 0xFF) as u8;
+    bytes[1] = ((unique_id >> 8) & 0xFF) as u8;
+    bytes[2] = ((unique_id >> 16) & 0xFF) as u8;
+    bytes[3] = ((unique_id >> 24) & 0xFF) as u8;
+    bytes[4] = ((unique_id >> 32) & 0xFF) as u8;
+    bytes[5] = ((unique_id >> 40) & 0xFF) as u8;
+    bytes[6] = ((unique_id >> 48) & 0xFF) as u8;
+    bytes[7] = ((unique_id >> 56) & 0xFF) as u8;
+
+    Principal::from_slice(&bytes)
+}
+
 #[server]
 #[tracing::instrument]
 async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerFnError> {
-    let posts = get_ml_feed_coldstart_clean(Principal::anonymous(), 15, vec![], None)
+    let random_principal = generate_random_principal();
+    let posts = get_ml_feed_coldstart_clean(random_principal, 5, vec![], None)
         .await
         .map_err(|e| {
-            log::error!("Error getting top post id global clean feed: {e:?}");
+            leptos::logging::error!("Error getting top post id global clean feed: {e:?}");
             ServerFnError::new(e.to_string())
         })?;
 
     if posts.is_empty() {
-        log::error!("Coldstart clean feed returned 0 results, falling back to ML feed");
-        let posts = get_ml_feed_clean(Principal::anonymous(), 15, vec![], None)
+        leptos::logging::error!("Coldstart clean feed returned 0 results, falling back to ML feed");
+        let fallback_principal = generate_random_principal();
+        let posts = get_ml_feed_clean(fallback_principal, 5, vec![], None)
             .await
             .map_err(|e| {
-                log::error!("Error getting ML feed clean fallback: {e:?}");
+                leptos::logging::error!("Error getting ML feed clean fallback: {e:?}");
                 ServerFnError::new(e.to_string())
             })?;
         Ok(posts)
@@ -42,19 +77,21 @@ async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerF
 #[server]
 #[tracing::instrument]
 async fn get_top_post_ids_global_nsfw_feed() -> Result<Vec<PostItemV3>, ServerFnError> {
-    let posts = get_ml_feed_coldstart_nsfw(Principal::anonymous(), 15, vec![], None)
+    let random_principal = generate_random_principal();
+    let posts = get_ml_feed_coldstart_nsfw(random_principal, 5, vec![], None)
         .await
         .map_err(|e| {
-            log::error!("Error getting top post id global nsfw feed: {e:?}");
+            leptos::logging::error!("Error getting top post id global nsfw feed: {e:?}");
             ServerFnError::new(e.to_string())
         })?;
 
     if posts.is_empty() {
-        log::error!("Coldstart nsfw feed returned 0 results, falling back to ML feed");
-        let posts = get_ml_feed_nsfw(Principal::anonymous(), 15, vec![], None)
+        leptos::logging::error!("Coldstart nsfw feed returned 0 results, falling back to ML feed");
+        let fallback_principal = generate_random_principal();
+        let posts = get_ml_feed_nsfw(fallback_principal, 5, vec![], None)
             .await
             .map_err(|e| {
-                log::error!("Error getting ML feed nsfw fallback: {e:?}");
+                leptos::logging::error!("Error getting ML feed nsfw fallback: {e:?}");
                 ServerFnError::new(e.to_string())
             })?;
         Ok(posts)
