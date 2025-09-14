@@ -59,7 +59,7 @@ impl QStashClient {
             .await?;
         if res.status() != 200 {
             let e = res.text().await?;
-            log::error!("Error sending analytics to qstash: {e:?}");
+            leptos::logging::error!("Error sending analytics to qstash: {e:?}");
         }
         Ok(())
     }
@@ -81,7 +81,7 @@ impl QStashClient {
             .await?;
         if res.status() != 200 {
             let e = res.text().await?;
-            log::error!("Error sending analytics directly: {e:?}");
+            leptos::logging::error!("Error sending analytics directly: {e:?}");
         }
         Ok(())
     }
