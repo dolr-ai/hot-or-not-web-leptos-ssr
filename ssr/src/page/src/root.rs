@@ -52,7 +52,7 @@ fn generate_random_principal() -> Principal {
 #[tracing::instrument]
 async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerFnError> {
     let random_principal = generate_random_principal();
-    let posts = get_ml_feed_coldstart_clean(random_principal, 5, vec![], None)
+    let posts = get_ml_feed_coldstart_clean(random_principal, 15, vec![], None)
         .await
         .map_err(|e| {
             leptos::logging::error!("Error getting top post id global clean feed: {e:?}");
@@ -60,15 +60,39 @@ async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerF
         })?;
 
     if posts.is_empty() {
-        leptos::logging::error!("Coldstart clean feed returned 0 results, falling back to ML feed");
-        let fallback_principal = generate_random_principal();
-        let posts = get_ml_feed_clean(fallback_principal, 5, vec![], None)
-            .await
-            .map_err(|e| {
-                leptos::logging::error!("Error getting ML feed clean fallback: {e:?}");
-                ServerFnError::new(e.to_string())
-            })?;
-        Ok(posts)
+        leptos::logging::error!(
+            "Coldstart clean feed returned 0 results, falling back to ML feed with retries"
+        );
+
+        const MAX_RETRIES: usize = 5;
+        for attempt in 1..=MAX_RETRIES {
+            let fallback_principal = generate_random_principal();
+            leptos::logging::log!("Attempting ML feed clean fallback - attempt {attempt}/{MAX_RETRIES} with principal: {fallback_principal:?}");
+
+            let retry_posts = get_ml_feed_clean(fallback_principal, 15, vec![], None)
+                .await
+                .map_err(|e| {
+                    leptos::logging::error!(
+                        "Error getting ML feed clean fallback on attempt {attempt}: {e:?}"
+                    );
+                    ServerFnError::new(e.to_string())
+                })?;
+
+            if !retry_posts.is_empty() {
+                leptos::logging::log!(
+                    "ML feed clean fallback succeeded on attempt {attempt} with {} posts",
+                    retry_posts.len()
+                );
+                return Ok(retry_posts);
+            }
+
+            leptos::logging::warn!("ML feed clean fallback attempt {attempt} returned 0 results");
+        }
+
+        leptos::logging::error!(
+            "All {MAX_RETRIES} ML feed clean fallback attempts returned 0 results"
+        );
+        Ok(vec![])
     } else {
         Ok(posts)
     }
@@ -78,7 +102,7 @@ async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerF
 #[tracing::instrument]
 async fn get_top_post_ids_global_nsfw_feed() -> Result<Vec<PostItemV3>, ServerFnError> {
     let random_principal = generate_random_principal();
-    let posts = get_ml_feed_coldstart_nsfw(random_principal, 5, vec![], None)
+    let posts = get_ml_feed_coldstart_nsfw(random_principal, 15, vec![], None)
         .await
         .map_err(|e| {
             leptos::logging::error!("Error getting top post id global nsfw feed: {e:?}");
@@ -86,15 +110,39 @@ async fn get_top_post_ids_global_nsfw_feed() -> Result<Vec<PostItemV3>, ServerFn
         })?;
 
     if posts.is_empty() {
-        leptos::logging::error!("Coldstart nsfw feed returned 0 results, falling back to ML feed");
-        let fallback_principal = generate_random_principal();
-        let posts = get_ml_feed_nsfw(fallback_principal, 5, vec![], None)
-            .await
-            .map_err(|e| {
-                leptos::logging::error!("Error getting ML feed nsfw fallback: {e:?}");
-                ServerFnError::new(e.to_string())
-            })?;
-        Ok(posts)
+        leptos::logging::error!(
+            "Coldstart nsfw feed returned 0 results, falling back to ML feed with retries"
+        );
+
+        const MAX_RETRIES: usize = 5;
+        for attempt in 1..=MAX_RETRIES {
+            let fallback_principal = generate_random_principal();
+            leptos::logging::log!("Attempting ML feed nsfw fallback - attempt {attempt}/{MAX_RETRIES} with principal: {fallback_principal:?}");
+
+            let retry_posts = get_ml_feed_nsfw(fallback_principal, 15, vec![], None)
+                .await
+                .map_err(|e| {
+                    leptos::logging::error!(
+                        "Error getting ML feed nsfw fallback on attempt {attempt}: {e:?}"
+                    );
+                    ServerFnError::new(e.to_string())
+                })?;
+
+            if !retry_posts.is_empty() {
+                leptos::logging::log!(
+                    "ML feed nsfw fallback succeeded on attempt {attempt} with {} posts",
+                    retry_posts.len()
+                );
+                return Ok(retry_posts);
+            }
+
+            leptos::logging::warn!("ML feed nsfw fallback attempt {attempt} returned 0 results");
+        }
+
+        leptos::logging::error!(
+            "All {MAX_RETRIES} ML feed nsfw fallback attempts returned 0 results"
+        );
+        Ok(vec![])
     } else {
         Ok(posts)
     }
