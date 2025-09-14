@@ -63,4 +63,26 @@ impl QStashClient {
         }
         Ok(())
     }
+
+    pub async fn send_analytics_event_directly(
+        &self,
+        req: Value,
+        token: String,
+    ) -> Result<(), reqwest::Error> {
+        let off_chain_ep = ANALYTICS_SERVER_URL.join("api/send_event").unwrap();
+
+        let res = self
+            .client
+            .post(off_chain_ep)
+            .json(&req)
+            .header(CONTENT_TYPE, "application/json")
+            .header(AUTHORIZATION, format!("Bearer {token}"))
+            .send()
+            .await?;
+        if res.status() != 200 {
+            let e = res.text().await?;
+            log::error!("Error sending analytics directly: {e:?}");
+        }
+        Ok(())
+    }
 }

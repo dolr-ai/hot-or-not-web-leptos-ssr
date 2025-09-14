@@ -97,7 +97,7 @@ async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
             let token =
                 std::env::var("ANALYTICS_SERVER_TOKEN").expect("ANALYTICS_SERVER_TOKEN is not set");
             qstash_client
-                .send_analytics_event_to_qstash(props, token)
+                .send_analytics_event_directly(props, token)
                 .await
                 .map_err(|e| ServerFnError::new(format!("Mixpanel track error: {e:?}")))?;
         } else {
