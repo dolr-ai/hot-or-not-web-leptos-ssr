@@ -15,11 +15,7 @@ use crate::post_view::{PostViewCtx, PostViewWithUpdatesMLFeed};
 
 #[server]
 async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerFnError> {
-    use utils::client_ip::get_client_ip;
-
-    let ip_address = get_client_ip().await;
-
-    let posts = get_ml_feed_coldstart_clean(Principal::anonymous(), 15, vec![], ip_address)
+    let posts = get_ml_feed_coldstart_clean(Principal::anonymous(), 15, vec![], None)
         .await
         .map_err(|e| {
             log::error!("Error getting top post id global clean feed: {e:?}");
@@ -31,11 +27,7 @@ async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerF
 
 #[server]
 async fn get_top_post_ids_global_nsfw_feed() -> Result<Vec<PostItemV3>, ServerFnError> {
-    use utils::client_ip::get_client_ip;
-
-    let ip_address = get_client_ip().await;
-
-    let posts = get_ml_feed_coldstart_nsfw(Principal::anonymous(), 15, vec![], ip_address)
+    let posts = get_ml_feed_coldstart_nsfw(Principal::anonymous(), 15, vec![], None)
         .await
         .map_err(|e| {
             log::error!("Error getting top post id global nsfw feed: {e:?}");
