@@ -109,8 +109,7 @@ pub async fn leptos_routes_handler(state: State<AppState>, req: Request<AxumBody
 async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
 
-    // Initialize telemetry if OTLP_ENDPOINT is configured
-    #[cfg(feature = "enable-oltp")]
+    #[cfg(feature = "enable-otlp")]
     let telemetry_handles = setup_telemetry();
 
     // Setting get_configuration(None) means we'll be using cargo-leptos's env values
@@ -194,7 +193,7 @@ async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
         .layer(sentry_tower_layer)
         .with_state(res.app_state);
 
-    #[cfg(feature = "enable-oltp")]
+    #[cfg(feature = "enable-otlp")]
     let app = with_telemetry(app);
 
     // run our app with hyper
@@ -210,7 +209,7 @@ async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
     .unwrap();
 
     // Cleanup telemetry providers if they were initialized
-    #[cfg(feature = "enable-oltp")]
+    #[cfg(feature = "enable-otlp")]
     if let Some((logger_provider, tracer_provider, metrics_provider)) = telemetry_handles {
         if let Some(logger_provider) = logger_provider {
             if let Err(e) = logger_provider.shutdown() {
@@ -230,7 +229,35 @@ async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-#[cfg(feature = "enable-oltp")]
+#[cfg(not(feature = "enable-otlp"))]
+fn setup_sentry_subscriber() {
+    use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
+                // axum logs rejections from built-in extractors with the `axum::rejection`
+                // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
+                format!(
+                    "{}=debug,tower_http=debug,axum::rejection=trace",
+                    env!("CARGO_CRATE_NAME")
+                )
+                .into()
+            }),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .with(sentry_tracing::layer())
+        .init();
+}
+
+#[cfg(feature = "enable-otlp")]
+fn setup_sentry_subscriber() {
+    // its not impossible to setup sentry with jaeger, but its additional effort
+    // not worth going through.
+    eprintln!("sentry subcriber is not setup when otlp is enabled");
+}
+
+#[cfg(feature = "enable-otlp")]
 fn with_telemetry<S: Clone + Send + Sync + 'static>(app: Router<S>) -> Router<S> {
     let layer = tower_http::trace::TraceLayer::new_for_http()
         .make_span_with(|request: &axum::extract::Request<_>| {
@@ -271,7 +298,7 @@ fn with_telemetry<S: Clone + Send + Sync + 'static>(app: Router<S>) -> Router<S>
     app.layer(layer)
 }
 
-#[cfg(feature = "enable-oltp")]
+#[cfg(feature = "enable-otlp")]
 fn setup_telemetry() -> Option<(
     Option<opentelemetry_sdk::logs::LoggerProvider>,
     opentelemetry_sdk::trace::TracerProvider,
@@ -361,8 +388,7 @@ fn main() {
         },
     ));
 
-    // Note: telemetry_axum will initialize its own tracing subscriber
-    // that includes OpenTelemetry exporters for Jaeger
+    setup_sentry_subscriber();
 
     tokio::runtime::Builder::new_multi_thread()
         .enable_all()
