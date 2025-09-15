@@ -1,3 +1,13 @@
+//! Mission modal configurations for daily missions
+//!
+//! This module provides pre-configured modal setups for different mission states:
+//! - Progress tracking modals
+//! - Completion celebration modals
+//! - Streak milestone modals
+//! - Referral progress modals
+//!
+//! Each modal configuration includes title, description, icon, buttons, and optional progress bars.
+
 use super::super::mission_state::MissionProgress;
 use super::universal_modal::{icons, ButtonConfig, ButtonStyle, UniversalModal};
 use leptos::prelude::*;
@@ -12,6 +22,7 @@ pub struct ModalConfig {
 }
 
 /// Creates modal configuration for AI video progress
+#[must_use]
 pub fn create_progress_modal(
     progress: &MissionProgress,
     reward_amount: u32,
@@ -38,6 +49,7 @@ pub fn create_progress_modal(
 }
 
 /// Creates modal configuration for mission completion
+#[must_use]
 pub fn create_completion_modal(reward_amount: u32, reward_token: &str) -> ModalConfig {
     ModalConfig {
         title: "Mission Completed!".to_string(),
@@ -56,6 +68,7 @@ pub fn create_completion_modal(reward_amount: u32, reward_token: &str) -> ModalC
 }
 
 /// Creates modal configuration for halfway progress in games
+#[must_use]
 pub fn create_halfway_modal(
     progress: &MissionProgress,
     reward_amount: u32,
@@ -82,6 +95,7 @@ pub fn create_halfway_modal(
 }
 
 /// Creates modal configuration for target completion
+#[must_use]
 pub fn create_target_complete_modal(reward_amount: u32, reward_token: &str) -> ModalConfig {
     ModalConfig {
         title: "Mission Complete!".to_string(),
@@ -101,6 +115,7 @@ pub fn create_target_complete_modal(reward_amount: u32, reward_token: &str) -> M
 }
 
 /// Creates modal configuration for almost complete streak
+#[must_use]
 pub fn create_almost_there_modal(
     progress: &MissionProgress,
     reward_amount: u32,
@@ -136,6 +151,7 @@ pub fn create_almost_there_modal(
 }
 
 /// Creates modal configuration for active streak
+#[must_use]
 pub fn create_streak_modal(progress: &MissionProgress, reward_token: &str) -> ModalConfig {
     ModalConfig {
         title: "You're on a streak!".to_string(),
@@ -165,6 +181,7 @@ pub fn create_streak_modal(progress: &MissionProgress, reward_token: &str) -> Mo
 }
 
 /// Creates modal configuration for daily reward
+#[must_use]
 pub fn create_daily_reward_modal(reward_token: &str) -> ModalConfig {
     ModalConfig {
         title: "Your Daily Reward Awaits!".to_string(),
@@ -194,6 +211,7 @@ pub fn create_daily_reward_modal(reward_token: &str) -> ModalConfig {
 }
 
 /// Creates modal configuration for streak completion
+#[must_use]
 pub fn create_streak_complete_modal(reward_amount: u32, reward_token: &str) -> ModalConfig {
     ModalConfig {
         title: "Streak Complete!".to_string(),
@@ -214,6 +232,7 @@ pub fn create_streak_complete_modal(reward_amount: u32, reward_token: &str) -> M
 }
 
 /// Creates modal configuration for referral progress
+#[must_use]
 pub fn create_refer_earn_modal(
     progress: &MissionProgress,
     reward_amount: u32,
@@ -240,6 +259,7 @@ pub fn create_refer_earn_modal(
 }
 
 /// Creates modal configuration for referral completion
+#[must_use]
 pub fn create_referral_complete_modal(reward_amount: u32, reward_token: &str) -> ModalConfig {
     ModalConfig {
         title: "Mission Complete!".to_string(),
@@ -260,6 +280,7 @@ pub fn create_referral_complete_modal(reward_amount: u32, reward_token: &str) ->
 }
 
 /// Main function to get modal configuration based on modal type
+#[must_use]
 pub fn get_modal_config(
     modal_type: &str,
     progress: &MissionProgress,
@@ -290,6 +311,7 @@ pub fn get_modal_config(
 }
 
 /// Creates and renders a modal based on configuration
+#[must_use]
 pub fn render_modal_with_state_close(
     config: ModalConfig,
     show: RwSignal<bool>,
@@ -324,6 +346,7 @@ pub fn render_modal_with_state_close(
 }
 
 /// Creates and renders a modal based on configuration (legacy version)
+#[must_use]
 pub fn render_modal(config: ModalConfig, show: RwSignal<bool>) -> impl IntoView {
     render_modal_with_state_close(config, show, move || show.set(false))
 }

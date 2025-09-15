@@ -1,3 +1,10 @@
+//! Modal system for daily missions
+//!
+//! This module provides a comprehensive modal system for daily missions including:
+//! - Modal overlay components
+//! - Mission-specific modal configurations
+//! - Universal modal components with consistent styling
+
 use leptos::prelude::*;
 
 pub mod mission_modals;
@@ -8,6 +15,7 @@ pub use mission_modals::{
 };
 pub use universal_modal::{icons, ButtonConfig, ButtonStyle, UniversalModal};
 
+/// A modal overlay component that provides backdrop and positioning for modals
 #[component]
 pub fn ModalOverlay(#[prop(into)] show: Signal<bool>, children: Children) -> impl IntoView {
     view! {
@@ -37,6 +45,7 @@ pub fn ModalOverlay(#[prop(into)] show: Signal<bool>, children: Children) -> imp
     }
 }
 
+/// A close button component for modals with consistent styling
 #[component]
 pub fn CloseButton(on_close: impl Fn() + 'static + Copy + Send + Sync) -> impl IntoView {
     view! {

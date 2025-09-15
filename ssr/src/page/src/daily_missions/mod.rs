@@ -1,3 +1,17 @@
+//! Daily Missions Module
+//!
+//! This module provides a comprehensive daily missions system with:
+//! - Reactive state management using Leptos signals
+//! - Mission cards with progress tracking
+//! - Modal-based user interactions
+//! - Configurable mission types (login streaks, games, videos, referrals)
+//! - Automatic reward claiming and progress updates
+//!
+//! The system is built with clean separation of concerns:
+//! - `mission_state`: State management and actions
+//! - `modals`: Modal configurations and rendering
+//! - Main components: UI components and layouts
+
 use ::leptos::logging::log;
 use leptos::prelude::*;
 use leptos_icons::*;
@@ -13,8 +27,7 @@ pub mod modals;
 use mission_state::{provide_mission_state, use_mission_state, MissionActions, MissionProgress};
 use modals::{get_modal_config, render_modal_with_state_close};
 
-// MissionProgress is now defined in state module
-
+/// A progress bar component that can display either segmented or continuous progress
 #[component]
 fn ProgressBar(
     progress: MissionProgress,
@@ -56,6 +69,13 @@ fn ProgressBar(
     }
 }
 
+/// A mission card component that displays mission information and progress
+///
+/// Features:
+/// - Progress tracking with visual progress bar
+/// - Configurable button states and actions
+/// - Support for segmented progress (e.g., daily streaks)
+/// - Reward information display
 #[component]
 fn MissionCard(
     title: String,
@@ -64,9 +84,6 @@ fn MissionCard(
     info_text: String,
     #[prop(optional, default = 0)] segments: u32,
     #[prop(optional, default = false)] is_claimable: bool,
-    #[prop(optional, default = 30)] reward_amount: u32,
-    #[prop(optional, default = "YRAL".to_string())] reward_token: String,
-    #[prop(optional, default = "ai_video".to_string())] mission_type: String,
     on_action: impl Fn() + 'static,
 ) -> impl IntoView {
     let progress_text = if segments > 0 {
@@ -119,6 +136,8 @@ fn MissionCard(
     }
 }
 
+/// The main content component for daily missions that renders all active missions
+/// and handles state-based modal interactions
 #[component]
 fn DailyMissionsContent() -> impl IntoView {
     let mission_state = use_mission_state();
@@ -160,32 +179,32 @@ fn DailyMissionsContent() -> impl IntoView {
                         match mission_type.as_str() {
                             "login_streak" => {
                                 if is_claimable {
-                                    let _ = claim_reward_action.dispatch(mission_id_for_claim.clone());
+                                    claim_reward_action.dispatch(mission_id_for_claim.clone());
                                 } else {
-                                    let _ = login_action.dispatch(());
+                                    login_action.dispatch(());
                                 }
-                            },
+                            }
                             "play_games" => {
                                 if is_claimable {
-                                    let _ = claim_reward_action.dispatch(mission_id_for_claim.clone());
+                                    claim_reward_action.dispatch(mission_id_for_claim.clone());
                                 } else {
-                                    let _ = play_game_action.dispatch(());
+                                    play_game_action.dispatch(());
                                 }
-                            },
+                            }
                             "ai_video" => {
                                 if is_claimable {
-                                    let _ = claim_reward_action.dispatch(mission_id_for_claim.clone());
+                                    claim_reward_action.dispatch(mission_id_for_claim.clone());
                                 } else {
-                                    let _ = generate_video_action.dispatch(());
+                                    generate_video_action.dispatch(());
                                 }
-                            },
+                            }
                             "referral" => {
                                 if is_claimable {
-                                    let _ = claim_reward_action.dispatch(mission_id_for_claim.clone());
+                                    claim_reward_action.dispatch(mission_id_for_claim.clone());
                                 } else {
-                                    let _ = refer_friend_action.dispatch(());
+                                    refer_friend_action.dispatch(());
                                 }
-                            },
+                            }
                             _ => {
                                 log!("Unknown mission type: {}", mission_type);
                             }
@@ -200,9 +219,6 @@ fn DailyMissionsContent() -> impl IntoView {
                             info_text=mission.config.info_text.clone()
                             segments=segments
                             is_claimable=is_claimable
-                            reward_amount=mission.config.reward_amount
-                            reward_token=mission.config.reward_token.clone()
-                            mission_type=mission.config.mission_type.clone()
                             on_action=on_action
                         />
                     }
@@ -225,7 +241,7 @@ fn DailyMissionsContent() -> impl IntoView {
                                     config,
                                     RwSignal::new(true),
                                     move || {
-                                        let _ = close_action.dispatch(());
+                                        close_action.dispatch(());
                                     }
                                 ).into_any();
                             }
@@ -238,6 +254,8 @@ fn DailyMissionsContent() -> impl IntoView {
     }
 }
 
+/// The root daily missions page component that provides state context
+/// and renders the page layout with navigation
 #[component]
 pub fn DailyMissions() -> impl IntoView {
     let app_state = use_context::<AppState>();

@@ -1,3 +1,12 @@
+//! Daily missions state management system
+//!
+//! This module provides comprehensive state management for daily missions including:
+//! - Mission progress tracking with reactive signals
+//! - User statistics and achievements
+//! - Action creators for mission interactions
+//! - Modal state management
+//! - Persistent data structures
+
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -10,7 +19,7 @@ pub struct MissionProgress {
 }
 
 impl MissionProgress {
-    pub fn new(current: u32, total: u32) -> Self {
+    pub const fn new(current: u32, total: u32) -> Self {
         Self {
             current,
             total,
@@ -22,7 +31,7 @@ impl MissionProgress {
         if self.total == 0 {
             0.0
         } else {
-            (self.current as f32 / self.total as f32 * 100.0).min(100.0)
+            ((self.current * 100) as f32 / self.total as f32).min(100.0)
         }
     }
 
@@ -30,7 +39,7 @@ impl MissionProgress {
         let was_completed = self.completed;
         self.current = (self.current + amount).min(self.total);
         self.completed = self.current >= self.total;
-        !was_completed && self.completed // Returns true if just completed
+        !was_completed && self.completed
     }
 
     pub fn reset(&mut self) {
@@ -38,7 +47,7 @@ impl MissionProgress {
         self.completed = false;
     }
 
-    pub fn is_claimable(&self) -> bool {
+    pub const fn is_claimable(&self) -> bool {
         self.completed
     }
 }
@@ -67,7 +76,7 @@ pub struct Mission {
 }
 
 impl Mission {
-    pub fn new(config: MissionConfig, progress: MissionProgress) -> Self {
+    pub const fn new(config: MissionConfig, progress: MissionProgress) -> Self {
         Self {
             config,
             progress,
@@ -77,7 +86,7 @@ impl Mission {
         }
     }
 
-    pub fn is_claimable(&self) -> bool {
+    pub const fn is_claimable(&self) -> bool {
         self.progress.completed && !self.claimed
     }
 
@@ -87,16 +96,15 @@ impl Mission {
             if self.config.auto_reset_daily {
                 self.reset_progress();
             }
-            true
-        } else {
-            false
+            return true;
         }
+        false
     }
 
     pub fn reset_progress(&mut self) {
         self.progress.reset();
         self.claimed = false;
-        // Keep streak count for streak-based missions
+        // Note: Keep streak count for streak-based missions
     }
 
     pub fn increment_progress(&mut self, amount: u32) -> bool {
@@ -113,7 +121,13 @@ pub struct MissionState {
     pub user_stats: RwSignal<UserStats>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+impl Default for MissionState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct UserStats {
     pub total_yral_earned: u32,
     pub current_login_streak: u32,
@@ -124,21 +138,8 @@ pub struct UserStats {
     pub last_login_date: Option<String>,
 }
 
-impl Default for UserStats {
-    fn default() -> Self {
-        Self {
-            total_yral_earned: 0,
-            current_login_streak: 0,
-            longest_login_streak: 0,
-            games_played_today: 0,
-            videos_generated_today: 0,
-            friends_referred: 0,
-            last_login_date: None,
-        }
-    }
-}
-
 impl MissionState {
+    #[must_use]
     pub fn new() -> Self {
         let initial_missions = Self::create_default_missions();
         let sample_stats = UserStats {
@@ -404,27 +405,32 @@ impl MissionState {
         self.active_modal.set(None);
     }
 
+    #[must_use]
     pub fn get_mission(&self, mission_id: &str) -> Option<Mission> {
         self.missions
             .with(|missions| missions.get(mission_id).cloned())
     }
 
+    #[must_use]
     pub fn get_all_missions(&self) -> Vec<Mission> {
         self.missions
             .with(|missions| missions.values().cloned().collect())
     }
 
     // Computed signals
+    #[must_use]
     pub fn total_earned_signal(&self) -> impl Fn() -> u32 + Clone {
         let stats = self.user_stats;
         move || stats.with(|stats| stats.total_yral_earned)
     }
 
+    #[must_use]
     pub fn current_streak_signal(&self) -> impl Fn() -> u32 + Clone {
         let stats = self.user_stats;
         move || stats.with(|stats| stats.current_login_streak)
     }
 
+    #[must_use]
     pub fn mission_signal(&self, mission_id: String) -> impl Fn() -> Option<Mission> + Clone {
         let missions = self.missions;
         move || missions.with(|missions| missions.get(&mission_id).cloned())
@@ -432,12 +438,14 @@ impl MissionState {
 }
 
 // Global context provider
+#[must_use]
 pub fn provide_mission_state() -> MissionState {
     let state = MissionState::new();
     provide_context(state.clone());
     state
 }
 
+#[must_use]
 pub fn use_mission_state() -> MissionState {
     use_context::<MissionState>().expect("MissionState context not found")
 }
@@ -449,42 +457,47 @@ pub struct MissionActions {
 }
 
 impl MissionActions {
-    pub fn new(state: MissionState) -> Self {
+    pub const fn new(state: MissionState) -> Self {
         Self { state }
     }
 
+    #[must_use]
     pub fn login_action(&self) -> Action<(), bool> {
         let state = self.state.clone();
-        Action::new(move |_: &()| {
+        Action::new(move |()| {
             let state = state.clone();
             async move { state.increment_login_streak() }
         })
     }
 
+    #[must_use]
     pub fn play_game_action(&self) -> Action<(), bool> {
         let state = self.state.clone();
-        Action::new(move |_: &()| {
+        Action::new(move |()| {
             let state = state.clone();
             async move { state.increment_games_played() }
         })
     }
 
+    #[must_use]
     pub fn generate_video_action(&self) -> Action<(), bool> {
         let state = self.state.clone();
-        Action::new(move |_: &()| {
+        Action::new(move |()| {
             let state = state.clone();
             async move { state.increment_videos_generated() }
         })
     }
 
+    #[must_use]
     pub fn refer_friend_action(&self) -> Action<(), bool> {
         let state = self.state.clone();
-        Action::new(move |_: &()| {
+        Action::new(move |()| {
             let state = state.clone();
             async move { state.increment_referrals() }
         })
     }
 
+    #[must_use]
     pub fn claim_reward_action(&self) -> Action<String, bool> {
         let state = self.state.clone();
         Action::new(move |mission_id: &String| {
@@ -494,9 +507,10 @@ impl MissionActions {
         })
     }
 
+    #[must_use]
     pub fn close_modal_action(&self) -> Action<(), ()> {
         let state = self.state.clone();
-        Action::new(move |_: &()| {
+        Action::new(move |()| {
             let state = state.clone();
             async move { state.close_modal() }
         })
