@@ -7,11 +7,15 @@ members = [
     "ssr/src/state",
     "ssr/src/utils",
     "ssr/src/page",
+    "telemetry_axum",
 ]
 
 exclude = ["./yral-common"]
 resolver = "2"
 
+[workspace.package]
+edition = "2021"
+publish = false
 
 # Defines a size-optimized profile for the WASM bundle in release mode
 [profile.wasm-release]
@@ -151,7 +155,7 @@ getrandom = { version = "0.3.3", default-features = false, features = [
 indexmap = "2.8.0"
 sentry-tracing = "0.37.0"
 tracing-log = "0.2.0"
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.19", features = ["std", "env-filter"] }
 tracing-futures = "0.2.5"
 sentry = { version = "0.37.0", default-features = false, features = [
     "rustls",
@@ -225,3 +229,17 @@ videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch =
     "client",
     "ic",
 ] }
+
+# OpenTelemetry dependencies for telemetry_axum
+opentelemetry = { version = "0.24.0", features = ["trace"] }
+opentelemetry_sdk = { version = "0.24.1", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.17.0", default-features = false, features = [
+    "reqwest-rustls",
+    "http-proto",
+    "tls",
+    "grpc-tonic"
+] }
+opentelemetry-appender-tracing = { version = "0.5.0" }
+opentelemetry-http = { version = "0.13.0" }
+tracing-opentelemetry = { version = "0.25.0" }
+telemetry_axum = { path = "./telemetry_axum" }
