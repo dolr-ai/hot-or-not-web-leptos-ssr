@@ -7,25 +7,13 @@ use component::icons::information_icon::Information;
 use component::{back_btn::BackButton, buttons::HighlightedButton, title::TitleText};
 use state::app_state::AppState;
 
+pub mod mission_state;
 pub mod modals;
-use modals::{icons, ButtonConfig, ButtonStyle, UniversalModal};
 
-#[derive(Clone, Copy)]
-pub struct MissionProgress {
-    pub current: u32,
-    pub total: u32,
-    pub completed: bool,
-}
+use mission_state::{provide_mission_state, use_mission_state, MissionActions, MissionProgress};
+use modals::{get_modal_config, render_modal_with_state_close};
 
-impl MissionProgress {
-    pub fn progress_percentage(&self) -> u32 {
-        if self.total == 0 {
-            0
-        } else {
-            ((self.current as f32 / self.total as f32) * 100.0) as u32
-        }
-    }
-}
+// MissionProgress is now defined in state module
 
 #[component]
 fn ProgressBar(
@@ -90,10 +78,6 @@ fn MissionCard(
     // Clone title for display
     let title_for_display = title.clone();
 
-    // Simple modal state
-    let show_modal = RwSignal::new(false);
-    let current_modal = RwSignal::new("".to_string());
-
     view! {
         <div class="flex flex-col gap-4 p-4 bg-neutral-900 rounded-lg">
             <div class="flex justify-between items-start">
@@ -112,35 +96,7 @@ fn MissionCard(
                 alt_style=false
                 disabled=!is_claimable && !progress.completed
                 on_click=move || {
-                    // Determine which modal to show based on mission state
-                    let modal_type = if progress.completed {
-                        match mission_type.as_str() {
-                            "play_games" => "target_complete",
-                            "referral" => "referral_complete",
-                            "login_streak" => "streak_complete",
-                            _ => "completion"
-                        }
-                    } else if progress.current > 0 && progress.current < progress.total {
-                        match mission_type.as_str() {
-                            "ai_video" => "progress",
-                            "play_games" if progress.current >= progress.total / 2 => "halfway",
-                            "referral" => "refer_earn",
-                            "login_streak" if progress.current >= 5 => "almost_there",
-                            "login_streak" if progress.current >= 2 => "streak",
-                            _ => {
-                                on_action();
-                                return;
-                            }
-                        }
-                    } else if mission_type == "login_streak" {
-                        "daily_reward"
-                    } else {
-                        on_action();
-                        return;
-                    };
-
-                    current_modal.set(modal_type.to_string());
-                    show_modal.set(true);
+                    on_action();
                 }
             >
                 {if is_claimable {
@@ -160,321 +116,124 @@ fn MissionCard(
                 <span>{info_text}</span>
             </div>
         </div>
-
-        // Universal Modal System
-        {move || {
-            if !show_modal.get() {
-                return view! { <div></div> }.into_any();
-            }
-
-            let modal_type = current_modal.get();
-            match modal_type.as_str() {
-                "progress" => {
-                    let remaining = progress.total - progress.current;
-                    view! {
-                        <UniversalModal
-                            show=show_modal
-                            title=format!("{} Down, {} to Go!", progress.current, remaining)
-                            description=format!("Awesome start—you've generated your first AI video. Create {} more to get <span class='font-semibold text-white'>{} {}</span>.<br />Keep the creativity flowing!", remaining, reward_amount, reward_token)
-                            svg_content=icons::video_cards_icon
-                            buttons=vec![ButtonConfig {
-                                text: "View Missions".to_string(),
-                                style: ButtonStyle::Secondary,
-                                on_click: Box::new(|| {
-                                    leptos::logging::log!("View missions clicked");
-                                }),
-                            }]
-                            on_close=move || show_modal.set(false)
-                        />
-                    }.into_any()
-                },
-                "completion" => {
-                    view! {
-                        <UniversalModal
-                            show=show_modal
-                            title="Mission Complete!".to_string()
-                            description="You crushed your mission!<br />Your reward is ready. Tap below to grab it!".to_string()
-                            svg_content=icons::video_cards_complete_icon
-                            buttons=vec![ButtonConfig {
-                                text: format!("Claim {} {}", reward_amount, reward_token),
-                                style: ButtonStyle::Primary,
-                                on_click: Box::new(|| {
-                                    leptos::logging::log!("Claim reward clicked");
-                                }),
-                            }]
-                            on_close=move || show_modal.set(false)
-                        />
-                    }.into_any()
-                },
-                "halfway" => {
-                    let remaining = progress.total - progress.current;
-                    view! {
-                        <UniversalModal
-                            show=show_modal
-                            title="You are halfway there!".to_string()
-                            description=format!("You've played {} games today—just {} more to go to win <span class='font-semibold text-white'>{} {}</span>.<br />Complete your mission within the next 24 hours.", progress.current, remaining, reward_amount, reward_token)
-                            svg_content=icons::medal_icon
-                            buttons=vec![ButtonConfig {
-                                text: "View Missions".to_string(),
-                                style: ButtonStyle::Secondary,
-                                on_click: Box::new(|| {
-                                    leptos::logging::log!("View missions clicked");
-                                }),
-                            }]
-                            on_close=move || show_modal.set(false)
-                        />
-                    }.into_any()
-                },
-                "target_complete" => {
-                    view! {
-                        <UniversalModal
-                            show=show_modal
-                            title="Mission Complete!".to_string()
-                            description="You crushed 10 games in a day!<br />Your reward is ready. Tap below to grab it!".to_string()
-                            svg_content=icons::target_complete_icon
-                            buttons=vec![ButtonConfig {
-                                text: format!("Claim {} {}", reward_amount, reward_token),
-                                style: ButtonStyle::Primary,
-                                on_click: Box::new(|| {
-                                    leptos::logging::log!("Claim target reward clicked");
-                                }),
-                            }]
-                            on_close=move || show_modal.set(false)
-                        />
-                    }.into_any()
-                },
-                "almost_there" => {
-                    let remaining = progress.total - progress.current;
-                    view! {
-                        <UniversalModal
-                            show=show_modal
-                            title="You are almost there!".to_string()
-                            description=format!("Keep up your daily streak. Only {} more logins to hit the {}-day milestone and win <span class='font-semibold text-white'>{} {}!</span><br /><span class='text-sm'>Miss a day and your streak resets.</span>", remaining, progress.total, reward_amount, reward_token)
-                            progress_bar={(progress.current, progress.total)}
-                            svg_content=icons::target_with_card_icon
-                            buttons=vec![
-                                ButtonConfig {
-                                    text: format!("Claim 5 {}", reward_token),
-                                    style: ButtonStyle::Primary,
-                                    on_click: Box::new(|| {
-                                        leptos::logging::log!("Claim daily reward");
-                                    }),
-                                },
-                                ButtonConfig {
-                                    text: "View Missions".to_string(),
-                                    style: ButtonStyle::Secondary,
-                                    on_click: Box::new(|| {
-                                        leptos::logging::log!("View missions clicked");
-                                    }),
-                                }
-                            ]
-                            on_close=move || show_modal.set(false)
-                        />
-                    }.into_any()
-                },
-                "streak" => {
-                    view! {
-                        <UniversalModal
-                            show=show_modal
-                            title="You're on a streak!".to_string()
-                            description=format!("Earn 5 {} for logging in today.<br />Keep the streak going to win additional 30 {} tokens on Day {}!<br /><span class='text-sm'>Miss a day and your streak resets.</span>", reward_token, reward_token, progress.total)
-                            progress_bar={(progress.current, progress.total)}
-                            svg_content=icons::flame_icon
-                            buttons=vec![
-                                ButtonConfig {
-                                    text: format!("Claim 5 {}", reward_token),
-                                    style: ButtonStyle::Primary,
-                                    on_click: Box::new(|| {
-                                        leptos::logging::log!("Claim streak reward");
-                                    }),
-                                },
-                                ButtonConfig {
-                                    text: "View Missions".to_string(),
-                                    style: ButtonStyle::Secondary,
-                                    on_click: Box::new(|| {
-                                        leptos::logging::log!("View missions clicked");
-                                    }),
-                                }
-                            ]
-                            on_close=move || show_modal.set(false)
-                        />
-                    }.into_any()
-                },
-                "daily_reward" => {
-                    view! {
-                        <UniversalModal
-                            show=show_modal
-                            title="Your Daily Reward Awaits!".to_string()
-                            description=format!("Claim your 5 {} tokens for today and keep your streak alive!<br /><span class='text-sm'>Miss a day and your streak resets.</span>", reward_token)
-                            svg_content=icons::lightning_coin_icon
-                            buttons=vec![
-                                ButtonConfig {
-                                    text: format!("Claim 5 {}", reward_token),
-                                    style: ButtonStyle::Primary,
-                                    on_click: Box::new(|| {
-                                        leptos::logging::log!("Claim daily reward");
-                                    }),
-                                },
-                                ButtonConfig {
-                                    text: "View Missions".to_string(),
-                                    style: ButtonStyle::Secondary,
-                                    on_click: Box::new(|| {
-                                        leptos::logging::log!("View missions clicked");
-                                    }),
-                                }
-                            ]
-                            on_close=move || show_modal.set(false)
-                        />
-                    }.into_any()
-                },
-                "streak_complete" => {
-                    view! {
-                        <UniversalModal
-                            show=show_modal
-                            title="Streak Complete!".to_string()
-                            description=format!("You've reached the 7th day!<br />Claim now to complete your streak and get your {} {} tokens.", reward_amount, reward_token)
-                            svg_content=icons::lightning_coin_flame_icon
-                            buttons=vec![ButtonConfig {
-                                text: format!("Claim {} {}", reward_amount, reward_token),
-                                style: ButtonStyle::Primary,
-                                on_click: Box::new(|| {
-                                    leptos::logging::log!("Claim streak completion reward");
-                                }),
-                            }]
-                            on_close=move || show_modal.set(false)
-                        />
-                    }.into_any()
-                },
-                "refer_earn" => {
-                    let remaining = progress.total - progress.current;
-                    view! {
-                        <UniversalModal
-                            show=show_modal
-                            title="Refer & Earn!".to_string()
-                            description=format!("Awesome start—you've started your referral journey. Invite {} more friends and win <span class='font-semibold text-white'>{} {} tokens</span>.", remaining, reward_amount, reward_token)
-                            progress_bar={(progress.current, progress.total)}
-                            svg_content=icons::megaphone_icon
-                            buttons=vec![ButtonConfig {
-                                text: "View Missions".to_string(),
-                                style: ButtonStyle::Secondary,
-                                on_click: Box::new(|| {
-                                    leptos::logging::log!("View missions clicked");
-                                }),
-                            }]
-                            on_close=move || show_modal.set(false)
-                        />
-                    }.into_any()
-                },
-                "referral_complete" => {
-                    view! {
-                        <UniversalModal
-                            show=show_modal
-                            title="Mission Complete!".to_string()
-                            description=format!("You've referred 3 friends — now it's time to claim your <span class='font-semibold text-white'>{} {}</span>.", reward_amount, reward_token)
-                            svg_content=icons::megaphone_complete_icon
-                            buttons=vec![ButtonConfig {
-                                text: format!("Claim {} {}", reward_amount, reward_token),
-                                style: ButtonStyle::Primary,
-                                on_click: Box::new(|| {
-                                    leptos::logging::log!("Claim referral reward");
-                                }),
-                            }]
-                            on_close=move || show_modal.set(false)
-                        />
-                    }.into_any()
-                },
-                _ => view! { <div></div> }.into_any()
-            }
-        }}
     }
 }
 
 #[component]
 fn DailyMissionsContent() -> impl IntoView {
-    // Mock data - replace with actual data from your state management
-    let login_streak = MissionProgress {
-        current: 5,
-        total: 7,
-        completed: false,
-    };
+    let mission_state = use_mission_state();
+    let mission_state_for_signal = mission_state.clone();
+    let mission_state_for_modal = mission_state.clone();
+    let actions = MissionActions::new(mission_state.clone());
 
-    let play_games = MissionProgress {
-        current: 10,
-        total: 10,
-        completed: true,
-    };
+    // Get all missions from state
+    let missions_signal = Signal::derive(move || mission_state_for_signal.get_all_missions());
+    let active_modal = mission_state.active_modal;
 
-    let generate_videos = MissionProgress {
-        current: 1,
-        total: 3,
-        completed: false,
-    };
-
-    let referral = MissionProgress {
-        current: 2,
-        total: 3,
-        completed: false,
-    };
+    // Create actions
+    let login_action = actions.login_action();
+    let play_game_action = actions.play_game_action();
+    let generate_video_action = actions.generate_video_action();
+    let refer_friend_action = actions.refer_friend_action();
+    let claim_reward_action = actions.claim_reward_action();
+    let close_modal_action = actions.close_modal_action();
 
     view! {
         <div class="flex flex-col gap-6 px-4 pb-20">
-            <MissionCard
-                title="Daily Login Streak".to_string()
-                progress=login_streak
-                button_text="Claim 5 YRAL".to_string()
-                info_text="Hit 7 days for a bonus. Miss a day, streak resets.".to_string()
-                segments=7
-                is_claimable=true
-                reward_amount=5
-                reward_token="YRAL".to_string()
-                mission_type="login_streak".to_string()
-                on_action=|| {
-                    // Handle claim login streak
-                    log!("Claim login streak");
-                }
-            />
+            {move || {
+                let missions = missions_signal.get();
+                missions.into_iter().map(|mission| {
+                    let mission_id = mission.config.id.clone();
+                    let segments = mission.config.segments.unwrap_or(0);
+                    let is_claimable = mission.is_claimable();
 
-            <MissionCard
-                title="Play 10 Games".to_string()
-                progress=play_games
-                button_text="Play Games".to_string()
-                info_text="Play 10 games in 24 hours to earn 10 YRAL tokens.".to_string()
-                reward_amount=10
-                reward_token="YRAL".to_string()
-                mission_type="play_games".to_string()
-                on_action=|| {
-                    // Handle play games
-                    log!("Play games");
-                }
-            />
+                    // Determine action based on mission type
+                    let mission_type = mission.config.mission_type.clone();
+                    let login_action = login_action.clone();
+                    let play_game_action = play_game_action.clone();
+                    let generate_video_action = generate_video_action.clone();
+                    let refer_friend_action = refer_friend_action.clone();
+                    let claim_reward_action = claim_reward_action.clone();
+                    let mission_id_for_claim = mission_id.clone();
 
-            <MissionCard
-                title="Generate 3 AI videos".to_string()
-                progress=generate_videos
-                button_text="Create AI Video".to_string()
-                info_text="Generate 3 AI videos to earn 30 YRAL tokens.".to_string()
-                reward_amount=30
-                reward_token="YRAL".to_string()
-                mission_type="ai_video".to_string()
-                on_action=|| {
-                    // Handle create AI video
-                    log!("Create AI video");
-                }
-            />
+                    let on_action = move || {
+                        match mission_type.as_str() {
+                            "login_streak" => {
+                                if is_claimable {
+                                    let _ = claim_reward_action.dispatch(mission_id_for_claim.clone());
+                                } else {
+                                    let _ = login_action.dispatch(());
+                                }
+                            },
+                            "play_games" => {
+                                if is_claimable {
+                                    let _ = claim_reward_action.dispatch(mission_id_for_claim.clone());
+                                } else {
+                                    let _ = play_game_action.dispatch(());
+                                }
+                            },
+                            "ai_video" => {
+                                if is_claimable {
+                                    let _ = claim_reward_action.dispatch(mission_id_for_claim.clone());
+                                } else {
+                                    let _ = generate_video_action.dispatch(());
+                                }
+                            },
+                            "referral" => {
+                                if is_claimable {
+                                    let _ = claim_reward_action.dispatch(mission_id_for_claim.clone());
+                                } else {
+                                    let _ = refer_friend_action.dispatch(());
+                                }
+                            },
+                            _ => {
+                                log!("Unknown mission type: {}", mission_type);
+                            }
+                        }
+                    };
 
-            <MissionCard
-                title="Referral".to_string()
-                progress=referral
-                button_text="Refer A Friend".to_string()
-                info_text="Refer 3 friends to earn 15 YRAL tokens.".to_string()
-                reward_amount=15
-                reward_token="YRAL".to_string()
-                mission_type="referral".to_string()
-                on_action=|| {
-                    // Handle referral
-                    log!("Refer a friend");
-                }
-            />
+                    view! {
+                        <MissionCard
+                            title=mission.config.title.clone()
+                            progress=mission.progress
+                            button_text=mission.config.button_text.clone()
+                            info_text=mission.config.info_text.clone()
+                            segments=segments
+                            is_claimable=is_claimable
+                            reward_amount=mission.config.reward_amount
+                            reward_token=mission.config.reward_token.clone()
+                            mission_type=mission.config.mission_type.clone()
+                            on_action=on_action
+                        />
+                    }
+                }).collect_view()
+            }}
+
+            // Modal System
+            {move || {
+                active_modal.with(|modal| {
+                    if let Some((mission_id, modal_type)) = modal {
+                        if let Some(mission) = mission_state_for_modal.get_mission(mission_id) {
+                            if let Some(config) = get_modal_config(
+                                modal_type,
+                                &mission.progress,
+                                mission.config.reward_amount,
+                                &mission.config.reward_token
+                            ) {
+                                let close_action = close_modal_action.clone();
+                                return render_modal_with_state_close(
+                                    config,
+                                    RwSignal::new(true),
+                                    move || {
+                                        let _ = close_action.dispatch(());
+                                    }
+                                ).into_any();
+                            }
+                        }
+                    }
+                    view! { <div></div> }.into_any()
+                })
+            }}
         </div>
     }
 }
@@ -483,6 +242,9 @@ fn DailyMissionsContent() -> impl IntoView {
 pub fn DailyMissions() -> impl IntoView {
     let app_state = use_context::<AppState>();
     let page_title = app_state.unwrap().name.to_owned() + " - Daily Missions";
+
+    // Provide mission state context
+    let _mission_state = provide_mission_state();
 
     view! {
         <Title text=page_title.clone() />

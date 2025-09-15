@@ -1,7 +1,11 @@
 use leptos::prelude::*;
 
+pub mod mission_modals;
 pub mod universal_modal;
 
+pub use mission_modals::{
+    get_modal_config, render_modal, render_modal_with_state_close, ModalConfig,
+};
 pub use universal_modal::{icons, ButtonConfig, ButtonStyle, UniversalModal};
 
 #[component]
