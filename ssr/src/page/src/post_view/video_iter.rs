@@ -197,7 +197,7 @@ impl<
         allow_nsfw: bool,
         video_queue: Vec<String>,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
-        if video_queue.len() < 10 {
+        if video_queue.len() < 5 {
             self.cursor.set_limit(30);
             self.fetch_post_uids_mlfeed_cache_chunked(chunks, allow_nsfw, video_queue)
                 .await
