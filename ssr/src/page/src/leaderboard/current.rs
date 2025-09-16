@@ -15,7 +15,6 @@ use leptos_router::hooks::use_navigate;
 #[cfg(feature = "hydrate")]
 use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserverOptions};
 use state::canisters::auth_state;
-#[cfg(feature = "hydrate")]
 use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps};
 
 // Sticky header component for leaderboard with solid background
@@ -125,19 +124,16 @@ pub fn Leaderboard() -> impl IntoView {
             }
 
             // Track page view with correct tournament status
-            #[cfg(feature = "hydrate")]
-            {
-                leptos::task::spawn_local(async move {
-                    if let Ok(cans) = auth.auth_cans().await {
-                        let global_props = MixpanelGlobalProps::try_get(&cans, is_logged_in.get());
-                        let is_tournament_active = tournament.status == "active";
-                        MixPanelEvent::track_leaderboard_page_viewed(
-                            global_props,
-                            is_tournament_active,
-                        );
-                    }
-                });
-            }
+            leptos::task::spawn_local(async move {
+                if let Ok(cans) = auth.auth_cans().await {
+                    let global_props = MixpanelGlobalProps::try_get(&cans, is_logged_in.get());
+                    let is_tournament_active = tournament.status == "active";
+                    MixPanelEvent::track_leaderboard_page_viewed(
+                        global_props,
+                        is_tournament_active,
+                    );
+                }
+            });
 
             // Check if should show completion popup based on last_tournament_info
             if let Some(last_tournament) = response.last_tournament_info {
