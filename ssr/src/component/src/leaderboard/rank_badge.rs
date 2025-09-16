@@ -29,7 +29,7 @@ fn RankBadgeView(
                 MixpanelPostGameType::HotOrNot,
                 is_active,
                 post.is_nsfw,
-                "leaderboard".to_string(),
+                MixpanelVideoClickedCTAType::Leaderboard,
             );
         }
     };

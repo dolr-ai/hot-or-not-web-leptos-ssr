@@ -449,6 +449,7 @@ pub enum MixpanelVideoClickedCTAType {
     Unmute,
     CreatorProfile,
     VideoPlay,
+    Leaderboard,
 }
 
 #[derive(Serialize, Clone)]
@@ -758,7 +759,11 @@ derive_event!(track_video_clicked_leaderboard = "video_clicked" => {
     game_type: MixpanelPostGameType,
     is_leaderboard_active: bool,
     is_nsfw: bool,
-    cta_type: String
+    cta_type: MixpanelVideoClickedCTAType
+});
+
+derive_event!(track_leaderboard_page_viewed {
+    is_tournament_active: bool
 });
 
 derive_event!(track_refer_and_earn { refer_link: String });
