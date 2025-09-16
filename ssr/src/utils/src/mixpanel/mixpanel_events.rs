@@ -749,6 +749,18 @@ derive_event!(track_video_clicked_profile = "video_clicked" => {
     page_name: String
 });
 
+derive_event!(track_video_clicked_leaderboard = "video_clicked" => {
+    video_id: String,
+    publisher_user_id: String,
+    like_count: u64,
+    view_count: u64,
+    is_game_enabled: bool,
+    game_type: MixpanelPostGameType,
+    is_leaderboard_active: bool,
+    is_nsfw: bool,
+    cta_type: String
+});
+
 derive_event!(track_refer_and_earn { refer_link: String });
 
 derive_event!(track_video_viewed {

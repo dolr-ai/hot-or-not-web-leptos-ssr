@@ -495,6 +495,8 @@ pub fn VideoDetailsOverlay(
     });
     let AudioState { muted, volume } = AudioState::get();
 
+    let post_for_leaderboard = post.clone();
+
     view! {
         <MuteUnmuteControl muted volume />
         <div class="flex absolute bottom-0 left-0 flex-col flex-nowrap justify-between pt-5 pb-20 w-full h-full text-white bg-transparent pointer-events-none px-[16px] z-4 md:px-[16px]">
@@ -551,7 +553,8 @@ pub fn VideoDetailsOverlay(
                 </div>
                 // Add the rank badge here, below the profile/NSFW row
                 <div class="flex justify-end w-full mt-2 pointer-events-auto">
-                    <GlobalRankBadge />
+                    <GlobalRankBadge post=post_for_leaderboard.clone() ev_ctx=ev_ctx
+                    />
                 </div>
             </div>
             // Bottom content stays at the bottom
