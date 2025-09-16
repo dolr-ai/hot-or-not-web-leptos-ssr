@@ -95,6 +95,18 @@ pub fn Leaderboard() -> impl IntoView {
         }
     });
 
+    // Action to track leaderboard page view
+    let track_page_view = Action::new(move |is_tournament_active: &bool| {
+        let is_tournament_active = *is_tournament_active;
+        let is_logged_in_val = is_logged_in.get();
+        async move {
+            if let Ok(cans) = auth.auth_cans().await {
+                let global_props = MixpanelGlobalProps::try_get(&cans, is_logged_in_val);
+                MixPanelEvent::track_leaderboard_page_viewed(global_props, is_tournament_active);
+            }
+        }
+    });
+
     // Fetch tournament info and user info once
     let tournament_resource = LocalResource::new(move || async move {
         let user_id = auth.user_principal.await.ok().map(|p| p.to_string());
@@ -123,18 +135,6 @@ pub fn Leaderboard() -> impl IntoView {
                 }
             }
 
-            // Track page view with correct tournament status
-            leptos::task::spawn_local(async move {
-                if let Ok(cans) = auth.auth_cans().await {
-                    let global_props = MixpanelGlobalProps::try_get(&cans, is_logged_in.get());
-                    let is_tournament_active = tournament.status == "active";
-                    MixPanelEvent::track_leaderboard_page_viewed(
-                        global_props,
-                        is_tournament_active,
-                    );
-                }
-            });
-
             // Check if should show completion popup based on last_tournament_info
             if let Some(last_tournament) = response.last_tournament_info {
                 if last_tournament.status == "unseen" {
@@ -156,6 +156,10 @@ pub fn Leaderboard() -> impl IntoView {
                     show_completion_popup.set(true);
                 }
             }
+
+            // Track page view with correct tournament status
+            let is_tournament_active = tournament.status == "active";
+            track_page_view.dispatch(is_tournament_active);
         }
     });
 
