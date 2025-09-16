@@ -131,7 +131,10 @@ pub fn Leaderboard() -> impl IntoView {
                     if let Ok(cans) = auth.auth_cans().await {
                         let global_props = MixpanelGlobalProps::try_get(&cans, is_logged_in.get());
                         let is_tournament_active = tournament.status == "active";
-                        MixPanelEvent::track_leaderboard_page_viewed(global_props, is_tournament_active);
+                        MixPanelEvent::track_leaderboard_page_viewed(
+                            global_props,
+                            is_tournament_active,
+                        );
                     }
                 });
             }
