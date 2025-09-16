@@ -1,5 +1,8 @@
 use super::UserRank;
 use leptos::prelude::*;
+use utils::event_streaming::events::EventCtx;
+use utils::mixpanel::mixpanel_events::*;
+use yral_canisters_common::utils::posts::PostDetails;
 
 /// Reusable rank badge view component
 #[component]
@@ -9,12 +12,34 @@ fn RankBadgeView(
     /// Whether the tournament is active
     #[prop(default = true)]
     is_active: bool,
+    /// Post details
+    post: PostDetails,
+    /// Event context
+    ev_ctx: EventCtx,
 ) -> impl IntoView {
+    let handle_click = move |_| {
+        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+            MixPanelEvent::track_video_clicked_leaderboard(
+                global,
+                post.uid.clone(),
+                post.poster_principal.to_text(),
+                post.likes,
+                post.views,
+                true, // is_game_enabled
+                MixpanelPostGameType::HotOrNot,
+                is_active,
+                post.is_nsfw,
+                MixpanelVideoClickedCTAType::Leaderboard,
+            );
+        }
+    };
+
     view! {
         <a
             href="/leaderboard"
             class="relative cursor-pointer animate-fade-in block"
             style={if !is_active { "filter: grayscale(100%) opacity(60%)" } else { "" }}
+            on:click=handle_click
         >
             <div class="relative group">
                 // Trophy Icon from SVG
@@ -52,22 +77,30 @@ fn RankBadgeView(
 
 /// Global rank badge that uses the single global LocalResource
 #[component]
-pub fn GlobalRankBadge() -> impl IntoView {
+pub fn GlobalRankBadge(
+    /// Post details
+    post: PostDetails,
+    /// Event context
+    ev_ctx: EventCtx,
+) -> impl IntoView {
     let global_rank_resource =
         use_context::<LocalResource<Result<UserRank, leptos::prelude::ServerFnError>>>()
             .expect("Global rank LocalResource should be provided");
+
+    let post_fallback = post.clone();
 
     view! {
         <Transition
             fallback=move || {
             view! {
                 // Initial loading state
-                <RankBadgeView rank_text="N/A".to_string() is_active=false />
+                <RankBadgeView rank_text="N/A".to_string() is_active=false post={post_fallback.clone()} ev_ctx={ev_ctx} />
             }
         }
         >
             {move || {
-                global_rank_resource.get().map(|result| {
+                let post_clone = post.clone();
+                global_rank_resource.get().map(move |result| {
                     let user_rank = result.unwrap_or(UserRank {
                         rank: None,
                         tournament_status: None,
@@ -89,7 +122,7 @@ pub fn GlobalRankBadge() -> impl IntoView {
                     };
 
                     view! {
-                        <RankBadgeView rank_text is_active />
+                        <RankBadgeView rank_text is_active post={post_clone} ev_ctx={ev_ctx} />
                     }
                 })
             }}
