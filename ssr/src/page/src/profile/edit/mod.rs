@@ -263,21 +263,29 @@ fn ProfileImageEditor(
 
 
     view! {
-        <Modal show>
-            <div class="flex flex-col gap-4 w-full max-w-md p-4">
-                <h2 class="text-xl font-bold text-white">"Edit Profile Picture"</h2>
+        <component::overlay::ShadowOverlay show>
+            <div class="flex flex-col justify-around items-center py-4 w-[90vw] md:w-[80vw] lg:w-[70vw] max-w-5xl rounded-md cursor-auto px-6 bg-neutral-900">
+                <div class="flex justify-between items-center w-full mb-4">
+                    <h2 class="text-xl font-bold text-white">"Edit Profile Picture"</h2>
+                    <button
+                        on:click=move |_| show.set(false)
+                        class="p-1 text-lg text-center text-white rounded-full md:text-xl bg-neutral-600"
+                    >
+                        <Icon icon=icondata::ChCross />
+                    </button>
+                </div>
+                <div class="flex flex-col gap-4 w-full">
+                    // File input
+                    <input
+                        type="file"
+                        accept="image/*"
+                        node_ref=file_input_ref
+                        on:change=handle_file_change
+                        class="hidden"
+                    />
 
-                // File input
-                <input
-                    type="file"
-                    accept="image/*"
-                    node_ref=file_input_ref
-                    on:change=handle_file_change
-                    class="hidden"
-                />
-
-                // Image editor area
-                <div class="relative w-full bg-neutral-800 rounded-lg overflow-hidden" style="height: 400px;">
+                    // Image editor area
+                    <div class="relative w-full bg-neutral-800 rounded-lg overflow-hidden h-[400px] md:h-[500px]">
                     {move || {
                         if let Some(image_url) = uploaded_image.get() {
                             view! {
@@ -305,21 +313,22 @@ fn ProfileImageEditor(
                                     />
 
                                     // Circular guide
-                                    <div class="absolute w-[300px] h-[300px] border-2 border-white/30 rounded-full pointer-events-none" />
+                                    <div class="absolute w-[300px] h-[300px] md:w-[350px] md:h-[350px] border-2 border-white/30 rounded-full pointer-events-none" />
                                 </div>
                             }.into_any()
                         } else {
                             view! {
                                 <div
-                                    class="w-full h-full flex flex-col items-center justify-center cursor-pointer"
+                                    class="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-neutral-700/30 transition-colors border-2 border-dashed border-neutral-600 rounded-lg"
                                     on:click=move |_| {
                                         if let Some(input) = file_input_ref.get() {
                                             input.click();
                                         }
                                     }
                                 >
-                                    <Icon icon=icondata::BiImageAddRegular attr:class="text-6xl text-neutral-400" />
-                                    <p class="mt-4 text-neutral-400">"Click to upload an image"</p>
+                                    <Icon icon=icondata::BiImageAddRegular attr:class="text-6xl md:text-8xl text-neutral-400 mb-4" />
+                                    <p class="text-base md:text-lg text-neutral-400 font-medium">"Click to upload an image"</p>
+                                    <p class="text-xs md:text-sm text-neutral-500 mt-2">"or drag and drop"</p>
                                 </div>
                             }.into_any()
                         }
@@ -429,7 +438,8 @@ fn ProfileImageEditor(
                         {move || if is_uploading.get() { "Saving..." } else { "Save" }}
                     </button>
                 </div>
+                </div>
             </div>
-        </Modal>
+        </component::overlay::ShadowOverlay>
     }
 }
