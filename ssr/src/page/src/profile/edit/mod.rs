@@ -261,6 +261,30 @@ fn ProfileImageEditor(
         is_dragging.set(false);
     };
 
+    // Touch event handlers for mobile
+    let handle_touch_start = move |ev: leptos::web_sys::TouchEvent| {
+        if let Some(touch) = ev.touches().get(0) {
+            is_dragging.set(true);
+            drag_start_x.set(touch.client_x() as f64 - position_x.get());
+            drag_start_y.set(touch.client_y() as f64 - position_y.get());
+            ev.prevent_default();
+        }
+    };
+
+    let handle_touch_move = move |ev: leptos::web_sys::TouchEvent| {
+        if is_dragging.get() {
+            if let Some(touch) = ev.touches().get(0) {
+                position_x.set(touch.client_x() as f64 - drag_start_x.get());
+                position_y.set(touch.client_y() as f64 - drag_start_y.get());
+                ev.prevent_default();
+            }
+        }
+    };
+
+    let handle_touch_end = move |_| {
+        is_dragging.set(false);
+    };
+
 
     view! {
         <component::overlay::ShadowOverlay show>
@@ -290,11 +314,14 @@ fn ProfileImageEditor(
                         if let Some(image_url) = uploaded_image.get() {
                             view! {
                                 <div
-                                    class="relative w-full h-full flex items-center justify-center overflow-hidden cursor-move"
+                                    class="relative w-full h-full flex items-center justify-center overflow-hidden cursor-move touch-none"
                                     on:mousedown=handle_mouse_down
                                     on:mousemove=handle_mouse_move
                                     on:mouseup=handle_mouse_up
                                     on:mouseleave=handle_mouse_up
+                                    on:touchstart=handle_touch_start
+                                    on:touchmove=handle_touch_move
+                                    on:touchend=handle_touch_end
                                 >
                                     // Circular mask overlay
                                     <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(circle at center, transparent 150px, rgba(0,0,0,0.7) 150px);" />
