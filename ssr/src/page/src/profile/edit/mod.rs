@@ -1,13 +1,15 @@
 pub mod username;
 
 use component::{
-    back_btn::BackButton, spinner::Spinner, title::TitleText,
+    back_btn::BackButton, modal::Modal, spinner::Spinner, title::TitleText,
 };
-use leptos::{either::Either, prelude::*};
+use leptos::{either::Either, html, prelude::*, server_fn::ServerFnError, task::spawn_local};
 use leptos_icons::Icon;
 use leptos_meta::Title;
 use leptos_router::components::Redirect;
 use state::{app_state::AppState, canisters::auth_state};
+use wasm_bindgen::closure::Closure;
+use wasm_bindgen::JsCast;
 use yral_canisters_common::utils::profile::ProfileDetails;
 
 #[component]
@@ -101,6 +103,8 @@ fn ProfileEditInner(details: ProfileDetails) -> impl IntoView {
     let bio = RwSignal::new("Dreaming big, building tokens that pump 🚀".to_string());
     let website = RwSignal::new("https://creatormavrick.com".to_string());
     let email = RwSignal::new("malvika@gobazzinga.in".to_string());
+    let profile_pic_url = RwSignal::new(details.profile_pic_or_random());
+    let show_image_editor = RwSignal::new(false);
 
     let on_save = move || {
         // Handle save action
@@ -109,13 +113,21 @@ fn ProfileEditInner(details: ProfileDetails) -> impl IntoView {
 
     view! {
         <div class="flex flex-col w-full items-center">
+            // Image Editor Popup
+            <Show when=move || show_image_editor.get()>
+                <ProfileImageEditor show=show_image_editor profile_pic_url />
+            </Show>
+
             // Profile Picture with Edit Overlay
             <div class="relative mb-[40px]">
                 <img
                     class="w-[120px] h-[120px] rounded-full"
-                    src=details.profile_pic_or_random()
+                    src=move || profile_pic_url.get()
                 />
-                <div class="absolute bottom-0 right-0 w-[40px] h-[40px] bg-[#171717] rounded-full border border-[#212121] flex items-center justify-center cursor-pointer">
+                <div
+                    class="absolute bottom-0 right-0 w-[40px] h-[40px] bg-[#171717] rounded-full border border-[#212121] flex items-center justify-center cursor-pointer hover:bg-[#212121] transition-colors"
+                    on:click=move |_| show_image_editor.set(true)
+                >
                     <Icon
                         icon=icondata::BiEditRegular
                         attr:class="text-[20px] text-[#d4d4d4]"
@@ -168,5 +180,256 @@ fn ProfileEditInner(details: ProfileDetails) -> impl IntoView {
                 </button>
             </div>
         </div>
+    }
+}
+
+#[server]
+async fn upload_profile_image(image_data: String) -> Result<String, ServerFnError> {
+    // For now, just return a dummy URL as requested
+    // In production, this would upload to a storage service
+    leptos::logging::log!("Received image data of length: {}", image_data.len());
+
+    // Return a dummy profile picture URL
+    Ok("https://api.dicebear.com/7.x/avataaars/svg?seed=updated".to_string())
+}
+
+#[component]
+fn ProfileImageEditor(
+    show: RwSignal<bool>,
+    profile_pic_url: RwSignal<String>,
+) -> impl IntoView {
+    let uploaded_image = RwSignal::new(Option::<String>::None);
+    let zoom_level = RwSignal::new(1.0_f64);
+    let position_x = RwSignal::new(0.0_f64);
+    let position_y = RwSignal::new(0.0_f64);
+    let is_dragging = RwSignal::new(false);
+    let drag_start_x = RwSignal::new(0.0_f64);
+    let drag_start_y = RwSignal::new(0.0_f64);
+    let file_input_ref = NodeRef::<html::Input>::new();
+    let is_uploading = RwSignal::new(false);
+
+    let handle_file_change = move |ev: leptos::web_sys::Event| {
+        let input: leptos::web_sys::HtmlInputElement = ev.target().unwrap().dyn_into().unwrap();
+        if let Some(files) = input.files() {
+            if let Some(file) = files.get(0) {
+                let file_reader = leptos::web_sys::FileReader::new().unwrap();
+                let file_reader_clone = file_reader.clone();
+
+                let closure = Closure::wrap(Box::new(move |_event: leptos::web_sys::Event| {
+                    if let Ok(result) = file_reader_clone.result() {
+                        if let Ok(data_url) = result.dyn_into::<js_sys::JsString>() {
+                            uploaded_image.set(Some(data_url.as_string().unwrap()));
+                            // Reset zoom and position when new image is loaded
+                            zoom_level.set(1.0);
+                            position_x.set(0.0);
+                            position_y.set(0.0);
+                        }
+                    }
+                }) as Box<dyn FnMut(_)>);
+
+                file_reader.set_onloadend(Some(closure.as_ref().unchecked_ref()));
+                file_reader.read_as_data_url(&file).unwrap();
+                closure.forget();
+            }
+        }
+    };
+
+    let handle_zoom_in = move |_| {
+        zoom_level.update(|z| *z = (*z * 1.1).min(3.0));
+    };
+
+    let handle_zoom_out = move |_| {
+        zoom_level.update(|z| *z = (*z / 1.1).max(0.5));
+    };
+
+    let handle_mouse_down = move |ev: leptos::web_sys::MouseEvent| {
+        is_dragging.set(true);
+        drag_start_x.set(ev.client_x() as f64 - position_x.get());
+        drag_start_y.set(ev.client_y() as f64 - position_y.get());
+        ev.prevent_default();
+    };
+
+    let handle_mouse_move = move |ev: leptos::web_sys::MouseEvent| {
+        if is_dragging.get() {
+            position_x.set(ev.client_x() as f64 - drag_start_x.get());
+            position_y.set(ev.client_y() as f64 - drag_start_y.get());
+            ev.prevent_default();
+        }
+    };
+
+    let handle_mouse_up = move |_| {
+        is_dragging.set(false);
+    };
+
+
+    view! {
+        <Modal show>
+            <div class="flex flex-col gap-4 w-full max-w-md p-4">
+                <h2 class="text-xl font-bold text-white">"Edit Profile Picture"</h2>
+
+                // File input
+                <input
+                    type="file"
+                    accept="image/*"
+                    node_ref=file_input_ref
+                    on:change=handle_file_change
+                    class="hidden"
+                />
+
+                // Image editor area
+                <div class="relative w-full bg-neutral-800 rounded-lg overflow-hidden" style="height: 400px;">
+                    {move || {
+                        if let Some(image_url) = uploaded_image.get() {
+                            view! {
+                                <div
+                                    class="relative w-full h-full flex items-center justify-center overflow-hidden cursor-move"
+                                    on:mousedown=handle_mouse_down
+                                    on:mousemove=handle_mouse_move
+                                    on:mouseup=handle_mouse_up
+                                    on:mouseleave=handle_mouse_up
+                                >
+                                    // Circular mask overlay
+                                    <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(circle at center, transparent 150px, rgba(0,0,0,0.7) 150px);" />
+
+                                    // Image with transformations
+                                    <img
+                                        src=image_url
+                                        class="absolute max-w-none select-none"
+                                        style=move || format!(
+                                            "transform: translate({}px, {}px) scale({});",
+                                            position_x.get(),
+                                            position_y.get(),
+                                            zoom_level.get()
+                                        )
+                                        draggable="false"
+                                    />
+
+                                    // Circular guide
+                                    <div class="absolute w-[300px] h-[300px] border-2 border-white/30 rounded-full pointer-events-none" />
+                                </div>
+                            }.into_any()
+                        } else {
+                            view! {
+                                <div
+                                    class="w-full h-full flex flex-col items-center justify-center cursor-pointer"
+                                    on:click=move |_| {
+                                        if let Some(input) = file_input_ref.get() {
+                                            input.click();
+                                        }
+                                    }
+                                >
+                                    <Icon icon=icondata::BiImageAddRegular attr:class="text-6xl text-neutral-400" />
+                                    <p class="mt-4 text-neutral-400">"Click to upload an image"</p>
+                                </div>
+                            }.into_any()
+                        }
+                    }}
+                </div>
+
+                // Zoom controls
+                {move || {
+                    if uploaded_image.get().is_some() {
+                        view! {
+                            <div class="flex items-center gap-4">
+                                <button
+                                    on:click=handle_zoom_out
+                                    class="p-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg text-white"
+                                >
+                                    <Icon icon=icondata::AiMinusOutlined attr:class="text-xl" />
+                                </button>
+
+                                <input
+                                    type="range"
+                                    min="0.5"
+                                    max="3"
+                                    step="0.1"
+                                    prop:value=move || zoom_level.get().to_string()
+                                    on:input=move |ev| {
+                                        let target: leptos::web_sys::HtmlInputElement = ev.target().unwrap().dyn_into().unwrap();
+                                        if let Ok(val) = target.value().parse::<f64>() {
+                                            zoom_level.set(val);
+                                        }
+                                    }
+                                    class="flex-1 h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer"
+                                />
+
+                                <button
+                                    on:click=handle_zoom_in
+                                    class="p-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg text-white"
+                                >
+                                    <Icon icon=icondata::AiPlusOutlined attr:class="text-xl" />
+                                </button>
+
+                                <span class="text-white text-sm min-w-[50px]">
+                                    {move || format!("{}%", (zoom_level.get() * 100.0) as i32)}
+                                </span>
+                            </div>
+                        }.into_any()
+                    } else {
+                        view! { <div /> }.into_any()
+                    }
+                }}
+
+                // Action buttons
+                <div class="flex gap-3 mt-4">
+                    {move || {
+                        if uploaded_image.get().is_some() {
+                            view! {
+                                <button
+                                    on:click=move |_| {
+                                        if let Some(input) = file_input_ref.get() {
+                                            input.click();
+                                        }
+                                    }
+                                    class="flex-1 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg text-white font-medium"
+                                >
+                                    "Change Image"
+                                </button>
+                            }.into_any()
+                        } else {
+                            view! { <div /> }.into_any()
+                        }
+                    }}
+
+                    <button
+                        on:click=move |_| {
+                            show.set(false);
+                            uploaded_image.set(None);
+                        }
+                        class="flex-1 px-4 py-2 bg-neutral-700 hover:bg-neutral-600 rounded-lg text-white font-medium"
+                    >
+                        "Cancel"
+                    </button>
+
+                    <button
+                        on:click=move |_| {
+                            if let Some(image_data) = uploaded_image.get() {
+                                is_uploading.set(true);
+
+                                spawn_local(async move {
+                                    match upload_profile_image(image_data).await {
+                                        Ok(new_url) => {
+                                            profile_pic_url.set(new_url);
+                                            show.set(false);
+                                            uploaded_image.set(None);
+                                            is_uploading.set(false);
+                                            leptos::logging::log!("Profile picture updated");
+                                        }
+                                        Err(e) => {
+                                            leptos::logging::error!("Failed to upload image: {}", e);
+                                            is_uploading.set(false);
+                                        }
+                                    }
+                                });
+                            }
+                        }
+                        disabled=move || uploaded_image.get().is_none() || is_uploading.get()
+                        class="flex-1 px-4 py-2 bg-gradient-to-r from-[#e2017b] to-[#e2017b] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white font-medium"
+                    >
+                        {move || if is_uploading.get() { "Saving..." } else { "Save" }}
+                    </button>
+                </div>
+            </div>
+        </Modal>
     }
 }
