@@ -162,65 +162,145 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
         nav("/profile/edit", Default::default());
     };
 
+    // Placeholder data for now
+    let followers_count = 80u64;
+    let following_count = 50u64;
+    let games_played = 100u64;
+    let bio = "Dreaming big, building tokens that pump 🚀".to_string();
+    let website_url = "https://creatormavrick.com".to_string();
+
     view! {
         <div class="overflow-y-auto pt-10 pb-12 min-h-screen text-white bg-black">
-            <div class="grid grid-cols-1 gap-5 justify-items-center w-full justify-normal">
-                <div class="flex flex-row justify-center w-11/12 sm:w-7/12">
-                    <div class="flex flex-col justify-center items-center">
-                        <div class="flex flex-row items-center justify-between w-full p-4 bg-neutral-900 rounded-lg">
-                            <div class="flex flex-row items-center gap-4">
-                                <img
-                                    class="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-full"
-                                    alt=username_or_fallback.clone()
-                                    src=profile_pic
-                                />
-                                <div class="flex flex-col gap-2">
-                                    <div node_ref=edit_icon_mount_point class="flex flex-row justify-between">
-                                        <span class="font-bold text-neutral-50 text-lg line-clamp-1">
-                                            @{username_or_fallback.clone()}
-                                        </span>
-                                    </div>
-                                    <span class="text-neutral-400 text-sm line-clamp-1">
-                                        {user_principal.to_text()}
+            <div class="flex flex-col gap-5 items-center w-full">
+                <div class="flex flex-col gap-5 w-11/12 sm:w-7/12">
+                    // Profile header with avatar and stats
+                    <div class="flex gap-6 items-start">
+                        // Avatar
+                        <img
+                            class="w-[60px] h-[60px] rounded-full shrink-0"
+                            alt=username_or_fallback.clone()
+                            src=profile_pic
+                        />
+
+                        // Stats section
+                        <div class="flex-1 flex flex-col gap-2.5">
+                            <div class="flex gap-0 items-start">
+                                // Followers
+                                <div class="flex flex-col gap-1 items-center text-center w-[85px]">
+                                    <span class="font-semibold text-base text-neutral-50">
+                                        {followers_count}
+                                    </span>
+                                    <span class="font-normal text-sm text-neutral-50">
+                                        "Followers"
+                                    </span>
+                                </div>
+
+                                // Following
+                                <div class="flex flex-col gap-1 items-center text-center w-[88px]">
+                                    <span class="font-semibold text-base text-neutral-50">
+                                        {following_count}
+                                    </span>
+                                    <span class="font-normal text-sm text-neutral-50">
+                                        "Following"
+                                    </span>
+                                </div>
+
+                                // Games Played
+                                <div class="flex-1 flex flex-col gap-1 items-start">
+                                    <span class="font-semibold text-base text-neutral-50">
+                                        {games_played}
+                                    </span>
+                                    <span class="font-normal text-sm text-neutral-50 whitespace-nowrap">
+                                        "Games Played"
                                     </span>
                                 </div>
                             </div>
                         </div>
-                        <Suspense>
-                            {move || {
-                                auth.user_principal
-                                    .get()
-                                    .map(|v| {
-                                        let authenticated_princ = v.unwrap_or(Principal::anonymous());
-                                        view! {
-                                            <Show when=move || {
-                                                !is_connected() && user_principal == authenticated_princ
-                                            }>
-                                                <div class="pt-5 w-6/12 md:w-4/12">
-                                                    <ConnectLogin
-                                                        cta_location="profile"
-                                                        redirect_to=format!("/profile/posts")
-                                                    />
-                                                </div>
-                                            </Show>
-                                            <Show when=move || user_principal == authenticated_princ>
-                                            {move || edit_icon_mount_point.get().map(|mount| view! {
-                                                <Portal mount>
-                                                    <a on:click=on_edit_click href="/profile/edit">
-                                                        <Icon
-                                                            icon=EditIcon
-                                                            attr:class="text-2xl text-neutral-300"
-                                                        />
-                                                    </a>
-                                                </Portal>
-                                            })}
-                                            </Show>
-                                        }
-                                    })
-                            }}
-                        </Suspense>
                     </div>
+
+                    // Username and bio section
+                    <div class="flex flex-col gap-4">
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center justify-between">
+                                <span class="font-semibold text-sm text-neutral-50">
+                                    {username_or_fallback.clone()}
+                                </span>
+                                <Suspense>
+                                    {move || {
+                                        auth.user_principal
+                                            .get()
+                                            .map(|v| {
+                                                let authenticated_princ = v.unwrap_or(Principal::anonymous());
+                                                view! {
+                                                    <Show when=move || user_principal == authenticated_princ>
+                                                        <a on:click=on_edit_click href="/profile/edit">
+                                                            <Icon
+                                                                icon=EditIcon
+                                                                attr:class="text-xl text-neutral-300"
+                                                            />
+                                                        </a>
+                                                    </Show>
+                                                }
+                                            })
+                                    }}
+                                </Suspense>
+                            </div>
+                            <div class="font-normal text-xs text-neutral-50">
+                                <p>
+                                    {bio}
+                                    <br />
+                                    <span class="text-[#3d8eff]">{website_url}</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        // Social Links button
+                        <div class="flex gap-1 items-center justify-center bg-[#212121] rounded-full px-2.5 py-1.5 self-start">
+                            <Icon icon=icondata::FiPlus attr:class="text-base text-neutral-300" />
+                            <span class="font-semibold text-xs text-neutral-50 whitespace-nowrap">
+                                "Social Links"
+                            </span>
+                        </div>
+                    </div>
+
+                    // Edit Profile button for logged in users
+                    <Suspense>
+                        {move || {
+                            auth.user_principal
+                                .get()
+                                .map(|v| {
+                                    let authenticated_princ = v.unwrap_or(Principal::anonymous());
+                                    view! {
+                                        <Show when=move || user_principal == authenticated_princ>
+                                            <button
+                                                on:click=on_edit_click
+                                                class="w-full bg-[#212121] border border-neutral-700 rounded-lg px-5 py-2.5 flex items-center justify-center"
+                                            >
+                                                <span class="font-semibold text-sm text-neutral-50">
+                                                    "Edit Profile"
+                                                </span>
+                                            </button>
+                                        </Show>
+                                        <Show when=move || {
+                                            !is_connected() && user_principal == authenticated_princ
+                                        }>
+                                            <div class="w-full">
+                                                <ConnectLogin
+                                                    cta_location="profile"
+                                                    redirect_to=format!("/profile/posts")
+                                                />
+                                            </div>
+                                        </Show>
+                                    }
+                                })
+                        }}
+                    </Suspense>
+
+                    // Divider
+                    <div class="w-full h-[1px] bg-[#212121]" />
                 </div>
+
+                // Tabs
                 <ListSwitcher1 user_canister user_principal username=username_or_fallback/>
             </div>
         </div>
