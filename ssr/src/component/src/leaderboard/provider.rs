@@ -112,6 +112,7 @@ impl From<super::types::SearchResponse> for super::types::LeaderboardResponse {
             client_timezone: None,
             client_start_time: None,
             client_end_time: None,
+            num_winners: None,
         };
 
         super::types::LeaderboardResponse {

@@ -19,6 +19,7 @@ pub struct TournamentHistoryEntry {
     pub status: String,
     pub total_participants: u32,
     pub winner: TournamentWinner,
+    pub num_winners: Option<u32>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]

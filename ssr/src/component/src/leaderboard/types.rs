@@ -13,6 +13,7 @@ pub struct TournamentInfo {
     pub client_timezone: Option<String>,
     pub client_start_time: Option<String>,
     pub client_end_time: Option<String>,
+    pub num_winners: Option<u32>,
 }
 
 #[derive(Deserialize, Serialize, Clone, Debug)]

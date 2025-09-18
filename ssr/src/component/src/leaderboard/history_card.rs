@@ -59,7 +59,7 @@ pub fn TournamentHistoryCard(tournament: TournamentHistoryEntry) -> impl IntoVie
                         }.into_any()
                     }}
                     <span class={if tournament.prize_token == "CKBTC" { "text-white text-sm font-bold" } else { "text-white text-base font-bold" }}>
-                        "Shared by top 10 winners"
+                        {format!("Shared by top {} winners", tournament.num_winners.unwrap_or(10))}
                     </span>
                 </div>
 
