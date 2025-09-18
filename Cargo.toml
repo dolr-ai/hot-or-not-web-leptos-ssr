@@ -185,50 +185,50 @@ base64 = "0.22"
 # ===
 # Uncomment the below lines for testing out yral-common changes locally
 # ===
-sns-validation = { path = "../yral-common/sns-validation" }
-yral-types = { path = "../yral-common/types" }
-yral-canisters-client = { path = "../yral-common/canisters-client", features = [
-    "full",
-] }
-yral-canisters-common = { path = "../yral-common/canisters-common" }
-hon-worker-common = { path = "../yral-common/hon-worker-common", features = [
-    "client",
-], version = "0.1.0" }
-yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features = [
-    "client",
-], version = "0.1.0" }
-global-constants = { path = "../yral-common/global-constants" }
-yral-identity = { path = "../yral-common/identity", default-features = false, features = [
-    "ic-git",
-    "wasm-bindgen",
-] }
-videogen-common = { path = "../yral-common/videogen-common", features = [
-    "client",
-    "ic",
-] }
-# ===
-
-# yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
-#     "client",
-# ], branch = "new_videogen_api", version = "0.1.0" }
-# sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
-# yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
-# yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api", features = [
+# sns-validation = { path = "../yral-common/sns-validation" }
+# yral-types = { path = "../yral-common/types" }
+# yral-canisters-client = { path = "../yral-common/canisters-client", features = [
 #     "full",
 # ] }
-# yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
-# hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
+# yral-canisters-common = { path = "../yral-common/canisters-common" }
+# hon-worker-common = { path = "../yral-common/hon-worker-common", features = [
 #     "client",
-# ], branch = "new_videogen_api" }
-# global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
-# yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api", default-features = false, features = [
+# ], version = "0.1.0" }
+# yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features = [
+#     "client",
+# ], version = "0.1.0" }
+# global-constants = { path = "../yral-common/global-constants" }
+# yral-identity = { path = "../yral-common/identity", default-features = false, features = [
 #     "ic-git",
 #     "wasm-bindgen",
 # ] }
-# videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api", features = [
+# videogen-common = { path = "../yral-common/videogen-common", features = [
 #     "client",
 #     "ic",
 # ] }
+# ===
+
+yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
+    "client",
+], branch = "new_videogen_api", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api", features = [
+    "full",
+] }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
+hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
+    "client",
+], branch = "new_videogen_api" }
+global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
+yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api", default-features = false, features = [
+    "ic-git",
+    "wasm-bindgen",
+] }
+videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api", features = [
+    "client",
+    "ic",
+] }
 
 # OpenTelemetry dependencies for telemetry_axum
 opentelemetry = { version = "0.24.0", features = ["trace"] }

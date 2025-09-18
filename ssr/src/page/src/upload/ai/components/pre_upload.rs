@@ -448,7 +448,7 @@ pub fn PreUploadAiView(
 
     // Get auth state
     let auth = auth_state();
-    let is_logged_in = auth.is_logged_in_with_oauth(); // Signal::stored(true); //
+    let is_logged_in = Signal::stored(true); //auth.is_logged_in_with_oauth(); // Signal::stored(true); //
 
     // Reset locked status when token or provider changes to force a fresh check
     Effect::new(move |_| {
