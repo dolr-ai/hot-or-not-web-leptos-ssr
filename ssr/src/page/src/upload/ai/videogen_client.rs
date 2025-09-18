@@ -1,31 +1,31 @@
 use consts::OFF_CHAIN_AGENT_URL;
 use gloo::timers::future::TimeoutFuture;
 use videogen_common::{
-    VideoGenClient, VideoGenError, VideoGenQueuedResponse, VideoGenRequest, VideoGenRequestStatus,
-    VideoGenRequestWithIdentity, VideoGenResponse,
+    VideoGenClient, VideoGenError, VideoGenQueuedResponseV2, VideoGenRequestStatus,
+    VideoGenRequestV2, VideoGenRequestWithIdentityV2, VideoGenResponse,
 };
 use yral_canisters_client::rate_limits::RateLimits;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
-/// Generate video using the delegated identity flow (for DOLR payments)
+/// Generate video using the delegated identity flow with V2 API
 /// The off-chain agent will use the user's identity to make direct transfers
-pub async fn generate_video_with_identity(
-    request: VideoGenRequest,
+pub async fn generate_video_with_identity_v2(
+    request: VideoGenRequestV2,
     delegated_identity: DelegatedIdentityWire,
     rate_limits: &RateLimits<'_>,
 ) -> Result<VideoGenResponse, VideoGenError> {
     // Create client
     let client = VideoGenClient::new(OFF_CHAIN_AGENT_URL.clone());
 
-    // Create request with identity
-    let identity_request = VideoGenRequestWithIdentity {
+    // Create request with identity for V2 API
+    let identity_request = VideoGenRequestWithIdentityV2 {
         request,
         delegated_identity,
     };
 
     // Get the queued response with request_key
-    let queued_response: VideoGenQueuedResponse = client
-        .generate_with_identity(identity_request)
+    let queued_response: VideoGenQueuedResponseV2 = client
+        .generate_with_identity_v2(identity_request)
         .await
         .map_err(|e| {
             leptos::logging::log!("Error generating video with identity: {}", e);
