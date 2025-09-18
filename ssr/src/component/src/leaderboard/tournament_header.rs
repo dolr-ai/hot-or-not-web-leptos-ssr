@@ -99,7 +99,7 @@ pub fn TournamentHeader(tournament: TournamentInfo) -> impl IntoView {
 
                     // Subtitle
                     <p class="text-[10px] font-normal text-white mb-3">
-                        "Be on top 10 of the leaderboard to win!"
+                        {format!("Be on top {} of the leaderboard to win!", tournament.num_winners.unwrap_or(10))}
                     </p>
 
                     // Contest countdown badge
