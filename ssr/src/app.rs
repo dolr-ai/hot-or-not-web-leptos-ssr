@@ -16,6 +16,7 @@ use page::terms_android::TermsAndroid;
 use page::terms_ios::TermsIos;
 use page::upload::{UploadAiPostPage, UploadPostPage};
 use page::{
+    daily_missions::DailyMissions,
     err::ServerErrorPage,
     logout::Logout,
     menu::Menu,
@@ -196,6 +197,7 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/settings") view=Settings />
                         <Route path=path!("/settings/:action") view=Settings />
                         <Route path=path!("/refer-earn") view=ReferEarn />
+                        <Route path=path!("/daily-missions") view=DailyMissions />
                         <Route path=path!("/profile/edit") view=ProfileEdit />
                         <Route path=path!("/profile/edit/username") view=ProfileUsernameEdit />
                         <Route path=path!("/profile/:id/:tab") view=ProfileView />
