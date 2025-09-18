@@ -1,0 +1,29 @@
+[package]
+name = "telemetry_axum"
+version = "0.1.0"
+publish.workspace = true
+edition.workspace = true
+
+[dependencies]
+http.workspace = true
+log-panics = { version = "2.1.0", features = ["with-backtrace"] }
+opentelemetry.workspace = true
+opentelemetry_sdk.workspace = true
+# opentelemetry-semantic-conventions.workspace = true
+opentelemetry-otlp = { workspace = true, features = ['default', 'grpc-tonic'] }
+opentelemetry-appender-tracing.workspace = true
+opentelemetry-http.workspace = true
+serde.workspace = true
+tower-http = { workspace = true, features = ['request-id', 'fs', 'cors', 'trace'] }
+tower = { workspace = true}
+tracing.workspace = true
+tracing-opentelemetry.workspace = true
+tracing-subscriber = { workspace = true, features = [
+    "env-filter",
+    "std",
+    "json",
+] }
+tracing-appender = "0.2"
+once_cell = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true, features = ["serde", "v4", "v7", "js"] }

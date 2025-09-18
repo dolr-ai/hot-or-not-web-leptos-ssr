@@ -6,7 +6,6 @@ use leptos_router::{
     hooks::{use_navigate, use_params, use_query},
     *,
 };
-use leptos_use::use_debounce_fn;
 use state::canisters::{auth_state, unauth_canisters};
 use utils::{route::failure_redirect, send_wrap, try_or_redirect};
 
@@ -136,21 +135,19 @@ pub fn PostViewWithUpdatesProfile(
         }
     });
 
-    let fetch_next_videos = use_debounce_fn(
-        move || {
-            if !fetch_video_action.pending().get_untracked() && !queue_end.get_untracked() {
-                log::debug!("trigger rerender");
-                fetch_video_action.dispatch(());
-            }
-        },
-        200.0,
-    );
+    // Simplified fetch trigger without debounce - the fetching guard in ScrollingPostView handles rate limiting
+    let fetch_next_videos = move || {
+        if !fetch_video_action.pending().get_untracked() && !queue_end.get_untracked() {
+            log::debug!("trigger rerender");
+            fetch_video_action.dispatch(());
+        }
+    };
 
     let current_post_base = Memo::new(move |_| {
         video_queue.with(|q| {
             let curr_index = current_index();
             let details = q.get_index(curr_index);
-            details.map(|d| (d.canister_id, d.post_id))
+            details.map(|d| (d.canister_id, d.post_id.clone()))
         })
     });
 
@@ -182,7 +179,8 @@ pub fn PostViewWithUpdatesProfile(
             fetch_next_videos
             overlay
             threshold_trigger_fetch=10
-            hard_refresh_target
+            _hard_refresh_target=hard_refresh_target
+            show_game_overlay=false
         />
     }
     .into_any()
@@ -193,7 +191,7 @@ fn ProfilePostBase<
     IV: IntoView + 'static,
     C: Fn(PostDetails) -> IV + Clone + 'static + Send + Sync,
 >(
-    #[prop(into)] canister_and_post: Signal<Option<(Principal, u64)>>,
+    #[prop(into)] canister_and_post: Signal<Option<(Principal, String)>>,
     #[prop(into)] next_start_idx: Signal<Option<usize>>,
     children: C,
 ) -> impl IntoView {
@@ -285,7 +283,7 @@ fn ProfilePostBase<
 #[derive(Params, PartialEq)]
 struct ProfileVideoParams {
     canister_id: Principal,
-    post_id: u64,
+    post_id: String,
 }
 
 #[derive(Params, PartialEq, Clone, Debug)]
@@ -301,7 +299,7 @@ pub fn ProfilePost() -> impl IntoView {
     let canister_and_post = Signal::derive(move || {
         params.with_untracked(|p| {
             let p = p.as_ref().ok()?;
-            Some((p.canister_id, p.post_id))
+            Some((p.canister_id, p.post_id.clone()))
         })
     });
 

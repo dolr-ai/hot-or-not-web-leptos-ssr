@@ -1,10 +1,7 @@
-use super::EventHistory;
 use candid::Principal;
-use ic_agent::Identity;
 use leptos::html::Input;
 use leptos::prelude::Signal;
 use leptos::prelude::*;
-use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use serde_json::json;
 use sns_validation::pbs::sns_pb::SnsInitPayload;
 
@@ -100,6 +97,7 @@ impl HistoryCtx {
 
 #[cfg(feature = "ga4")]
 use crate::event_streaming::send_event_ssr_spawn;
+use crate::ml_feed::QuickPostDetails;
 use leptos::html::Video;
 use yral_canisters_common::{
     utils::{posts::PostDetails, profile::ProfileDetails},
@@ -165,7 +163,7 @@ impl VideoWatched {
     pub fn send_event(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         muted: RwSignal<bool>,
     ) {
@@ -178,7 +176,7 @@ impl VideoWatched {
     pub fn send_event_with_current(
         &self,
         ctx: EventCtx,
-        vid_details: Signal<Option<PostDetails>>,
+        vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         muted: RwSignal<bool>,
         is_current: Signal<bool>,
@@ -448,6 +446,8 @@ impl VideoUploadSuccessful {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // video_upload_successful - analytics
+
+            use serde_json::json;
             let Some(user) = ctx.user_details() else {
                 return;
             };
@@ -553,6 +553,8 @@ impl LoginSuccessful {
         {
             // login_successful - analytics
 
+            use ic_agent::Identity;
+
             let user_id = canisters.identity().sender().map_err(|_| {
                 leptos::logging::error!("No sender found for login successful event");
                 anyhow::anyhow!("No sender found for login successful event")
@@ -609,6 +611,8 @@ impl LoginJoinOverlayViewed {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // login_join_overlay_viewed - analytics
+
+            use crate::event_streaming::EventHistory;
             let Some(user) = ctx.user_details() else {
                 return;
             };
@@ -636,6 +640,8 @@ impl LoginCta {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // login_cta - analytics
+
+            use crate::event_streaming::EventHistory;
 
             let event_history: EventHistory = expect_context();
 
@@ -718,6 +724,8 @@ impl ErrorEvent {
     pub fn send_event(&self, ctx: EventCtx, error_str: String) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
+            use crate::event_streaming::EventHistory;
+
             let event_history: EventHistory = expect_context();
             let Some(user) = ctx.user_details() else {
                 return;
@@ -838,6 +846,8 @@ impl PageVisit {
     pub fn send_event(&self, user_id: Principal, is_connected: bool, pathname: String) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
+            use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
+
             let UseTimeoutFnReturn { start, .. } = use_timeout_fn(
                 move |_| {
                     let _ = send_event_ssr_spawn(

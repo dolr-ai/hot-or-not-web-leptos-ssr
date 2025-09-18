@@ -4,49 +4,100 @@ use component::spinner::FullScreenSpinner;
 use consts::NSFW_ENABLED_COOKIE;
 use leptos::prelude::*;
 use leptos_meta::*;
-use leptos_router::components::Redirect;
 use leptos_router::hooks::use_query_map;
 use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use utils::host::show_nsfw_content;
-use utils::ml_feed::{get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw};
+use utils::ml_feed::{
+    get_ml_feed_clean, get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw, get_ml_feed_nsfw,
+};
+use utils::try_or_redirect_opt;
 use yral_types::post::PostItemV3;
 
-#[server]
-async fn get_top_post_id_global_clean_feed() -> Result<Option<PostItemV3>, ServerFnError> {
-    use utils::client_ip::get_client_ip;
+use crate::post_view::{PostViewCtx, PostViewWithUpdatesMLFeed};
 
-    let ip_address = get_client_ip().await;
+fn generate_random_principal() -> Principal {
+    use std::time::{SystemTime, UNIX_EPOCH};
 
-    let posts = get_ml_feed_coldstart_clean(Principal::anonymous(), 1, vec![], ip_address)
-        .await
-        .map_err(|e| {
-            log::error!("Error getting top post id global clean feed: {e:?}");
-            ServerFnError::new(e.to_string())
-        })?;
-    if !posts.is_empty() {
-        return Ok(Some(posts[0].clone()));
-    }
+    // Get current timestamp as source of randomness
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos() as u64;
 
-    Ok(None)
+    // Add some additional variation
+    let thread_id = std::thread::current().id();
+    let thread_hash = format!("{thread_id:?}")
+        .chars()
+        .map(|c| c as u64)
+        .fold(0u64, |acc, x| acc.wrapping_add(x));
+
+    // Combine timestamp with thread hash for uniqueness
+    let unique_id = timestamp.wrapping_mul(1000000).wrapping_add(thread_hash);
+
+    // Create principal from bytes
+    let mut bytes = vec![0u8; 29];
+    bytes[0] = (unique_id & 0xFF) as u8;
+    bytes[1] = ((unique_id >> 8) & 0xFF) as u8;
+    bytes[2] = ((unique_id >> 16) & 0xFF) as u8;
+    bytes[3] = ((unique_id >> 24) & 0xFF) as u8;
+    bytes[4] = ((unique_id >> 32) & 0xFF) as u8;
+    bytes[5] = ((unique_id >> 40) & 0xFF) as u8;
+    bytes[6] = ((unique_id >> 48) & 0xFF) as u8;
+    bytes[7] = ((unique_id >> 56) & 0xFF) as u8;
+
+    Principal::from_slice(&bytes)
 }
 
 #[server]
-async fn get_top_post_id_global_nsfw_feed() -> Result<Option<PostItemV3>, ServerFnError> {
-    use utils::client_ip::get_client_ip;
-
-    let ip_address = get_client_ip().await;
-
-    let posts = get_ml_feed_coldstart_nsfw(Principal::anonymous(), 1, vec![], ip_address)
+#[tracing::instrument]
+async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerFnError> {
+    let random_principal = generate_random_principal();
+    let posts = get_ml_feed_coldstart_clean(random_principal, 15, vec![], None)
         .await
         .map_err(|e| {
-            log::error!("Error getting top post id global nsfw feed: {e:?}");
+            leptos::logging::error!("Error getting top post id global clean feed: {e:?}");
             ServerFnError::new(e.to_string())
         })?;
-    if !posts.is_empty() {
-        return Ok(Some(posts[0].clone()));
-    }
 
-    Ok(None)
+    if posts.is_empty() {
+        leptos::logging::warn!("Coldstart clean feed returned 0 results, falling back to ML feed");
+        let fallback_principal = generate_random_principal();
+        let posts = get_ml_feed_clean(fallback_principal, 15, vec![], None)
+            .await
+            .map_err(|e| {
+                leptos::logging::error!("Error getting ML feed clean fallback: {e:?}");
+                ServerFnError::new(e.to_string())
+            })?;
+        Ok(posts)
+    } else {
+        Ok(posts)
+    }
+}
+
+#[server]
+#[tracing::instrument]
+async fn get_top_post_ids_global_nsfw_feed() -> Result<Vec<PostItemV3>, ServerFnError> {
+    let random_principal = generate_random_principal();
+    let posts = get_ml_feed_coldstart_nsfw(random_principal, 15, vec![], None)
+        .await
+        .map_err(|e| {
+            leptos::logging::error!("Error getting top post id global nsfw feed: {e:?}");
+            ServerFnError::new(e.to_string())
+        })?;
+
+    if posts.is_empty() {
+        leptos::logging::warn!("Coldstart nsfw feed returned 0 results, falling back to ML feed");
+        let fallback_principal = generate_random_principal();
+        let posts = get_ml_feed_nsfw(fallback_principal, 15, vec![], None)
+            .await
+            .map_err(|e| {
+                leptos::logging::error!("Error getting ML feed nsfw fallback: {e:?}");
+                ServerFnError::new(e.to_string())
+            })?;
+        Ok(posts)
+    } else {
+        Ok(posts)
+    }
 }
 
 #[component]
@@ -61,58 +112,58 @@ pub fn YralRootPage() -> impl IntoView {
             .same_site(leptos_use::SameSite::Lax),
     );
 
-    let full_info = Resource::new_blocking(params, move |params_map| async move {
-        // Check query param first, then cookie, then show_nsfw_content
-        let nsfw_from_query = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
-        let nsfw_enabled = nsfw_from_query
-            || nsfw_cookie_enabled.get_untracked().unwrap_or(false)
-            || show_nsfw_content();
-        leptos::logging::log!(
-            "NSFW enabled: {nsfw_enabled} (query: {nsfw_from_query}, cookie: {:?})",
-            nsfw_cookie_enabled.get_untracked()
-        );
-        let post = if nsfw_enabled {
-            get_top_post_id_global_nsfw_feed().await
-        } else {
-            get_top_post_id_global_clean_feed().await
-        }?;
+    let PostViewCtx { video_queue, .. } = expect_context();
 
-        let utm = params_map.to_query_string();
-        let utm = if utm.contains("utm") {
-            Some(utm.replace("?", ""))
-        } else {
-            None
-        };
-        let user_refer = params_map.get("user_refer").map(|s| s.to_string());
-        Ok::<_, ServerFnError>((post, utm, user_refer))
+    let initial_posts = Resource::new(params, move |params_map| {
+        async move {
+            // we already have videos and can therefore avoid loading more posts
+            if video_queue.with_untracked(|q| !q.is_empty()) {
+                return Ok(Default::default());
+            }
+
+            // Check query param first, then cookie, then show_nsfw_content
+            let nsfw_from_query = params_map.get("nsfw").map(|s| s == "true").unwrap_or(false);
+            let nsfw_enabled = nsfw_from_query
+                || nsfw_cookie_enabled.get_untracked().unwrap_or(false)
+                || show_nsfw_content();
+            leptos::logging::log!(
+                "NSFW enabled: {nsfw_enabled} (query: {nsfw_from_query}, cookie: {:?})",
+                nsfw_cookie_enabled.get_untracked()
+            );
+
+            let start = web_time::Instant::now();
+            let posts = if nsfw_enabled {
+                get_top_post_ids_global_nsfw_feed().await
+            } else {
+                get_top_post_ids_global_clean_feed().await
+            }?;
+            leptos::logging::log!(
+                // TODO: switch to debug later
+                "loaded {} posts from cache in {:?}",
+                posts.len(),
+                start.elapsed()
+            );
+
+            let posts = posts.into_iter().map(Into::into).collect();
+
+            Ok::<_, ServerFnError>(posts)
+        }
     });
+
+    // Providing auth state is one of CtxProvider's job, but as a hack I am
+    // setting it here because using CtxProvider here was causing this page to
+    // be loaded twice
 
     view! {
         <Title text="YRAL - Home" />
         <Suspense fallback=FullScreenSpinner>
             {move || {
                 Suspend::new(async move {
-                    let url = match full_info.await {
-                        Ok((Some(post_item), utms, user_refer)) => {
-                            let canister_id = post_item.canister_id.clone();
-                            let post_id = post_item.post_id;
+                    let initial_posts = try_or_redirect_opt!(initial_posts.await);
 
-                            let mut url = format!("/hot-or-not/{canister_id}/{post_id}");
-                            if let Some(user_refer) = user_refer {
-                                url.push_str(&format!("?user_refer={user_refer}"));
-                                if let Some(utms) = utms {
-                                    url.push_str(&format!("&{utms}"));
-                                }
-                            } else if let Some(utms) = utms {
-                                url.push_str(&format!("?{utms}"));
-                            }
-                            url
-                        },
-                        Ok((None, _, _)) => "/error?err=No Posts Found".to_string(),
-                        Err(e) => format!("/error?err={e}"),
-                    };
-
-                    view! { <Redirect path=url /> }
+                    Some(view! {
+                        <PostViewWithUpdatesMLFeed initial_posts />
+                    }.into_any())
                 })
             }}
         </Suspense>

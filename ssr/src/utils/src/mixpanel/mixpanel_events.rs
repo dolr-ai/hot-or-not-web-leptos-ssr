@@ -97,7 +97,7 @@ async fn track_event_server_fn(props: Value) -> Result<(), ServerFnError> {
             let token =
                 std::env::var("ANALYTICS_SERVER_TOKEN").expect("ANALYTICS_SERVER_TOKEN is not set");
             qstash_client
-                .send_analytics_event_to_qstash(props, token)
+                .send_analytics_event_directly(props, token)
                 .await
                 .map_err(|e| ServerFnError::new(format!("Mixpanel track error: {e:?}")))?;
         } else {
@@ -449,6 +449,7 @@ pub enum MixpanelVideoClickedCTAType {
     Unmute,
     CreatorProfile,
     VideoPlay,
+    Leaderboard,
 }
 
 #[derive(Serialize, Clone)]
@@ -720,13 +721,10 @@ derive_event!(track_nsfw_false = "NSFW_false" => {
 
 derive_event!(track_video_clicked {
     publisher_user_id: String,
-    like_count: u64,
-    view_count: u64,
     is_game_enabled: bool,
     video_id: String,
     game_type: MixpanelPostGameType,
-    cta_type: MixpanelVideoClickedCTAType,
-    is_nsfw: bool
+    cta_type: MixpanelVideoClickedCTAType
 });
 
 derive_event!(track_video_reported {
@@ -752,15 +750,28 @@ derive_event!(track_video_clicked_profile = "video_clicked" => {
     page_name: String
 });
 
+derive_event!(track_video_clicked_leaderboard = "video_clicked" => {
+    video_id: String,
+    publisher_user_id: String,
+    like_count: u64,
+    view_count: u64,
+    is_game_enabled: bool,
+    game_type: MixpanelPostGameType,
+    is_leaderboard_active: bool,
+    is_nsfw: bool,
+    cta_type: MixpanelVideoClickedCTAType
+});
+
+derive_event!(track_leaderboard_page_viewed {
+    is_tournament_active: bool
+});
+
 derive_event!(track_refer_and_earn { refer_link: String });
 
 derive_event!(track_video_viewed {
     video_id: String,
     publiser_user_id: String,
     game_type: MixpanelPostGameType,
-    like_count: u64,
-    view_count: u64,
-    is_nsfw: bool,
     is_game_enabled: bool
 });
 
@@ -778,9 +789,6 @@ derive_event!(track_video_started {
     video_id: String,
     publisher_user_id: String,
     game_type: MixpanelPostGameType,
-    like_count: u64,
-    view_count: u64,
-    is_nsfw: bool,
     is_game_enabled: bool
 });
 

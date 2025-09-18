@@ -97,14 +97,25 @@ fn Post(
 }
 
 #[component]
-pub fn ProfilePosts(user_canister: Principal) -> impl IntoView {
+pub fn ProfilePosts(
+    user_principal: Principal,
+    user_canister: Principal,
+    username: String,
+) -> impl IntoView {
     let ProfilePostsContext {
         video_queue,
         start_index,
         ..
     } = expect_context();
 
-    let provider = PostsProvider::new(unauth_canisters(), video_queue, start_index, user_canister);
+    let provider = PostsProvider::new(
+        unauth_canisters(),
+        video_queue,
+        start_index,
+        username,
+        user_principal,
+        user_canister,
+    );
 
     view! {
         <ProfileStream

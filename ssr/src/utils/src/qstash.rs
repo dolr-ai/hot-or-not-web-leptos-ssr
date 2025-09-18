@@ -52,11 +52,36 @@ impl QStashClient {
             .header(CONTENT_TYPE, "application/json")
             .header("upstash-method", "POST")
             .header("Upstash-Forward-Authorization", format!("Bearer {token}"))
+            .header("Upstash-Retries", "0") // TODO: change to 1 on Mon 15th Sept 2025
+            .header("Upstash-Flow-Control-Key", "MIXPANEL_ANALYTICS")
+            .header("Upstash-Flow-Control-Value", "Parallelism=500")
             .send()
             .await?;
         if res.status() != 200 {
             let e = res.text().await?;
-            log::error!("Error sending analytics to qstash: {e:?}");
+            leptos::logging::error!("Error sending analytics to qstash: {e:?}");
+        }
+        Ok(())
+    }
+
+    pub async fn send_analytics_event_directly(
+        &self,
+        req: Value,
+        token: String,
+    ) -> Result<(), reqwest::Error> {
+        let off_chain_ep = ANALYTICS_SERVER_URL.join("api/send_event").unwrap();
+
+        let res = self
+            .client
+            .post(off_chain_ep)
+            .json(&req)
+            .header(CONTENT_TYPE, "application/json")
+            .header(AUTHORIZATION, format!("Bearer {token}"))
+            .send()
+            .await?;
+        if res.status() != 200 {
+            let e = res.text().await?;
+            leptos::logging::error!("Error sending analytics directly: {e:?}");
         }
         Ok(())
     }

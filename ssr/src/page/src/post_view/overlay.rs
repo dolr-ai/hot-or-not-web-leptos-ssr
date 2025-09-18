@@ -1,9 +1,11 @@
+use candid::Principal;
 use codee::string::{FromToStringCodec, JsonSerdeCodec};
 use component::buttons::HighlightedButton;
 use component::icons::sound_off_icon::SoundOffIcon;
 use component::icons::sound_on_icon::SoundOnIcon;
 use component::icons::volume_high_icon::VolumeHighIcon;
 use component::icons::volume_mute_icon::VolumeMuteIcon;
+use component::leaderboard::GlobalRankBadge;
 use component::overlay::ShadowOverlay;
 use component::spinner::SpinnerFit;
 use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption};
@@ -34,6 +36,7 @@ use utils::{
 
 use utils::mixpanel::mixpanel_events::*;
 use yral_canisters_common::utils::posts::PostDetails;
+use yral_canisters_common::Canisters;
 
 use crate::wallet::airdrop::sats_airdrop::{claim_sats_airdrop, get_sats_airdrop_status};
 use crate::wallet::airdrop::{AirdropStatus, SatsAirdropPopup};
@@ -54,17 +57,15 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
         }
     });
 
-    let post_canister = post.canister_id;
-    let post_id = post.post_id;
     let initial_liked = (post.liked_by_user, post.likes);
 
     let auth: state::canisters::AuthState = auth_state();
     let is_logged_in = auth.is_logged_in_with_oauth();
     let ev_ctx = auth.event_ctx();
 
+    let post_clone = post.clone();
     let like_toggle = Action::new(move |&()| {
-        let post_details = post.clone();
-        let video_id = post.uid.clone();
+        let post_clone = post_clone.clone();
         send_wrap(async move {
             let Ok(canisters) = auth.auth_cans().await else {
                 log::warn!("Trying to toggle like without auth");
@@ -80,7 +81,7 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
 
             if should_like {
                 likes.update(|l| *l += 1);
-                LikeVideo.send_event(ev_ctx, post_details.clone(), likes);
+                LikeVideo.send_event(ev_ctx, post_clone.clone(), likes);
 
                 let is_logged_in = is_logged_in.get_untracked();
                 let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
@@ -88,21 +89,18 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
                 MixPanelEvent::track_video_clicked(
                     global,
                     post.poster_principal.to_text(),
-                    post.likes,
-                    post.views,
                     is_hot_or_not,
-                    video_id,
+                    post_clone.uid.clone(),
                     MixpanelPostGameType::HotOrNot,
                     MixpanelVideoClickedCTAType::Like,
-                    post.is_nsfw,
                 );
             } else {
                 likes.update(|l| *l -= 1);
             }
 
-            let individual = canisters.individual_user(post_canister).await;
-            match individual
-                .update_post_toggle_like_status_by_caller(post_id)
+            //TODO: refactor this to use cans<true>
+            match canisters
+                .like_post(post_clone.canister_id, post_clone.post_id.clone())
                 .await
             {
                 Ok(_) => (),
@@ -114,21 +112,27 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
         })
     });
 
+    let post_canister = post.canister_id;
+    let post_id = post.post_id.clone();
+
     let liked_fetch = auth.derive_resource(
         || (),
-        move |cans, _| async move {
-            let result = if let Some(liked) = initial_liked.0 {
-                (liked, initial_liked.1)
-            } else {
-                match cans.post_like_info(post_canister, post_id).await {
-                    Ok(liked) => liked,
-                    Err(e) => {
-                        log::warn!("faild to fetch likes {e}");
-                        (false, likes.try_get_untracked().unwrap_or_default())
+        move |cans: Canisters<true>, _| {
+            let post_id = post_id.clone();
+            async move {
+                let result = if let Some(liked) = initial_liked.0 {
+                    (liked, initial_liked.1)
+                } else {
+                    match cans.post_like_info(post_canister, post_id.clone()).await {
+                        Ok(liked) => liked,
+                        Err(e) => {
+                            log::warn!("faild to fetch likes {e}");
+                            (false, likes.try_get_untracked().unwrap_or_default())
+                        }
                     }
-                }
-            };
-            Ok::<_, ServerFnError>(result)
+                };
+                Ok::<_, ServerFnError>(result)
+            }
         },
     );
 
@@ -160,9 +164,13 @@ fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
 #[component]
 pub fn VideoDetailsOverlay(
     post: PostDetails,
-    prev_post: Option<PostDetails>,
+    prev_post: Option<(Principal, String)>,
     win_audio_ref: NodeRef<Audio>,
+    #[prop(optional, into)] high_priority: bool,
+    #[prop(default = true)] show_game_overlay: bool,
 ) -> impl IntoView {
+    // No need for local context - using global context from App
+
     let show_share = RwSignal::new(false);
     let show_report = RwSignal::new(false);
     let show_nsfw_permission = RwSignal::new(false);
@@ -173,12 +181,15 @@ pub fn VideoDetailsOverlay(
             .as_ref()
             .and_then(|w| w.location().origin().ok())
     };
-    let video_url = move || {
+    let post_clone = post.clone();
+    let post_id = post.post_id.clone();
+    let video_url = Signal::derive(move || {
         base_url()
-            .map(|b| format!("{b}/hot-or-not/{}/{}", post.canister_id, post.post_id))
+            .map(|b| format!("{b}/hot-or-not/{}/{}", post_clone.canister_id, post_id))
             .unwrap_or_default()
-    };
-    let display_name = post.display_name_or_fallback();
+    });
+
+    let display_name = post.username_or_fallback();
 
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
@@ -186,6 +197,7 @@ pub fn VideoDetailsOverlay(
     let post_details_share = post.clone();
     let track_video_id = post.uid.clone();
     let track_video_id_for_impressions = post.uid.clone();
+    let post_clone = post.clone();
     Effect::new(move |_| {
         // To trigger the effect on initial render
         let _ = use_location().pathname.get();
@@ -195,11 +207,11 @@ pub fn VideoDetailsOverlay(
                 MixPanelEvent::track_video_impression(
                     global,
                     track_video_id_for_impressions,
-                    post.poster_principal.to_text(),
+                    post_clone.poster_principal.to_text(),
                     MixpanelPostGameType::HotOrNot,
-                    post.likes,
-                    post.views,
-                    post.is_nsfw,
+                    post_clone.likes,
+                    post_clone.views,
+                    post_clone.is_nsfw,
                     true,
                 );
             }
@@ -215,13 +227,10 @@ pub fn VideoDetailsOverlay(
         MixPanelEvent::track_video_clicked(
             global,
             post.poster_principal.to_text(),
-            post.likes,
-            post.views,
             is_hot_or_not,
             video_id,
             MixpanelPostGameType::HotOrNot,
             cta_type,
-            post.is_nsfw,
         );
     };
     let track_video_share = track_video_clicked.clone();
@@ -254,15 +263,16 @@ pub fn VideoDetailsOverlay(
     let post_details_report = post.clone();
     let profile_click_video_id = post.uid.clone();
     let report_video_click_id = post.uid.clone();
+    let post_clone = post.clone();
     let click_report = Action::new(move |()| {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
             MixPanelEvent::track_video_reported(
                 global,
-                post.poster_principal.to_text(),
+                post_clone.poster_principal.to_text(),
                 true,
                 report_video_click_id.clone(),
                 MixpanelPostGameType::HotOrNot,
-                post.is_nsfw,
+                post_clone.is_nsfw,
                 report_option.get_untracked(),
             );
         }
@@ -279,8 +289,8 @@ pub fn VideoDetailsOverlay(
                     details.principal(),
                     post_details.poster_principal.to_string(),
                     post_details.canister_id.to_string(),
-                    post_details.post_id.to_string(),
-                    post_details.uid,
+                    post_details.post_id.clone(),
+                    post_details.uid.clone(),
                     report_option.get_untracked(),
                     video_url(),
                 )
@@ -302,7 +312,8 @@ pub fn VideoDetailsOverlay(
     );
 
     let click_nsfw = Action::new(move |()| {
-        let video_id = post.uid.clone();
+        let video_id = post_clone.uid.clone();
+        let post_clone = post_clone.clone();
         async move {
             if show_nsfw_content() {
                 return;
@@ -316,13 +327,10 @@ pub fn VideoDetailsOverlay(
                     MixPanelEvent::track_video_clicked(
                         global,
                         post.poster_principal.to_text(),
-                        post.likes,
-                        post.views,
                         is_hot_or_not,
                         video_id,
                         MixpanelPostGameType::HotOrNot,
                         MixpanelVideoClickedCTAType::NsfwToggle,
-                        post.is_nsfw,
                     );
                 }
             } else {
@@ -333,9 +341,9 @@ pub fn VideoDetailsOverlay(
                     {
                         MixPanelEvent::track_nsfw_enabled(
                             global,
-                            post.poster_principal.to_text(),
+                            post_clone.poster_principal.to_text(),
                             video_id,
-                            post.is_nsfw,
+                            post_clone.is_nsfw,
                             "home".to_string(),
                             None,
                         );
@@ -350,13 +358,10 @@ pub fn VideoDetailsOverlay(
                         MixPanelEvent::track_video_clicked(
                             global,
                             post.poster_principal.to_text(),
-                            post.likes,
-                            post.views,
                             is_hot_or_not,
                             video_id,
                             MixpanelPostGameType::HotOrNot,
                             MixpanelVideoClickedCTAType::NsfwToggle,
-                            post.is_nsfw,
                         );
                     }
                 }
@@ -379,13 +384,10 @@ pub fn VideoDetailsOverlay(
         MixPanelEvent::track_video_clicked(
             global,
             post.poster_principal.to_string(),
-            post.likes,
-            post.views,
             is_hot_or_not,
             video_id,
             MixpanelPostGameType::HotOrNot,
             MixpanelVideoClickedCTAType::CreatorProfile,
-            post.is_nsfw,
         );
     };
 
@@ -493,17 +495,21 @@ pub fn VideoDetailsOverlay(
     });
     let AudioState { muted, volume } = AudioState::get();
 
+    let post_for_leaderboard = post.clone();
+
     view! {
         <MuteUnmuteControl muted volume />
         <div class="flex absolute bottom-0 left-0 flex-col flex-nowrap justify-between pt-5 pb-20 w-full h-full text-white bg-transparent pointer-events-none px-[16px] z-4 md:px-[16px]">
-            <div class="flex flex-row justify-between items-center w-full pointer-events-auto">
-                <div class="flex flex-row gap-2 items-center p-2 w-9/12 rounded-s-full bg-linear-to-r from-black/25 via-80% via-black/10">
+            // Group top content together
+            <div class="flex flex-col w-full">
+                <div class="flex flex-row justify-between items-center w-full pointer-events-auto">
+                    <div class="flex flex-row gap-2 items-center p-2 w-9/12 rounded-s-full bg-linear-to-r from-black/25 via-80% via-black/10">
                     <div class="flex w-fit">
                         <a
                             href=profile_url.clone()
                             class="w-10 h-10 rounded-full border-2 md:w-12 md:h-12 overflow-clip border-primary-600"
                         >
-                            <img class="object-cover w-full h-full" src=post.propic_url />
+                            <img class="object-cover w-full h-full" src=post.propic_url fetchpriority="low" loading={if high_priority { "eager" } else { "lazy" }} />
                         </a>
                     </div>
                     <div class="flex flex-col justify-center min-w-0">
@@ -534,7 +540,7 @@ pub fn VideoDetailsOverlay(
                             let _ = click_nsfw.dispatch(());
                         }
                         src=move || {
-                            if post.is_nsfw {
+                            if nsfw_enabled().unwrap_or(false) {
                                 "/img/yral/nsfw/nsfw-toggle-on.webp"
                             } else {
                                 "/img/yral/nsfw/nsfw-toggle-off.webp"
@@ -543,8 +549,15 @@ pub fn VideoDetailsOverlay(
                         class="object-contain w-[76px] h-[36px]"
                         alt="NSFW Toggle"
                     />
-                </button>
+                    </button>
+                </div>
+                // Add the rank badge here, below the profile/NSFW row
+                <div class="flex justify-end w-full mt-2 pointer-events-auto">
+                    <GlobalRankBadge post=post_for_leaderboard.clone() ev_ctx=ev_ctx
+                    />
+                </div>
             </div>
+            // Bottom content stays at the bottom
             <div class="flex flex-col gap-2 w-full">
                 <div class="flex flex-col gap-6 items-end self-end text-2xl pointer-events-auto md:text-3xl lg:text-4xl">
                     <button on:click=move |_| {
@@ -562,7 +575,7 @@ pub fn VideoDetailsOverlay(
                     </button>
                 </div>
                 <div class="w-full bg-transparent pointer-events-auto max-w-lg mx-auto">
-                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref show_tutorial show_low_balance_popup />
+                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref show_tutorial show_low_balance_popup show_game_overlay />
                 </div>
             </div>
         </div>
@@ -571,7 +584,7 @@ pub fn VideoDetailsOverlay(
                 <span class="text-lg">Share</span>
                 <div class="flex flex-row gap-2 w-full">
                     <p class="overflow-x-scroll p-2 max-w-full whitespace-nowrap rounded-full text-md bg-white/10">
-                        {video_url}
+                        {move  || { video_url()}}
                     </p>
                     <button on:click=move |_| click_copy(video_url())>
                         <Icon attr:class="text-xl" icon=icondata::FaCopyRegular />
@@ -739,7 +752,7 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
                 <div class="relative w-fit -translate-y-0.5">
                     <div class="absolute inset-0 flex items-center pointer-events-none">
                         <div
-                            style:width=move || format!("calc({}% - 0.25%)", volume_.get() * 100.0)
+                            style:width=move || format!("calc({}% - 0.25%)", volume_.try_get().unwrap_or(0.0) * 100.0)
                             class="bg-white w-full h-1.5 translate-y-[0.15rem] rounded-full"
                             >
                         </div>
@@ -750,7 +763,7 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
                         max="1"
                         step="0.05"
                         class="z-[2] appearance-none bg-zinc-500 h-1.5 rounded-full accent-white"
-                        prop:value={move || volume_.get()}
+                        prop:value={move || volume_.try_get().unwrap_or(0.0)}
                         on:change=move |ev: leptos::ev::Event| {
                             let input = event_target_value(&ev);
                             if let Ok(value) = input.parse::<f64>() {

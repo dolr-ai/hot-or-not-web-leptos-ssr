@@ -13,10 +13,10 @@ use state::{
 };
 use utils::{bg_url, send_wrap};
 use yral_canisters_common::utils::posts::PostDetails;
-#[derive(Params, PartialEq, Clone, Copy)]
+#[derive(Params, PartialEq, Clone)]
 struct PostParams {
     canister_id: Principal,
-    post_id: u64,
+    post_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -48,7 +48,7 @@ fn SinglePostViewInner(post: PostDetails) -> impl IntoView {
                     src="/img/hotornot/chaching.m4a"
                 />
                 <VideoDetailsOverlay post=post.clone() prev_post=None win_audio_ref />
-                <VideoView post=Some(post) muted volume autoplay_at_render=true to_load />
+                <VideoView post=Some(post.into()) muted volume autoplay_at_render=true to_load />
             </div>
             <MuteUnmuteOverlay muted />
         </div>
@@ -83,12 +83,12 @@ pub fn SinglePost() -> impl IntoView {
             let unauth_cans = unauth_canisters();
             let post_uid = if let Some(canisters) = auth.auth_cans_if_available() {
                 canisters
-                    .get_post_details(params.canister_id, params.post_id)
+                    .get_post_details(params.canister_id, params.post_id.clone())
                     .await
             } else {
                 let canisters = unauth_cans;
                 canisters
-                    .get_post_details(params.canister_id, params.post_id)
+                    .get_post_details(params.canister_id, params.post_id.clone())
                     .await
             };
             post_uid
