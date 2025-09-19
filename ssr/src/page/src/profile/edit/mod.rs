@@ -1,16 +1,19 @@
 pub mod username;
 
-use component::{
-    back_btn::BackButton, spinner::Spinner, title::TitleText,
-};
+use component::{back_btn::BackButton, spinner::Spinner, title::TitleText};
 use leptos::{either::Either, html, prelude::*, task::spawn_local};
 use leptos_icons::Icon;
 use leptos_meta::Title;
-use leptos_router::components::Redirect;
+use leptos_router::{components::Redirect, hooks::use_navigate};
 use state::{app_state::AppState, canisters::auth_state};
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
 use yral_canisters_common::utils::profile::ProfileDetails;
+
+#[cfg(feature = "ssr")]
+use leptos::prelude::ServerFnError;
+#[cfg(feature = "ssr")]
+use leptos::server;
 
 #[component]
 pub fn ProfileEdit() -> impl IntoView {
@@ -49,6 +52,48 @@ pub fn ProfileEdit() -> impl IntoView {
             })}
             </Suspense>
         </div>
+    }
+}
+
+#[server]
+pub async fn update_profile_on_server(
+    bio: Option<String>,
+    website_url: Option<String>,
+    profile_picture_url: Option<String>,
+) -> Result<(), ServerFnError> {
+    use auth::server_impl::extract_identity_impl;
+    use yral_canisters_common::Canisters;
+
+    // Extract identity from cookies
+    let identity_wire = extract_identity_impl()
+        .await?
+        .ok_or_else(|| ServerFnError::new("User not authenticated"))?;
+
+    // Authenticate with network using the identity
+    let canisters = match Canisters::<true>::authenticate_with_network(identity_wire).await {
+        Ok(c) => c,
+        Err(e) => return Err(ServerFnError::ServerError(format!("Auth failed: {}", e))),
+    };
+
+    // Get the service canister
+    let service = canisters.user_info_service().await;
+
+    // Create update details
+    let update_details = yral_canisters_client::user_info_service::ProfileUpdateDetails {
+        bio,
+        website_url,
+        profile_picture_url,
+    };
+
+    // Call the update API
+    match service.update_profile_details(update_details).await {
+        Ok(result) => match result {
+            yral_canisters_client::user_info_service::Result_::Ok => Ok(()),
+            yral_canisters_client::user_info_service::Result_::Err(e) => {
+                Err(ServerFnError::ServerError(format!("Update failed: {}", e)))
+            }
+        },
+        Err(e) => Err(ServerFnError::ServerError(format!("Network error: {}", e))),
     }
 }
 
@@ -98,23 +143,17 @@ fn InputField(
 }
 
 #[component]
-fn ProfileEditInner(
-    details: ProfileDetails,
-    identity: utils::types::NewIdentity,
-) -> impl IntoView {
-    // Form state with dummy values
-    let username = RwSignal::new("Creator_mavrick".to_string());
-    let bio = RwSignal::new("Dreaming big, building tokens that pump 🚀".to_string());
-    let website = RwSignal::new("https://creatormavrick.com".to_string());
-    let email = RwSignal::new("malvika@gobazzinga.in".to_string());
+fn ProfileEditInner(details: ProfileDetails, identity: utils::types::NewIdentity) -> impl IntoView {
+    // Form state with actual profile data
+    let username = RwSignal::new(details.username_or_fallback());
+    let bio = RwSignal::new(details.bio.clone().unwrap_or_default());
+    let website = RwSignal::new(details.website_url.clone().unwrap_or_default());
     let profile_pic_url = RwSignal::new(details.profile_pic_or_random());
     let show_image_editor = RwSignal::new(false);
     let user_principal = details.principal.to_text();
-
-    let on_save = move || {
-        // Handle save action
-        leptos::logging::log!("Save clicked");
-    };
+    let saving = RwSignal::new(false);
+    let save_error = RwSignal::new(Option::<String>::None);
+    let nav = use_navigate();
 
     view! {
         <div class="flex flex-col w-full items-center">
@@ -147,14 +186,26 @@ fn ProfileEditInner(
 
             // Form Fields
             <div class="flex flex-col gap-[20px] w-full px-4 max-w-[358px]">
-                // Username Field
-                <InputField
-                    label="User Name"
-                    placeholder="Type user name"
-                    value=username
-                    is_required=true
-                    prefix="@".to_string()
-                />
+                // Username Field (Read-only for now)
+                <div class="w-full flex flex-col gap-[10px]">
+                    <div class="flex gap-2 items-center">
+                        <span class="text-[14px] font-medium text-neutral-400 font-['Kumbh_Sans']">
+                            "User Name"
+                        </span>
+                    </div>
+                    <div class="bg-[#171717] border border-[#212121] rounded-lg p-3 flex items-center gap-0.5 opacity-60">
+                        <span class="text-[14px] font-medium text-neutral-400 font-['Kumbh_Sans']">@</span>
+                        <input
+                            type="text"
+                            class="w-full bg-transparent text-[14px] font-medium text-neutral-50 font-['Kumbh_Sans'] placeholder-neutral-400 outline-none cursor-not-allowed"
+                            value=move || username.get()
+                            disabled=true
+                        />
+                    </div>
+                    <span class="text-[12px] text-neutral-500 font-['Kumbh_Sans']">
+                        "Username cannot be changed at this time"
+                    </span>
+                </div>
 
                 // Bio Field
                 <InputField
@@ -171,22 +222,61 @@ fn ProfileEditInner(
                     value=website
                 />
 
-                // Email Field
-                <InputField
-                    label="Email"
-                    placeholder="Your email address"
-                    value=email
-                />
+
+                // Error Message
+                <Show when=move || save_error.get().is_some()>
+                    <div class="w-full p-3 bg-red-900/20 border border-red-500 rounded-lg">
+                        <span class="text-[14px] text-red-400">
+                            {move || save_error.get().unwrap_or_default()}
+                        </span>
+                    </div>
+                </Show>
 
                 // Save Button
                 <button
-                    on:click=move |_| on_save()
-                    class="w-full h-[45px] rounded-lg flex items-center justify-center mt-[10px] cursor-pointer transition-all hover:opacity-90"
+                    on:click=move |_| {
+                        let nav = nav.clone();
+                        spawn_local(async move {
+                            saving.set(true);
+                            save_error.set(None);
+
+                            // Call server function
+                            match update_profile_on_server(
+                                if bio.get_untracked().is_empty() { None } else { Some(bio.get_untracked()) },
+                                if website.get_untracked().is_empty() { None } else { Some(website.get_untracked()) },
+                                Some(profile_pic_url.get_untracked()),
+                            ).await {
+                                Ok(_) => {
+                                    leptos::logging::log!("Profile updated successfully");
+                                    nav("/profile/posts", Default::default());
+                                },
+                                Err(e) => {
+                                    save_error.set(Some(e.to_string()));
+                                }
+                            }
+
+                            saving.set(false);
+                        });
+                    }
+                    disabled=move || saving.get()
+                    class="w-full h-[45px] rounded-lg flex items-center justify-center mt-[10px] cursor-pointer transition-all"
+                    class=("opacity-50", move || saving.get())
+                    class=("cursor-not-allowed", move || saving.get())
+                    class=("hover:opacity-90", move || !saving.get())
                     style="background: linear-gradient(90deg, #e2017b 0%, #e2017b 100%)"
                 >
-                    <span class="text-[16px] font-bold text-[#f6b0d6] font-['Kumbh_Sans']">
-                        "Save"
-                    </span>
+                    <Show
+                        when=move || !saving.get()
+                        fallback=|| view! {
+                            <span class="text-[16px] font-bold text-[#f6b0d6] font-['Kumbh_Sans']">
+                                "Saving..."
+                            </span>
+                        }
+                    >
+                        <span class="text-[16px] font-bold text-[#f6b0d6] font-['Kumbh_Sans']">
+                            "Save"
+                        </span>
+                    </Show>
                 </button>
             </div>
         </div>
@@ -232,7 +322,10 @@ async fn upload_profile_image_to_agent(
             .map_err(|e| format!("Failed to send request: {}", e))?;
 
         if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
             return Err(format!("Upload failed: {}", error_text));
         }
 
@@ -257,7 +350,10 @@ async fn upload_profile_image_to_agent(
             .map_err(|e| format!("Failed to send request: {}", e))?;
 
         if !response.ok() {
-            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
             return Err(format!("Upload failed: {}", error_text));
         }
 
@@ -363,7 +459,6 @@ fn ProfileImageEditor(
     let handle_touch_end = move |_| {
         is_dragging.set(false);
     };
-
 
     view! {
         <component::overlay::ShadowOverlay show>
