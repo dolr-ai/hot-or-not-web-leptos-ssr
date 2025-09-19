@@ -156,12 +156,12 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     let nav_clone1 = nav.clone();
     let nav_clone2 = nav.clone();
 
-    // Placeholder data for now
-    let followers_count = 80u64;
-    let following_count = 50u64;
-    let games_played = 100u64;
-    let bio = "Dreaming big, building tokens that pump 🚀".to_string();
-    let website_url = "https://creatormavrick.com".to_string();
+    // Get actual data from user ProfileDetails
+    let followers_count = user.followers_cnt;
+    let following_count = user.following_cnt;
+    let games_played = 100u64;  // TODO: Get actual games played count when available
+    let bio = user.bio.clone().unwrap_or_else(|| "".to_string());
+    let website_url = user.website_url.clone().unwrap_or_else(|| "".to_string());
 
     view! {
         <div class="overflow-y-auto pt-10 pb-12 min-h-screen text-white bg-black">
@@ -250,11 +250,19 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                 </Suspense>
                             </div>
                             <div class="font-normal text-xs text-neutral-50">
-                                <p>
-                                    {bio}
-                                    <br />
-                                    <span class="text-[#3d8eff]">{website_url}</span>
-                                </p>
+                                {(!bio.is_empty() || !website_url.is_empty()).then(|| view! {
+                                    <p>
+                                        {(!bio.is_empty()).then(|| view! {
+                                            <>
+                                                {bio.clone()}
+                                                {(!website_url.is_empty()).then(|| view! { <br /> })}
+                                            </>
+                                        })}
+                                        {(!website_url.is_empty()).then(|| view! {
+                                            <span class="text-[#3d8eff]">{website_url.clone()}</span>
+                                        })}
+                                    </p>
+                                })}
                             </div>
                         </div>
 
