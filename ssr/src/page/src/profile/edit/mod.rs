@@ -1,9 +1,9 @@
 pub mod username;
 
 use component::{
-    back_btn::BackButton, modal::Modal, spinner::Spinner, title::TitleText,
+    back_btn::BackButton, spinner::Spinner, title::TitleText,
 };
-use leptos::{either::Either, html, prelude::*, server_fn::ServerFnError, task::spawn_local};
+use leptos::{either::Either, html, prelude::*, task::spawn_local};
 use leptos_icons::Icon;
 use leptos_meta::Title;
 use leptos_router::components::Redirect;
@@ -37,13 +37,14 @@ pub fn ProfileEdit() -> impl IntoView {
             }>
             {move || Suspend::new(async move {
                 let cans = auth.auth_cans().await;
-                match cans {
-                    Ok(cans) => Either::Left(view! {
-                        <ProfileEditInner details=cans.profile_details() />
+                let identity = auth.user_identity.await;
+                match (cans, identity) {
+                    (Ok(cans), Ok(identity)) => Either::Left(view! {
+                        <ProfileEditInner details=cans.profile_details() identity=identity />
                     }),
-                    Err(e) => Either::Right(view! {
+                    (Err(e), _) | (_, Err(e)) => Either::Right(view! {
                         <Redirect path=format!("/error?err={e}") />
-                    })
+                    }),
                 }
             })}
             </Suspense>
@@ -97,7 +98,10 @@ fn InputField(
 }
 
 #[component]
-fn ProfileEditInner(details: ProfileDetails) -> impl IntoView {
+fn ProfileEditInner(
+    details: ProfileDetails,
+    identity: utils::types::NewIdentity,
+) -> impl IntoView {
     // Form state with dummy values
     let username = RwSignal::new("Creator_mavrick".to_string());
     let bio = RwSignal::new("Dreaming big, building tokens that pump 🚀".to_string());
@@ -105,6 +109,7 @@ fn ProfileEditInner(details: ProfileDetails) -> impl IntoView {
     let email = RwSignal::new("malvika@gobazzinga.in".to_string());
     let profile_pic_url = RwSignal::new(details.profile_pic_or_random());
     let show_image_editor = RwSignal::new(false);
+    let user_principal = details.principal.to_text();
 
     let on_save = move || {
         // Handle save action
@@ -115,7 +120,12 @@ fn ProfileEditInner(details: ProfileDetails) -> impl IntoView {
         <div class="flex flex-col w-full items-center">
             // Image Editor Popup
             <Show when=move || show_image_editor.get()>
-                <ProfileImageEditor show=show_image_editor profile_pic_url />
+                <ProfileImageEditor
+                    show=show_image_editor
+                    profile_pic_url
+                    user_principal=user_principal.clone()
+                    identity=identity.clone()
+                />
             </Show>
 
             // Profile Picture with Edit Overlay
@@ -183,20 +193,89 @@ fn ProfileEditInner(details: ProfileDetails) -> impl IntoView {
     }
 }
 
-#[server]
-async fn upload_profile_image(image_data: String) -> Result<String, ServerFnError> {
-    // For now, just return a dummy URL as requested
-    // In production, this would upload to a storage service
-    leptos::logging::log!("Received image data of length: {}", image_data.len());
+// Upload profile image via off-chain agent API
+async fn upload_profile_image_to_agent(
+    image_data: String,
+    delegated_identity_wire: yral_types::delegated_identity::DelegatedIdentityWire,
+) -> Result<String, String> {
+    use consts::OFF_CHAIN_AGENT_URL;
+    use serde::{Deserialize, Serialize};
 
-    // Return a dummy profile picture URL
-    Ok("https://api.dicebear.com/7.x/avataaars/svg?seed=updated".to_string())
+    #[derive(Serialize)]
+    struct UploadRequest {
+        delegated_identity_wire: yral_types::delegated_identity::DelegatedIdentityWire,
+        image_data: String,
+    }
+
+    #[derive(Deserialize)]
+    struct UploadResponse {
+        profile_image_url: String,
+    }
+
+    let url = OFF_CHAIN_AGENT_URL
+        .join("api/v1/user/profile-image")
+        .map_err(|e| format!("Failed to construct URL: {}", e))?;
+
+    let request_body = UploadRequest {
+        delegated_identity_wire,
+        image_data,
+    };
+
+    #[cfg(feature = "ssr")]
+    {
+        let client = reqwest::Client::new();
+        let response = client
+            .post(url)
+            .json(&request_body)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to send request: {}", e))?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(format!("Upload failed: {}", error_text));
+        }
+
+        let upload_response: UploadResponse = response
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse response: {}", e))?;
+
+        Ok(upload_response.profile_image_url)
+    }
+
+    #[cfg(not(feature = "ssr"))]
+    {
+        // In hydrate mode, use gloo to make the request
+        use gloo::net::http::Request;
+
+        let response = Request::post(url.as_str())
+            .json(&request_body)
+            .map_err(|e| format!("Failed to create request: {}", e))?
+            .send()
+            .await
+            .map_err(|e| format!("Failed to send request: {}", e))?;
+
+        if !response.ok() {
+            let error_text = response.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(format!("Upload failed: {}", error_text));
+        }
+
+        let upload_response: UploadResponse = response
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse response: {}", e))?;
+
+        Ok(upload_response.profile_image_url)
+    }
 }
 
 #[component]
 fn ProfileImageEditor(
     show: RwSignal<bool>,
     profile_pic_url: RwSignal<String>,
+    user_principal: String,
+    identity: utils::types::NewIdentity,
 ) -> impl IntoView {
     let uploaded_image = RwSignal::new(Option::<String>::None);
     let zoom_level = RwSignal::new(1.0_f64);
@@ -438,12 +517,15 @@ fn ProfileImageEditor(
                     </button>
 
                     <button
-                        on:click=move |_| {
-                            if let Some(image_data) = uploaded_image.get() {
-                                is_uploading.set(true);
+                        on:click={
+                            let identity = identity.clone();
+                            move |_| {
+                                if let Some(image_data) = uploaded_image.get() {
+                                    is_uploading.set(true);
+                                    let delegated_identity = identity.id_wire.clone();
 
                                 spawn_local(async move {
-                                    match upload_profile_image(image_data).await {
+                                    match upload_profile_image_to_agent(image_data, delegated_identity).await {
                                         Ok(new_url) => {
                                             profile_pic_url.set(new_url);
                                             show.set(false);
@@ -458,6 +540,7 @@ fn ProfileImageEditor(
                                     }
                                 });
                             }
+                        }
                         }
                         disabled=move || uploaded_image.get().is_none() || is_uploading.get()
                         class="flex-1 px-4 py-2 bg-gradient-to-r from-[#e2017b] to-[#e2017b] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white font-medium"

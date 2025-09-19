@@ -43,7 +43,7 @@ pub const USER_INTERNAL_STORE: &str = "user-internal";
 pub const WALLET_BALANCE_STORE_KEY: &str = "wallet-balance-sats";
 
 pub static OFF_CHAIN_AGENT_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev").unwrap());
+    Lazy::new(|| Url::parse("http://localhost:50051").unwrap());
 
 pub static ANALYTICS_SERVER_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://marketing-analytics-server.fly.dev").unwrap());
@@ -114,6 +114,34 @@ pub const DOLR_AI_ROOT_CANISTER: &str = "67bll-riaaa-aaaaq-aaauq-cai";
 pub const DOLR_AI_LEDGER_CANISTER: &str = "6rdgd-kyaaa-aaaaq-aaavq-cai";
 pub const CKBTC_LEDGER_CANISTER: &str = "mxzaz-hqaaa-aaaar-qaada-cai";
 pub const USDC_LEDGER_CANISTER: &str = "xevnm-gaaaa-aaaar-qafnq-cai";
+
+// Hetzner S3 Configuration
+pub mod hetzner_s3 {
+    use once_cell::sync::Lazy;
+    use reqwest::Url;
+
+    pub const BUCKET_NAME: &str = "yral-profile";
+    pub const REGION: &str = "eu-central";
+    pub const ENDPOINT: &str = "https://hel1.your-objectstorage.com";
+    pub const NETWORK_ZONE: &str = "eu-central";
+
+    pub static S3_ENDPOINT_URL: Lazy<Url> =
+        Lazy::new(|| Url::parse(ENDPOINT).unwrap());
+
+    // Access credentials from environment variables
+    pub fn get_access_key() -> String {
+        std::env::var("HETZNER_S3_ACCESS_KEY").expect("HETZNER_S3_ACCESS_KEY not set")
+    }
+
+    pub fn get_secret_key() -> String {
+        std::env::var("HETZNER_S3_SECRET_KEY").expect("HETZNER_S3_SECRET_KEY not set")
+    }
+
+    // Helper to construct S3 URLs for objects
+    pub fn get_object_url(key: &str) -> String {
+        format!("{}/{}/{}", ENDPOINT, BUCKET_NAME, key)
+    }
+}
 
 pub const SATS_CKBTC_CANISTER: &str =
     "zg7n3-345by-nqf6o-3moz4-iwxql-l6gko-jqdz2-56juu-ja332-unymr-fqe";

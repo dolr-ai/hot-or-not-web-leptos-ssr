@@ -149,18 +149,12 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
 
-    let edit_icon_mount_point = NodeRef::<html::Div>::new();
+    let _edit_icon_mount_point = NodeRef::<html::Div>::new();
 
     let ev_ctx = auth.event_ctx();
-    let on_edit_click = move |ev: leptos::web_sys::MouseEvent| {
-        ev.prevent_default();
-        if let Some(props) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_edit_profile_clicked(props, "profile".into());
-        }
-
-        let nav = use_navigate();
-        nav("/profile/edit", Default::default());
-    };
+    let nav = use_navigate();
+    let nav_clone1 = nav.clone();
+    let nav_clone2 = nav.clone();
 
     // Placeholder data for now
     let followers_count = 80u64;
@@ -226,14 +220,23 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                     {username_or_fallback.clone()}
                                 </span>
                                 <Suspense>
-                                    {move || {
-                                        auth.user_principal
-                                            .get()
-                                            .map(|v| {
-                                                let authenticated_princ = v.unwrap_or(Principal::anonymous());
-                                                view! {
-                                                    <Show when=move || user_principal == authenticated_princ>
-                                                        <a on:click=on_edit_click href="/profile/edit">
+                                    {{
+                                        let nav = nav_clone1;
+                                        move || {
+                                            auth.user_principal
+                                                .get()
+                                                .map(|v| {
+                                                    let authenticated_princ = v.unwrap_or(Principal::anonymous());
+                                                    let nav = nav.clone();
+                                                    view! {
+                                                        <Show when=move || user_principal == authenticated_princ>
+                                                            <a on:click={let nav = nav.clone(); move |ev: leptos::web_sys::MouseEvent| {
+                                                                ev.prevent_default();
+                                                                if let Some(props) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                                                                    MixPanelEvent::track_edit_profile_clicked(props, "profile".into());
+                                                                }
+                                                                nav("/profile/edit", Default::default());
+                                                            }} href="/profile/edit">
                                                             <Icon
                                                                 icon=EditIcon
                                                                 attr:class="text-xl text-neutral-300"
@@ -241,7 +244,8 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                                         </a>
                                                     </Show>
                                                 }
-                                            })
+                                                })
+                                        }
                                     }}
                                 </Suspense>
                             </div>
@@ -265,15 +269,24 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
 
                     // Edit Profile button for logged in users
                     <Suspense>
-                        {move || {
-                            auth.user_principal
-                                .get()
-                                .map(|v| {
-                                    let authenticated_princ = v.unwrap_or(Principal::anonymous());
-                                    view! {
-                                        <Show when=move || user_principal == authenticated_princ>
-                                            <button
-                                                on:click=on_edit_click
+                        {{
+                            let nav = nav_clone2;
+                            move || {
+                                auth.user_principal
+                                    .get()
+                                    .map(|v| {
+                                        let authenticated_princ = v.unwrap_or(Principal::anonymous());
+                                        let nav = nav.clone();
+                                        view! {
+                                            <Show when=move || user_principal == authenticated_princ>
+                                                <button
+                                                    on:click={let nav = nav.clone(); move |ev: leptos::web_sys::MouseEvent| {
+                                                        ev.prevent_default();
+                                                        if let Some(props) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                                                            MixPanelEvent::track_edit_profile_clicked(props, "profile".into());
+                                                        }
+                                                        nav("/profile/edit", Default::default());
+                                                    }}
                                                 class="w-full bg-[#212121] border border-neutral-700 rounded-lg px-5 py-2.5 flex items-center justify-center"
                                             >
                                                 <span class="font-semibold text-sm text-neutral-50">
@@ -292,7 +305,8 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                             </div>
                                         </Show>
                                     }
-                                })
+                                    })
+                            }
                         }}
                     </Suspense>
 
