@@ -11,7 +11,7 @@ use component::video_player::VideoPlayer;
 use futures::FutureExt;
 use gloo::timers::future::TimeoutFuture;
 use utils::ml_feed::QuickPostDetails;
-use utils::{bg_url, mp4_url, send_wrap, try_or_redirect_opt};
+use utils::{bg_url, mp4_url, send_wrap};
 
 /// Maximum PostDetails, time in milliseconds to waitay promise to resolve
 const VIDEO_PLAY_TIMEOUT_MS: u64 = 5000;
