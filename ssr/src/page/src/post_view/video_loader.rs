@@ -107,7 +107,8 @@ where
             ></div>
             <Suspense>
             {move || Suspend::new(async move {
-                let (post, prev_post) = try_or_redirect_opt!(post_details_with_prev_post.await);
+                // let (post, prev_post) = try_or_redirect_opt!(post_details_with_prev_post.await);
+                let (post, prev_post) = post_details_with_prev_post.await.inspect_err(|err| leptos::logging::error!("Failed to load post details: {err:#?}")).ok()?;
                 Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref high_priority show_game_overlay /> }.into_view())
             })}
             </Suspense>
