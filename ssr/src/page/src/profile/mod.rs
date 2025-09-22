@@ -172,8 +172,8 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     let website_url = user.website_url.clone().unwrap_or_else(|| "".to_string());
 
     view! {
-        <NotificationPage close=notification_panel />
         <div class="overflow-y-auto pb-12 min-h-screen text-white bg-black">
+            <NotificationPage close=notification_panel />
             // Header with title and navigation icons - aligned with content width
             <div class="flex justify-center w-full bg-black">
                 <div class="flex h-12 items-center justify-between px-4 sm:px-0 py-3 w-11/12 sm:w-7/12">
@@ -449,11 +449,20 @@ pub fn ProfileView() -> impl IntoView {
 
 #[component]
 pub fn ProfileComponent(user: ProfileDetails) -> impl IntoView {
+    // Use use_context instead of expect_context to handle missing context gracefully
+    let context = use_context::<ProfilePostsContext>()
+        .unwrap_or_else(|| {
+            // Provide a default context if not available
+            let default_context = ProfilePostsContext::default();
+            provide_context(default_context.clone());
+            default_context
+        });
+
     let ProfilePostsContext {
         video_queue,
         start_index,
         ..
-    } = expect_context();
+    } = context;
 
     video_queue.update_untracked(|v| {
         v.drain(..);
