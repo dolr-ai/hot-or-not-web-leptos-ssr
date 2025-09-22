@@ -6863,6 +6863,7 @@ dependencies = [
  "yral-pump-n-dump-common",
  "yral-testcontainers",
  "yral-types",
+ "yral-username-gen",
 ]
 
 [[package]]

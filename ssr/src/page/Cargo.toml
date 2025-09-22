@@ -93,6 +93,7 @@ sats-airdrop = { workspace = true, optional = true }
 num-bigint = { workspace = true }
 num-traits.workspace = true
 videogen-common = { workspace = true }
+yral-username-gen = { workspace = true }
 base64 = { workspace = true }
 chrono = "0.4"
 

@@ -25,7 +25,7 @@ use posts::ProfilePosts;
 use speculation::ProfileSpeculations;
 use state::{
     app_state::AppState,
-    canisters::{auth_state, unauth_canisters},
+    canisters::auth_state,
 };
 
 use component::{infinite_scroller::InfiniteScroller, overlay::ShadowOverlay};
@@ -39,6 +39,8 @@ use yral_canisters_common::{
     },
     Canisters,
 };
+use yral_metadata_client::MetadataClient;
+use yral_username_gen::random_username_from_principal;
 
 #[cfg(feature = "ssr")]
 use leptos::prelude::ServerFnError;
@@ -158,23 +160,43 @@ impl CursoredDataProvider for FollowersProvider {
             self.cursor.set(Some(next_cursor));
         }
 
-        // Convert FollowerItem to FollowerData
-        // For now, we'll use principal as username and generate profile pic
+        // Bulk fetch metadata for all principals
+        let principals: Vec<Principal> = response
+            .followers
+            .iter()
+            .map(|item| item.principal_id)
+            .collect();
+
+        let metadata_client = MetadataClient::default();
+        let metadata_map = metadata_client
+            .get_user_metadata_bulk(principals)
+            .await
+            .unwrap_or_default();
+
+        // Convert FollowerItem to FollowerData with actual usernames
         let data = response
             .followers
             .into_iter()
-            .map(|item| FollowerData {
-                principal_id: item.principal_id,
-                username: Some(format!(
-                    "@{}",
-                    item.principal_id
-                        .to_text()
-                        .chars()
-                        .take(8)
-                        .collect::<String>()
-                )),
-                profile_pic: Some(propic_from_principal(item.principal_id)),
-                caller_follows: item.caller_follows,
+            .map(|item| {
+                let metadata = metadata_map.get(&item.principal_id).and_then(|m| m.as_ref());
+
+                // Use actual username if available and not empty, otherwise generate one
+                let username = metadata
+                    .and_then(|m| {
+                        if !m.user_name.trim().is_empty() {
+                            Some(m.user_name.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .or_else(|| Some(random_username_from_principal(item.principal_id, 15)));
+
+                FollowerData {
+                    principal_id: item.principal_id,
+                    username,
+                    profile_pic: Some(propic_from_principal(item.principal_id)),
+                    caller_follows: item.caller_follows,
+                }
             })
             .collect();
 
@@ -232,22 +254,43 @@ impl CursoredDataProvider for FollowingProvider {
             self.cursor.set(Some(next_cursor));
         }
 
-        // Convert FollowerItem to FollowerData
+        // Bulk fetch metadata for all principals
+        let principals: Vec<Principal> = response
+            .following
+            .iter()
+            .map(|item| item.principal_id)
+            .collect();
+
+        let metadata_client = MetadataClient::default();
+        let metadata_map = metadata_client
+            .get_user_metadata_bulk(principals)
+            .await
+            .unwrap_or_default();
+
+        // Convert FollowingItem to FollowerData with actual usernames
         let data = response
             .following
             .into_iter()
-            .map(|item| FollowerData {
-                principal_id: item.principal_id,
-                username: Some(format!(
-                    "@{}",
-                    item.principal_id
-                        .to_text()
-                        .chars()
-                        .take(8)
-                        .collect::<String>()
-                )),
-                profile_pic: Some(propic_from_principal(item.principal_id)),
-                caller_follows: item.caller_follows,
+            .map(|item| {
+                let metadata = metadata_map.get(&item.principal_id).and_then(|m| m.as_ref());
+
+                // Use actual username if available and not empty, otherwise generate one
+                let username = metadata
+                    .and_then(|m| {
+                        if !m.user_name.trim().is_empty() {
+                            Some(m.user_name.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .or_else(|| Some(random_username_from_principal(item.principal_id, 15)));
+
+                FollowerData {
+                    principal_id: item.principal_id,
+                    username,
+                    profile_pic: Some(propic_from_principal(item.principal_id)),
+                    caller_follows: item.caller_follows,
+                }
             })
             .collect();
 
@@ -263,6 +306,8 @@ fn FollowAndAuthCanLoader(
     user_principal: Principal,
     caller_follows_user: Option<bool>,
     user_follows_caller: Option<bool>,
+    #[prop(optional, into)] on_follow_success: Option<Callback<()>>,
+    #[prop(optional, into)] on_unfollow_success: Option<Callback<()>>,
 ) -> impl IntoView {
     let auth = auth_state();
     let follows = RwSignal::new(caller_follows_user);
@@ -296,7 +341,16 @@ fn FollowAndAuthCanLoader(
 
             match result {
                 Ok(yral_canisters_client::user_info_service::Result_::Ok) => {
-                    // Success - keep the optimistic update
+                    // Success - keep the optimistic update and call callback
+                    if should_follow {
+                        if let Some(ref cb) = on_follow_success {
+                            cb.run(());
+                        }
+                    } else {
+                        if let Some(ref cb) = on_unfollow_success {
+                            cb.run(());
+                        }
+                    }
                 }
                 Ok(yral_canisters_client::user_info_service::Result_::Err(e)) => {
                     log::warn!("Error toggling follow status: {e}");
@@ -317,7 +371,7 @@ fn FollowAndAuthCanLoader(
     // Resource for fetching follow status (if needed for refresh)
     let follow_fetch = auth.derive_resource(
         || (),
-        move |cans: Canisters<true>, _| async move {
+        move |_cans: Canisters<true>, _| async move {
             // If we had initial data, use it. Otherwise we would fetch it here
             // For now, just return the initial value
             Ok::<_, ServerFnError>(caller_follows_user.unwrap_or(false))
@@ -427,9 +481,9 @@ fn UserListItem(data: FollowerData, node_ref: Option<NodeRef<html::Div>>) -> imp
                     alt=data.username.clone().unwrap_or_default()
                 />
 
-                // Username
+                // Username (always available now - either real or generated)
                 <span class="font-semibold text-sm text-neutral-50">
-                    {data.username.clone().unwrap_or_else(|| format!("@{}", data.principal_id.to_text().chars().take(8).collect::<String>()))}
+                    {data.username.clone().unwrap_or_else(|| random_username_from_principal(data.principal_id, 15))}
                 </span>
             </div>
 
@@ -464,9 +518,9 @@ fn UserListItem(data: FollowerData, node_ref: Option<NodeRef<html::Div>>) -> imp
                         alt=data.username.clone().unwrap_or_default()
                     />
 
-                    // Username
+                    // Username (always available now - either real or generated)
                     <span class="font-semibold text-sm text-neutral-50">
-                        {data.username.clone().unwrap_or_else(|| format!("@{}", data.principal_id.to_text().chars().take(8).collect::<String>()))}
+                        {data.username.clone().unwrap_or_else(|| random_username_from_principal(data.principal_id, 15))}
                     </span>
                 </div>
 
@@ -688,9 +742,9 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     // Simple signal that will be set in the Suspense block
     let is_own_profile = RwSignal::new(false);
 
-    // Get actual data from user ProfileDetails
-    let followers_count = user.followers_cnt;
-    let following_count = user.following_cnt;
+    // Make counts reactive for dynamic updates
+    let followers_count = RwSignal::new(user.followers_cnt);
+    let following_count = RwSignal::new(user.following_cnt);
     let games_played = 100u64; // TODO: Get actual games played count when available
     let bio = user.bio.clone().unwrap_or_else(|| "".to_string());
     let website_url = user.website_url.clone().unwrap_or_else(|| "".to_string());
@@ -764,7 +818,7 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                     }
                                 >
                                     <span class="font-semibold text-base text-neutral-50">
-                                        {followers_count}
+                                        {move || followers_count.get()}
                                     </span>
                                     <span class="font-normal text-sm text-neutral-50">
                                         "Followers"
@@ -780,7 +834,7 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                     }
                                 >
                                     <span class="font-semibold text-base text-neutral-50">
-                                        {following_count}
+                                        {move || following_count.get()}
                                     </span>
                                     <span class="font-normal text-sm text-neutral-50">
                                         "Following"
@@ -870,6 +924,12 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                                 user_principal=user_principal
                                                 caller_follows_user=user.caller_follows_user
                                                 user_follows_caller=user.user_follows_caller
+                                                on_follow_success=Callback::new(move |_| {
+                                                    followers_count.update(|c| *c += 1);
+                                                })
+                                                on_unfollow_success=Callback::new(move |_| {
+                                                    followers_count.update(|c| *c = c.saturating_sub(1));
+                                                })
                                             />
                                         </Show>
                                         <Show when=move || {

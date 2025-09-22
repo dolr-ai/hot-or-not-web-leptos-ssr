@@ -134,6 +134,7 @@ ic-certification = "3.0.3"
 ciborium = "0.2.2"
 yral-metadata-client = { git = "https://github.com/yral-dapp/yral-metadata", branch = "master", default-features = false }
 yral-metadata-types = { git = "https://github.com/yral-dapp/yral-metadata", branch = "master" }
+yral-username-gen = { path = "../yral-common/username-gen" }
 uuid = { version = "1.11.0", features = ["v4", "js"] }
 regex = { version = "1.11.1" }
 tonic-build = { version = "0.12.0", default-features = false, features = [
