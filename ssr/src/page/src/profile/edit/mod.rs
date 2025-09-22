@@ -5,7 +5,6 @@ use leptos::{either::Either, html, prelude::*, task::spawn_local};
 use leptos_icons::Icon;
 use leptos_meta::Title;
 use leptos_router::{components::Redirect, hooks::use_navigate};
-use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use state::{app_state::AppState, canisters::auth_state};
 use utils::send_wrap;
 use wasm_bindgen::closure::Closure;
@@ -13,7 +12,6 @@ use wasm_bindgen::JsCast;
 use yral_canisters_client::local::USER_INFO_SERVICE_ID;
 use yral_canisters_client::user_info_service::{ProfileUpdateDetails, Result_ as UserInfoResult};
 use yral_canisters_common::utils::profile::ProfileDetails;
-
 
 #[component]
 pub fn ProfileEdit() -> impl IntoView {
@@ -54,7 +52,6 @@ pub fn ProfileEdit() -> impl IntoView {
         </div>
     }
 }
-
 
 #[component]
 fn InputField(
@@ -129,7 +126,8 @@ fn ProfileEditInner(
     auth: state::canisters::AuthState,
 ) -> impl IntoView {
     // Form state with actual profile data
-    let username = RwSignal::new(details.username_or_fallback());
+    let original_username = details.username_or_fallback();
+    let username = RwSignal::new(original_username.clone());
     let bio = RwSignal::new(details.bio.clone().unwrap_or_default());
     let website = RwSignal::new(details.website_url.clone().unwrap_or_default());
     let profile_pic_url = RwSignal::new(details.profile_pic_or_random());
@@ -140,26 +138,84 @@ fn ProfileEditInner(
     let success_message = RwSignal::new(Option::<String>::None);
     let nav = use_navigate();
 
-    // Setup auto-dismiss for success message
-    let UseTimeoutFnReturn { start: start_success_timeout, .. } = use_timeout_fn(
-        move |_| {
-            success_message.set(None);
-        },
-        3000.0,  // 3 seconds
-    );
+    // Username validation state
+    let username_input_ref = NodeRef::<html::Input>::new();
+    let username_validity_trigger = Trigger::new();
+    let username_changing = RwSignal::new(false);
+    let username_changed_successfully = RwSignal::new(false);
+
+    // Username validation helpers
+    let username_error_message = move || {
+        username_validity_trigger.track();
+        let input = username_input_ref.get()?;
+        if input.check_validity() {
+            return None;
+        }
+
+        #[cfg(feature = "hydrate")]
+        if input.validity().pattern_mismatch() {
+            return Some(
+                "Username must be 3-15 characters long and can only contain letters and numbers."
+                    .to_string(),
+            );
+        }
+
+        Some(
+            input
+                .validation_message()
+                .unwrap_or_else(|_| "Invalid input".to_string()),
+        )
+    };
+
+    let on_username_input = move || {
+        let Some(input) = username_input_ref.get() else {
+            return;
+        };
+        input.set_custom_validity("");
+        username_validity_trigger.notify();
+        username_changed_successfully.set(false);
+    };
+
+    // Effect to auto-dismiss success message after 3 seconds
+    Effect::new(move |_| {
+        if success_message.get().is_some() {
+            #[cfg(feature = "hydrate")]
+            {
+                use wasm_bindgen::prelude::*;
+                let window = web_sys::window().unwrap();
+                let closure = Closure::once(move || {
+                    success_message.set(None);
+                });
+                let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+                    closure.as_ref().unchecked_ref(),
+                    3000,
+                );
+                closure.forget();
+            }
+        }
+    });
 
     // Create profile update action
+    let original_username_clone = original_username.clone();
+    let original_profile_pic = details.profile_pic_or_random();
+    let original_bio = details.bio.clone().unwrap_or_default();
+    let original_website = details.website_url.clone().unwrap_or_default();
     let update_profile = Action::new(move |_: &()| {
+        let username_val = username.get_untracked();
         let bio_val = bio.get_untracked();
         let website_val = website.get_untracked();
         let profile_pic_val = profile_pic_url.get_untracked();
         let _nav = nav.clone();
-        let timeout_fn = start_success_timeout.clone();
+        let orig_username = original_username_clone.clone();
+        let orig_profile_pic = original_profile_pic.clone();
+        let orig_bio = original_bio.clone();
+        let orig_website = original_website.clone();
 
         send_wrap(async move {
             saving.set(true);
             save_error.set(None);
             success_message.set(None);
+            username_changing.set(true);
 
             // Validate and format URL
             let formatted_website = match validate_and_format_url(website_val.clone()) {
@@ -171,50 +227,208 @@ fn ProfileEditInner(
                 }
             };
 
-            let Ok(canisters) = auth.auth_cans().await else {
+            // Optimistically update UI immediately
+            username.set(username_val.clone());
+            bio.set(bio_val.clone());
+            website.set(formatted_website.clone());
+
+            let Ok(mut canisters) = auth.auth_cans().await else {
                 save_error.set(Some("Not authenticated".to_string()));
                 saving.set(false);
+                username_changing.set(false);
                 return;
             };
 
             // Only support service canister users
             if canisters.user_canister() != USER_INFO_SERVICE_ID {
                 log::error!("Profile update not supported for individual canister users");
-                save_error.set(Some("Profile update not available for this account type".to_string()));
+                save_error.set(Some(
+                    "Profile update not available for this account type".to_string(),
+                ));
                 saving.set(false);
+                username_changing.set(false);
                 return;
             }
 
+            // Track what was updated
+            let mut username_update_success = false;
+            let mut profile_update_success = false;
+
+            // First, check if we need to validate username (but don't update yet)
+            let username_changed = username_val != orig_username && !username_val.is_empty();
+            if username_changed {
+                // Validate username format (3-15 characters, alphanumeric only)
+                let is_valid = username_val.len() >= 3
+                    && username_val.len() <= 15
+                    && username_val.chars().all(|c| c.is_ascii_alphanumeric());
+                if !is_valid {
+                    save_error.set(Some(
+                        "Username must be 3-15 characters and contain only letters and numbers"
+                            .to_string(),
+                    ));
+                    saving.set(false);
+                    username_changing.set(false);
+                    return;
+                }
+            }
+
+            // Update profile first (before username to avoid reload with old data)
             let service = canisters.user_info_service().await;
             let update_details = ProfileUpdateDetails {
-                bio: if bio_val.is_empty() { None } else { Some(bio_val.clone()) },
-                website_url: if formatted_website.is_empty() { None } else { Some(formatted_website.clone()) },
-                profile_picture_url: Some(profile_pic_val),
+                bio: if bio_val.is_empty() {
+                    None
+                } else {
+                    Some(bio_val.clone())
+                },
+                website_url: if formatted_website.is_empty() {
+                    None
+                } else {
+                    Some(formatted_website.clone())
+                },
+                profile_picture_url: Some(profile_pic_val.clone()),
+            };
+
+            // Check if profile needs updating
+            let profile_changed = bio_val != orig_bio
+                || formatted_website != orig_website
+                || profile_pic_val != orig_profile_pic;
+
+            if profile_changed {
+                match service.update_profile_details(update_details).await {
+                    Ok(UserInfoResult::Ok) => {
+                        log::info!("Profile updated successfully");
+                        profile_update_success = true;
+                    }
+                    Ok(UserInfoResult::Err(e)) => {
+                        // Revert all values on profile update error
+                        username.set(orig_username.clone());
+                        bio.set(orig_bio.clone());
+                        website.set(orig_website.clone());
+
+                        log::warn!("Error updating profile: {e}");
+                        save_error.set(Some(format!("Update failed: {e}")));
+                        saving.set(false);
+                        username_changing.set(false);
+                        return;
+                    }
+                    Err(e) => {
+                        // Revert all values on network error
+                        username.set(orig_username.clone());
+                        bio.set(orig_bio.clone());
+                        website.set(orig_website.clone());
+
+                        log::warn!("Network error updating profile: {e:?}");
+                        save_error.set(Some("Network error. Please try again.".to_string()));
+                        saving.set(false);
+                        username_changing.set(false);
+                        return;
+                    }
+                }
+            }
+
+            // Now update username if it changed (without triggering reload)
+            if username_changed {
+                match canisters.set_username(username_val.clone()).await {
+                    Ok(_) => {
+                        log::info!("Username updated successfully");
+                        username_update_success = true;
+                    }
+                    Err(yral_canisters_common::Error::Metadata(
+                        yral_metadata_client::Error::Api(
+                            yral_metadata_types::error::ApiError::DuplicateUsername,
+                        ),
+                    )) => {
+                        // Revert username on duplicate error
+                        username.set(orig_username.clone());
+
+                        // Set custom validity on the input element
+                        if let Some(input) = username_input_ref.get_untracked() {
+                            input.set_custom_validity("This username is not available");
+                            username_validity_trigger.notify();
+                        }
+                        save_error.set(Some("This username is not available".to_string()));
+                        saving.set(false);
+                        username_changing.set(false);
+                        return;
+                    }
+                    Err(e) => {
+                        // Revert username on error
+                        username.set(orig_username.clone());
+
+                        log::error!("Error updating username: {e}");
+                        save_error.set(Some(format!("Failed to update username: {}", e)));
+                        saving.set(false);
+                        username_changing.set(false);
+                        return;
+                    }
+                }
+            }
+
+            // Now update profile details
+            let service = canisters.user_info_service().await;
+            let update_details = ProfileUpdateDetails {
+                bio: if bio_val.is_empty() {
+                    None
+                } else {
+                    Some(bio_val.clone())
+                },
+                website_url: if formatted_website.is_empty() {
+                    None
+                } else {
+                    Some(formatted_website.clone())
+                },
+                profile_picture_url: Some(profile_pic_val.clone()),
             };
 
             match service.update_profile_details(update_details).await {
                 Ok(UserInfoResult::Ok) => {
                     log::info!("Profile updated successfully");
 
-                    // Update the form values with the saved values
-                    bio.set(bio_val);
-                    website.set(formatted_website);
-
-                    // Show success message
-                    success_message.set(Some("Profile updated successfully!".to_string()));
-                    timeout_fn(());
+                    // Track profile updates
+                    let profile_changed = bio_val != orig_bio
+                        || formatted_website != orig_website
+                        || profile_pic_val != orig_profile_pic;
+                    if profile_changed {
+                        profile_update_success = true;
+                    }
                 }
                 Ok(UserInfoResult::Err(e)) => {
+                    // Revert all values on profile update error
+                    username.set(orig_username.clone());
+                    bio.set(orig_bio.clone());
+                    website.set(orig_website.clone());
+
                     log::warn!("Error updating profile: {e}");
                     save_error.set(Some(format!("Update failed: {e}")));
                 }
                 Err(e) => {
+                    // Revert all values on network error
+                    username.set(orig_username.clone());
+                    bio.set(orig_bio.clone());
+                    website.set(orig_website.clone());
+
                     log::warn!("Network error updating profile: {e:?}");
                     save_error.set(Some("Network error. Please try again.".to_string()));
                 }
             }
 
+            // Show success message if anything was updated
+            if username_update_success || profile_update_success {
+                // Generate success message
+                let mut updated_items = Vec::new();
+                if username_update_success {
+                    updated_items.push("Username");
+                }
+                if profile_update_success {
+                    updated_items.push("Profile");
+                }
+
+                let success_msg = format!("{} updated successfully!", updated_items.join(" and "));
+                success_message.set(Some(success_msg));
+            }
+
             saving.set(false);
+            username_changing.set(false);
         })
     });
 
@@ -249,24 +463,68 @@ fn ProfileEditInner(
 
             // Form Fields
             <div class="flex flex-col gap-[20px] w-full px-4 max-w-[358px]">
-                // Username Field (Read-only for now)
-                <div class="w-full flex flex-col gap-[10px]">
+                // Username Field
+                <div class="w-full flex flex-col gap-[10px] group">
                     <div class="flex gap-2 items-center">
                         <span class="text-[14px] font-medium text-neutral-400 font-['Kumbh_Sans']">
                             "User Name"
                         </span>
                     </div>
-                    <div class="bg-[#171717] border border-[#212121] rounded-lg p-3 flex items-center gap-0.5 opacity-60">
+                    <form
+                        prop:novalidate
+                        class="bg-[#171717] border border-[#212121] rounded-lg p-3 flex items-center gap-0.5 has-[input:valid]:has-[input:focus]:border-green-500/50 has-[input:invalid]:has-[input:not(:placeholder-shown)]:border-red-500"
+                    >
                         <span class="text-[14px] font-medium text-neutral-400 font-['Kumbh_Sans']">@</span>
                         <input
                             type="text"
-                            class="w-full bg-transparent text-[14px] font-medium text-neutral-50 font-['Kumbh_Sans'] placeholder-neutral-400 outline-none cursor-not-allowed"
-                            value=move || username.get()
-                            disabled=true
+                            pattern="^([a-zA-Z0-9]){3,15}$"
+                            node_ref=username_input_ref
+                            on:input=move |_| on_username_input()
+                            bind:value=username
+                            class="w-full bg-transparent text-[14px] font-medium text-neutral-50 font-['Kumbh_Sans'] placeholder-neutral-400 outline-none peer"
+                            placeholder="Enter username"
                         />
-                    </div>
+                        // Visual feedback indicators
+                        <Show when=username_changing>
+                            <div class="w-4 h-4 animate-spin rounded-full border-2 border-neutral-500 border-t-white" />
+                        </Show>
+                        <Show when=move || !username_changing.get() && username_changed_successfully.get()>
+                            <Icon
+                                attr:class="w-4 h-4 text-green-500"
+                                icon=icondata::AiCheckCircleOutlined
+                            />
+                        </Show>
+                        <Show when={
+                            let orig = original_username.clone();
+                            move || !username_changing.get() && !username_changed_successfully.get() && username.with(|u| !u.is_empty() && *u != orig)
+                        }>
+                            <button
+                                type="button"
+                                on:click={
+                                    let orig = original_username.clone();
+                                    move |_| {
+                                        username.set(orig.clone());
+                                        if let Some(input) = username_input_ref.get() {
+                                            input.set_custom_validity("");
+                                            username_validity_trigger.notify();
+                                        }
+                                        username_changed_successfully.set(false);
+                                    }
+                                }
+                                class="cursor-pointer hover:opacity-80"
+                            >
+                                <Icon
+                                    attr:class="w-4 h-4 text-neutral-400"
+                                    icon=icondata::ChCross
+                                />
+                            </button>
+                        </Show>
+                    </form>
+                    <p class="hidden text-xs text-red-500 group-has-[input:invalid]:group-has-[input:not(:placeholder-shown)]:block">
+                        {move || username_error_message()}
+                    </p>
                     <span class="text-[12px] text-neutral-500 font-['Kumbh_Sans']">
-                        "Username cannot be changed at this time"
+                        "Username must be 3-15 characters. Letters and numbers only."
                     </span>
                 </div>
 
