@@ -1,19 +1,16 @@
 use codee::string::FromToStringCodec;
 use component::content_upload::AuthorizedUserToSeedContent;
-use component::content_upload::YoutubeUpload;
-use component::modal::Modal;
 use component::title::TitleText;
 use component::toggle::Toggle;
 use component::{connect::ConnectLogin, social::*};
 use consts::{NOTIFICATIONS_ENABLED_STORE, NSFW_ENABLED_COOKIE};
-use leptos::either::Either;
 use leptos::html::{Div, Input};
-use leptos::portal::Portal;
 use leptos::prelude::*;
+use leptos::prelude::window;
 use leptos::web_sys::{Notification, NotificationPermission};
 use leptos_icons::*;
 use leptos_meta::*;
-use leptos_router::{components::Redirect, hooks::use_navigate, hooks::use_query_map};
+use leptos_router::{hooks::use_navigate, hooks::use_query_map};
 use leptos_use::{storage::use_local_storage, use_cookie_with_options, UseCookieOptions};
 use state::app_state::AppState;
 use state::canisters::auth_state;
@@ -161,6 +158,12 @@ pub fn Menu() -> impl IntoView {
     let _ = leptos_use::use_event_listener(nsfw_toggle_ref, leptos::ev::change, move |_| {
         let new_value = !is_nsfw_enabled.get().unwrap_or(false);
         set_nsfw_enabled(Some(new_value));
+
+        // Perform hard refresh to reload with new NSFW preference
+        #[cfg(feature = "hydrate")]
+        {
+            let _ = window().location().reload();
+        }
     });
 
     // Notifications state management
