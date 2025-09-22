@@ -42,8 +42,6 @@ use yral_canisters_common::{
 
 #[cfg(feature = "ssr")]
 use leptos::prelude::ServerFnError;
-#[cfg(feature = "ssr")]
-use leptos::server;
 
 #[derive(Clone)]
 pub struct ProfilePostsContext {
@@ -260,107 +258,105 @@ impl CursoredDataProvider for FollowingProvider {
     }
 }
 
-#[server]
-pub async fn follow_user_action(target: Principal) -> Result<(), ServerFnError> {
-    use auth::server_impl::extract_identity_impl;
-    use yral_canisters_common::Canisters;
+#[component]
+fn FollowAndAuthCanLoader(
+    user_principal: Principal,
+    caller_follows_user: Option<bool>,
+    user_follows_caller: Option<bool>,
+) -> impl IntoView {
+    let auth = auth_state();
+    let follows = RwSignal::new(caller_follows_user);
+    let (is_loading, set_is_loading) = signal(false);
 
-    // Extract identity from cookies
-    let identity_wire = extract_identity_impl()
-        .await?
-        .ok_or_else(|| ServerFnError::new("User not authenticated"))?;
+    // Client-side action for follow/unfollow
+    let follow_toggle = Action::new(move |&()| {
+        let target = user_principal;
+        send_wrap(async move {
+            set_is_loading.set(true);
 
-    // Authenticate with network using the identity
-    let canisters = match Canisters::<true>::authenticate_with_network(identity_wire).await {
-        Ok(c) => c,
-        Err(e) => return Err(ServerFnError::ServerError(format!("Auth failed: {}", e))),
-    };
+            let Ok(canisters) = auth.auth_cans().await else {
+                log::warn!("Trying to toggle follow without auth");
+                set_is_loading.set(false);
+                return;
+            };
 
-    // Get the service canister
-    let service = canisters.user_info_service().await;
+            let should_follow = {
+                let mut follows_w = follows.write();
+                let current = follows_w.unwrap_or_default();
+                *follows_w = Some(!current);
+                !current
+            };
 
-    // Call follow_user
-    match service.follow_user(target).await {
-        Ok(result) => match result {
-            yral_canisters_client::user_info_service::Result_::Ok => Ok(()),
-            yral_canisters_client::user_info_service::Result_::Err(e) => {
-                Err(ServerFnError::ServerError(format!("Follow failed: {}", e)))
+            let service = canisters.user_info_service().await;
+            let result = if should_follow {
+                service.follow_user(target).await
+            } else {
+                service.unfollow_user(target).await
+            };
+
+            match result {
+                Ok(yral_canisters_client::user_info_service::Result_::Ok) => {
+                    // Success - keep the optimistic update
+                }
+                Ok(yral_canisters_client::user_info_service::Result_::Err(e)) => {
+                    log::warn!("Error toggling follow status: {e}");
+                    // Rollback on error
+                    follows.update(|f| _ = f.as_mut().map(|f| *f = !*f));
+                }
+                Err(e) => {
+                    log::warn!("Network error toggling follow status: {e:?}");
+                    // Rollback on error
+                    follows.update(|f| _ = f.as_mut().map(|f| *f = !*f));
+                }
             }
+
+            set_is_loading.set(false);
+        })
+    });
+
+    // Resource for fetching follow status (if needed for refresh)
+    let follow_fetch = auth.derive_resource(
+        || (),
+        move |cans: Canisters<true>, _| async move {
+            // If we had initial data, use it. Otherwise we would fetch it here
+            // For now, just return the initial value
+            Ok::<_, ServerFnError>(caller_follows_user.unwrap_or(false))
         },
-        Err(e) => Err(ServerFnError::ServerError(format!("Network error: {}", e))),
-    }
-}
+    );
 
-#[server]
-pub async fn unfollow_user_action(target: Principal) -> Result<(), ServerFnError> {
-    use auth::server_impl::extract_identity_impl;
-    use yral_canisters_common::Canisters;
-
-    // Extract identity from cookies
-    let identity_wire = extract_identity_impl()
-        .await?
-        .ok_or_else(|| ServerFnError::new("User not authenticated"))?;
-
-    // Authenticate with network using the identity
-    let canisters = match Canisters::<true>::authenticate_with_network(identity_wire).await {
-        Ok(c) => c,
-        Err(e) => return Err(ServerFnError::ServerError(format!("Auth failed: {}", e))),
-    };
-
-    // Get the service canister
-    let service = canisters.user_info_service().await;
-
-    // Call unfollow_user
-    match service.unfollow_user(target).await {
-        Ok(result) => match result {
-            yral_canisters_client::user_info_service::Result_::Ok => Ok(()),
-            yral_canisters_client::user_info_service::Result_::Err(e) => Err(
-                ServerFnError::ServerError(format!("Unfollow failed: {}", e)),
-            ),
-        },
-        Err(e) => Err(ServerFnError::ServerError(format!("Network error: {}", e))),
+    view! {
+        <FollowButton
+            is_following=follows
+            is_loading=is_loading
+            user_follows_caller=user_follows_caller
+            on_click=move || { follow_toggle.dispatch(()); }
+        />
+        <Suspense>
+            {move || Suspend::new(async move {
+                match follow_fetch.await {
+                    Ok(res) => {
+                        follows.set(Some(res));
+                    }
+                    Err(e) => {
+                        log::warn!("failed to fetch follow status {e}");
+                    }
+                }
+            })}
+        </Suspense>
     }
 }
 
 #[component]
 fn FollowButton(
-    user_principal: Principal,
-    caller_follows_user: Option<bool>,
+    is_following: RwSignal<Option<bool>>,
+    is_loading: ReadSignal<bool>,
     user_follows_caller: Option<bool>,
+    on_click: impl Fn() + 'static,
 ) -> impl IntoView {
-    let (is_following, set_is_following) = signal(caller_follows_user.unwrap_or(false));
-    let (is_loading, set_is_loading) = signal(false);
-
-    let follow_action = Action::new(move |_: &()| {
-        let target = user_principal;
-        async move {
-            set_is_loading.set(true);
-            let result = follow_user_action(target).await;
-            set_is_loading.set(false);
-            if result.is_ok() {
-                set_is_following.set(true);
-            }
-            result
-        }
-    });
-
-    let unfollow_action = Action::new(move |_: &()| {
-        let target = user_principal;
-        async move {
-            set_is_loading.set(true);
-            let result = unfollow_user_action(target).await;
-            set_is_loading.set(false);
-            if result.is_ok() {
-                set_is_following.set(false);
-            }
-            result
-        }
-    });
-
     let button_text = move || {
         if is_loading.get() {
             "Loading..."
-        } else if is_following.get() {
+        } else if is_following.get().unwrap_or(false) {
             "Unfollow"
         } else if user_follows_caller.unwrap_or(false) {
             "Follow Back"
@@ -370,7 +366,7 @@ fn FollowButton(
     };
 
     let button_class = move || {
-        if is_following.get() {
+        if is_following.get().unwrap_or(false) {
             "w-full bg-transparent border border-neutral-700 rounded-lg px-5 py-2.5 flex items-center justify-center"
         } else if user_follows_caller.unwrap_or(false) {
             "w-full bg-primary-600 border border-primary-600 rounded-lg px-5 py-2.5 flex items-center justify-center"
@@ -379,19 +375,9 @@ fn FollowButton(
         }
     };
 
-    let on_click = move |_| {
-        if !is_loading.get() {
-            if is_following.get() {
-                unfollow_action.dispatch(());
-            } else {
-                follow_action.dispatch(());
-            }
-        }
-    };
-
     view! {
         <button
-            on:click=on_click
+            on:click=move |_| on_click()
             class=button_class
             disabled=is_loading
         >
@@ -450,7 +436,7 @@ fn UserListItem(data: FollowerData, node_ref: Option<NodeRef<html::Div>>) -> imp
             // Follow button
             <Show when=move || show_follow_button>
                 <div class="shrink-0">
-                    <FollowButton
+                    <FollowAndAuthCanLoader
                         user_principal=data.principal_id
                         caller_follows_user=Some(data.caller_follows)
                         user_follows_caller=None
@@ -487,7 +473,7 @@ fn UserListItem(data: FollowerData, node_ref: Option<NodeRef<html::Div>>) -> imp
                 // Follow button
                 <Show when=move || show_follow_button>
                     <div class="shrink-0">
-                        <FollowButton
+                        <FollowAndAuthCanLoader
                             user_principal=data.principal_id
                             caller_follows_user=Some(data.caller_follows)
                             user_follows_caller=None
@@ -880,7 +866,7 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                         </Show>
                                         // Show Follow button for other profiles
                                         <Show when=move || user_principal != authenticated_princ>
-                                            <FollowButton
+                                            <FollowAndAuthCanLoader
                                                 user_principal=user_principal
                                                 caller_follows_user=user.caller_follows_user
                                                 user_follows_caller=user.user_follows_caller
@@ -975,61 +961,53 @@ pub fn ProfileView() -> impl IntoView {
     };
 
     let auth = auth_state();
-    let cans = unauth_canisters();
-    let user_details = Resource::new(param_id, move |profile_id| {
-        let cans = cans.clone();
-        send_wrap(async move {
+
+    // Use derive_resource which will handle auth state properly
+    let user_details = auth.derive_resource(
+        param_id,
+        move |auth_cans: Canisters<true>, profile_id| async move {
             let profile_id = profile_id.ok_or_else(|| ServerFnError::new("Invalid ID"))?;
-            if let Some(user_can) = auth
-                .auth_cans_if_available()
-                .filter(|can| match &profile_id {
-                    UsernameOrPrincipal::Principal(princ) => *princ == can.user_principal(),
-                    UsernameOrPrincipal::Username(u) => {
-                        Some(u) == can.profile_details().username.as_ref()
-                    }
-                })
-            {
-                return Ok::<_, ServerFnError>(Some(user_can.profile_details()));
+
+            // First check if this is the logged-in user's own profile
+            if match &profile_id {
+                UsernameOrPrincipal::Principal(princ) => *princ == auth_cans.user_principal(),
+                UsernameOrPrincipal::Username(u) => {
+                    Some(u) == auth_cans.profile_details().username.as_ref()
+                }
+            } {
+                leptos::logging::log!("User canister found for profile ID: {}", profile_id);
+                return Ok::<_, ServerFnError>(auth_cans.profile_details());
             }
 
-            let user_details = cans.get_profile_details(profile_id.to_string()).await?;
+            leptos::logging::log!("Fetching other user's profile with auth");
 
-            Ok::<_, ServerFnError>(user_details)
-        })
-    });
+            // Use authenticated canisters to get correct follow status
+            let user_details = auth_cans.get_profile_details(profile_id.to_string()).await?;
+
+            leptos::logging::log!(
+                "User details fetched with auth: {:?} with principal {:?}",
+                user_details.clone(),
+                user_details.clone().map(|u| u.principal.to_text()).unwrap_or_else(|| "None".to_string())
+            );
+
+            user_details.ok_or_else(|| ServerFnError::new("User not found"))
+        },
+    );
 
     view! {
         <ProfilePageTitle />
         <Suspense fallback=FullScreenSpinner>
             {move || Suspend::new(async move {
-                let res = async {
-                    let maybe_user = user_details.await?;
-                    if let Some(user) = maybe_user {
-                        return Ok::<_, ServerFnError>(user);
-                    }
-                    // edge case: user is not logged in
-                    let auth = auth_state();
-                    let cans = auth.auth_cans().await?;
-                    let my_details = cans.profile_details();
-                    let id = untrack(param_id).expect("ID should be available");
-                    match id {
-                        UsernameOrPrincipal::Principal(princ) if princ == cans.user_principal() => {
-                            Ok(my_details)
-                        },
-                        UsernameOrPrincipal::Username(username) if Some(&username) == my_details.username.as_ref() => {
-                            Ok(my_details)
-                        }
-                        _ => Err(ServerFnError::new("User not found")),
-                    }
-                };
-
-                match res.await {
+                match user_details.await {
                     Ok(user) => view! {
                         <ProfileComponent user />
                     }.into_any(),
-                    _ => view! {
-                        <Redirect path="/" />
-                    }.into_any(),
+                    Err(e) => {
+                        leptos::logging::log!("Error loading profile: {}", e);
+                        view! {
+                            <Redirect path="/" />
+                        }.into_any()
+                    }
                 }
             })}
         </Suspense>
