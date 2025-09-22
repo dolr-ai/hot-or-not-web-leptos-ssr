@@ -858,8 +858,22 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                                 {(!website_url.is_empty()).then(|| view! { <br /> })}
                                             </>
                                         })}
-                                        {(!website_url.is_empty()).then(|| view! {
-                                            <span class="text-[#3d8eff]">{website_url.clone()}</span>
+                                        {(!website_url.is_empty()).then(|| {
+                                            let formatted_url = if !website_url.starts_with("http://") && !website_url.starts_with("https://") {
+                                                format!("https://{}", website_url)
+                                            } else {
+                                                website_url.clone()
+                                            };
+                                            view! {
+                                                <a
+                                                    href=formatted_url
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="text-[#3d8eff] hover:underline"
+                                                >
+                                                    {website_url.clone()}
+                                                </a>
+                                            }
                                         })}
                                     </p>
                                 })}

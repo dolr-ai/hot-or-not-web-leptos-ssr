@@ -5,6 +5,7 @@ use leptos::{either::Either, html, prelude::*, task::spawn_local};
 use leptos_icons::Icon;
 use leptos_meta::Title;
 use leptos_router::{components::Redirect, hooks::use_navigate};
+use leptos_use::{use_timeout_fn, UseTimeoutFnReturn};
 use state::{app_state::AppState, canisters::auth_state};
 use utils::send_wrap;
 use wasm_bindgen::closure::Closure;
@@ -63,6 +64,7 @@ fn InputField(
     #[prop(optional)] is_required: bool,
     #[prop(optional)] prefix: Option<String>,
     #[prop(optional)] multiline: bool,
+    #[prop(optional, into)] input_type: String,
 ) -> impl IntoView {
     view! {
         <div class="w-full flex flex-col gap-[10px]">
@@ -86,9 +88,10 @@ fn InputField(
                         />
                     }.into_any()
                 } else {
+                    let field_type = if input_type.is_empty() { "text".to_string() } else { input_type };
                     view! {
                         <input
-                            type="text"
+                            type=field_type
                             class="w-full bg-transparent text-[14px] font-medium text-neutral-50 font-['Kumbh_Sans'] placeholder-neutral-400 outline-none"
                             placeholder=placeholder
                             bind:value=value
@@ -98,6 +101,25 @@ fn InputField(
             </div>
         </div>
     }
+}
+
+fn validate_and_format_url(url: String) -> Result<String, String> {
+    if url.is_empty() {
+        return Ok(url);
+    }
+
+    let formatted = if !url.starts_with("http://") && !url.starts_with("https://") {
+        format!("https://{}", url)
+    } else {
+        url
+    };
+
+    // Basic validation
+    if formatted.contains(' ') || !formatted.contains('.') {
+        return Err("Invalid URL format".to_string());
+    }
+
+    Ok(formatted)
 }
 
 #[component]
@@ -115,18 +137,39 @@ fn ProfileEditInner(
     let user_principal = details.principal.to_text();
     let saving = RwSignal::new(false);
     let save_error = RwSignal::new(Option::<String>::None);
+    let success_message = RwSignal::new(Option::<String>::None);
     let nav = use_navigate();
+
+    // Setup auto-dismiss for success message
+    let UseTimeoutFnReturn { start: start_success_timeout, .. } = use_timeout_fn(
+        move |_| {
+            success_message.set(None);
+        },
+        3000.0,  // 3 seconds
+    );
 
     // Create profile update action
     let update_profile = Action::new(move |_: &()| {
         let bio_val = bio.get_untracked();
         let website_val = website.get_untracked();
         let profile_pic_val = profile_pic_url.get_untracked();
-        let nav = nav.clone();
+        let _nav = nav.clone();
+        let timeout_fn = start_success_timeout.clone();
 
         send_wrap(async move {
             saving.set(true);
             save_error.set(None);
+            success_message.set(None);
+
+            // Validate and format URL
+            let formatted_website = match validate_and_format_url(website_val.clone()) {
+                Ok(url) => url,
+                Err(e) => {
+                    save_error.set(Some(e));
+                    saving.set(false);
+                    return;
+                }
+            };
 
             let Ok(canisters) = auth.auth_cans().await else {
                 save_error.set(Some("Not authenticated".to_string()));
@@ -144,15 +187,22 @@ fn ProfileEditInner(
 
             let service = canisters.user_info_service().await;
             let update_details = ProfileUpdateDetails {
-                bio: if bio_val.is_empty() { None } else { Some(bio_val) },
-                website_url: if website_val.is_empty() { None } else { Some(website_val) },
+                bio: if bio_val.is_empty() { None } else { Some(bio_val.clone()) },
+                website_url: if formatted_website.is_empty() { None } else { Some(formatted_website.clone()) },
                 profile_picture_url: Some(profile_pic_val),
             };
 
             match service.update_profile_details(update_details).await {
                 Ok(UserInfoResult::Ok) => {
                     log::info!("Profile updated successfully");
-                    nav("/profile/posts", Default::default());
+
+                    // Update the form values with the saved values
+                    bio.set(bio_val);
+                    website.set(formatted_website);
+
+                    // Show success message
+                    success_message.set(Some("Profile updated successfully!".to_string()));
+                    timeout_fn(());
                 }
                 Ok(UserInfoResult::Err(e)) => {
                     log::warn!("Error updating profile: {e}");
@@ -233,6 +283,7 @@ fn ProfileEditInner(
                     label="Website/URL"
                     placeholder="Your website URL"
                     value=website
+                    input_type="url"
                 />
 
 
@@ -241,6 +292,15 @@ fn ProfileEditInner(
                     <div class="w-full p-3 bg-red-900/20 border border-red-500 rounded-lg">
                         <span class="text-[14px] text-red-400">
                             {move || save_error.get().unwrap_or_default()}
+                        </span>
+                    </div>
+                </Show>
+
+                // Success Message
+                <Show when=move || success_message.get().is_some()>
+                    <div class="w-full p-3 bg-green-900/20 border border-green-500 rounded-lg transition-opacity duration-500">
+                        <span class="text-[14px] text-green-400">
+                            {move || success_message.get().unwrap_or_default()}
                         </span>
                     </div>
                 </Show>
