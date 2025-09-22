@@ -188,11 +188,11 @@ fn FollowButton(
 
     let button_class = move || {
         if is_following.get() {
-            "px-4 py-1.5 text-sm font-semibold border border-neutral-700 bg-transparent text-neutral-50 rounded-lg"
+            "w-full bg-transparent border border-neutral-700 rounded-lg px-5 py-2.5 flex items-center justify-center"
         } else if user_follows_caller.unwrap_or(false) {
-            "px-4 py-1.5 text-sm font-semibold bg-primary-600 text-white rounded-lg"
+            "w-full bg-primary-600 border border-primary-600 rounded-lg px-5 py-2.5 flex items-center justify-center"
         } else {
-            "px-4 py-1.5 text-sm font-semibold bg-[#212121] text-neutral-50 border border-neutral-700 rounded-lg"
+            "w-full bg-[#212121] border border-neutral-700 rounded-lg px-5 py-2.5 flex items-center justify-center"
         }
     };
 
@@ -212,7 +212,9 @@ fn FollowButton(
             class=button_class
             disabled=is_loading
         >
-            {button_text}
+            <span class="font-semibold text-sm text-neutral-50">
+                {button_text}
+            </span>
         </button>
     }
 }
@@ -425,18 +427,9 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                     // Username and bio section
                     <div class="flex flex-col gap-4">
                         <div class="flex flex-col gap-2">
-                            <div class="flex items-center gap-3">
-                                <span class="font-semibold text-sm text-neutral-50">
-                                    {username_or_fallback.clone()}
-                                </span>
-                                <Show when=move || !is_own_profile.get()>
-                                    <FollowButton
-                                        user_principal=user_principal
-                                        caller_follows_user=user.caller_follows_user
-                                        user_follows_caller=user.user_follows_caller
-                                    />
-                                </Show>
-                            </div>
+                            <span class="font-semibold text-sm text-neutral-50">
+                                {username_or_fallback.clone()}
+                            </span>
                             <div class="font-normal text-xs text-neutral-50">
                                 {(!bio.is_empty() || !website_url.is_empty()).then(|| view! {
                                     <p>
@@ -463,7 +456,7 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                         </div>
                     </div>
 
-                    // Edit Profile button for logged in users
+                    // Edit Profile button for own profile or Follow button for others
                     <Suspense>
                         {{
                             let nav = nav_clone2;
@@ -474,6 +467,7 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                         let authenticated_princ = v.unwrap_or(Principal::anonymous());
                                         let nav = nav.clone();
                                         view! {
+                                            // Show Edit Profile button for own profile
                                             <Show when=move || user_principal == authenticated_princ>
                                                 <button
                                                     on:click={let nav = nav.clone(); move |ev: leptos::web_sys::MouseEvent| {
@@ -489,6 +483,14 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                                     "Edit Profile"
                                                 </span>
                                             </button>
+                                        </Show>
+                                        // Show Follow button for other profiles
+                                        <Show when=move || user_principal != authenticated_princ>
+                                            <FollowButton
+                                                user_principal=user_principal
+                                                caller_follows_user=user.caller_follows_user
+                                                user_follows_caller=user.user_follows_caller
+                                            />
                                         </Show>
                                         <Show when=move || {
                                             !is_connected() && user_principal == authenticated_princ
