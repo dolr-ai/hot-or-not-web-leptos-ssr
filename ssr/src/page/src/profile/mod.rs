@@ -7,7 +7,12 @@ pub mod profile_post;
 mod speculation;
 
 use candid::Principal;
-use component::{connect::ConnectLogin, icons::edit_icons::EditIcon, spinner::FullScreenSpinner};
+use component::{
+    connect::ConnectLogin,
+    icons::notification_icon::NotificationIcon,
+    notification::NotificationPage,
+    spinner::FullScreenSpinner
+};
 use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
 use indexmap::IndexSet;
 use leptos::{html, portal::Portal, prelude::*};
@@ -153,8 +158,11 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
 
     let ev_ctx = auth.event_ctx();
     let nav = use_navigate();
-    let nav_clone1 = nav.clone();
     let nav_clone2 = nav.clone();
+    let nav_menu = nav.clone();
+
+    // Notification panel signal
+    let notification_panel = RwSignal::new(false);
 
     // Get actual data from user ProfileDetails
     let followers_count = user.followers_cnt;
@@ -164,8 +172,35 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     let website_url = user.website_url.clone().unwrap_or_else(|| "".to_string());
 
     view! {
-        <div class="overflow-y-auto pt-10 pb-12 min-h-screen text-white bg-black">
-            <div class="flex flex-col gap-5 items-center w-full">
+        <NotificationPage close=notification_panel />
+        <div class="overflow-y-auto pb-12 min-h-screen text-white bg-black">
+            // Header with title and navigation icons - aligned with content width
+            <div class="flex justify-center w-full bg-black">
+                <div class="flex h-12 items-center justify-between px-4 sm:px-0 py-3 w-11/12 sm:w-7/12">
+                    <p class="font-bold text-xl text-neutral-50">
+                        "My Profile"
+                    </p>
+                    <div class="flex gap-5 items-center justify-end">
+                        <button
+                            on:click=move |_| {
+                                notification_panel.set(true);
+                            }
+                        >
+                            <NotificationIcon show_dot=false class="w-6 h-6 text-neutral-300" />
+                        </button>
+                        <button
+                            on:click=move |_| {
+                                nav_menu("/menu", Default::default());
+                            }
+                            class="p-1"
+                        >
+                            <Icon icon=icondata::BiMenuRegular attr:class="text-2xl text-neutral-300" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-5 items-center w-full pt-5">
                 <div class="flex flex-col gap-5 w-11/12 sm:w-7/12">
                     // Profile header with avatar and stats
                     <div class="flex gap-6 items-start">
@@ -215,40 +250,9 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                     // Username and bio section
                     <div class="flex flex-col gap-4">
                         <div class="flex flex-col gap-2">
-                            <div class="flex items-center justify-between">
-                                <span class="font-semibold text-sm text-neutral-50">
-                                    {username_or_fallback.clone()}
-                                </span>
-                                <Suspense>
-                                    {{
-                                        let nav = nav_clone1;
-                                        move || {
-                                            auth.user_principal
-                                                .get()
-                                                .map(|v| {
-                                                    let authenticated_princ = v.unwrap_or(Principal::anonymous());
-                                                    let nav = nav.clone();
-                                                    view! {
-                                                        <Show when=move || user_principal == authenticated_princ>
-                                                            <a on:click={let nav = nav.clone(); move |ev: leptos::web_sys::MouseEvent| {
-                                                                ev.prevent_default();
-                                                                if let Some(props) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                                                                    MixPanelEvent::track_edit_profile_clicked(props, "profile".into());
-                                                                }
-                                                                nav("/profile/edit", Default::default());
-                                                            }} href="/profile/edit">
-                                                            <Icon
-                                                                icon=EditIcon
-                                                                attr:class="text-xl text-neutral-300"
-                                                            />
-                                                        </a>
-                                                    </Show>
-                                                }
-                                                })
-                                        }
-                                    }}
-                                </Suspense>
-                            </div>
+                            <span class="font-semibold text-sm text-neutral-50">
+                                {username_or_fallback.clone()}
+                            </span>
                             <div class="font-normal text-xs text-neutral-50">
                                 {(!bio.is_empty() || !website_url.is_empty()).then(|| view! {
                                     <p>
