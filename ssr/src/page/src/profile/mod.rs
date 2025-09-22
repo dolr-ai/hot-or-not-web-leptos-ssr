@@ -33,6 +33,11 @@ use state::{
 use utils::{mixpanel::mixpanel_events::*, posts::FeedPostCtx, send_wrap, UsernameOrPrincipal};
 use yral_canisters_common::utils::{posts::PostDetails, profile::ProfileDetails};
 
+#[cfg(feature = "ssr")]
+use leptos::prelude::ServerFnError;
+#[cfg(feature = "ssr")]
+use leptos::server;
+
 #[derive(Clone)]
 pub struct ProfilePostsContext {
     video_queue: RwSignal<IndexSet<PostDetails>>,
@@ -70,6 +75,146 @@ struct ProfileParams {
 #[derive(Params, Clone, PartialEq)]
 struct TabsParam {
     tab: String,
+}
+
+#[server]
+pub async fn follow_user_action(target: Principal) -> Result<(), ServerFnError> {
+    use auth::server_impl::extract_identity_impl;
+    use yral_canisters_common::Canisters;
+
+    // Extract identity from cookies
+    let identity_wire = extract_identity_impl()
+        .await?
+        .ok_or_else(|| ServerFnError::new("User not authenticated"))?;
+
+    // Authenticate with network using the identity
+    let canisters = match Canisters::<true>::authenticate_with_network(identity_wire).await {
+        Ok(c) => c,
+        Err(e) => return Err(ServerFnError::ServerError(format!("Auth failed: {}", e))),
+    };
+
+    // Get the service canister
+    let service = canisters.user_info_service().await;
+
+    // Call follow_user
+    match service.follow_user(target).await {
+        Ok(result) => match result {
+            yral_canisters_client::user_info_service::Result_::Ok => Ok(()),
+            yral_canisters_client::user_info_service::Result_::Err(e) => {
+                Err(ServerFnError::ServerError(format!("Follow failed: {}", e)))
+            }
+        },
+        Err(e) => Err(ServerFnError::ServerError(format!("Network error: {}", e))),
+    }
+}
+
+#[server]
+pub async fn unfollow_user_action(target: Principal) -> Result<(), ServerFnError> {
+    use auth::server_impl::extract_identity_impl;
+    use yral_canisters_common::Canisters;
+
+    // Extract identity from cookies
+    let identity_wire = extract_identity_impl()
+        .await?
+        .ok_or_else(|| ServerFnError::new("User not authenticated"))?;
+
+    // Authenticate with network using the identity
+    let canisters = match Canisters::<true>::authenticate_with_network(identity_wire).await {
+        Ok(c) => c,
+        Err(e) => return Err(ServerFnError::ServerError(format!("Auth failed: {}", e))),
+    };
+
+    // Get the service canister
+    let service = canisters.user_info_service().await;
+
+    // Call unfollow_user
+    match service.unfollow_user(target).await {
+        Ok(result) => match result {
+            yral_canisters_client::user_info_service::Result_::Ok => Ok(()),
+            yral_canisters_client::user_info_service::Result_::Err(e) => {
+                Err(ServerFnError::ServerError(format!("Unfollow failed: {}", e)))
+            }
+        },
+        Err(e) => Err(ServerFnError::ServerError(format!("Network error: {}", e))),
+    }
+}
+
+#[component]
+fn FollowButton(
+    user_principal: Principal,
+    caller_follows_user: Option<bool>,
+    user_follows_caller: Option<bool>,
+) -> impl IntoView {
+    let (is_following, set_is_following) = signal(caller_follows_user.unwrap_or(false));
+    let (is_loading, set_is_loading) = signal(false);
+
+    let follow_action = Action::new(move |_: &()| {
+        let target = user_principal;
+        async move {
+            set_is_loading.set(true);
+            let result = follow_user_action(target).await;
+            set_is_loading.set(false);
+            if result.is_ok() {
+                set_is_following.set(true);
+            }
+            result
+        }
+    });
+
+    let unfollow_action = Action::new(move |_: &()| {
+        let target = user_principal;
+        async move {
+            set_is_loading.set(true);
+            let result = unfollow_user_action(target).await;
+            set_is_loading.set(false);
+            if result.is_ok() {
+                set_is_following.set(false);
+            }
+            result
+        }
+    });
+
+    let button_text = move || {
+        if is_loading.get() {
+            "Loading..."
+        } else if is_following.get() {
+            "Unfollow"
+        } else if user_follows_caller.unwrap_or(false) {
+            "Follow Back"
+        } else {
+            "Follow"
+        }
+    };
+
+    let button_class = move || {
+        if is_following.get() {
+            "px-4 py-1.5 text-sm font-semibold border border-neutral-700 bg-transparent text-neutral-50 rounded-lg"
+        } else if user_follows_caller.unwrap_or(false) {
+            "px-4 py-1.5 text-sm font-semibold bg-primary-600 text-white rounded-lg"
+        } else {
+            "px-4 py-1.5 text-sm font-semibold bg-[#212121] text-neutral-50 border border-neutral-700 rounded-lg"
+        }
+    };
+
+    let on_click = move |_| {
+        if !is_loading.get() {
+            if is_following.get() {
+                unfollow_action.dispatch(());
+            } else {
+                follow_action.dispatch(());
+            }
+        }
+    };
+
+    view! {
+        <button
+            on:click=on_click
+            class=button_class
+            disabled=is_loading
+        >
+            {button_text}
+        </button>
+    }
 }
 
 #[component]
@@ -280,9 +425,18 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                     // Username and bio section
                     <div class="flex flex-col gap-4">
                         <div class="flex flex-col gap-2">
-                            <span class="font-semibold text-sm text-neutral-50">
-                                {username_or_fallback.clone()}
-                            </span>
+                            <div class="flex items-center gap-3">
+                                <span class="font-semibold text-sm text-neutral-50">
+                                    {username_or_fallback.clone()}
+                                </span>
+                                <Show when=move || !is_own_profile.get()>
+                                    <FollowButton
+                                        user_principal=user_principal
+                                        caller_follows_user=user.caller_follows_user
+                                        user_follows_caller=user.user_follows_caller
+                                    />
+                                </Show>
+                            </div>
                             <div class="font-normal text-xs text-neutral-50">
                                 {(!bio.is_empty() || !website_url.is_empty()).then(|| view! {
                                     <p>
