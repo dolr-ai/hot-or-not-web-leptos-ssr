@@ -745,7 +745,6 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     // Make counts reactive for dynamic updates
     let followers_count = RwSignal::new(user.followers_cnt);
     let following_count = RwSignal::new(user.following_cnt);
-    let games_played = 100u64; // TODO: Get actual games played count when available
     let bio = user.bio.clone().unwrap_or_else(|| "".to_string());
     let website_url = user.website_url.clone().unwrap_or_else(|| "".to_string());
 
@@ -840,16 +839,6 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                         "Following"
                                     </span>
                                 </button>
-
-                                // Games Played
-                                <div class="flex-1 flex flex-col gap-1 items-start">
-                                    <span class="font-semibold text-base text-neutral-50">
-                                        {games_played}
-                                    </span>
-                                    <span class="font-normal text-sm text-neutral-50 whitespace-nowrap">
-                                        "Games Played"
-                                    </span>
-                                </div>
                             </div>
                         </div>
                     </div>

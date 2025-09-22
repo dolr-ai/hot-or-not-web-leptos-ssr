@@ -6,14 +6,13 @@ use leptos_icons::Icon;
 use leptos_meta::Title;
 use leptos_router::{components::Redirect, hooks::use_navigate};
 use state::{app_state::AppState, canisters::auth_state};
+use utils::send_wrap;
 use wasm_bindgen::closure::Closure;
 use wasm_bindgen::JsCast;
+use yral_canisters_client::local::USER_INFO_SERVICE_ID;
+use yral_canisters_client::user_info_service::{ProfileUpdateDetails, Result_ as UserInfoResult};
 use yral_canisters_common::utils::profile::ProfileDetails;
 
-#[cfg(feature = "ssr")]
-use leptos::prelude::ServerFnError;
-#[cfg(feature = "ssr")]
-use leptos::server;
 
 #[component]
 pub fn ProfileEdit() -> impl IntoView {
@@ -43,7 +42,7 @@ pub fn ProfileEdit() -> impl IntoView {
                 let identity = auth.user_identity.await;
                 match (cans, identity) {
                     (Ok(cans), Ok(identity)) => Either::Left(view! {
-                        <ProfileEditInner details=cans.profile_details() identity=identity />
+                        <ProfileEditInner details=cans.profile_details() identity=identity auth=auth.clone() />
                     }),
                     (Err(e), _) | (_, Err(e)) => Either::Right(view! {
                         <Redirect path=format!("/error?err={e}") />
@@ -55,47 +54,6 @@ pub fn ProfileEdit() -> impl IntoView {
     }
 }
 
-#[server]
-pub async fn update_profile_on_server(
-    bio: Option<String>,
-    website_url: Option<String>,
-    profile_picture_url: Option<String>,
-) -> Result<(), ServerFnError> {
-    use auth::server_impl::extract_identity_impl;
-    use yral_canisters_common::Canisters;
-
-    // Extract identity from cookies
-    let identity_wire = extract_identity_impl()
-        .await?
-        .ok_or_else(|| ServerFnError::new("User not authenticated"))?;
-
-    // Authenticate with network using the identity
-    let canisters = match Canisters::<true>::authenticate_with_network(identity_wire).await {
-        Ok(c) => c,
-        Err(e) => return Err(ServerFnError::ServerError(format!("Auth failed: {}", e))),
-    };
-
-    // Get the service canister
-    let service = canisters.user_info_service().await;
-
-    // Create update details
-    let update_details = yral_canisters_client::user_info_service::ProfileUpdateDetails {
-        bio,
-        website_url,
-        profile_picture_url,
-    };
-
-    // Call the update API
-    match service.update_profile_details(update_details).await {
-        Ok(result) => match result {
-            yral_canisters_client::user_info_service::Result_::Ok => Ok(()),
-            yral_canisters_client::user_info_service::Result_::Err(e) => {
-                Err(ServerFnError::ServerError(format!("Update failed: {}", e)))
-            }
-        },
-        Err(e) => Err(ServerFnError::ServerError(format!("Network error: {}", e))),
-    }
-}
 
 #[component]
 fn InputField(
@@ -143,7 +101,11 @@ fn InputField(
 }
 
 #[component]
-fn ProfileEditInner(details: ProfileDetails, identity: utils::types::NewIdentity) -> impl IntoView {
+fn ProfileEditInner(
+    details: ProfileDetails,
+    identity: utils::types::NewIdentity,
+    auth: state::canisters::AuthState,
+) -> impl IntoView {
     // Form state with actual profile data
     let username = RwSignal::new(details.username_or_fallback());
     let bio = RwSignal::new(details.bio.clone().unwrap_or_default());
@@ -155,6 +117,57 @@ fn ProfileEditInner(details: ProfileDetails, identity: utils::types::NewIdentity
     let save_error = RwSignal::new(Option::<String>::None);
     let nav = use_navigate();
 
+    // Create profile update action
+    let update_profile = Action::new(move |_: &()| {
+        let bio_val = bio.get_untracked();
+        let website_val = website.get_untracked();
+        let profile_pic_val = profile_pic_url.get_untracked();
+        let nav = nav.clone();
+
+        send_wrap(async move {
+            saving.set(true);
+            save_error.set(None);
+
+            let Ok(canisters) = auth.auth_cans().await else {
+                save_error.set(Some("Not authenticated".to_string()));
+                saving.set(false);
+                return;
+            };
+
+            // Only support service canister users
+            if canisters.user_canister() != USER_INFO_SERVICE_ID {
+                log::error!("Profile update not supported for individual canister users");
+                save_error.set(Some("Profile update not available for this account type".to_string()));
+                saving.set(false);
+                return;
+            }
+
+            let service = canisters.user_info_service().await;
+            let update_details = ProfileUpdateDetails {
+                bio: if bio_val.is_empty() { None } else { Some(bio_val) },
+                website_url: if website_val.is_empty() { None } else { Some(website_val) },
+                profile_picture_url: Some(profile_pic_val),
+            };
+
+            match service.update_profile_details(update_details).await {
+                Ok(UserInfoResult::Ok) => {
+                    log::info!("Profile updated successfully");
+                    nav("/profile/posts", Default::default());
+                }
+                Ok(UserInfoResult::Err(e)) => {
+                    log::warn!("Error updating profile: {e}");
+                    save_error.set(Some(format!("Update failed: {e}")));
+                }
+                Err(e) => {
+                    log::warn!("Network error updating profile: {e:?}");
+                    save_error.set(Some("Network error. Please try again.".to_string()));
+                }
+            }
+
+            saving.set(false);
+        })
+    });
+
     view! {
         <div class="flex flex-col w-full items-center">
             // Image Editor Popup
@@ -162,7 +175,7 @@ fn ProfileEditInner(details: ProfileDetails, identity: utils::types::NewIdentity
                 <ProfileImageEditor
                     show=show_image_editor
                     profile_pic_url
-                    user_principal=user_principal.clone()
+                    _user_principal=user_principal.clone()
                     identity=identity.clone()
                 />
             </Show>
@@ -235,28 +248,7 @@ fn ProfileEditInner(details: ProfileDetails, identity: utils::types::NewIdentity
                 // Save Button
                 <button
                     on:click=move |_| {
-                        let nav = nav.clone();
-                        spawn_local(async move {
-                            saving.set(true);
-                            save_error.set(None);
-
-                            // Call server function
-                            match update_profile_on_server(
-                                if bio.get_untracked().is_empty() { None } else { Some(bio.get_untracked()) },
-                                if website.get_untracked().is_empty() { None } else { Some(website.get_untracked()) },
-                                Some(profile_pic_url.get_untracked()),
-                            ).await {
-                                Ok(_) => {
-                                    leptos::logging::log!("Profile updated successfully");
-                                    nav("/profile/posts", Default::default());
-                                },
-                                Err(e) => {
-                                    save_error.set(Some(e.to_string()));
-                                }
-                            }
-
-                            saving.set(false);
-                        });
+                        update_profile.dispatch(());
                     }
                     disabled=move || saving.get()
                     class="w-full h-[45px] rounded-lg flex items-center justify-center mt-[10px] cursor-pointer transition-all"
@@ -370,7 +362,7 @@ async fn upload_profile_image_to_agent(
 fn ProfileImageEditor(
     show: RwSignal<bool>,
     profile_pic_url: RwSignal<String>,
-    user_principal: String,
+    _user_principal: String,
     identity: utils::types::NewIdentity,
 ) -> impl IntoView {
     let uploaded_image = RwSignal::new(Option::<String>::None);
