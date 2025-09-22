@@ -148,6 +148,7 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     let user_principal = user.principal;
     let user_canister = user.user_canister;
     let username_or_fallback = user.username_or_fallback();
+    let username_for_header = username_or_fallback.clone();
     let profile_pic = user.profile_pic_or_random();
     let _earnings = user.lifetime_earnings;
 
@@ -164,6 +165,20 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     // Notification panel signal
     let notification_panel = RwSignal::new(false);
 
+    // Get the authenticated user principal for comparison
+    let auth_user_principal = auth.user_principal;
+
+    // Determine if this is the user's own profile
+    let is_own_profile = Signal::derive(move || {
+        auth_user_principal
+            .get()
+            .map(|v| {
+                let authenticated_princ = v.unwrap_or(Principal::anonymous());
+                user_principal == authenticated_princ
+            })
+            .unwrap_or(false)
+    });
+
     // Get actual data from user ProfileDetails
     let followers_count = user.followers_cnt;
     let following_count = user.following_cnt;
@@ -178,24 +193,39 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
             <div class="flex justify-center w-full bg-black">
                 <div class="flex h-12 items-center justify-between px-4 sm:px-0 py-3 w-11/12 sm:w-7/12">
                     <p class="font-bold text-xl text-neutral-50">
-                        "My Profile"
+                        {move || {
+                            if is_own_profile.get() {
+                                "My Profile".to_string()
+                            } else {
+                                format!("@{}", username_for_header.clone())
+                            }
+                        }}
                     </p>
                     <div class="flex gap-5 items-center justify-end">
-                        <button
-                            on:click=move |_| {
-                                notification_panel.set(true);
+                        <Show when=is_own_profile>
+                            <button
+                                on:click=move |_| {
+                                    notification_panel.set(true);
+                                }
+                            >
+                                <NotificationIcon show_dot=false class="w-6 h-6 text-neutral-300" />
+                            </button>
+                        </Show>
+                        <Show when=is_own_profile>
+                            {
+                                let nav_menu = nav_menu.clone();
+                                view! {
+                                    <button
+                                        on:click=move |_| {
+                                            nav_menu("/menu", Default::default());
+                                        }
+                                        class="p-1"
+                                    >
+                                        <Icon icon=icondata::BiMenuRegular attr:class="text-2xl text-neutral-300" />
+                                    </button>
+                                }
                             }
-                        >
-                            <NotificationIcon show_dot=false class="w-6 h-6 text-neutral-300" />
-                        </button>
-                        <button
-                            on:click=move |_| {
-                                nav_menu("/menu", Default::default());
-                            }
-                            class="p-1"
-                        >
-                            <Icon icon=icondata::BiMenuRegular attr:class="text-2xl text-neutral-300" />
-                        </button>
+                        </Show>
                     </div>
                 </div>
             </div>
@@ -284,7 +314,7 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                         {{
                             let nav = nav_clone2;
                             move || {
-                                auth.user_principal
+                                auth_user_principal
                                     .get()
                                     .map(|v| {
                                         let authenticated_princ = v.unwrap_or(Principal::anonymous());
