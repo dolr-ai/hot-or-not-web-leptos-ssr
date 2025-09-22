@@ -8,10 +8,8 @@ mod speculation;
 
 use candid::Principal;
 use component::{
-    connect::ConnectLogin,
-    icons::notification_icon::NotificationIcon,
-    notification::NotificationPage,
-    spinner::FullScreenSpinner
+    connect::ConnectLogin, icons::notification_icon::NotificationIcon,
+    notification::NotificationPage, spinner::FullScreenSpinner,
 };
 use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
 use indexmap::IndexSet;
@@ -30,15 +28,15 @@ use state::{
     canisters::{auth_state, unauth_canisters},
 };
 
-use component::{
-    infinite_scroller::InfiniteScroller,
-    overlay::ShadowOverlay,
-};
+use component::{infinite_scroller::InfiniteScroller, overlay::ShadowOverlay};
 use utils::{mixpanel::mixpanel_events::*, posts::FeedPostCtx, send_wrap, UsernameOrPrincipal};
 use yral_canisters_client::user_info_service::{Result1, Result2};
 use yral_canisters_common::{
     cursored_data::{CursoredDataProvider, KeyedData, PageEntry},
-    utils::{posts::PostDetails, profile::{ProfileDetails, propic_from_principal}},
+    utils::{
+        posts::PostDetails,
+        profile::{propic_from_principal, ProfileDetails},
+    },
     Canisters,
 };
 
@@ -164,14 +162,23 @@ impl CursoredDataProvider for FollowersProvider {
 
         // Convert FollowerItem to FollowerData
         // For now, we'll use principal as username and generate profile pic
-        let data = response.followers.into_iter().map(|item| {
-            FollowerData {
+        let data = response
+            .followers
+            .into_iter()
+            .map(|item| FollowerData {
                 principal_id: item.principal_id,
-                username: Some(format!("@{}", item.principal_id.to_text().chars().take(8).collect::<String>())),
+                username: Some(format!(
+                    "@{}",
+                    item.principal_id
+                        .to_text()
+                        .chars()
+                        .take(8)
+                        .collect::<String>()
+                )),
                 profile_pic: Some(propic_from_principal(item.principal_id)),
                 caller_follows: item.caller_follows,
-            }
-        }).collect();
+            })
+            .collect();
 
         Ok(PageEntry {
             data,
@@ -228,14 +235,23 @@ impl CursoredDataProvider for FollowingProvider {
         }
 
         // Convert FollowerItem to FollowerData
-        let data = response.following.into_iter().map(|item| {
-            FollowerData {
+        let data = response
+            .following
+            .into_iter()
+            .map(|item| FollowerData {
                 principal_id: item.principal_id,
-                username: Some(format!("@{}", item.principal_id.to_text().chars().take(8).collect::<String>())),
+                username: Some(format!(
+                    "@{}",
+                    item.principal_id
+                        .to_text()
+                        .chars()
+                        .take(8)
+                        .collect::<String>()
+                )),
                 profile_pic: Some(propic_from_principal(item.principal_id)),
                 caller_follows: item.caller_follows,
-            }
-        }).collect();
+            })
+            .collect();
 
         Ok(PageEntry {
             data,
@@ -298,9 +314,9 @@ pub async fn unfollow_user_action(target: Principal) -> Result<(), ServerFnError
     match service.unfollow_user(target).await {
         Ok(result) => match result {
             yral_canisters_client::user_info_service::Result_::Ok => Ok(()),
-            yral_canisters_client::user_info_service::Result_::Err(e) => {
-                Err(ServerFnError::ServerError(format!("Unfollow failed: {}", e)))
-            }
+            yral_canisters_client::user_info_service::Result_::Err(e) => Err(
+                ServerFnError::ServerError(format!("Unfollow failed: {}", e)),
+            ),
         },
         Err(e) => Err(ServerFnError::ServerError(format!("Network error: {}", e))),
     }
@@ -393,7 +409,8 @@ fn UserListItem(data: FollowerData, node_ref: Option<NodeRef<html::Div>>) -> imp
     let auth = auth_state();
 
     // Get current user's principal
-    let current_user_principal = auth.user_principal
+    let current_user_principal = auth
+        .user_principal
         .get()
         .and_then(|res| res.ok())
         .unwrap_or(Principal::anonymous());
@@ -488,7 +505,7 @@ fn FollowersFollowingPopup(
     show: RwSignal<bool>,
     user_principal: Principal,
     username: String,
-    initial_tab: usize,  // 0 = Followers, 1 = Following
+    initial_tab: usize, // 0 = Followers, 1 = Following
 ) -> impl IntoView {
     let (active_tab, set_active_tab) = signal(initial_tab);
 
@@ -682,27 +699,21 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     // Get the authenticated user principal for comparison
     let auth_user_principal = auth.user_principal;
 
-    // Determine if this is the user's own profile
-    let is_own_profile = Signal::derive(move || {
-        auth_user_principal
-            .get()
-            .map(|v| {
-                let authenticated_princ = v.unwrap_or(Principal::anonymous());
-                user_principal == authenticated_princ
-            })
-            .unwrap_or(false)
-    });
+    // Simple signal that will be set in the Suspense block
+    let is_own_profile = RwSignal::new(false);
 
     // Get actual data from user ProfileDetails
     let followers_count = user.followers_cnt;
     let following_count = user.following_cnt;
-    let games_played = 100u64;  // TODO: Get actual games played count when available
+    let games_played = 100u64; // TODO: Get actual games played count when available
     let bio = user.bio.clone().unwrap_or_else(|| "".to_string());
     let website_url = user.website_url.clone().unwrap_or_else(|| "".to_string());
 
     view! {
         <div class="overflow-y-auto pb-12 min-h-screen text-white bg-black">
-            <NotificationPage close=notification_panel />
+            <Show when=move || notification_panel.get()>
+                <NotificationPage close=notification_panel />
+            </Show>
             // Header with title and navigation icons - aligned with content width
             <div class="flex justify-center w-full bg-black">
                 <div class="flex h-12 items-center justify-between px-4 sm:px-0 py-3 w-11/12 sm:w-7/12">
@@ -844,6 +855,10 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                     .get()
                                     .map(|v| {
                                         let authenticated_princ = v.unwrap_or(Principal::anonymous());
+
+                                        // Set the is_own_profile signal here
+                                        is_own_profile.set(user_principal == authenticated_princ);
+
                                         let nav = nav.clone();
                                         view! {
                                             // Show Edit Profile button for own profile
@@ -1024,20 +1039,11 @@ pub fn ProfileView() -> impl IntoView {
 
 #[component]
 pub fn ProfileComponent(user: ProfileDetails) -> impl IntoView {
-    // Use use_context instead of expect_context to handle missing context gracefully
-    let context = use_context::<ProfilePostsContext>()
-        .unwrap_or_else(|| {
-            // Provide a default context if not available
-            let default_context = ProfilePostsContext::default();
-            provide_context(default_context.clone());
-            default_context
-        });
-
     let ProfilePostsContext {
         video_queue,
         start_index,
         ..
-    } = context;
+    } = expect_context();
 
     video_queue.update_untracked(|v| {
         v.drain(..);
