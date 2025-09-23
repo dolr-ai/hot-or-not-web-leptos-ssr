@@ -1,7 +1,6 @@
 use crate::post_view::video_loader::{BgView, VideoViewForQueue};
 use indexmap::IndexSet;
 use leptos::html;
-use leptos::html::Audio;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserverOptions};
@@ -74,12 +73,10 @@ pub fn ScrollingPostView<
     #[prop(optional, into)] overlay: Option<ViewFn>,
     threshold_trigger_fetch: usize,
     #[prop(optional, into)] _hard_refresh_target: RwSignal<String>,
-    #[prop(default = true)] show_game_overlay: bool,
 ) -> impl IntoView {
     let AudioState { muted, volume } = AudioState::get();
 
     let scroll_root: NodeRef<html::Div> = NodeRef::new();
-    let win_audio_ref = NodeRef::<Audio>::new();
 
     // Monitor current_idx and trigger hard refresh when reaching the end
     Effect::new(move |_| {
@@ -105,12 +102,6 @@ pub fn ScrollingPostView<
 
     let var_name = view! {
         <div class="overflow-hidden overflow-y-auto w-full h-full">
-            <audio
-                class="sr-only"
-                node_ref=win_audio_ref
-                preload="auto"
-                src="/img/hotornot/chaching.m4a"
-            />
             <div
                 node_ref=scroll_root
                 class="overflow-y-scroll bg-black snap-mandatory snap-y h-dvh w-dvw"
@@ -187,7 +178,7 @@ pub fn ScrollingPostView<
                         view! {
                             <div node_ref=container_ref class="w-full h-full snap-always snap-end" class:hidden=move || post.get().is_none()>
                                 <Show when=show_video>
-                                    <BgView win_audio_ref video_queue idx=queue_idx show_game_overlay>
+                                    <BgView video_queue idx=queue_idx>
                                         <VideoViewForQueue
                                             post
                                             current_idx
