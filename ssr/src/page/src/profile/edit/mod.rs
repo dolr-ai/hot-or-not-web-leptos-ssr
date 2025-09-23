@@ -298,6 +298,15 @@ fn ProfileEditInner(
                     Ok(UserInfoResult::Ok) => {
                         log::info!("Profile updated successfully");
                         profile_update_success = true;
+
+                        // Update cached profile details
+                        canisters.update_profile_details(
+                            if bio_val.is_empty() { None } else { Some(bio_val.clone()) },
+                            if formatted_website.is_empty() { None } else { Some(formatted_website.clone()) },
+                            Some(profile_pic_val.clone())
+                        );
+                        // Trigger reactive updates for profile changes
+                        auth.update_canisters(canisters.clone());
                     }
                     Ok(UserInfoResult::Err(e)) => {
                         // Revert all values on profile update error
@@ -328,10 +337,11 @@ fn ProfileEditInner(
 
             // Now update username if it changed (without triggering reload)
             if username_changed {
-                match canisters.set_username(username_val.clone()).await {
+                match auth.update_username(canisters.clone(), username_val.clone()).await {
                     Ok(_) => {
                         log::info!("Username updated successfully");
                         username_update_success = true;
+                        // Username is already updated in profile_details and reactive state is triggered
                     }
                     Err(yral_canisters_common::Error::Metadata(
                         yral_metadata_client::Error::Api(
@@ -361,54 +371,6 @@ fn ProfileEditInner(
                         username_changing.set(false);
                         return;
                     }
-                }
-            }
-
-            // Now update profile details
-            let service = canisters.user_info_service().await;
-            let update_details = ProfileUpdateDetails {
-                bio: if bio_val.is_empty() {
-                    None
-                } else {
-                    Some(bio_val.clone())
-                },
-                website_url: if formatted_website.is_empty() {
-                    None
-                } else {
-                    Some(formatted_website.clone())
-                },
-                profile_picture_url: Some(profile_pic_val.clone()),
-            };
-
-            match service.update_profile_details(update_details).await {
-                Ok(UserInfoResult::Ok) => {
-                    log::info!("Profile updated successfully");
-
-                    // Track profile updates
-                    let profile_changed = bio_val != orig_bio
-                        || formatted_website != orig_website
-                        || profile_pic_val != orig_profile_pic;
-                    if profile_changed {
-                        profile_update_success = true;
-                    }
-                }
-                Ok(UserInfoResult::Err(e)) => {
-                    // Revert all values on profile update error
-                    username.set(orig_username.clone());
-                    bio.set(orig_bio.clone());
-                    website.set(orig_website.clone());
-
-                    log::warn!("Error updating profile: {e}");
-                    save_error.set(Some(format!("Update failed: {e}")));
-                }
-                Err(e) => {
-                    // Revert all values on network error
-                    username.set(orig_username.clone());
-                    bio.set(orig_bio.clone());
-                    website.set(orig_website.clone());
-
-                    log::warn!("Network error updating profile: {e:?}");
-                    save_error.set(Some("Network error. Please try again.".to_string()));
                 }
             }
 
