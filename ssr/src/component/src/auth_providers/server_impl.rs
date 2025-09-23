@@ -82,7 +82,7 @@ mod backend_admin {
     use state::server::HonWorkerJwt;
     use yral_canisters_client::ic::USER_INFO_SERVICE_ID;
     use yral_canisters_client::individual_user_template::{Result15, Result7};
-    use yral_canisters_client::user_info_service::{Result2, Result5};
+    use yral_canisters_client::user_info_service::Result5;
     use yral_canisters_client::user_info_service::Result_;
 
     pub async fn issue_referral_rewards_impl(

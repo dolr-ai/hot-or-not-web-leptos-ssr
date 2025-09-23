@@ -41,7 +41,7 @@ pub fn ProfileEdit() -> impl IntoView {
                 let identity = auth.user_identity.await;
                 match (cans, identity) {
                     (Ok(cans), Ok(identity)) => Either::Left(view! {
-                        <ProfileEditInner details=cans.profile_details() identity=identity auth=auth.clone() />
+                        <ProfileEditInner details=cans.profile_details() identity=identity auth=auth />
                     }),
                     (Err(e), _) | (_, Err(e)) => Either::Right(view! {
                         <Redirect path=format!("/error?err={e}") />
@@ -68,7 +68,7 @@ fn InputField(
             <div class="flex gap-2 items-center">
                 <span class="text-[14px] font-medium text-neutral-400 font-['Kumbh_Sans']">
                     {label}
-                    {is_required.then(|| "*")}
+                    {is_required.then_some("*")}
                 </span>
             </div>
             <div class="bg-[#171717] border border-[#212121] rounded-lg p-3 flex items-center gap-0.5">
@@ -106,7 +106,7 @@ fn validate_and_format_url(url: String) -> Result<String, String> {
     }
 
     let formatted = if !url.starts_with("http://") && !url.starts_with("https://") {
-        format!("https://{}", url)
+        format!("https://{url}")
     } else {
         url
     };
@@ -301,9 +301,17 @@ fn ProfileEditInner(
 
                         // Update cached profile details
                         canisters.update_profile_details(
-                            if bio_val.is_empty() { None } else { Some(bio_val.clone()) },
-                            if formatted_website.is_empty() { None } else { Some(formatted_website.clone()) },
-                            Some(profile_pic_val.clone())
+                            if bio_val.is_empty() {
+                                None
+                            } else {
+                                Some(bio_val.clone())
+                            },
+                            if formatted_website.is_empty() {
+                                None
+                            } else {
+                                Some(formatted_website.clone())
+                            },
+                            Some(profile_pic_val.clone()),
                         );
                         // Trigger reactive updates for profile changes
                         auth.update_canisters(canisters.clone());
@@ -337,7 +345,10 @@ fn ProfileEditInner(
 
             // Now update username if it changed (without triggering reload)
             if username_changed {
-                match auth.update_username(canisters.clone(), username_val.clone()).await {
+                match auth
+                    .update_username(canisters.clone(), username_val.clone())
+                    .await
+                {
                     Ok(_) => {
                         log::info!("Username updated successfully");
                         username_update_success = true;
@@ -366,7 +377,7 @@ fn ProfileEditInner(
                         username.set(orig_username.clone());
 
                         log::error!("Error updating username: {e}");
-                        save_error.set(Some(format!("Failed to update username: {}", e)));
+                        save_error.set(Some(format!("Failed to update username: {e}")));
                         saving.set(false);
                         username_changing.set(false);
                         return;
@@ -576,7 +587,7 @@ async fn upload_profile_image_to_agent(
 
     let url = OFF_CHAIN_AGENT_URL
         .join("api/v1/user/profile-image")
-        .map_err(|e| format!("Failed to construct URL: {}", e))?;
+        .map_err(|e| format!("Failed to construct URL: {e}"))?;
 
     let request_body = UploadRequest {
         delegated_identity_wire,
@@ -591,20 +602,20 @@ async fn upload_profile_image_to_agent(
             .json(&request_body)
             .send()
             .await
-            .map_err(|e| format!("Failed to send request: {}", e))?;
+            .map_err(|e| format!("Failed to send request: {e}"))?;
 
         if !response.status().is_success() {
             let error_text = response
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(format!("Upload failed: {}", error_text));
+            return Err(format!("Upload failed: {error_text}"));
         }
 
         let upload_response: UploadResponse = response
             .json()
             .await
-            .map_err(|e| format!("Failed to parse response: {}", e))?;
+            .map_err(|e| format!("Failed to parse response: {e}"))?;
 
         Ok(upload_response.profile_image_url)
     }
@@ -616,23 +627,23 @@ async fn upload_profile_image_to_agent(
 
         let response = Request::post(url.as_str())
             .json(&request_body)
-            .map_err(|e| format!("Failed to create request: {}", e))?
+            .map_err(|e| format!("Failed to create request: {e}"))?
             .send()
             .await
-            .map_err(|e| format!("Failed to send request: {}", e))?;
+            .map_err(|e| format!("Failed to send request: {e}"))?;
 
         if !response.ok() {
             let error_text = response
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            return Err(format!("Upload failed: {}", error_text));
+            return Err(format!("Upload failed: {error_text}"));
         }
 
         let upload_response: UploadResponse = response
             .json()
             .await
-            .map_err(|e| format!("Failed to parse response: {}", e))?;
+            .map_err(|e| format!("Failed to parse response: {e}"))?;
 
         Ok(upload_response.profile_image_url)
     }
@@ -843,7 +854,7 @@ fn ProfileImageEditor(
                                 </button>
 
                                 <span class="text-white text-sm min-w-[50px]">
-                                    {move || format!("{}%", (zoom_level.get() * 100.0) as i32)}
+                                    {move || { let percent = (zoom_level.get() * 100.0) as i32; format!("{percent}%") }}
                                 </span>
                             </div>
                         }.into_any()

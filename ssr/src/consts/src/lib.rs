@@ -43,12 +43,12 @@ pub const USER_INTERNAL_STORE: &str = "user-internal";
 pub const WALLET_BALANCE_STORE_KEY: &str = "wallet-balance-sats";
 
 pub static OFF_CHAIN_AGENT_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("http://localhost:50051").unwrap());
+    Lazy::new(|| Url::parse("https://pr-293-dolr-ai-off-chain-agent.fly.dev").unwrap());
 
 pub static ANALYTICS_SERVER_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://marketing-analytics-server.fly.dev").unwrap());
 pub static OFF_CHAIN_AGENT_GRPC_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev:443").unwrap());
+    Lazy::new(|| Url::parse("https://pr-293-dolr-ai-off-chain-agent.fly.dev:443").unwrap());
 pub static DOWNLOAD_UPLOAD_SERVICE: Lazy<Url> =
     Lazy::new(|| Url::parse("https://download-upload-service.fly.dev").unwrap());
 
@@ -125,8 +125,7 @@ pub mod hetzner_s3 {
     pub const ENDPOINT: &str = "https://hel1.your-objectstorage.com";
     pub const NETWORK_ZONE: &str = "eu-central";
 
-    pub static S3_ENDPOINT_URL: Lazy<Url> =
-        Lazy::new(|| Url::parse(ENDPOINT).unwrap());
+    pub static S3_ENDPOINT_URL: Lazy<Url> = Lazy::new(|| Url::parse(ENDPOINT).unwrap());
 
     // Access credentials from environment variables
     pub fn get_access_key() -> String {
@@ -139,7 +138,7 @@ pub mod hetzner_s3 {
 
     // Helper to construct S3 URLs for objects
     pub fn get_object_url(key: &str) -> String {
-        format!("{}/{}/{}", ENDPOINT, BUCKET_NAME, key)
+        format!("{ENDPOINT}/{BUCKET_NAME}/{key}")
     }
 }
 

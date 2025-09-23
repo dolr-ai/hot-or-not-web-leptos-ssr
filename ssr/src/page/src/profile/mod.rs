@@ -23,10 +23,7 @@ use leptos_router::{
 };
 use posts::ProfilePosts;
 use speculation::ProfileSpeculations;
-use state::{
-    app_state::AppState,
-    canisters::auth_state,
-};
+use state::{app_state::AppState, canisters::auth_state};
 
 use component::{infinite_scroller::InfiniteScroller, overlay::ShadowOverlay};
 use utils::{mixpanel::mixpanel_events::*, posts::FeedPostCtx, send_wrap, UsernameOrPrincipal};
@@ -148,11 +145,11 @@ impl CursoredDataProvider for FollowersProvider {
         let result = service
             .get_followers(self.user_principal, self.cursor.get_untracked(), limit)
             .await
-            .map_err(|e| FollowerProviderError(format!("Failed to fetch followers: {}", e)))?;
+            .map_err(|e| FollowerProviderError(format!("Failed to fetch followers: {e}")))?;
 
         let response = match result {
             Result1::Ok(resp) => resp,
-            Result1::Err(e) => return Err(FollowerProviderError(format!("API error: {}", e))),
+            Result1::Err(e) => return Err(FollowerProviderError(format!("API error: {e}"))),
         };
 
         // Update cursor for next fetch
@@ -178,7 +175,9 @@ impl CursoredDataProvider for FollowersProvider {
             .followers
             .into_iter()
             .map(|item| {
-                let metadata = metadata_map.get(&item.principal_id).and_then(|m| m.as_ref());
+                let metadata = metadata_map
+                    .get(&item.principal_id)
+                    .and_then(|m| m.as_ref());
 
                 // Use actual username if available and not empty, otherwise generate one
                 let username = metadata
@@ -242,11 +241,11 @@ impl CursoredDataProvider for FollowingProvider {
         let result = service
             .get_following(self.user_principal, self.cursor.get_untracked(), limit)
             .await
-            .map_err(|e| FollowerProviderError(format!("Failed to fetch following: {}", e)))?;
+            .map_err(|e| FollowerProviderError(format!("Failed to fetch following: {e}")))?;
 
         let response = match result {
             Result2::Ok(resp) => resp,
-            Result2::Err(e) => return Err(FollowerProviderError(format!("API error: {}", e))),
+            Result2::Err(e) => return Err(FollowerProviderError(format!("API error: {e}"))),
         };
 
         // Update cursor for next fetch
@@ -272,7 +271,9 @@ impl CursoredDataProvider for FollowingProvider {
             .following
             .into_iter()
             .map(|item| {
-                let metadata = metadata_map.get(&item.principal_id).and_then(|m| m.as_ref());
+                let metadata = metadata_map
+                    .get(&item.principal_id)
+                    .and_then(|m| m.as_ref());
 
                 // Use actual username if available and not empty, otherwise generate one
                 let username = metadata
@@ -346,10 +347,8 @@ fn FollowAndAuthCanLoader(
                         if let Some(ref cb) = on_follow_success {
                             cb.run(());
                         }
-                    } else {
-                        if let Some(ref cb) = on_unfollow_success {
-                            cb.run(());
-                        }
+                    } else if let Some(ref cb) = on_unfollow_success {
+                        cb.run(());
                     }
                 }
                 Ok(yral_canisters_client::user_info_service::Result_::Err(e)) => {
@@ -471,7 +470,7 @@ fn UserListItem(data: FollowerData, node_ref: Option<NodeRef<html::Div>>) -> imp
             <div
                 class="flex items-center gap-3 flex-1 cursor-pointer"
                 on:click=move |_| {
-                    navigate(&format!("/profile/{}", principal_for_nav), Default::default());
+                    navigate(&format!("/profile/{principal_for_nav}"), Default::default());
                 }
             >
                 // Avatar
@@ -508,7 +507,7 @@ fn UserListItem(data: FollowerData, node_ref: Option<NodeRef<html::Div>>) -> imp
                 <div
                     class="flex items-center gap-3 flex-1 cursor-pointer"
                     on:click=move |_| {
-                        navigate(&format!("/profile/{}", principal_for_nav), Default::default());
+                        navigate(&format!("/profile/{principal_for_nav}"), Default::default());
                     }
                 >
                     // Avatar
@@ -745,8 +744,8 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     // Make counts reactive for dynamic updates
     let followers_count = RwSignal::new(user.followers_cnt);
     let following_count = RwSignal::new(user.following_cnt);
-    let bio = user.bio.clone().unwrap_or_else(|| "".to_string());
-    let website_url = user.website_url.clone().unwrap_or_else(|| "".to_string());
+    let bio = user.bio.clone().unwrap_or_default();
+    let website_url = user.website_url.clone().unwrap_or_default();
 
     view! {
         <div class="overflow-y-auto pb-12 min-h-screen text-white bg-black">
@@ -860,7 +859,7 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                         })}
                                         {(!website_url.is_empty()).then(|| {
                                             let formatted_url = if !website_url.starts_with("http://") && !website_url.starts_with("https://") {
-                                                format!("https://{}", website_url)
+                                                format!("https://{website_url}")
                                             } else {
                                                 website_url.clone()
                                             };
@@ -1045,12 +1044,17 @@ pub fn ProfileView() -> impl IntoView {
             leptos::logging::log!("Fetching other user's profile with auth");
 
             // Use authenticated canisters to get correct follow status
-            let user_details = auth_cans.get_profile_details(profile_id.to_string()).await?;
+            let user_details = auth_cans
+                .get_profile_details(profile_id.to_string())
+                .await?;
 
             leptos::logging::log!(
                 "User details fetched with auth: {:?} with principal {:?}",
                 user_details.clone(),
-                user_details.clone().map(|u| u.principal.to_text()).unwrap_or_else(|| "None".to_string())
+                user_details
+                    .clone()
+                    .map(|u| u.principal.to_text())
+                    .unwrap_or_else(|| "None".to_string())
             );
 
             user_details.ok_or_else(|| ServerFnError::new("User not found"))

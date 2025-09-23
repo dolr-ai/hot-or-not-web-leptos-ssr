@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use codee::string::FromToStringCodec;
 use component::content_upload::AuthorizedUserToSeedContent;
 use component::title::TitleText;
@@ -5,8 +7,8 @@ use component::toggle::Toggle;
 use component::{connect::ConnectLogin, social::*};
 use consts::{NOTIFICATIONS_ENABLED_STORE, NSFW_ENABLED_COOKIE};
 use leptos::html::{Div, Input};
-use leptos::prelude::*;
 use leptos::prelude::window;
+use leptos::prelude::*;
 use leptos::web_sys::{Notification, NotificationPermission};
 use leptos_icons::*;
 use leptos_meta::*;
@@ -120,7 +122,7 @@ fn ProfileLoading() -> impl IntoView {
 }
 
 #[component]
-fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
+fn ProfileLoaded(#[prop(into)] user_details: ProfileDetails) -> impl IntoView {
     view! {
         <img class="size-12 md:size-14 lg:size-16 rounded-full aspect-square object-cover" src=user_details.profile_pic_or_random() />
         <div class="flex flex-col gap-2 w-full">
@@ -193,7 +195,7 @@ pub fn Menu() -> impl IntoView {
         Some(())
     });
 
-    let authorized_fetch_res = auth.derive_resource(
+    let _authorized_fetch_res = auth.derive_resource(
         move || (),
         move |cans, _| {
             send_wrap(async move {
@@ -227,7 +229,7 @@ pub fn Menu() -> impl IntoView {
 
     let upload_content_mount_point = NodeRef::<Div>::new();
 
-    let view_profile_clicked = move || {
+    let _view_profile_clicked = move || {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
             MixPanelEvent::track_menu_clicked(global, MixpanelMenuClickedCTAType::ViewProfile);
         }
