@@ -15,77 +15,12 @@ use utils::notifications::get_fcm_token;
 use utils::sentry::{set_sentry_user, set_sentry_user_canister};
 use yral_metadata_client::MetadataClient;
 
-use crate::leaderboard::api::fetch_user_rank_from_api;
-use crate::leaderboard::{RankUpdateCounter, UserRank};
-
 #[derive(Clone)]
 pub struct Notification(pub RwSignal<Option<serde_json::Value>>);
 
 #[component]
 fn CtxProvider(children: Children) -> impl IntoView {
     let auth = AuthState::default();
-
-    let rank_update_count = expect_context::<RwSignal<RankUpdateCounter>>();
-
-    let global_rank = expect_context::<RwSignal<UserRank>>();
-
-    let global_rank_resource = auth.derive_resource(
-        move || rank_update_count.get().0,
-        move |cans, counter| {
-            let global_rank = global_rank;
-            async move {
-                // If we already have a rank and counter is 0, return cached value
-                if counter == 0 {
-                    let cached = global_rank.get_untracked();
-                    if cached.rank.is_some() {
-                        return Ok(cached);
-                    }
-                }
-
-                // Get user principal from canisters
-                let principal = cans.user_principal();
-
-                leptos::logging::log!(
-                    "PostView: Fetching rank for principal: {} (counter: {})",
-                    principal,
-                    counter
-                );
-
-                // Fetch rank and tournament status from API
-                match fetch_user_rank_from_api(principal).await {
-                    Ok(Some((rank, status))) => {
-                        leptos::logging::log!(
-                            "PostView: Fetched rank: {}, status: {}",
-                            rank,
-                            status
-                        );
-                        // Update global rank value
-                        let user_rank = UserRank {
-                            rank: Some(rank),
-                            tournament_status: Some(status),
-                        };
-                        global_rank.set(user_rank.clone());
-                        Ok(user_rank)
-                    }
-                    Ok(None) => {
-                        leptos::logging::log!("PostView: No rank found for user");
-                        Ok(UserRank {
-                            rank: None,
-                            tournament_status: None,
-                        })
-                    }
-                    Err(e) => {
-                        leptos::logging::error!("PostView: Failed to fetch user rank: {}", e);
-                        Ok(UserRank {
-                            rank: None,
-                            tournament_status: None,
-                        })
-                    }
-                }
-            }
-        },
-    );
-    provide_context(global_rank_resource);
 
     provide_context(auth);
 

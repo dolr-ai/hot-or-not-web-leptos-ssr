@@ -5,7 +5,6 @@ use component::icons::sound_off_icon::SoundOffIcon;
 use component::icons::sound_on_icon::SoundOnIcon;
 use component::icons::volume_high_icon::VolumeHighIcon;
 use component::icons::volume_mute_icon::VolumeMuteIcon;
-use component::leaderboard::GlobalRankBadge;
 use component::overlay::ShadowOverlay;
 use component::spinner::SpinnerFit;
 use component::{hn_icons::HomeFeedShareIcon, modal::Modal, option::SelectOption};
@@ -41,8 +40,6 @@ use yral_canisters_common::Canisters;
 use crate::wallet::airdrop::sats_airdrop::{claim_sats_airdrop, get_sats_airdrop_status};
 use crate::wallet::airdrop::{AirdropStatus, SatsAirdropPopup};
 use leptos::prelude::ServerFnError;
-
-use super::bet::HNGameOverlay;
 
 #[component]
 fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
@@ -551,11 +548,6 @@ pub fn VideoDetailsOverlay(
                     />
                     </button>
                 </div>
-                // Add the rank badge here, below the profile/NSFW row
-                <div class="flex justify-end w-full mt-2 pointer-events-auto">
-                    <GlobalRankBadge post=post_for_leaderboard.clone() ev_ctx=ev_ctx
-                    />
-                </div>
             </div>
             // Bottom content stays at the bottom
             <div class="flex flex-col gap-2 w-full">
@@ -569,13 +561,6 @@ pub fn VideoDetailsOverlay(
                     <a on:click=move |_| track_video_refer() href="/refer-earn">
                         <Icon attr:class="drop-shadow-lg" icon=icondata::AiGiftFilled />
                     </a>
-                    <LikeAndAuthCanLoader post=post_c.clone() />
-                    <button on:click=move |_| share()>
-                        <Icon attr:class="drop-shadow-lg" icon=HomeFeedShareIcon />
-                    </button>
-                </div>
-                <div class="w-full bg-transparent pointer-events-auto max-w-lg mx-auto">
-                    <HNGameOverlay post=post_c prev_post=prev_post win_audio_ref show_tutorial show_low_balance_popup show_game_overlay />
                 </div>
             </div>
         </div>
