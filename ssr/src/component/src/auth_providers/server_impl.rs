@@ -82,7 +82,7 @@ mod backend_admin {
     use state::server::HonWorkerJwt;
     use yral_canisters_client::ic::USER_INFO_SERVICE_ID;
     use yral_canisters_client::individual_user_template::{Result15, Result7};
-    use yral_canisters_client::user_info_service::Result2;
+    use yral_canisters_client::user_info_service::Result5;
     use yral_canisters_client::user_info_service::Result_;
 
     pub async fn issue_referral_rewards_impl(
@@ -122,7 +122,7 @@ mod backend_admin {
             let user_service = admin_cans.user_info_service().await;
             if matches!(
                 user_service.get_user_session_type(user_principal).await?,
-                Result2::Ok(UserServiceSessionType::RegisteredSession)
+                Result5::Ok(UserServiceSessionType::RegisteredSession)
             ) {
                 return Ok(false);
             }

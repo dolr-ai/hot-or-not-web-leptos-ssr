@@ -425,4 +425,10 @@ impl AuthState {
 
         Ok(())
     }
+
+    /// Update the cached canisters state
+    /// WARN: all subscribers to the canisters resource will be notified
+    pub fn update_canisters(&self, cans: Canisters<true>) {
+        self.new_cans_setter.set(Some(cans));
+    }
 }
