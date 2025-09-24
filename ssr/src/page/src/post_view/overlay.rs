@@ -1,162 +1,28 @@
-use candid::Principal;
-use codee::string::{FromToStringCodec, JsonSerdeCodec};
+use codee::string::FromToStringCodec;
 use component::buttons::HighlightedButton;
 use component::icons::sound_off_icon::SoundOffIcon;
 use component::icons::sound_on_icon::SoundOnIcon;
 use component::icons::volume_high_icon::VolumeHighIcon;
 use component::icons::volume_mute_icon::VolumeMuteIcon;
-use component::overlay::ShadowOverlay;
-use component::spinner::SpinnerFit;
-use component::{modal::Modal, option::SelectOption};
-use global_constants::REFERRAL_REWARD_SATS;
+use component::modal::Modal;
 
-use consts::{
-    UserOnboardingStore, NSFW_ENABLED_COOKIE, USER_ONBOARDING_STORE_KEY, WALLET_BALANCE_STORE_KEY,
-};
-use gloo::timers::callback::Timeout;
-use leptos::html::Audio;
-use leptos::{prelude::*, task::spawn_local};
+use consts::{NSFW_ENABLED_COOKIE, WALLET_BALANCE_STORE_KEY};
+use leptos::prelude::*;
 use leptos_icons::*;
-use leptos_router::hooks::{use_location, use_navigate};
+use leptos_router::hooks::use_location;
 use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
-use leptos_use::{
-    use_cookie_with_options, use_interval_fn_with_options, UseCookieOptions, UseIntervalFnOptions,
-};
+use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use state::audio_state::AudioState;
 use state::canisters::auth_state;
 use utils::host::show_nsfw_content;
-use utils::{
-    event_streaming::events::{LikeVideo, ShareVideo},
-    report::ReportOption,
-    send_wrap,
-    web::{copy_to_clipboard, share_url},
-};
 
 use utils::mixpanel::mixpanel_events::*;
 use yral_canisters_common::utils::posts::PostDetails;
-use yral_canisters_common::Canisters;
 
-use crate::wallet::airdrop::sats_airdrop::{claim_sats_airdrop, get_sats_airdrop_status};
-use crate::wallet::airdrop::{AirdropStatus, SatsAirdropPopup};
+use crate::wallet::airdrop::sats_airdrop::claim_sats_airdrop;
+use crate::wallet::airdrop::SatsAirdropPopup;
 use leptos::prelude::ServerFnError;
-
-#[component]
-fn LikeAndAuthCanLoader(post: PostDetails) -> impl IntoView {
-    let likes = RwSignal::new(post.likes);
-
-    let liked = RwSignal::new(None::<bool>);
-    let icon_name = Signal::derive(move || {
-        if liked().unwrap_or_default() {
-            "/img/heart-icon-liked.svg"
-        } else {
-            "/img/heart-icon-white.svg"
-        }
-    });
-
-    let initial_liked = (post.liked_by_user, post.likes);
-
-    let auth: state::canisters::AuthState = auth_state();
-    let is_logged_in = auth.is_logged_in_with_oauth();
-    let ev_ctx = auth.event_ctx();
-
-    let post_clone = post.clone();
-    let like_toggle = Action::new(move |&()| {
-        let post_clone = post_clone.clone();
-        send_wrap(async move {
-            let Ok(canisters) = auth.auth_cans().await else {
-                log::warn!("Trying to toggle like without auth");
-                return;
-            };
-
-            let should_like = {
-                let mut liked_w = liked.write();
-                let current = liked_w.unwrap_or_default();
-                *liked_w = Some(!current);
-                !current
-            };
-
-            if should_like {
-                likes.update(|l| *l += 1);
-                LikeVideo.send_event(ev_ctx, post_clone.clone(), likes);
-
-                let is_logged_in = is_logged_in.get_untracked();
-                let global = MixpanelGlobalProps::try_get(&canisters, is_logged_in);
-                let is_hot_or_not = true;
-                MixPanelEvent::track_video_clicked(
-                    global,
-                    post.poster_principal.to_text(),
-                    is_hot_or_not,
-                    post_clone.uid.clone(),
-                    MixpanelPostGameType::HotOrNot,
-                    MixpanelVideoClickedCTAType::Like,
-                );
-            } else {
-                likes.update(|l| *l -= 1);
-            }
-
-            //TODO: refactor this to use cans<true>
-            match canisters
-                .like_post(post_clone.canister_id, post_clone.post_id.clone())
-                .await
-            {
-                Ok(_) => (),
-                Err(e) => {
-                    log::warn!("Error toggling like status: {e:?}");
-                    liked.update(|l| _ = l.as_mut().map(|l| *l = !*l));
-                }
-            }
-        })
-    });
-
-    let post_canister = post.canister_id;
-    let post_id = post.post_id.clone();
-
-    let liked_fetch = auth.derive_resource(
-        || (),
-        move |cans: Canisters<true>, _| {
-            let post_id = post_id.clone();
-            async move {
-                let result = if let Some(liked) = initial_liked.0 {
-                    (liked, initial_liked.1)
-                } else {
-                    match cans.post_like_info(post_canister, post_id.clone()).await {
-                        Ok(liked) => liked,
-                        Err(e) => {
-                            log::warn!("faild to fetch likes {e}");
-                            (false, likes.try_get_untracked().unwrap_or_default())
-                        }
-                    }
-                };
-                Ok::<_, ServerFnError>(result)
-            }
-        },
-    );
-
-    view! {
-        <div class="flex flex-col gap-1 items-center">
-            <button on:click=move |_| {
-                like_toggle.dispatch(());
-            }>
-                <img src=icon_name style="width: 1em; height: 1em;" />
-            </button>
-            <span class="text-xs md:text-sm">{likes}</span>
-            <Suspense>
-                {move || Suspend::new(async move {
-                    match liked_fetch.await {
-                        Ok(res) => {
-                            likes.set(res.1);
-                            liked.set(Some(res.0))
-                        }
-                        Err(e) => {
-                            log::warn!("failed to fetch like status {e}");
-                        }
-                    }
-                })}
-            </Suspense>
-        </div>
-    }
-}
 
 #[component]
 pub fn VideoDetailsOverlay(
@@ -165,9 +31,7 @@ pub fn VideoDetailsOverlay(
 ) -> impl IntoView {
     // No need for local context - using global context from App
 
-    let show_report = RwSignal::new(false);
     let show_nsfw_permission = RwSignal::new(false);
-    let report_option = RwSignal::new(ReportOption::Nudity.as_str().to_string());
     let base_url = || {
         use_window()
             .as_ref()
@@ -186,7 +50,6 @@ pub fn VideoDetailsOverlay(
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
 
-    let track_video_id = post.uid.clone();
     let track_video_id_for_impressions = post.uid.clone();
     let post_clone = post.clone();
     Effect::new(move |_| {
@@ -209,70 +72,10 @@ pub fn VideoDetailsOverlay(
         }
     });
 
-    let track_video_clicked = move |cta_type: MixpanelVideoClickedCTAType| {
-        let video_id = track_video_id.clone();
-        let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
-            return;
-        };
-        let is_hot_or_not = true;
-        MixPanelEvent::track_video_clicked(
-            global,
-            post.poster_principal.to_text(),
-            is_hot_or_not,
-            video_id,
-            MixpanelPostGameType::HotOrNot,
-            cta_type,
-        );
-    };
-    let track_video_refer = track_video_clicked.clone();
-    let track_video_refer = move || track_video_refer(MixpanelVideoClickedCTAType::ReferAndEarn);
-    let track_video_report = track_video_clicked.clone();
-    let track_video_report = move || track_video_report(MixpanelVideoClickedCTAType::Report);
-
     let profile_url = format!("/profile/{}/tokens", post.username_or_principal());
 
-    let post_details_report = post.clone();
     let profile_click_video_id = post.uid.clone();
-    let report_video_click_id = post.uid.clone();
     let post_clone = post.clone();
-    let click_report = Action::new(move |()| {
-        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_video_reported(
-                global,
-                post_clone.poster_principal.to_text(),
-                true,
-                report_video_click_id.clone(),
-                MixpanelPostGameType::HotOrNot,
-                post_clone.is_nsfw,
-                report_option.get_untracked(),
-            );
-        }
-        #[cfg(feature = "ga4")]
-        {
-            use utils::report::send_report_offchain;
-
-            let post_details = post_details_report.clone();
-
-            spawn_local(async move {
-                let cans = auth.auth_cans().await.unwrap();
-                let details = cans.profile_details();
-                send_report_offchain(
-                    details.principal(),
-                    post_details.poster_principal.to_string(),
-                    post_details.canister_id.to_string(),
-                    post_details.post_id.clone(),
-                    post_details.uid.clone(),
-                    report_option.get_untracked(),
-                    video_url(),
-                )
-                .await
-                .unwrap();
-            });
-        }
-        async move {
-            show_report.set(false);
-        }
-    });
 
     let (nsfw_enabled, set_nsfw_enabled) = use_cookie_with_options::<bool, FromToStringCodec>(
         NSFW_ENABLED_COOKIE,
@@ -489,63 +292,7 @@ pub fn VideoDetailsOverlay(
                     </button>
                 </div>
             </div>
-            // Bottom content stays at the bottom
-            <div class="flex flex-col gap-2 w-full">
-                <div class="flex flex-col gap-6 items-end self-end text-2xl pointer-events-auto md:text-3xl lg:text-4xl">
-                    <button on:click=move |_| {
-                        track_video_report();
-                        show_report.set(true);
-                    }>
-                        <Icon attr:class="drop-shadow-lg" icon=icondata::TbMessageReport />
-                    </button>
-                    <a on:click=move |_| track_video_refer() href="/refer-earn">
-                        <Icon attr:class="drop-shadow-lg" icon=icondata::AiGiftFilled />
-                    </a>
-                </div>
-            </div>
         </div>
-        <Modal show=show_report>
-            <div class="flex flex-col gap-4 justify-center items-center text-white">
-                <span class="text-lg">Report Post</span>
-                <span class="text-lg">Please select a reason:</span>
-                <div class="max-w-full text-black text-md">
-                    <select
-                        class="block p-2 w-full text-sm rounded-lg"
-                        on:change=move |ev| {
-                            let new_value = event_target_value(&ev);
-                            report_option.set(new_value);
-                        }
-                    >
-
-                        <SelectOption
-                            value=report_option.read_only()
-                            is=format!("{}", ReportOption::Nudity.as_str())
-                        />
-                        <SelectOption
-                            value=report_option.read_only()
-                            is=format!("{}", ReportOption::Violence.as_str())
-                        />
-                        <SelectOption
-                            value=report_option.read_only()
-                            is=format!("{}", ReportOption::Offensive.as_str())
-                        />
-                        <SelectOption
-                            value=report_option.read_only()
-                            is=format!("{}", ReportOption::Spam.as_str())
-                        />
-                        <SelectOption
-                            value=report_option.read_only()
-                            is=format!("{}", ReportOption::Other.as_str())
-                        />
-                    </select>
-                </div>
-                <button on:click=move |_| {
-                    click_report.dispatch(());
-                }>
-                    <div class="p-1 bg-pink-500 rounded-lg">Submit</div>
-                </button>
-            </div>
-        </Modal>
         <Modal show=show_nsfw_permission>
             <div class="flex flex-col gap-4 justify-center items-center text-white">
                 <img class="object-contain w-32 h-32" src="/img/yral/nsfw/nsfw-modal-logo.svg" />
@@ -673,32 +420,5 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
                     </div>
                 </div>
             </div>
-    }
-}
-
-#[component]
-fn AirdropCountdown(duration: web_time::Duration) -> impl IntoView {
-    use utils::time::to_hh_mm_ss;
-    use web_time::Instant;
-
-    let end_time = Instant::now() + duration;
-    let (remaining_duration, set_remaining_duration) = signal(duration);
-
-    let _ = use_interval_fn_with_options(
-        move || {
-            let now = Instant::now();
-            let remaining = end_time.saturating_duration_since(now);
-            set_remaining_duration(remaining);
-        },
-        1000,
-        UseIntervalFnOptions::default().immediate(true),
-    );
-
-    view! {
-        <div class="bg-[#444444] rounded-md px-3 py-2">
-            <span class="text-white text-sm font-medium">
-                "Next Airdrop: "{move || to_hh_mm_ss(remaining_duration())}
-            </span>
-        </div>
     }
 }
