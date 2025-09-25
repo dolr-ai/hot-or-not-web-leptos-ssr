@@ -131,9 +131,6 @@ fn ListSwitcher1(
             <Show when=move || current_tab() == 0>
                 <ProfilePosts user_canister user_principal username=username.clone()/>
             </Show>
-            <Show when=move || current_tab() == 1>
-                <ProfileSpeculations user_canister user_principal />
-            </Show>
         </div>
     }
 }
