@@ -1,5 +1,4 @@
 use indexmap::IndexSet;
-use leptos::html::Audio;
 use leptos::logging;
 use leptos::{html::Video, prelude::*};
 use state::canisters::auth_state;
@@ -25,9 +24,7 @@ use super::overlay::VideoDetailsOverlay;
 pub fn BgView<DetailResolver>(
     video_queue: RwSignal<IndexSet<DetailResolver>>,
     idx: usize,
-    win_audio_ref: NodeRef<Audio>,
     children: Children,
-    #[prop(default = true)] show_game_overlay: bool,
 ) -> impl IntoView
 where
     DetailResolver: PostDetailResolver + Clone + PartialEq + Sync + Send + 'static,
@@ -35,21 +32,7 @@ where
     let post_with_prev = Memo::new(move |_| {
         video_queue.with(|q| {
             let cur_post = q.get_index(idx).cloned();
-            let prev_post = if idx > 0 {
-                q.get_index(idx - 1).cloned()
-            } else {
-                None
-            };
-            let prev_post = prev_post.map(|p| {
-                let QuickPostDetails {
-                    canister_id,
-                    post_id,
-                    ..
-                } = p.get_quick_post_details();
-
-                (canister_id, post_id)
-            });
-            (cur_post, prev_post)
+            cur_post
         })
     });
 
@@ -58,10 +41,10 @@ where
     } = expect_context();
 
     let post_details_with_prev_post = LocalResource::new(move || async move {
-        let (current_post_resolver, prev_post_for_passthru) = post_with_prev.get();
+        let current_post_resolver = post_with_prev.get();
         let Some(resolver) = current_post_resolver else {
             leptos::logging::debug_warn!("returning None for post?");
-            return Ok((None, prev_post_for_passthru));
+            return Ok(None);
         };
 
         let QuickPostDetails {
@@ -86,12 +69,11 @@ where
                 details
             }
         };
-        Ok::<_, ServerFnError>((Some(post_details), prev_post_for_passthru))
+        Ok::<_, ServerFnError>(Some(post_details))
     });
 
     let uid = move || {
         post_with_prev()
-            .0
             .as_ref()
             .map(|q| q.get_quick_post_details().video_uid)
             .unwrap_or_default()
@@ -108,8 +90,8 @@ where
             <Suspense>
             {move || Suspend::new(async move {
                 // let (post, prev_post) = try_or_redirect_opt!(post_details_with_prev_post.await);
-                let (post, prev_post) = post_details_with_prev_post.await.inspect_err(|err| leptos::logging::error!("Failed to load post details: {err:#?}")).ok()?;
-                Some(view! { <VideoDetailsOverlay post=post? prev_post win_audio_ref high_priority show_game_overlay /> }.into_view())
+                let post = post_details_with_prev_post.await.inspect_err(|err| leptos::logging::error!("Failed to load post details: {err:#?}")).ok()?;
+                Some(view! { <VideoDetailsOverlay post=post? high_priority /> }.into_view())
             })}
             </Suspense>
             {children()}

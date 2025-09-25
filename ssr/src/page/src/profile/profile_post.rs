@@ -180,7 +180,6 @@ pub fn PostViewWithUpdatesProfile(
             overlay
             threshold_trigger_fetch=10
             _hard_refresh_target=hard_refresh_target
-            show_game_overlay=false
         />
     }
     .into_any()
