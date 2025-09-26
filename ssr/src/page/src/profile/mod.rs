@@ -487,7 +487,7 @@ fn UserListItem(
                     if let Some(show) = show_popup {
                         show.set(false);
                     }
-                    navigate(&format!("/profile/{principal_for_nav}"), Default::default());
+                    navigate(&format!("/profile/{principal_for_nav}/posts"), Default::default());
                 }
             >
                 // Avatar
@@ -527,7 +527,7 @@ fn UserListItem(
                         if let Some(show) = show_popup {
                             show.set(false);
                         }
-                        navigate(&format!("/profile/{principal_for_nav}"), Default::default());
+                        navigate(&format!("/profile/{principal_for_nav}/posts"), Default::default());
                     }
                 >
                     // Avatar
