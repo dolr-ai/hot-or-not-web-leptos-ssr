@@ -4,7 +4,6 @@ pub mod overlay;
 mod posts;
 mod profile_iter;
 pub mod profile_post;
-mod speculation;
 
 use candid::Principal;
 use component::{
@@ -22,8 +21,10 @@ use leptos_router::{
     params::Params,
 };
 use posts::ProfilePosts;
-use speculation::ProfileSpeculations;
-use state::{app_state::AppState, canisters::auth_state};
+use state::{
+    app_state::AppState,
+    canisters::{auth_state, unauth_canisters},
+};
 
 use component::{infinite_scroller::InfiniteScroller, overlay::ShadowOverlay};
 use utils::{mixpanel::mixpanel_events::*, posts::FeedPostCtx, send_wrap, UsernameOrPrincipal};
@@ -654,17 +655,6 @@ fn ListSwitcher1(
 
     let auth = auth_state();
     let event_ctx = auth.event_ctx();
-    let view_profile_clicked = move |cta_type: MixpanelProfileClickedCTAType| {
-        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
-            let logged_in_canister = global.canister_id.clone();
-            MixPanelEvent::track_profile_tab_clicked(
-                global,
-                logged_in_canister == user_canister.to_text(),
-                user_principal.to_text(),
-                cta_type,
-            );
-        }
-    };
 
     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
         let logged_in_caniser = global.canister_id.clone();
@@ -681,29 +671,10 @@ fn ListSwitcher1(
         _ => 0,
     });
 
-    let tab_class = move |tab_id: usize| {
-        if tab_id == current_tab() {
-            "text-primary-500 border-b-4 border-primary-500 flex justify-center w-full py-2"
-        } else {
-            "text-white flex justify-center w-full py-2"
-        }
-    };
     view! {
-        <div class="flex relative flex-row w-11/12 text-xl text-center md:w-9/12 md:text-2xl">
-            <a on:click=move |_| view_profile_clicked(MixpanelProfileClickedCTAType::Videos)  class=move || tab_class(0) href=move || format!("/profile/{user_principal}/posts")>
-                <Icon icon=icondata::FiGrid />
-            </a>
-            <a on:click=move |_| view_profile_clicked(MixpanelProfileClickedCTAType::GamesPlayed) class=move || tab_class(1) href=move || format!("/profile/{user_principal}/stakes")>
-                <Icon icon=icondata::BsTrophy />
-            </a>
-        </div>
-
         <div class="flex flex-col gap-y-12 justify-center pb-12 w-11/12 sm:w-7/12">
             <Show when=move || current_tab() == 0>
                 <ProfilePosts user_canister user_principal username=username.clone()/>
-            </Show>
-            <Show when=move || current_tab() == 1>
-                <ProfileSpeculations user_canister user_principal />
             </Show>
         </div>
     }
