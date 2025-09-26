@@ -21,6 +21,7 @@ use leptos_router::{
     params::Params,
 };
 use posts::ProfilePosts;
+use serde::{Deserialize, Serialize};
 use state::{
     app_state::AppState,
     canisters::auth_state,
@@ -80,6 +81,15 @@ struct ProfileParams {
 #[derive(Params, Clone, PartialEq)]
 struct TabsParam {
     tab: String,
+}
+
+// Smiley Game Stats data structure
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct SmileyGameStats {
+    principal_id: String,
+    wins: u64,
+    losses: u64,
+    total_games: u64,
 }
 
 // Follower/Following data types for the popup
@@ -442,6 +452,39 @@ fn FollowButton(
     }
 }
 
+#[server]
+async fn fetch_smiley_game_stats(principal_id: Principal) -> Result<SmileyGameStats, ServerFnError> {
+    use consts::SMILEY_GAME_STATS_URL;
+    use reqwest::Client;
+
+    let client = Client::new();
+    let url = format!("{}/get_smiley_game_stats?principal_id={}",
+                     SMILEY_GAME_STATS_URL.as_str(),
+                     principal_id.to_text());
+
+    let response = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to fetch game stats: {}", e)))?;
+
+    if response.status().is_success() {
+        let stats = response
+            .json::<SmileyGameStats>()
+            .await
+            .map_err(|e| ServerFnError::new(format!("Failed to parse game stats: {}", e)))?;
+        Ok(stats)
+    } else {
+        // Return default stats if API fails
+        Ok(SmileyGameStats {
+            principal_id: principal_id.to_text(),
+            wins: 0,
+            losses: 0,
+            total_games: 0,
+        })
+    }
+}
+
 // Component for displaying a user in the followers/following list
 #[component]
 fn UserListItem(
@@ -758,8 +801,29 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     // Make counts reactive for dynamic updates
     let followers_count = RwSignal::new(user.followers_cnt);
     let following_count = RwSignal::new(user.following_cnt);
+    let games_played_count = RwSignal::new(0u64);
     let bio = user.bio.clone().unwrap_or_default();
     let website_url = user.website_url.clone().unwrap_or_default();
+
+    // Create a resource to fetch game stats
+    let _game_stats_resource = LocalResource::new(move || async move {
+        match fetch_smiley_game_stats(user_principal).await {
+            Ok(stats) => {
+                games_played_count.set(stats.total_games);
+                stats
+            }
+            Err(e) => {
+                log::warn!("Failed to fetch game stats: {}", e);
+                // Return default stats on error
+                SmileyGameStats {
+                    principal_id: user_principal.to_text(),
+                    wins: 0,
+                    losses: 0,
+                    total_games: 0,
+                }
+            }
+        }
+    });
 
     view! {
         <div class="overflow-y-auto pb-12 min-h-screen text-white bg-black">
@@ -857,6 +921,16 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                     "Following"
                                 </span>
                             </button>
+
+                            // Games Played
+                            <div class="flex flex-col gap-1 items-center text-center w-[85px]">
+                                <span class="font-semibold text-base text-neutral-50">
+                                    {move || games_played_count.get()}
+                                </span>
+                                <span class="font-normal text-sm text-neutral-50">
+                                    "Games"
+                                </span>
+                            </div>
                         </div>
                     </div>
 

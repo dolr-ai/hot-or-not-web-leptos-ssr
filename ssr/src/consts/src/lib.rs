@@ -47,6 +47,10 @@ pub static OFF_CHAIN_AGENT_URL: Lazy<Url> =
 
 pub static ANALYTICS_SERVER_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://marketing-analytics-server.fly.dev").unwrap());
+
+pub static SMILEY_GAME_STATS_URL: Lazy<Url> =
+    Lazy::new(|| Url::parse("https://us-central1-yral-mobile.cloudfunctions.net").unwrap());
+
 pub static OFF_CHAIN_AGENT_GRPC_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://pr-293-dolr-ai-off-chain-agent.fly.dev:443").unwrap());
 pub static DOWNLOAD_UPLOAD_SERVICE: Lazy<Url> =
