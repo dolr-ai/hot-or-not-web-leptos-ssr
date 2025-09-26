@@ -444,19 +444,31 @@ fn FollowButton(
 
 // Component for displaying a user in the followers/following list
 #[component]
-fn UserListItem(data: FollowerData, node_ref: Option<NodeRef<html::Div>>) -> impl IntoView {
+fn UserListItem(
+    data: FollowerData,
+    node_ref: Option<NodeRef<html::Div>>,
+    #[prop(default = false)] is_following_tab: bool,
+    #[prop(default = false)] is_own_profile: bool,
+) -> impl IntoView {
     let navigate = use_navigate();
     let auth = auth_state();
 
     // Get current user's principal
     let current_user_principal = auth
         .user_principal
-        .get()
+        .get_untracked()
         .and_then(|res| res.ok())
         .unwrap_or(Principal::anonymous());
 
     // Don't show follow button for own profile
     let show_follow_button = data.principal_id != current_user_principal;
+
+    // In the following tab of your own profile, you're already following everyone
+    let caller_follows_override = if is_following_tab && is_own_profile {
+        Some(true)
+    } else {
+        Some(data.caller_follows)
+    };
 
     let principal_for_nav = data.principal_id;
 
@@ -492,7 +504,7 @@ fn UserListItem(data: FollowerData, node_ref: Option<NodeRef<html::Div>>) -> imp
                 <div class="shrink-0">
                     <FollowAndAuthCanLoader
                         user_principal=data.principal_id
-                        caller_follows_user=Some(data.caller_follows)
+                        caller_follows_user=caller_follows_override
                         user_follows_caller=None
                     />
                 </div>
@@ -549,6 +561,15 @@ fn FollowersFollowingPopup(
 ) -> impl IntoView {
     let (active_tab, set_active_tab) = signal(initial_tab);
 
+    // Check if this is the current user's profile
+    let auth = auth_state();
+    let is_own_profile = auth
+        .user_principal
+        .get_untracked()
+        .and_then(|res| res.ok())
+        .map(|p| p == user_principal)
+        .unwrap_or(false);
+
     // Create providers for each tab using StoredValue for stable references
     let followers_provider = StoredValue::new(FollowersProvider::new(user_principal));
     let following_provider = StoredValue::new(FollowingProvider::new(user_principal));
@@ -604,7 +625,14 @@ fn FollowersFollowingPopup(
                                     provider=following_provider.get_value()
                                     fetch_count=20
                                     children=move |item: FollowerData, node_ref| {
-                                        view! { <UserListItem data=item node_ref=node_ref /> }
+                                        view! {
+                                            <UserListItem
+                                                data=item
+                                                node_ref=node_ref
+                                                is_following_tab=true
+                                                is_own_profile=is_own_profile
+                                            />
+                                        }
                                     }
                                     empty_content=move || view! {
                                         <div class="flex flex-col items-center justify-center py-12 px-4">
@@ -622,7 +650,14 @@ fn FollowersFollowingPopup(
                             provider=followers_provider.get_value()
                             fetch_count=20
                             children=move |item: FollowerData, node_ref| {
-                                view! { <UserListItem data=item node_ref=node_ref /> }
+                                view! {
+                                    <UserListItem
+                                        data=item
+                                        node_ref=node_ref
+                                        is_following_tab=false
+                                        is_own_profile=is_own_profile
+                                    />
+                                }
                             }
                             empty_content=move || view! {
                                 <div class="flex flex-col items-center justify-center py-12 px-4">
@@ -667,12 +702,11 @@ fn ListSwitcher1(
 
     let current_tab = Memo::new(move |_| match tab.get().as_str() {
         "posts" => 0,
-        "stakes" => 1,
         _ => 0,
     });
 
     view! {
-        <div class="flex flex-col gap-y-12 justify-center pb-12 w-11/12 sm:w-7/12">
+        <div class="flex flex-col gap-y-12 justify-center pb-12 w-11/12 sm:w-6/12">
             <Show when=move || current_tab() == 0>
                 <ProfilePosts user_canister user_principal username=username.clone()/>
             </Show>
@@ -724,8 +758,8 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                 <NotificationPage close=notification_panel />
             </Show>
             // Header with title and navigation icons - aligned with content width
-            <div class="flex justify-center w-full bg-black">
-                <div class="flex h-12 items-center justify-between px-4 sm:px-0 py-3 w-11/12 sm:w-7/12">
+            <div class="flex justify-center w-full bg-black pt-4">
+                <div class="flex h-12 items-center justify-between px-4 sm:px-0 py-3 w-11/12 sm:w-6/12">
                     <p class="font-bold text-xl text-neutral-50">
                         {move || {
                             if is_own_profile.get() {
@@ -765,51 +799,55 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
             </div>
 
             <div class="flex flex-col gap-5 items-center w-full pt-5">
-                <div class="flex flex-col gap-5 w-11/12 sm:w-7/12">
+                <div class="flex flex-col gap-5 w-11/12 sm:w-6/12">
                     // Profile header with avatar and stats
-                    <div class="flex gap-6 items-start">
+                    <div class="flex justify-between items-start">
                         // Avatar
                         <img
-                            class="w-[60px] h-[60px] rounded-full shrink-0"
+                            class=move || {
+                                if is_own_profile.get() {
+                                    "w-[60px] h-[60px] rounded-full shrink-0 ring-2 ring-pink-500"
+                                } else {
+                                    "w-[60px] h-[60px] rounded-full shrink-0"
+                                }
+                            }
                             alt=username_or_fallback.clone()
                             src=profile_pic
                         />
 
-                        // Stats section
-                        <div class="flex-1 flex flex-col gap-2.5">
-                            <div class="flex gap-0 items-start">
-                                // Followers
-                                <button
-                                    class="flex flex-col gap-1 items-center text-center w-[85px] cursor-pointer hover:opacity-80 transition-opacity"
-                                    on:click=move |_| {
-                                        popup_initial_tab.set(0);
-                                        show_followers_popup.set(true);
-                                    }
-                                >
-                                    <span class="font-semibold text-base text-neutral-50">
-                                        {move || followers_count.get()}
-                                    </span>
-                                    <span class="font-normal text-sm text-neutral-50">
-                                        "Followers"
-                                    </span>
-                                </button>
+                        // Stats section - moved to the right
+                        <div class="flex gap-0">
+                            // Followers
+                            <button
+                                class="flex flex-col gap-1 items-center text-center w-[85px] cursor-pointer hover:opacity-80 transition-opacity"
+                                on:click=move |_| {
+                                    popup_initial_tab.set(0);
+                                    show_followers_popup.set(true);
+                                }
+                            >
+                                <span class="font-semibold text-base text-neutral-50">
+                                    {move || followers_count.get()}
+                                </span>
+                                <span class="font-normal text-sm text-neutral-50">
+                                    "Followers"
+                                </span>
+                            </button>
 
-                                // Following
-                                <button
-                                    class="flex flex-col gap-1 items-center text-center w-[88px] cursor-pointer hover:opacity-80 transition-opacity"
-                                    on:click=move |_| {
-                                        popup_initial_tab.set(1);
-                                        show_followers_popup.set(true);
-                                    }
-                                >
-                                    <span class="font-semibold text-base text-neutral-50">
-                                        {move || following_count.get()}
-                                    </span>
-                                    <span class="font-normal text-sm text-neutral-50">
-                                        "Following"
-                                    </span>
-                                </button>
-                            </div>
+                            // Following
+                            <button
+                                class="flex flex-col gap-1 items-center text-center w-[88px] cursor-pointer hover:opacity-80 transition-opacity"
+                                on:click=move |_| {
+                                    popup_initial_tab.set(1);
+                                    show_followers_popup.set(true);
+                                }
+                            >
+                                <span class="font-semibold text-base text-neutral-50">
+                                    {move || following_count.get()}
+                                </span>
+                                <span class="font-normal text-sm text-neutral-50">
+                                    "Following"
+                                </span>
+                            </button>
                         </div>
                     </div>
 
@@ -850,13 +888,13 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                             </div>
                         </div>
 
-                        // Social Links button
-                        <div class="flex gap-1 items-center justify-center bg-[#212121] rounded-full px-2.5 py-1.5 self-start">
-                            <Icon icon=icondata::FiPlus attr:class="text-base text-neutral-300" />
-                            <span class="font-semibold text-xs text-neutral-50 whitespace-nowrap">
-                                "Social Links"
-                            </span>
-                        </div>
+                        // Social Links button - commented out for now
+                        // <div class="flex gap-1 items-center justify-center bg-[#212121] rounded-full px-2.5 py-1.5 self-start">
+                        //     <Icon icon=icondata::FiPlus attr:class="text-base text-neutral-300" />
+                        //     <span class="font-semibold text-xs text-neutral-50 whitespace-nowrap">
+                        //         "Social Links"
+                        //     </span>
+                        // </div>
                     </div>
 
                     // Edit Profile button for own profile or Follow button for others
