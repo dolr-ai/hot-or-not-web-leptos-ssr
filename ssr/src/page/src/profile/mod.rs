@@ -23,7 +23,7 @@ use leptos_router::{
 use posts::ProfilePosts;
 use state::{
     app_state::AppState,
-    canisters::{auth_state, unauth_canisters},
+    canisters::auth_state,
 };
 
 use component::{infinite_scroller::InfiniteScroller, overlay::ShadowOverlay};
@@ -449,6 +449,7 @@ fn UserListItem(
     node_ref: Option<NodeRef<html::Div>>,
     #[prop(default = false)] is_following_tab: bool,
     #[prop(default = false)] is_own_profile: bool,
+    #[prop(optional)] show_popup: Option<RwSignal<bool>>,
 ) -> impl IntoView {
     let navigate = use_navigate();
     let auth = auth_state();
@@ -483,6 +484,9 @@ fn UserListItem(
             <div
                 class="flex items-center gap-3 flex-1 cursor-pointer"
                 on:click=move |_| {
+                    if let Some(show) = show_popup {
+                        show.set(false);
+                    }
                     navigate(&format!("/profile/{principal_for_nav}"), Default::default());
                 }
             >
@@ -520,6 +524,9 @@ fn UserListItem(
                 <div
                     class="flex items-center gap-3 flex-1 cursor-pointer"
                     on:click=move |_| {
+                        if let Some(show) = show_popup {
+                            show.set(false);
+                        }
                         navigate(&format!("/profile/{principal_for_nav}"), Default::default());
                     }
                 >
@@ -541,7 +548,7 @@ fn UserListItem(
                     <div class="shrink-0">
                         <FollowAndAuthCanLoader
                             user_principal=data.principal_id
-                            caller_follows_user=Some(data.caller_follows)
+                            caller_follows_user=caller_follows_override
                             user_follows_caller=None
                         />
                     </div>
@@ -631,6 +638,7 @@ fn FollowersFollowingPopup(
                                                 node_ref=node_ref
                                                 is_following_tab=true
                                                 is_own_profile=is_own_profile
+                                                show_popup=show
                                             />
                                         }
                                     }
@@ -656,6 +664,7 @@ fn FollowersFollowingPopup(
                                         node_ref=node_ref
                                         is_following_tab=false
                                         is_own_profile=is_own_profile
+                                        show_popup=show
                                     />
                                 }
                             }
