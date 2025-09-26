@@ -3,17 +3,17 @@
 use codee::string::FromToStringCodec;
 use component::content_upload::AuthorizedUserToSeedContent;
 use component::title::TitleText;
+use component::notification_toggle::NotificationToggle;
 use component::toggle::Toggle;
 use component::{connect::ConnectLogin, social::*};
-use consts::{NOTIFICATIONS_ENABLED_STORE, NSFW_ENABLED_COOKIE};
+use consts::NSFW_ENABLED_COOKIE;
 use leptos::html::{Div, Input};
 use leptos::prelude::window;
 use leptos::prelude::*;
-use leptos::web_sys::{Notification, NotificationPermission};
 use leptos_icons::*;
 use leptos_meta::*;
 use leptos_router::{hooks::use_navigate, hooks::use_query_map};
-use leptos_use::{storage::use_local_storage, use_cookie_with_options, UseCookieOptions};
+use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use state::app_state::AppState;
 use state::canisters::auth_state;
 use state::content_seed_client::ContentSeedClient;
@@ -168,23 +168,6 @@ pub fn Menu() -> impl IntoView {
         }
     });
 
-    // Notifications state management
-    let (notifs_enabled, set_notifs_enabled, _) =
-        use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
-
-    let notifs_enabled_signal = Signal::derive(move || {
-        notifs_enabled.get()
-            && matches!(Notification::permission(), NotificationPermission::Granted)
-    });
-
-    let notifs_toggle_ref = NodeRef::<Input>::new();
-
-    // Handle notifications toggle - simplified version
-    // Just toggle the local state, full handling happens in settings page
-    let _ = leptos_use::use_event_listener(notifs_toggle_ref, leptos::ev::change, move |_| {
-        let current_value = notifs_enabled.get();
-        set_notifs_enabled(!current_value);
-    });
 
     Effect::new(move |_| {
         let query_params = query_map.get();
@@ -280,11 +263,11 @@ pub fn Menu() -> impl IntoView {
                         checked=nsfw_enabled_signal
                         node_ref=nsfw_toggle_ref
                     />
-                    <MenuItemWithToggle
-                        text="Enable Notifications"
+                    <NotificationToggle
+                        show_icon=true
+                        show_label=true
                         icon=icondata::BiCommentDotsRegular
-                        checked=notifs_enabled_signal
-                        node_ref=notifs_toggle_ref
+                        label_text="Enable Notifications".to_string()
                     />
                 </div>
 

@@ -1,30 +1,20 @@
-use codee::string::FromToStringCodec;
 use component::back_btn::BackButton;
 use component::login_modal::LoginModal;
+use component::notification_toggle::NotificationToggle;
 use component::overlay::ShadowOverlay;
 use component::spinner::FullScreenSpinner;
 use component::title::TitleText;
-use component::{social::*, toggle::Toggle};
-use consts::NOTIFICATIONS_ENABLED_STORE;
+use component::social::*;
 use leptos::either::Either;
-use leptos::html::Input;
-use leptos::web_sys::{Notification, NotificationPermission};
-use leptos::{ev, prelude::*};
+use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::components::Redirect;
 use leptos_router::hooks::use_navigate;
 use leptos_router::{hooks::use_params, params::Params};
-use leptos_use::storage::use_local_storage;
-use leptos_use::use_event_listener;
 use state::canisters::auth_state;
 use utils::mixpanel::mixpanel_events::*;
-use utils::notifications::{
-    get_device_registeration_token, get_fcm_token, notification_permission_granted,
-};
 use utils::send_wrap;
 use yral_canisters_common::utils::profile::ProfileDetails;
-use yral_metadata_client::MetadataClient;
-use yral_metadata_types::error::ApiError;
 
 mod delete_user;
 
@@ -141,96 +131,11 @@ fn ProfileInfo() -> impl IntoView {
 
 #[component]
 fn EnableNotifications() -> impl IntoView {
-    let (notifs_enabled, set_notifs_enabled, _) =
-        use_local_storage::<bool, FromToStringCodec>(NOTIFICATIONS_ENABLED_STORE);
-
-    let notifs_enabled_der = Signal::derive(move || {
-        notifs_enabled.get()
-            && matches!(Notification::permission(), NotificationPermission::Granted)
-    });
-
-    let toggle_ref = NodeRef::<Input>::new();
-
-    let auth = auth_state();
-
-    let on_token_click: Action<(), ()> = Action::new_unsync(move |()| async move {
-        let metaclient: MetadataClient<false> = MetadataClient::default();
-
-        let cans = auth.auth_cans().await.unwrap();
-        let browser_permission = Notification::permission();
-        let notifs_enabled_val = notifs_enabled.get_untracked();
-
-        let global =
-            MixpanelGlobalProps::try_get(&cans, auth.is_logged_in_with_oauth().get_untracked());
-
-        MixPanelEvent::track_enable_notifications(global, notifs_enabled_val);
-
-        if notifs_enabled_val && matches!(browser_permission, NotificationPermission::Default) {
-            match notification_permission_granted().await {
-                Ok(true) => {
-                    let token = get_fcm_token().await.unwrap();
-                    metaclient
-                        .register_device(cans.identity(), token)
-                        .await
-                        .unwrap();
-                    log::info!("Device re-registered after ghost state");
-                    set_notifs_enabled(true);
-                }
-                Ok(false) => {
-                    log::warn!("User did not grant notification permission after prompt");
-                }
-                Err(e) => {
-                    log::error!("Failed to check notification permission: {e:?}");
-                }
-            }
-        } else if notifs_enabled_val {
-            let token = get_device_registeration_token().await.unwrap();
-            match metaclient.unregister_device(cans.identity(), token).await {
-                Ok(_) => {
-                    log::info!("Device unregistered sucessfully");
-                    set_notifs_enabled(false)
-                }
-                Err(e) => {
-                    if let yral_metadata_client::Error::Api(ApiError::DeviceNotFound) = e {
-                        log::info!("Device not found, skipping unregister");
-                        set_notifs_enabled(false)
-                    } else {
-                        log::error!("Failed to unregister device: {e:?}");
-                    }
-                }
-            }
-        } else {
-            let token = get_device_registeration_token().await.unwrap();
-            let register_result = metaclient
-                .register_device(cans.identity(), token.clone())
-                .await;
-            match register_result {
-                Ok(_) => {
-                    log::info!("Device registered successfully");
-                    set_notifs_enabled(true);
-                }
-                Err(e) => {
-                    log::error!("Failed to register device: {e:?}");
-                    set_notifs_enabled(false);
-                }
-            }
-        }
-    });
-
-    _ = use_event_listener(toggle_ref, ev::change, move |_| {
-        on_token_click.dispatch(());
-    });
-
     view! {
-        <div class="flex items-center justify-between w-full">
-            <div class="flex flex-row gap-4 items-center flex-1">
-                <Icon attr:class="text-2xl flex-shrink-0" icon=icondata::BiCommentDotsRegular />
-                <span class="text-wrap">Enable Notifications</span>
-            </div>
-            <div class="flex-shrink-0">
-                <Toggle checked=notifs_enabled_der node_ref=toggle_ref />
-            </div>
-        </div>
+        <NotificationToggle
+            show_icon=true
+            show_label=true
+        />
     }
 }
 
