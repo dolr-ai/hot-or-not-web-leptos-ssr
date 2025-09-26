@@ -1070,10 +1070,10 @@ fn ProfileImageEditor(
                                     spawn_local(async move {
                                         // Create a canvas and crop the image
                                         let cropped_data = crop_and_process_image(
-                                            uploaded_image.get().unwrap(),
-                                            zoom_level.get(),
-                                            position_x.get(),
-                                            position_y.get()
+                                            uploaded_image.get_untracked().unwrap(),
+                                            zoom_level.get_untracked(),
+                                            position_x.get_untracked(),
+                                            position_y.get_untracked()
                                         ).await;
 
                                         match cropped_data {
