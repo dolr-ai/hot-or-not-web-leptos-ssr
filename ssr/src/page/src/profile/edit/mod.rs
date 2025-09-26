@@ -420,7 +420,7 @@ fn ProfileEditInner(
             // Profile Picture with Edit Overlay
             <div class="relative mb-[40px]">
                 <img
-                    class="w-[120px] h-[120px] rounded-full"
+                    class="w-[120px] h-[120px] rounded-full object-cover object-center"
                     src=move || profile_pic_url.get()
                 />
                 <div
@@ -566,6 +566,134 @@ fn ProfileEditInner(
     }
 }
 
+// Crop and process the image using Canvas API
+#[cfg(feature = "hydrate")]
+async fn crop_and_process_image(
+    image_data_url: String,
+    zoom: f64,
+    offset_x: f64,
+    offset_y: f64,
+) -> Result<String, String> {
+    use leptos::web_sys::{HtmlCanvasElement, HtmlImageElement};
+    use wasm_bindgen::{JsCast, JsValue};
+
+    let document = leptos::web_sys::window()
+        .ok_or("No window")?
+        .document()
+        .ok_or("No document")?;
+
+    // Create a new image element
+    let img = document
+        .create_element("img")
+        .map_err(|_| "Failed to create img")?
+        .dyn_into::<HtmlImageElement>()
+        .map_err(|_| "Failed to cast to img")?;
+
+    // Create promise for image load
+    let (tx, rx) = futures::channel::oneshot::channel();
+    let tx = std::rc::Rc::new(std::cell::RefCell::new(Some(tx)));
+
+    let onload_tx = tx.clone();
+    let onload = Closure::once(move || {
+        if let Some(tx) = onload_tx.borrow_mut().take() {
+            let _ = tx.send(Ok(()));
+        }
+    });
+
+    let onerror_tx = tx.clone();
+    let onerror = Closure::once(move || {
+        if let Some(tx) = onerror_tx.borrow_mut().take() {
+            let _ = tx.send(Err("Failed to load image"));
+        }
+    });
+
+    img.set_onload(Some(onload.as_ref().unchecked_ref()));
+    img.set_onerror(Some(onerror.as_ref().unchecked_ref()));
+    img.set_src(&image_data_url);
+
+    // Wait for image to load
+    rx.await.map_err(|_| "Image load cancelled")??;
+
+    onload.forget();
+    onerror.forget();
+
+    // Create canvas for cropping
+    let canvas = document
+        .create_element("canvas")
+        .map_err(|_| "Failed to create canvas")?
+        .dyn_into::<HtmlCanvasElement>()
+        .map_err(|_| "Failed to cast to canvas")?;
+
+    // Set canvas size to desired output size (square)
+    const OUTPUT_SIZE: u32 = 500;
+    canvas.set_width(OUTPUT_SIZE);
+    canvas.set_height(OUTPUT_SIZE);
+
+    let context = canvas
+        .get_context("2d")
+        .map_err(|_| "Failed to get context")?
+        .ok_or("No context")?;
+
+    // Calculate the source rectangle based on zoom and position
+    let img_width = img.natural_width() as f64;
+    let img_height = img.natural_height() as f64;
+
+    // The visible area size in the preview (300px circle)
+    let preview_size = 300.0;
+
+    // Calculate the actual crop size on the source image
+    let crop_size = preview_size / zoom;
+
+    // Calculate the center position accounting for pan offset
+    let center_x = img_width / 2.0 - offset_x / zoom;
+    let center_y = img_height / 2.0 - offset_y / zoom;
+
+    // Calculate source rectangle
+    let src_x = (center_x - crop_size / 2.0).max(0.0);
+    let src_y = (center_y - crop_size / 2.0).max(0.0);
+    let src_width = crop_size.min(img_width - src_x);
+    let src_height = crop_size.min(img_height - src_y);
+
+    // Use JavaScript to draw the image
+    let draw_image_fn = js_sys::Reflect::get(&context, &JsValue::from_str("drawImage"))
+        .map_err(|_| "Failed to get drawImage")?
+        .dyn_into::<js_sys::Function>()
+        .map_err(|_| "Failed to cast drawImage")?;
+
+    let args = js_sys::Array::new();
+    args.push(&img);
+    args.push(&JsValue::from_f64(src_x));
+    args.push(&JsValue::from_f64(src_y));
+    args.push(&JsValue::from_f64(src_width));
+    args.push(&JsValue::from_f64(src_height));
+    args.push(&JsValue::from_f64(0.0));
+    args.push(&JsValue::from_f64(0.0));
+    args.push(&JsValue::from_f64(OUTPUT_SIZE as f64));
+    args.push(&JsValue::from_f64(OUTPUT_SIZE as f64));
+
+    let _ = js_sys::Reflect::apply(&draw_image_fn, &context, &args)
+        .map_err(|_| "Failed to draw image")?;
+
+    // Convert to JPEG with compression
+    let quality = JsValue::from_f64(0.85);
+    let data_url = canvas
+        .to_data_url_with_type_and_encoder_options("image/jpeg", &quality)
+        .map_err(|_| "Failed to convert to data URL")?;
+
+    Ok(data_url)
+}
+
+#[cfg(not(feature = "hydrate"))]
+async fn crop_and_process_image(
+    image_data_url: String,
+    _zoom: f64,
+    _offset_x: f64,
+    _offset_y: f64,
+) -> Result<String, String> {
+    // Server-side rendering: just return the original
+    Ok(image_data_url)
+}
+
 // Upload profile image via off-chain agent API
 async fn upload_profile_image_to_agent(
     image_data: String,
@@ -665,11 +793,38 @@ fn ProfileImageEditor(
     let drag_start_y = RwSignal::new(0.0_f64);
     let file_input_ref = NodeRef::<html::Input>::new();
     let is_uploading = RwSignal::new(false);
+    let file_error = RwSignal::new(Option::<String>::None);
+
+    // Maximum file size: 5MB
+    const MAX_FILE_SIZE: f64 = 5.0 * 1024.0 * 1024.0;
 
     let handle_file_change = move |ev: leptos::web_sys::Event| {
         let input: leptos::web_sys::HtmlInputElement = ev.target().unwrap().dyn_into().unwrap();
         if let Some(files) = input.files() {
             if let Some(file) = files.get(0) {
+                file_error.set(None);
+
+                // Check file size
+                let file_size = file.size() as f64;
+                if file_size > MAX_FILE_SIZE {
+                    let size_mb = (file_size / (1024.0 * 1024.0)).round();
+                    file_error.set(Some(format!("File too large: {size_mb}MB (max 5MB)")));
+                    return;
+                }
+
+                // Check file type
+                let file_type = file.type_();
+                if !file_type.starts_with("image/") {
+                    file_error.set(Some("Please select an image file (JPEG, PNG, WebP)".to_string()));
+                    return;
+                }
+
+                let accepted_formats = ["image/jpeg", "image/png", "image/webp"];
+                if !accepted_formats.iter().any(|&fmt| file_type == fmt) {
+                    file_error.set(Some("Unsupported format. Please use JPEG, PNG, or WebP".to_string()));
+                    return;
+                }
+
                 let file_reader = leptos::web_sys::FileReader::new().unwrap();
                 let file_reader_clone = file_reader.clone();
 
@@ -759,11 +914,20 @@ fn ProfileImageEditor(
                     // File input
                     <input
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp"
                         node_ref=file_input_ref
                         on:change=handle_file_change
                         class="hidden"
                     />
+
+                    // Error message display
+                    <Show when=move || file_error.get().is_some()>
+                        <div class="w-full p-3 bg-red-900/20 border border-red-500 rounded-lg mb-4">
+                            <span class="text-[14px] text-red-400">
+                                {move || file_error.get().unwrap_or_default()}
+                            </span>
+                        </div>
+                    </Show>
 
                     // Image editor area
                     <div class="relative w-full bg-neutral-800 rounded-lg overflow-hidden h-[400px] md:h-[500px]">
@@ -898,27 +1062,46 @@ fn ProfileImageEditor(
                         on:click={
                             let identity = identity.clone();
                             move |_| {
-                                if let Some(image_data) = uploaded_image.get() {
+                                if uploaded_image.get().is_some() {
                                     is_uploading.set(true);
                                     let delegated_identity = identity.id_wire.clone();
 
-                                spawn_local(async move {
-                                    match upload_profile_image_to_agent(image_data, delegated_identity).await {
-                                        Ok(new_url) => {
-                                            profile_pic_url.set(new_url);
-                                            show.set(false);
-                                            uploaded_image.set(None);
-                                            is_uploading.set(false);
-                                            leptos::logging::log!("Profile picture updated");
+                                    // Get the cropped image data
+                                    spawn_local(async move {
+                                        // Create a canvas and crop the image
+                                        let cropped_data = crop_and_process_image(
+                                            uploaded_image.get().unwrap(),
+                                            zoom_level.get(),
+                                            position_x.get(),
+                                            position_y.get()
+                                        ).await;
+
+                                        match cropped_data {
+                                            Ok(processed_image) => {
+                                                match upload_profile_image_to_agent(processed_image, delegated_identity).await {
+                                                    Ok(new_url) => {
+                                                        profile_pic_url.set(new_url);
+                                                        show.set(false);
+                                                        uploaded_image.set(None);
+                                                        is_uploading.set(false);
+                                                        leptos::logging::log!("Profile picture updated");
+                                                    }
+                                                    Err(e) => {
+                                                        leptos::logging::error!("Failed to upload image: {}", e);
+                                                        file_error.set(Some(format!("Upload failed: {}", e)));
+                                                        is_uploading.set(false);
+                                                    }
+                                                }
+                                            }
+                                            Err(e) => {
+                                                leptos::logging::error!("Failed to process image: {}", e);
+                                                file_error.set(Some(format!("Processing failed: {}", e)));
+                                                is_uploading.set(false);
+                                            }
                                         }
-                                        Err(e) => {
-                                            leptos::logging::error!("Failed to upload image: {}", e);
-                                            is_uploading.set(false);
-                                        }
-                                    }
-                                });
+                                    });
+                                }
                             }
-                        }
                         }
                         disabled=move || uploaded_image.get().is_none() || is_uploading.get()
                         class="flex-1 px-4 py-2 bg-gradient-to-r from-[#e2017b] to-[#e2017b] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg text-white font-medium"

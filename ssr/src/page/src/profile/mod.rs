@@ -313,6 +313,98 @@ impl CursoredDataProvider for FollowingProvider {
     }
 }
 
+async fn follow_user_via_agent(
+    target_principal: Principal,
+    delegated_identity_wire: yral_types::delegated_identity::DelegatedIdentityWire,
+    follower_username: Option<String>,
+) -> Result<(), String> {
+    use consts::OFF_CHAIN_AGENT_URL;
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Serialize)]
+    struct FollowRequest {
+        delegated_identity_wire: yral_types::delegated_identity::DelegatedIdentityWire,
+        target_principal: Principal,
+        follower_username: Option<String>,
+    }
+
+    #[derive(Deserialize)]
+    struct FollowResponse {
+        success: bool,
+    }
+
+    let url = OFF_CHAIN_AGENT_URL
+        .join("api/v1/user/follow")
+        .map_err(|e| format!("Failed to construct URL: {e}"))?;
+
+    let request_body = FollowRequest {
+        delegated_identity_wire,
+        target_principal,
+        follower_username,
+    };
+
+    #[cfg(feature = "ssr")]
+    {
+        let client = reqwest::Client::new();
+        let response = client
+            .post(url)
+            .json(&request_body)
+            .send()
+            .await
+            .map_err(|e| format!("Failed to send request: {e}"))?;
+
+        if !response.status().is_success() {
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(format!("Follow failed: {error_text}"));
+        }
+
+        let follow_response: FollowResponse = response
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse response: {e}"))?;
+
+        if follow_response.success {
+            Ok(())
+        } else {
+            Err("Follow operation failed".to_string())
+        }
+    }
+
+    #[cfg(not(feature = "ssr"))]
+    {
+        use gloo::net::http::Request;
+
+        let response = Request::post(url.as_str())
+            .json(&request_body)
+            .map_err(|e| format!("Failed to create request: {e}"))?
+            .send()
+            .await
+            .map_err(|e| format!("Failed to send request: {e}"))?;
+
+        if !response.ok() {
+            let error_text = response
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
+            return Err(format!("Follow failed: {error_text}"));
+        }
+
+        let follow_response: FollowResponse = response
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse response: {e}"))?;
+
+        if follow_response.success {
+            Ok(())
+        } else {
+            Err("Follow operation failed".to_string())
+        }
+    }
+}
+
 #[component]
 fn FollowAndAuthCanLoader(
     user_principal: Principal,
@@ -344,15 +436,29 @@ fn FollowAndAuthCanLoader(
                 !current
             };
 
-            let service = canisters.user_info_service().await;
             let result = if should_follow {
-                service.follow_user(target).await
+                // Call off-chain API for follow (with notification)
+                match auth.user_identity.await {
+                    Ok(identity) => {
+                        let follower_username = canisters.profile_details().username.clone();
+                        follow_user_via_agent(target, identity.id_wire, follower_username).await
+                    }
+                    Err(e) => {
+                        Err(format!("Failed to get identity: {e}"))
+                    }
+                }
             } else {
-                service.unfollow_user(target).await
+                // Keep unfollow as direct canister call for now
+                let service = canisters.user_info_service().await;
+                match service.unfollow_user(target).await {
+                    Ok(yral_canisters_client::user_info_service::Result_::Ok) => Ok(()),
+                    Ok(yral_canisters_client::user_info_service::Result_::Err(e)) => Err(e),
+                    Err(e) => Err(format!("{e:?}"))
+                }
             };
 
             match result {
-                Ok(yral_canisters_client::user_info_service::Result_::Ok) => {
+                Ok(()) => {
                     // Success - keep the optimistic update and call callback
                     if should_follow {
                         if let Some(ref cb) = on_follow_success {
@@ -362,13 +468,8 @@ fn FollowAndAuthCanLoader(
                         cb.run(());
                     }
                 }
-                Ok(yral_canisters_client::user_info_service::Result_::Err(e)) => {
-                    log::warn!("Error toggling follow status: {e}");
-                    // Rollback on error
-                    follows.update(|f| _ = f.as_mut().map(|f| *f = !*f));
-                }
                 Err(e) => {
-                    log::warn!("Network error toggling follow status: {e:?}");
+                    log::warn!("Error toggling follow status: {e}");
                     // Rollback on error
                     follows.update(|f| _ = f.as_mut().map(|f| *f = !*f));
                 }
