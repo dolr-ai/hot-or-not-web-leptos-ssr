@@ -292,20 +292,20 @@ pub fn Menu() -> impl IntoView {
                         icon=icondata::BiMessageDetailSolid
                         target="_blank"
                     />
-                    <button
-                        on:click=move |_| {
-                            let nav = use_navigate();
-                            nav("/settings/delete", Default::default());
-                        }
-                        class="flex items-center justify-between w-full"
-                    >
-                        <div class="flex flex-row gap-4 items-center">
-                            <Icon attr:class="text-xl" icon=icondata::RiDeleteBinSystemLine />
-                            <span class="text-base">Delete Account</span>
-                        </div>
-                        <Icon attr:class="text-xl" icon=icondata::AiRightOutlined />
-                    </button>
                     <Show when=is_connected>
+                        <button
+                            on:click=move |_| {
+                                let nav = use_navigate();
+                                nav("/settings/delete", Default::default());
+                            }
+                            class="flex items-center justify-between w-full"
+                        >
+                            <div class="flex flex-row gap-4 items-center">
+                                <Icon attr:class="text-xl" icon=icondata::RiDeleteBinSystemLine />
+                                <span class="text-base">Delete Account</span>
+                            </div>
+                            <Icon attr:class="text-xl" icon=icondata::AiRightOutlined />
+                        </button>
                         <MenuItem click_cta_type=MixpanelMenuClickedCTAType::LogOut href="/logout" text="Logout" icon=icondata::FiLogOut />
                     </Show>
                 </div>
