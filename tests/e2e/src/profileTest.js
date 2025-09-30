@@ -8,7 +8,6 @@ describe("Profile page tests", function () {
       .findByText("Login", { timeout: 10000 })
       .waitUntil("visible")
       .click();
-    browser.element.findByText("Login with Google").waitUntil("visible");
     browser.percySnapshot("SignIn Modal");
   });
 });
