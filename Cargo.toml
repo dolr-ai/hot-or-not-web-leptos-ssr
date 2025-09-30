@@ -210,22 +210,22 @@ base64 = "0.22"
 
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], branch = "new_videogen_api", version = "0.1.0" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api", features = [
+], rev = "cd5952c4b25340cd12044b6f02bfa516acc44534", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", rev = "cd5952c4b25340cd12044b6f02bfa516acc44534" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", rev = "cd5952c4b25340cd12044b6f02bfa516acc44534" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev = "cd5952c4b25340cd12044b6f02bfa516acc44534", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "cd5952c4b25340cd12044b6f02bfa516acc44534" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], branch = "new_videogen_api" }
-global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
-yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api", default-features = false, features = [
+], rev = "cd5952c4b25340cd12044b6f02bfa516acc44534" }
+global-constants = { git = "https://github.com/dolr-ai/yral-common.git", rev = "cd5952c4b25340cd12044b6f02bfa516acc44534" }
+yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", rev = "cd5952c4b25340cd12044b6f02bfa516acc44534", default-features = false, features = [
     "ic-git",
     "wasm-bindgen",
 ] }
-videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api", features = [
+videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "cd5952c4b25340cd12044b6f02bfa516acc44534", features = [
     "client",
     "ic",
 ] }
