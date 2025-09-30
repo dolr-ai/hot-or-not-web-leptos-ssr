@@ -22,10 +22,7 @@ use leptos_router::{
 };
 use posts::ProfilePosts;
 use serde::{Deserialize, Serialize};
-use state::{
-    app_state::AppState,
-    canisters::auth_state,
-};
+use state::{app_state::AppState, canisters::auth_state};
 
 use component::{infinite_scroller::InfiniteScroller, overlay::ShadowOverlay};
 use utils::{mixpanel::mixpanel_events::*, posts::FeedPostCtx, send_wrap, UsernameOrPrincipal};
@@ -178,7 +175,12 @@ impl CursoredDataProvider for FollowersProvider {
 
         // Fetch followers
         let result = service
-            .get_followers(self.user_principal, self.cursor.get_untracked(), limit, Some(true))
+            .get_followers(
+                self.user_principal,
+                self.cursor.get_untracked(),
+                limit,
+                Some(true),
+            )
             .await
             .map_err(|e| FollowerProviderError(format!("Failed to fetch followers: {e}")))?;
 
@@ -226,7 +228,8 @@ impl CursoredDataProvider for FollowersProvider {
                     .or_else(|| Some(random_username_from_principal(item.principal_id, 15)));
 
                 // Use profile pic from API if available, otherwise generate one
-                let profile_pic = item.profile_picture_url
+                let profile_pic = item
+                    .profile_picture_url
                     .or_else(|| Some(propic_from_principal(item.principal_id)));
 
                 FollowerData {
@@ -278,7 +281,12 @@ impl CursoredDataProvider for FollowingProvider {
 
         // Fetch following
         let result = service
-            .get_following(self.user_principal, self.cursor.get_untracked(), limit, Some(true))
+            .get_following(
+                self.user_principal,
+                self.cursor.get_untracked(),
+                limit,
+                Some(true),
+            )
             .await
             .map_err(|e| FollowerProviderError(format!("Failed to fetch following: {e}")))?;
 
@@ -326,7 +334,8 @@ impl CursoredDataProvider for FollowingProvider {
                     .or_else(|| Some(random_username_from_principal(item.principal_id, 15)));
 
                 // Use profile pic from API if available, otherwise generate one
-                let profile_pic = item.profile_picture_url
+                let profile_pic = item
+                    .profile_picture_url
                     .or_else(|| Some(propic_from_principal(item.principal_id)));
 
                 FollowerData {
@@ -475,9 +484,7 @@ fn FollowAndAuthCanLoader(
                         let follower_username = canisters.profile_details().username.clone();
                         follow_user_via_agent(target, identity.id_wire, follower_username).await
                     }
-                    Err(e) => {
-                        Err(format!("Failed to get identity: {e}"))
-                    }
+                    Err(e) => Err(format!("Failed to get identity: {e}")),
                 }
             } else {
                 // Keep unfollow as direct canister call for now
@@ -485,7 +492,7 @@ fn FollowAndAuthCanLoader(
                 match service.unfollow_user(target).await {
                     Ok(yral_canisters_client::user_info_service::Result_::Ok) => Ok(()),
                     Ok(yral_canisters_client::user_info_service::Result_::Err(e)) => Err(e),
-                    Err(e) => Err(format!("{e:?}"))
+                    Err(e) => Err(format!("{e:?}")),
                 }
             };
 
@@ -586,26 +593,30 @@ fn FollowButton(
 }
 
 #[server]
-async fn fetch_smiley_game_stats(principal_id: Principal) -> Result<SmileyGameStats, ServerFnError> {
+async fn fetch_smiley_game_stats(
+    principal_id: Principal,
+) -> Result<SmileyGameStats, ServerFnError> {
     use consts::SMILEY_GAME_STATS_URL;
     use reqwest::Client;
 
     let client = Client::new();
-    let url = format!("{}/get_smiley_game_stats?principal_id={}",
-                     SMILEY_GAME_STATS_URL.as_str(),
-                     principal_id.to_text());
+    let url = format!(
+        "{}/get_smiley_game_stats?principal_id={}",
+        SMILEY_GAME_STATS_URL.as_str(),
+        principal_id.to_text()
+    );
 
     let response = client
         .get(&url)
         .send()
         .await
-        .map_err(|e| ServerFnError::new(format!("Failed to fetch game stats: {}", e)))?;
+        .map_err(|e| ServerFnError::new(format!("Failed to fetch game stats: {e}")))?;
 
     if response.status().is_success() {
         let stats = response
             .json::<SmileyGameStats>()
             .await
-            .map_err(|e| ServerFnError::new(format!("Failed to parse game stats: {}", e)))?;
+            .map_err(|e| ServerFnError::new(format!("Failed to parse game stats: {e}")))?;
         Ok(stats)
     } else {
         // Return default stats if API fails
@@ -962,7 +973,7 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                 stats
             }
             Err(e) => {
-                log::warn!("Failed to fetch game stats: {}", e);
+                log::warn!("Failed to fetch game stats: {e}");
                 // Return default stats on error
                 SmileyGameStats {
                     principal_id: user_principal.to_text(),

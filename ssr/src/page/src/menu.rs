@@ -2,8 +2,8 @@
 
 use codee::string::FromToStringCodec;
 use component::content_upload::AuthorizedUserToSeedContent;
-use component::title::TitleText;
 use component::notification_toggle::NotificationToggle;
+use component::title::TitleText;
 use component::toggle::Toggle;
 use component::{connect::ConnectLogin, social::*};
 use consts::NSFW_ENABLED_COOKIE;
@@ -167,7 +167,6 @@ pub fn Menu() -> impl IntoView {
             let _ = window().location().reload();
         }
     });
-
 
     Effect::new(move |_| {
         let query_params = query_map.get();

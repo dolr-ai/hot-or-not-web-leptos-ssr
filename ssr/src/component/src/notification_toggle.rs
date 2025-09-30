@@ -24,11 +24,10 @@ pub fn NotificationToggle(
     #[prop(optional)] custom_class: Option<String>,
 ) -> impl IntoView {
     // Default values
-    let show_icon = show_icon;
-    let show_label = show_label;
     let icon = icon.unwrap_or(icondata::BiCommentDotsRegular);
     let label_text = label_text.unwrap_or_else(|| "Enable Notifications".to_string());
-    let custom_class = custom_class.unwrap_or_else(|| "flex items-center justify-between w-full".to_string());
+    let custom_class =
+        custom_class.unwrap_or_else(|| "flex items-center justify-between w-full".to_string());
 
     // Notifications state management
     let (notifs_enabled, set_notifs_enabled, _) =
@@ -63,26 +62,22 @@ pub fn NotificationToggle(
         if notifs_enabled_val && matches!(browser_permission, NotificationPermission::Default) {
             // Request permission if in default state
             match notification_permission_granted().await {
-                Ok(true) => {
-                    match get_fcm_token().await {
-                        Ok(token) => {
-                            match metaclient.register_device(cans.identity(), token).await {
-                                Ok(_) => {
-                                    log::info!("Device registered successfully");
-                                    set_notifs_enabled(true);
-                                }
-                                Err(e) => {
-                                    log::error!("Failed to register device: {e:?}");
-                                    set_notifs_enabled(false);
-                                }
-                            }
+                Ok(true) => match get_fcm_token().await {
+                    Ok(token) => match metaclient.register_device(cans.identity(), token).await {
+                        Ok(_) => {
+                            log::info!("Device registered successfully");
+                            set_notifs_enabled(true);
                         }
                         Err(e) => {
-                            log::error!("Failed to get FCM token: {e:?}");
+                            log::error!("Failed to register device: {e:?}");
                             set_notifs_enabled(false);
                         }
+                    },
+                    Err(e) => {
+                        log::error!("Failed to get FCM token: {e:?}");
+                        set_notifs_enabled(false);
                     }
-                }
+                },
                 Ok(false) => {
                     log::warn!("User did not grant notification permission");
                     set_notifs_enabled(false);
@@ -120,18 +115,16 @@ pub fn NotificationToggle(
         } else {
             // Register device
             match get_device_registeration_token().await {
-                Ok(token) => {
-                    match metaclient.register_device(cans.identity(), token).await {
-                        Ok(_) => {
-                            log::info!("Device registered successfully");
-                            set_notifs_enabled(true);
-                        }
-                        Err(e) => {
-                            log::error!("Failed to register device: {e:?}");
-                            set_notifs_enabled(false);
-                        }
+                Ok(token) => match metaclient.register_device(cans.identity(), token).await {
+                    Ok(_) => {
+                        log::info!("Device registered successfully");
+                        set_notifs_enabled(true);
                     }
-                }
+                    Err(e) => {
+                        log::error!("Failed to register device: {e:?}");
+                        set_notifs_enabled(false);
+                    }
+                },
                 Err(e) => {
                     log::error!("Failed to get device token: {e:?}");
                     set_notifs_enabled(false);
@@ -164,6 +157,7 @@ pub fn NotificationToggle(
                     <Toggle checked=notifs_enabled_signal node_ref=toggle_ref />
                 </div>
             </div>
-        }.into_any()
+        }
+        .into_any()
     }
 }

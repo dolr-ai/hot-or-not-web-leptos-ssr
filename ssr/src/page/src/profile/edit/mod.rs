@@ -805,7 +805,7 @@ fn ProfileImageEditor(
                 file_error.set(None);
 
                 // Check file size
-                let file_size = file.size() as f64;
+                let file_size = file.size();
                 if file_size > MAX_FILE_SIZE {
                     let size_mb = (file_size / (1024.0 * 1024.0)).round();
                     file_error.set(Some(format!("File too large: {size_mb}MB (max 5MB)")));
@@ -815,13 +815,17 @@ fn ProfileImageEditor(
                 // Check file type
                 let file_type = file.type_();
                 if !file_type.starts_with("image/") {
-                    file_error.set(Some("Please select an image file (JPEG, PNG, WebP)".to_string()));
+                    file_error.set(Some(
+                        "Please select an image file (JPEG, PNG, WebP)".to_string(),
+                    ));
                     return;
                 }
 
                 let accepted_formats = ["image/jpeg", "image/png", "image/webp"];
                 if !accepted_formats.iter().any(|&fmt| file_type == fmt) {
-                    file_error.set(Some("Unsupported format. Please use JPEG, PNG, or WebP".to_string()));
+                    file_error.set(Some(
+                        "Unsupported format. Please use JPEG, PNG, or WebP".to_string(),
+                    ));
                     return;
                 }
 
@@ -1088,14 +1092,14 @@ fn ProfileImageEditor(
                                                     }
                                                     Err(e) => {
                                                         leptos::logging::error!("Failed to upload image: {}", e);
-                                                        file_error.set(Some(format!("Upload failed: {}", e)));
+                                                        file_error.set(Some(format!("Upload failed: {e}")));
                                                         is_uploading.set(false);
                                                     }
                                                 }
                                             }
                                             Err(e) => {
                                                 leptos::logging::error!("Failed to process image: {}", e);
-                                                file_error.set(Some(format!("Processing failed: {}", e)));
+                                                file_error.set(Some(format!("Processing failed: {e}")));
                                                 is_uploading.set(false);
                                             }
                                         }
