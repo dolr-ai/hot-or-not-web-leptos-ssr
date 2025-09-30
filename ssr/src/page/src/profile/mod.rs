@@ -92,6 +92,30 @@ struct SmileyGameStats {
     total_games: u64,
 }
 
+// Unlock Profile component for non-logged-in users
+#[component]
+fn UnlockProfile() -> impl IntoView {
+    view! {
+        <div class="flex flex-col gap-[30px] items-center w-full py-12">
+            <div class="flex flex-col gap-[10px] items-center text-center">
+                <p class="font-semibold text-base text-neutral-50">
+                    "Unlock Profile"
+                </p>
+                <div class="font-normal text-sm text-neutral-400">
+                    <p class="mb-0">"Log in to claim rewards, build your profile,"</p>
+                    <p>"and join the YRAL community."</p>
+                </div>
+            </div>
+            <div class="w-full max-w-[270px]">
+                <ConnectLogin
+                    cta_location="profile_unlock"
+                    redirect_to=format!("/profile/posts")
+                />
+            </div>
+        </div>
+    }
+}
+
 // Follower/Following data types for the popup
 #[derive(Clone, Debug)]
 struct FollowerData {
@@ -154,7 +178,7 @@ impl CursoredDataProvider for FollowersProvider {
 
         // Fetch followers
         let result = service
-            .get_followers(self.user_principal, self.cursor.get_untracked(), limit)
+            .get_followers(self.user_principal, self.cursor.get_untracked(), limit, Some(true))
             .await
             .map_err(|e| FollowerProviderError(format!("Failed to fetch followers: {e}")))?;
 
@@ -201,10 +225,14 @@ impl CursoredDataProvider for FollowersProvider {
                     })
                     .or_else(|| Some(random_username_from_principal(item.principal_id, 15)));
 
+                // Use profile pic from API if available, otherwise generate one
+                let profile_pic = item.profile_picture_url
+                    .or_else(|| Some(propic_from_principal(item.principal_id)));
+
                 FollowerData {
                     principal_id: item.principal_id,
                     username,
-                    profile_pic: Some(propic_from_principal(item.principal_id)),
+                    profile_pic,
                     caller_follows: item.caller_follows,
                 }
             })
@@ -250,7 +278,7 @@ impl CursoredDataProvider for FollowingProvider {
 
         // Fetch following
         let result = service
-            .get_following(self.user_principal, self.cursor.get_untracked(), limit)
+            .get_following(self.user_principal, self.cursor.get_untracked(), limit, Some(true))
             .await
             .map_err(|e| FollowerProviderError(format!("Failed to fetch following: {e}")))?;
 
@@ -297,10 +325,14 @@ impl CursoredDataProvider for FollowingProvider {
                     })
                     .or_else(|| Some(random_username_from_principal(item.principal_id, 15)));
 
+                // Use profile pic from API if available, otherwise generate one
+                let profile_pic = item.profile_picture_url
+                    .or_else(|| Some(propic_from_principal(item.principal_id)));
+
                 FollowerData {
                     principal_id: item.principal_id,
                     username,
-                    profile_pic: Some(propic_from_principal(item.principal_id)),
+                    profile_pic,
                     caller_follows: item.caller_follows,
                 }
             })
@@ -832,6 +864,7 @@ fn ListSwitcher1(
     user_canister: Principal,
     user_principal: Principal,
     username: String,
+    is_own_profile: RwSignal<bool>,
 ) -> impl IntoView {
     let param = use_params::<TabsParam>();
     let tab = Signal::derive(move || {
@@ -843,6 +876,7 @@ fn ListSwitcher1(
 
     let auth = auth_state();
     let event_ctx = auth.event_ctx();
+    let is_connected = auth.is_logged_in_with_oauth();
 
     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(event_ctx) {
         let logged_in_caniser = global.canister_id.clone();
@@ -861,7 +895,17 @@ fn ListSwitcher1(
     view! {
         <div class="flex flex-col gap-y-12 justify-center pb-12 w-11/12 sm:w-6/12">
             <Show when=move || current_tab() == 0>
-                <ProfilePosts user_canister user_principal username=username.clone()/>
+                // Show UnlockProfile for non-logged-in users viewing their own profile
+                {
+                    let username = username.clone();
+                    move || {
+                        if is_own_profile.get() && !is_connected() {
+                            view! { <UnlockProfile /> }.into_any()
+                        } else {
+                            view! { <ProfilePosts user_canister user_principal username=username.clone()/> }.into_any()
+                        }
+                    }
+                }
             </Show>
         </div>
     }
@@ -905,6 +949,11 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     let games_played_count = RwSignal::new(0u64);
     let bio = user.bio.clone().unwrap_or_default();
     let website_url = user.website_url.clone().unwrap_or_default();
+
+    // Clone values needed in closures to check if user has set up profile
+    let has_username = user.username.is_some();
+    let has_bio = user.bio.is_some();
+    let has_website = user.website_url.is_some();
 
     // Create a resource to fetch game stats
     let _game_stats_resource = LocalResource::new(move || async move {
@@ -1096,8 +1145,8 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
 
                                         let nav = nav.clone();
                                         view! {
-                                            // Show Edit Profile button for own profile
-                                            <Show when=move || user_principal == authenticated_princ>
+                                            // Show Edit Profile button for own profile ONLY if logged in with OAuth
+                                            <Show when=move || user_principal == authenticated_princ && is_connected()>
                                                 <button
                                                     on:click={let nav = nav.clone(); move |ev: leptos::web_sys::MouseEvent| {
                                                         ev.prevent_default();
@@ -1114,7 +1163,12 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                             </button>
                                         </Show>
                                         // Show Follow button for other profiles
-                                        <Show when=move || user_principal != authenticated_princ>
+                                        // Don't show Follow button if viewing someone else's profile who hasn't set up OAuth
+                                        // (indicated by having no username and no bio/website)
+                                        <Show when=move || {
+                                            user_principal != authenticated_princ
+                                            && (has_username || has_bio || has_website)
+                                        }>
                                             <FollowAndAuthCanLoader
                                                 user_principal=user_principal
                                                 caller_follows_user=user.caller_follows_user
@@ -1148,7 +1202,7 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                 </div>
 
                 // Tabs
-                <ListSwitcher1 user_canister user_principal username=username_or_fallback.clone()/>
+                <ListSwitcher1 user_canister user_principal username=username_or_fallback.clone() is_own_profile/>
             </div>
 
             // Followers/Following popup
