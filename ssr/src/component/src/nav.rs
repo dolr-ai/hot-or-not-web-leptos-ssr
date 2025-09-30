@@ -83,14 +83,6 @@ fn yral_nav_items() -> Vec<NavItem> {
                     .starts_with(&format!("/profile/{user_principal}"))
             }),
         },
-        NavItem {
-            render_data: NavItemRenderData::Icon {
-                icon: MenuSymbol,
-                filled_icon: None,
-                href: "/menu".into(),
-            },
-            cur_selected: Signal::derive(move || matches!(path.get().as_str(), "/menu")),
-        },
     ]
 }
 
