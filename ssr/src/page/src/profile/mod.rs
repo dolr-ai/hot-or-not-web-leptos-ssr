@@ -625,6 +625,7 @@ fn UserListItem(
     node_ref: Option<NodeRef<html::Div>>,
     #[prop(default = false)] is_following_tab: bool,
     #[prop(default = false)] is_own_profile: bool,
+    #[prop(default = true)] viewer_is_connected: bool,
     #[prop(optional)] show_popup: Option<RwSignal<bool>>,
 ) -> impl IntoView {
     let navigate = use_navigate();
@@ -637,8 +638,8 @@ fn UserListItem(
         .and_then(|res| res.ok())
         .unwrap_or(Principal::anonymous());
 
-    // Don't show follow button for own profile
-    let show_follow_button = data.principal_id != current_user_principal;
+    // Don't show follow button for own profile OR if viewer is not logged in
+    let show_follow_button = data.principal_id != current_user_principal && viewer_is_connected;
 
     // In the following tab of your own profile, you're already following everyone
     let caller_follows_override = if is_following_tab && is_own_profile {
@@ -741,6 +742,7 @@ fn FollowersFollowingPopup(
     user_principal: Principal,
     username: String,
     initial_tab: usize, // 0 = Followers, 1 = Following
+    viewer_is_connected: bool,
 ) -> impl IntoView {
     let (active_tab, set_active_tab) = signal(initial_tab);
 
@@ -814,6 +816,7 @@ fn FollowersFollowingPopup(
                                                 node_ref=node_ref
                                                 is_following_tab=true
                                                 is_own_profile=is_own_profile
+                                                viewer_is_connected=viewer_is_connected
                                                 show_popup=show
                                             />
                                         }
@@ -840,6 +843,7 @@ fn FollowersFollowingPopup(
                                         node_ref=node_ref
                                         is_following_tab=false
                                         is_own_profile=is_own_profile
+                                        viewer_is_connected=viewer_is_connected
                                         show_popup=show
                                     />
                                 }
@@ -949,11 +953,6 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     let games_played_count = RwSignal::new(0u64);
     let bio = user.bio.clone().unwrap_or_default();
     let website_url = user.website_url.clone().unwrap_or_default();
-
-    // Clone values needed in closures to check if user has set up profile
-    let has_username = user.username.is_some();
-    let has_bio = user.bio.is_some();
-    let has_website = user.website_url.is_some();
 
     // Create a resource to fetch game stats
     let _game_stats_resource = LocalResource::new(move || async move {
@@ -1162,12 +1161,9 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                                 </span>
                                             </button>
                                         </Show>
-                                        // Show Follow button for other profiles
-                                        // Don't show Follow button if viewing someone else's profile who hasn't set up OAuth
-                                        // (indicated by having no username and no bio/website)
+                                        // Show Follow button for other profiles only if viewer is logged in
                                         <Show when=move || {
-                                            user_principal != authenticated_princ
-                                            && (has_username || has_bio || has_website)
+                                            user_principal != authenticated_princ && is_connected()
                                         }>
                                             <FollowAndAuthCanLoader
                                                 user_principal=user_principal
@@ -1180,16 +1176,6 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                                                     followers_count.update(|c| *c = c.saturating_sub(1));
                                                 })
                                             />
-                                        </Show>
-                                        <Show when=move || {
-                                            !is_connected() && user_principal == authenticated_princ
-                                        }>
-                                            <div class="w-full">
-                                                <ConnectLogin
-                                                    cta_location="profile"
-                                                    redirect_to=format!("/profile/posts")
-                                                />
-                                            </div>
                                         </Show>
                                     }
                                     })
@@ -1212,6 +1198,7 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                     user_principal=user_principal
                     username=username_or_fallback.clone()
                     initial_tab=popup_initial_tab.get_untracked()
+                    viewer_is_connected=is_connected()
                 />
             </Show>
         </div>
