@@ -185,52 +185,52 @@ base64 = "0.22"
 # ===
 # Uncomment the below lines for testing out yral-common changes locally
 # ===
-sns-validation = { path = "../yral-common/sns-validation" }
-yral-types = { path = "../yral-common/types" }
-yral-canisters-client = { path = "../yral-common/canisters-client", features = [
-    "full",
-] }
-yral-canisters-common = { path = "../yral-common/canisters-common" }
-hon-worker-common = { path = "../yral-common/hon-worker-common", features = [
-    "client",
-], version = "0.1.0" }
-yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features = [
-    "client",
-], version = "0.1.0" }
-global-constants = { path = "../yral-common/global-constants" }
-yral-identity = { path = "../yral-common/identity", default-features = false, features = [
-    "ic-git",
-    "wasm-bindgen",
-] }
-videogen-common = { path = "../yral-common/videogen-common", features = [
-    "client",
-    "ic",
-] }
-yral-username-gen = { path = "../yral-common/username-gen" }
-# ===
-
-# yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
-#     "client",
-# ], branch = "user-profile", version = "0.1.0" }
-# sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile" }
-# yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile" }
-# yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile", features = [
+# sns-validation = { path = "../yral-common/sns-validation" }
+# yral-types = { path = "../yral-common/types" }
+# yral-canisters-client = { path = "../yral-common/canisters-client", features = [
 #     "full",
 # ] }
-# yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile" }
-# hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
+# yral-canisters-common = { path = "../yral-common/canisters-common" }
+# hon-worker-common = { path = "../yral-common/hon-worker-common", features = [
 #     "client",
-# ], branch = "user-profile"}
-# global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile" }
-# yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile", default-features = false, features = [
+# ], version = "0.1.0" }
+# yral-pump-n-dump-common = { path = "../yral-common/pump-n-dump-common", features = [
+#     "client",
+# ], version = "0.1.0" }
+# global-constants = { path = "../yral-common/global-constants" }
+# yral-identity = { path = "../yral-common/identity", default-features = false, features = [
 #     "ic-git",
 #     "wasm-bindgen",
 # ] }
-# videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile", features = [
+# videogen-common = { path = "../yral-common/videogen-common", features = [
 #     "client",
 #     "ic",
 # ] }
-# yral-username-gen = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile" }
+# yral-username-gen = { path = "../yral-common/username-gen" }
+# ===
+
+yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
+    "client",
+], branch = "user-profile", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile", features = [
+    "full",
+] }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile" }
+hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
+    "client",
+], branch = "user-profile" }
+global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile" }
+yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile", default-features = false, features = [
+    "ic-git",
+    "wasm-bindgen",
+] }
+videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile", features = [
+    "client",
+    "ic",
+] }
+yral-username-gen = { git = "https://github.com/dolr-ai/yral-common.git", branch = "user-profile" }
 
 # OpenTelemetry dependencies for telemetry_axum
 opentelemetry = { version = "0.24.0", features = ["trace"] }
