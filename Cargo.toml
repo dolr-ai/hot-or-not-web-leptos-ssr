@@ -186,7 +186,7 @@ base64 = "0.22"
 # Uncomment the below lines for testing out yral-common changes locally
 # ===
 # sns-validation = { path = "../yral-common/sns-validation" }
-# yral-types = { path = "../yral-common/types" }    
+# yral-types = { path = "../yral-common/types" }
 # yral-canisters-client = { path = "../yral-common/canisters-client", features = [
 #     "full",
 # ] }
@@ -219,7 +219,7 @@ yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", br
 yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], branch = "master"}
+], branch = "master" }
 global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", default-features = false, features = [
     "ic-git",
@@ -237,7 +237,7 @@ opentelemetry-otlp = { version = "0.17.0", default-features = false, features = 
     "reqwest-rustls",
     "http-proto",
     "tls",
-    "grpc-tonic"
+    "grpc-tonic",
 ] }
 opentelemetry-appender-tracing = { version = "0.5.0" }
 opentelemetry-http = { version = "0.13.0" }
