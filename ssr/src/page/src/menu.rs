@@ -245,7 +245,6 @@ pub fn Menu() -> impl IntoView {
             </div>
             <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
                 <MenuItem click_cta_type=MixpanelMenuClickedCTAType::ReferAndEarn href="/refer-earn" text="Refer & Earn" icon=icondata::AiGiftFilled />
-                <MenuItem click_cta_type=MixpanelMenuClickedCTAType::Leaderboard href="/leaderboard" text="Leaderboard" icon=icondata::ChTrophy />
                 <MenuItem
                     click_cta_type=MixpanelMenuClickedCTAType::TalkToTheTeam
                     href=domain_specific_href("TELEGRAM")

@@ -1,11 +1,9 @@
-mod bet;
 pub mod error;
 pub mod overlay;
 pub mod single_post;
 pub mod video_iter;
 pub mod video_loader;
 use crate::scrolling_post_view::{PostDetailResolver, ScrollingPostView};
-use component::leaderboard::{api::fetch_user_rank_from_api, RankUpdateCounter, UserRank};
 use component::spinner::FullScreenSpinner;
 use consts::{MAX_VIDEO_ELEMENTS_FOR_FEED, NSFW_ENABLED_COOKIE};
 use global_constants::{DEFAULT_BET_COIN_FOR_LOGGED_IN, DEFAULT_BET_COIN_FOR_LOGGED_OUT};
@@ -447,59 +445,6 @@ pub fn PostView() -> impl IntoView {
             DEFAULT_BET_COIN_FOR_LOGGED_OUT
         },
     ));
-
-    // Create a single global Resource for fetching rank
-    let rank_update_count = use_context::<RwSignal<RankUpdateCounter>>()
-        .expect("RankUpdateCounter should be provided globally");
-    let global_rank =
-        use_context::<RwSignal<UserRank>>().expect("UserRank should be provided globally");
-
-    let global_rank_resource = auth.derive_resource(
-        move || rank_update_count.get().0,
-        move |cans, counter| {
-            let global_rank = global_rank;
-            async move {
-                // If we already have a rank and counter is 0, return cached value
-                if counter == 0 {
-                    let cached = global_rank.get_untracked();
-                    if cached.rank.is_some() {
-                        return Ok(cached);
-                    }
-                }
-
-                // Get user principal from canisters
-                let principal = cans.user_principal();
-
-                // Fetch rank and tournament status from API
-                match fetch_user_rank_from_api(principal).await {
-                    Ok(Some((rank, status))) => {
-                        // Update global rank value
-                        let user_rank = UserRank {
-                            rank: Some(rank),
-                            tournament_status: Some(status),
-                        };
-                        global_rank.set(user_rank.clone());
-                        Ok(user_rank)
-                    }
-                    Ok(None) => {
-                        leptos::logging::log!("PostView: No rank found for user");
-                        Ok(UserRank {
-                            rank: None,
-                            tournament_status: None,
-                        })
-                    }
-                    Err(e) => {
-                        leptos::logging::error!("PostView: Failed to fetch user rank: {}", e);
-                        Ok(UserRank {
-                            rank: None,
-                            tournament_status: None,
-                        })
-                    }
-                }
-            }
-        },
-    );
-    provide_context(global_rank_resource);
 
     let canisters = unauth_canisters();
     let post_details_cache: PostDetailsCacheCtx = expect_context();
