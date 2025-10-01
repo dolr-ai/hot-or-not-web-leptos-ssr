@@ -8,6 +8,7 @@ use videogen_common::{
     ProviderInfo, VideoGenClient, VideoGenQueuedResponseV2, VideoGenRequestStatus,
     VideoGenRequestV2, VideoGenRequestWithIdentityV2,
 };
+use yral_canisters_common::Canisters;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
 // Server function to download AI video and upload using existing worker flow
@@ -194,13 +195,10 @@ pub async fn generate_and_upload_video(
     const POLL_INTERVAL_SECS: u64 = 15;
     const MAX_ATTEMPTS: u32 = 20; // 20 * 15 = 300 seconds = 5 minutes
 
-    // Get rate limits client using the async context
-    let auth_state = use_context::<state::canisters::AuthState>()
-        .ok_or_else(|| ServerFnError::new("Auth state not found".to_string()))?;
-    let canisters = auth_state
-        .auth_cans()
+    // Create canisters from delegated identity wire
+    let canisters = Canisters::authenticate_with_network(delegated_identity.clone())
         .await
-        .map_err(|e| ServerFnError::new(format!("Failed to get auth canisters: {e}")))?;
+        .map_err(|e| ServerFnError::new(format!("Failed to create canisters: {e}")))?;
     let rate_limits_client = canisters.rate_limits().await;
 
     let mut final_url: Option<String> = None;
