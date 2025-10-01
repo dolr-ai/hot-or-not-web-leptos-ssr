@@ -210,22 +210,22 @@ base64 = "0.22"
 
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], branch = "new_videogen_api", version = "0.1.0" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api", features = [
+], branch = "master", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], branch = "new_videogen_api" }
-global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api" }
-yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api", default-features = false, features = [
+], branch = "master" }
+global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", default-features = false, features = [
     "ic-git",
     "wasm-bindgen",
 ] }
-videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "new_videogen_api", features = [
+videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
     "client",
     "ic",
 ] }
