@@ -210,22 +210,22 @@ base64 = "0.22"
 
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], rev = "03f5eef3c9c598864df07a604772c126d440cc84", version = "0.1.0" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", rev = "03f5eef3c9c598864df07a604772c126d440cc84" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", rev = "03f5eef3c9c598864df07a604772c126d440cc84" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev = "03f5eef3c9c598864df07a604772c126d440cc84", features = [
+], rev = "c35ef50e334954eb1a641e430e77ecab2b35decf", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", rev = "c35ef50e334954eb1a641e430e77ecab2b35decf" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", rev = "c35ef50e334954eb1a641e430e77ecab2b35decf" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev = "c35ef50e334954eb1a641e430e77ecab2b35decf", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "03f5eef3c9c598864df07a604772c126d440cc84" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "c35ef50e334954eb1a641e430e77ecab2b35decf" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], rev = "03f5eef3c9c598864df07a604772c126d440cc84" }
-global-constants = { git = "https://github.com/dolr-ai/yral-common.git", rev = "03f5eef3c9c598864df07a604772c126d440cc84" }
-yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", rev = "03f5eef3c9c598864df07a604772c126d440cc84", default-features = false, features = [
+], rev = "c35ef50e334954eb1a641e430e77ecab2b35decf" }
+global-constants = { git = "https://github.com/dolr-ai/yral-common.git", rev = "c35ef50e334954eb1a641e430e77ecab2b35decf" }
+yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", rev = "c35ef50e334954eb1a641e430e77ecab2b35decf", default-features = false, features = [
     "ic-git",
     "wasm-bindgen",
 ] }
-videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "03f5eef3c9c598864df07a604772c126d440cc84", features = [
+videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "c35ef50e334954eb1a641e430e77ecab2b35decf", features = [
     "client",
     "ic",
 ] }
