@@ -11,10 +11,9 @@ use videogen_common::{
 use yral_canisters_common::Canisters;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
-// Server function to download AI video and upload using existing worker flow
+// Internal function to download AI video and upload using existing worker flow
 // TODO: shift to direct URL upload to Cloudflare Stream
-#[server(endpoint = "upload_ai_video_from_url", input = Json, output = Json)]
-pub async fn upload_ai_video_from_url(
+async fn upload_ai_video_from_url_impl(
     video_url: String,
     hashtags: Vec<String>,
     description: String,
@@ -151,6 +150,27 @@ pub async fn upload_ai_video_from_url(
     Ok(video_uid)
 }
 
+// Server function wrapper for upload_ai_video_from_url_impl
+#[server(endpoint = "upload_ai_video_from_url", input = Json, output = Json)]
+pub async fn upload_ai_video_from_url(
+    video_url: String,
+    hashtags: Vec<String>,
+    description: String,
+    delegated_identity_wire: DelegatedIdentityWire,
+    is_nsfw: bool,
+    enable_hot_or_not: bool,
+) -> Result<String, ServerFnError> {
+    upload_ai_video_from_url_impl(
+        video_url,
+        hashtags,
+        description,
+        delegated_identity_wire,
+        is_nsfw,
+        enable_hot_or_not,
+    )
+    .await
+}
+
 // Server function that handles the complete video generation flow:
 // 1. Initiate video generation with identity
 // 2. Poll for completion (up to 5 minutes)
@@ -251,7 +271,7 @@ pub async fn generate_and_upload_video(
     leptos::logging::log!("Video ready at URL: {}", video_url);
 
     // Step 3: Upload the completed video
-    upload_ai_video_from_url(
+    upload_ai_video_from_url_impl(
         video_url,
         hashtags,
         description,
