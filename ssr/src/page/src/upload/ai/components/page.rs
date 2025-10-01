@@ -1,11 +1,9 @@
 use super::{PreUploadAiView, VideoGenerationLoadingScreen};
 use crate::upload::ai::components::PostUploadScreenAi;
-use crate::upload::ai::helpers::{
-    create_video_request_v2, execute_video_generation_with_identity_v2, get_auth_canisters,
-};
-use crate::upload::ai::server::upload_ai_video_from_url;
+use crate::upload::ai::helpers::{create_video_request_v2, get_auth_canisters};
+use crate::upload::ai::server::generate_and_upload_video;
 use crate::upload::ai::types::VideoGenerationParams;
-use crate::upload::ai::types::{UploadActionParams, AI_VIDEO_PARAMS_STORE};
+use crate::upload::ai::types::AI_VIDEO_PARAMS_STORE;
 use auth::delegate_short_lived_identity;
 use codee::string::JsonSerdeCodec;
 use component::notification_nudge::NotificationNudge;
@@ -13,7 +11,7 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_use::storage::use_local_storage;
 use state::canisters::auth_state;
-use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, MixpanelPostGameType};
+use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps};
 
 #[component]
 pub fn UploadAiPostPage() -> impl IntoView {
@@ -24,11 +22,8 @@ pub fn UploadAiPostPage() -> impl IntoView {
     let notification_nudge = RwSignal::new(false);
     let show_success_modal = RwSignal::new(false);
 
-    // Loading state for different phases
-    let loading_state = RwSignal::new("generating".to_string());
-
-    // Store generated video URL for upload
-    let generated_video_url = RwSignal::new(None::<String>);
+    // Store generated video UID after complete flow
+    let video_uid = RwSignal::new(None::<String>);
 
     // Local storage for video generation parameters (for regeneration)
     let (stored_params, set_stored_params, _) =
@@ -38,12 +33,14 @@ pub fn UploadAiPostPage() -> impl IntoView {
     let auth = auth_state();
     let ev_ctx = auth.event_ctx();
 
-    // Video generation action - cleaned up with helper functions
+    // Video generation action - now calls server function that handles entire flow atomically
     let generate_action: Action<VideoGenerationParams, Result<String, String>> =
         Action::new_unsync({
             move |params: &VideoGenerationParams| {
                 let params = params.clone();
                 let show_form = show_form;
+                let notification_nudge = notification_nudge;
+                let show_success_modal = show_success_modal;
 
                 async move {
                     // Store provider name for tracking
@@ -67,22 +64,39 @@ pub fn UploadAiPostPage() -> impl IntoView {
                     .map_err(|e| e.to_string())?;
 
                     let delegated_identity = delegate_short_lived_identity(identity);
-                    let result = execute_video_generation_with_identity_v2(
+
+                    // Track video upload initiated
+                    if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
+                        MixPanelEvent::track_video_upload_initiated(
+                            global,
+                            false, // caption_added
+                            false, // hashtags_added
+                            Some("ai_video".to_string()),
+                            format!("{:?}", params.token_type).to_lowercase(),
+                        );
+                    }
+
+                    // Call server function that handles generation + polling + upload atomically
+                    let result = generate_and_upload_video(
                         request,
                         delegated_identity,
-                        &canisters,
+                        vec![],         // hashtags
+                        "".to_string(), // description
+                        false,          // is_nsfw
+                        false,          // enable_hot_or_not
                     )
-                    .await;
+                    .await
+                    .map_err(|e| e.to_string());
 
                     // Track video generation result
                     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                         match &result {
-                            Ok(_) => {
+                            Ok(_video_uid) => {
                                 MixPanelEvent::track_ai_video_generated(
                                     global,
                                     true,
                                     None,
-                                    provider_name,
+                                    provider_name.clone(),
                                     format!("{:?}", params.token_type).to_lowercase(),
                                 );
                             }
@@ -98,10 +112,12 @@ pub fn UploadAiPostPage() -> impl IntoView {
                         }
                     }
 
-                    // Update UI state on success and trigger upload
-                    if let Ok(video_url) = &result {
+                    // Update UI state on success
+                    if let Ok(uid) = &result {
                         show_form.set(false);
-                        generated_video_url.set(Some(video_url.clone()));
+                        notification_nudge.set(false);
+                        show_success_modal.set(true);
+                        video_uid.set(Some(uid.clone()));
                     }
 
                     result
@@ -109,106 +125,12 @@ pub fn UploadAiPostPage() -> impl IntoView {
             }
         });
 
-    // Upload action - handles server-side video download and upload
-    let upload_action: Action<UploadActionParams, Result<String, String>> = Action::new_unsync({
-        move |params: &UploadActionParams| {
-            let params = params.clone();
-            let notification_nudge = notification_nudge;
-            let show_success_modal = show_success_modal;
-            let loading_state = loading_state;
-            async move {
-                // Update loading state to uploading
-                loading_state.set("uploading".to_string());
-                // Show notification nudge when starting upload
-                notification_nudge.set(true);
-
-                // Track video upload initiated for AI video
-                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                    MixPanelEvent::track_video_upload_initiated(
-                        global,
-                        false, // caption_added - we're not using captions for AI videos
-                        false, // hashtags_added - we're not using hashtags for AI videos
-                        Some("ai_video".to_string()),
-                        format!("{:?}", params.token_type).to_lowercase(),
-                    );
-                }
-
-                // Get delegated identity within the Action
-                match auth.auth_cans().await {
-                    Ok(canisters) => {
-                        let id = canisters.identity();
-                        let delegated_identity = delegate_short_lived_identity(id);
-
-                        // Call server function with delegated identity
-                        match upload_ai_video_from_url(
-                            params.video_url,
-                            vec![],
-                            "".to_string(),
-                            delegated_identity,
-                            false, // is_nsfw
-                            false, // enable_hot_or_not
-                        )
-                        .await
-                        {
-                            Ok(video_uid) => {
-                                leptos::logging::log!(
-                                    "Video uploaded successfully with UID: {}",
-                                    video_uid
-                                );
-
-                                // Track video upload success for AI video
-                                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                                    MixPanelEvent::track_video_upload_success(
-                                        global,
-                                        video_uid.clone(),
-                                        global_constants::CREATOR_COMMISSION_PERCENT,
-                                        false, // is_game_enabled - AI videos don't have game enabled
-                                        MixpanelPostGameType::HotOrNot,
-                                        Some("ai_video".to_string()),
-                                        format!("{:?}", params.token_type).to_lowercase(),
-                                    );
-                                }
-
-                                // Show success modal
-                                show_success_modal.set(true);
-                                Ok(video_uid)
-                            }
-                            Err(e) => {
-                                leptos::logging::error!("Failed to upload video: {}", e);
-
-                                Err(format!("Upload failed: {e}"))
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        leptos::logging::error!("Failed to get auth canisters: {:?}", e);
-                        Err(format!("Auth failed: {e:?}"))
-                    }
-                }
-            }
-        }
-    });
-
-    // Effect to trigger upload after generation
-    Effect::new(move |_| {
-        if let Some(video_url) = generated_video_url.get() {
-            if !upload_action.pending().get() && !show_success_modal.get() {
-                leptos::logging::log!("Auto-uploading generated video: {}", video_url);
-                let token_type = stored_params.get().token_type;
-                upload_action.dispatch(UploadActionParams {
-                    video_url,
-                    token_type,
-                });
-            }
-        }
-    });
-
     view! {
         <Title text="YRAL AI - Upload" />
         <NotificationNudge pop_up=notification_nudge />
         <div class="w-full h-full">
             <Show
-                when=move || generate_action.pending().get() || upload_action.pending().get()
+                when=move || generate_action.pending().get()
                 fallback=move || {
                     view! {
                         <PreUploadAiView
@@ -221,7 +143,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                 <VideoGenerationLoadingScreen
                     prompt=stored_params.get().prompt.clone()
                     provider=stored_params.get().provider.clone()
-                    loading_state=loading_state.get()
+                    loading_state="processing".to_string()
                 />
             </Show>
         </div>
@@ -229,7 +151,9 @@ pub fn UploadAiPostPage() -> impl IntoView {
         // Success screen
         <Show when=move || show_success_modal.get()>
             <PostUploadScreenAi
-                video_url=generated_video_url.get().unwrap_or_default()
+                video_url=video_uid.get()
+                    .map(|uid| utils::stream_url(&uid))
+                    .unwrap_or_default()
             />
         </Show>
     }

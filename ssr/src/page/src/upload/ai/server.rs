@@ -4,7 +4,10 @@ use leptos::prelude::*;
 use leptos::server_fn::codec::Json;
 use serde_json::json;
 use utils::host::show_preview_component;
-use videogen_common::{ProviderInfo, VideoGenClient};
+use videogen_common::{
+    ProviderInfo, VideoGenClient, VideoGenQueuedResponseV2, VideoGenRequestStatus,
+    VideoGenRequestV2, VideoGenRequestWithIdentityV2,
+};
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
 // Server function to download AI video and upload using existing worker flow
@@ -145,6 +148,120 @@ pub async fn upload_ai_video_from_url(
     leptos::logging::log!("Successfully updated metadata for video: {}", video_uid);
 
     Ok(video_uid)
+}
+
+// Server function that handles the complete video generation flow:
+// 1. Initiate video generation with identity
+// 2. Poll for completion (up to 5 minutes)
+// 3. Upload the completed video
+// This runs entirely on the server, so it continues even if user navigates away
+#[server(endpoint = "generate_and_upload_video", input = Json, output = Json)]
+pub async fn generate_and_upload_video(
+    request: VideoGenRequestV2,
+    delegated_identity: DelegatedIdentityWire,
+    hashtags: Vec<String>,
+    description: String,
+    is_nsfw: bool,
+    enable_hot_or_not: bool,
+) -> Result<String, ServerFnError> {
+    leptos::logging::log!("Starting video generation and upload flow");
+
+    // Create client
+    let client = VideoGenClient::new(OFF_CHAIN_AGENT_URL.clone());
+
+    // Create request with identity for V2 API
+    let identity_request = VideoGenRequestWithIdentityV2 {
+        request,
+        delegated_identity: delegated_identity.clone(),
+    };
+
+    // Step 1: Initiate video generation
+    let queued_response: VideoGenQueuedResponseV2 = client
+        .generate_with_identity_v2(identity_request)
+        .await
+        .map_err(|e| {
+            leptos::logging::error!("Error generating video with identity: {}", e);
+            ServerFnError::new(format!("Failed to initiate video generation: {e}"))
+        })?;
+
+    let request_key = queued_response.request_key;
+    leptos::logging::log!(
+        "Video generation initiated with request_key: {:?}",
+        request_key
+    );
+
+    // Step 2: Poll for completion (15 second intervals for 5 minutes)
+    const POLL_INTERVAL_SECS: u64 = 15;
+    const MAX_ATTEMPTS: u32 = 20; // 20 * 15 = 300 seconds = 5 minutes
+
+    // Get rate limits client using the async context
+    let auth_state = use_context::<state::canisters::AuthState>()
+        .ok_or_else(|| ServerFnError::new("Auth state not found".to_string()))?;
+    let canisters = auth_state
+        .auth_cans()
+        .await
+        .map_err(|e| ServerFnError::new(format!("Failed to get auth canisters: {e}")))?;
+    let rate_limits_client = canisters.rate_limits().await;
+
+    let mut final_url: Option<String> = None;
+
+    for attempt in 0..MAX_ATTEMPTS {
+        // Wait before polling (except on first attempt)
+        if attempt > 0 {
+            tokio::time::sleep(tokio::time::Duration::from_secs(POLL_INTERVAL_SECS)).await;
+        }
+
+        leptos::logging::log!(
+            "Polling video status, attempt {}/{}",
+            attempt + 1,
+            MAX_ATTEMPTS
+        );
+
+        // Poll the status
+        match client
+            .poll_video_status_with_client(&request_key, &rate_limits_client)
+            .await
+        {
+            Ok(status) => match status {
+                VideoGenRequestStatus::Complete(video_url) => {
+                    leptos::logging::log!("Video generation completed: {}", video_url);
+                    final_url = Some(video_url);
+                    break;
+                }
+                VideoGenRequestStatus::Failed(error) => {
+                    leptos::logging::error!("Video generation failed: {}", error);
+                    return Err(ServerFnError::new(format!(
+                        "Video generation failed: {error}"
+                    )));
+                }
+                VideoGenRequestStatus::Pending | VideoGenRequestStatus::Processing => {
+                    leptos::logging::log!("Video generation in progress: {:?}", status);
+                    // Continue polling
+                }
+            },
+            Err(e) => {
+                leptos::logging::warn!("Error polling status (will retry): {}", e);
+                // Continue polling on transient errors
+            }
+        }
+    }
+
+    let video_url = final_url.ok_or_else(|| {
+        ServerFnError::new("Video generation timed out after 5 minutes".to_string())
+    })?;
+
+    leptos::logging::log!("Video ready at URL: {}", video_url);
+
+    // Step 3: Upload the completed video
+    upload_ai_video_from_url(
+        video_url,
+        hashtags,
+        description,
+        delegated_identity,
+        is_nsfw,
+        enable_hot_or_not,
+    )
+    .await
 }
 
 // Server function to fetch available video generation providers from the API
