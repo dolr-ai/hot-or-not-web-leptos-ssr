@@ -7,7 +7,7 @@ use yral_types::post::FeedResponseV3;
 use yral_types::post::PostItemV3;
 
 const RECOMMENDATION_SERVICE_URL: &str =
-    "https://recommendation-service-82502260393.us-central1.run.app/v2/recommendations";
+    "https://recommendation-service-stage-82502260393.us-central1.run.app/v2/recommendations";
 
 /// Piece of post details that should be available as quickly as possible to ensure fast loading of the infinite scroller
 #[derive(Clone)]
