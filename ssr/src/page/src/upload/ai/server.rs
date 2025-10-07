@@ -188,6 +188,9 @@ async fn generate_video_server_side(
     delegated_identity: CanistersAuthWire,
     canisters: &Canisters<true>,
 ) -> Result<String, ServerFnError> {
+    // Get rate limits client FIRST (exactly like main does it)
+    let rate_limits = canisters.rate_limits().await;
+
     let videogen_client = VideoGenClient::new(OFF_CHAIN_AGENT_URL.clone());
 
     let identity_request = VideoGenRequestWithIdentityV2 {
@@ -203,10 +206,8 @@ async fn generate_video_server_side(
 
     let request_key = queued_response.request_key;
 
-    let rate_limits = canisters.rate_limits().await;
-
     const POLL_INTERVAL_SECS: u64 = 15;
-    const MAX_ATTEMPTS: u32 = 20; // 5 minutes total
+    const MAX_ATTEMPTS: u32 = 100;
 
     for attempt in 0..MAX_ATTEMPTS {
         if attempt > 0 {
@@ -357,7 +358,7 @@ pub async fn upload_ai_video_from_url(
     // Step 4: Update metadata using types from video_upload.rs
     let metadata_request = json!({
         "video_uid": video_uid,
-        "delegated_identity_wire": delegated_identity_wire,
+        "delegated_identity_wire": delegated_identity_wire.id,
         "meta": VideoMetadata{
             title: description.clone(),
             description: description.clone(),
