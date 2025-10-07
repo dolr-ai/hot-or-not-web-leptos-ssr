@@ -25,6 +25,7 @@ pub struct VideoMetadata {
     pub title: String,
     pub description: String,
     pub tags: String,
+    pub is_ai: bool,
 }
 
 #[derive(Serialize)]

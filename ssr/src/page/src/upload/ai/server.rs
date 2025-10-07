@@ -362,7 +362,8 @@ pub async fn upload_ai_video_from_url(
         "meta": VideoMetadata{
             title: description.clone(),
             description: description.clone(),
-            tags: hashtags.join(",")
+            tags: hashtags.join(","),
+            is_ai: true
         },
         "post_details": SerializablePostDetailsFromFrontend{
             is_nsfw,
