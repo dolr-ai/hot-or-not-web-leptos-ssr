@@ -3,7 +3,6 @@ use crate::upload::ai::components::PostUploadScreenAi;
 use crate::upload::ai::server::{generate_and_upload_ai_video, ProviderInfoSerde};
 use crate::upload::ai::types::VideoGenerationParams;
 use crate::upload::ai::types::AI_VIDEO_PARAMS_STORE;
-use auth::delegate_short_lived_identity;
 use codee::string::JsonSerdeCodec;
 use component::notification_nudge::NotificationNudge;
 use leptos::prelude::*;
@@ -11,6 +10,7 @@ use leptos_meta::Title;
 use leptos_use::storage::use_local_storage;
 use state::canisters::auth_state;
 use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, MixpanelPostGameType};
+use yral_canisters_common::CanistersAuthWire;
 
 #[component]
 pub fn UploadAiPostPage() -> impl IntoView {
@@ -56,7 +56,6 @@ pub fn UploadAiPostPage() -> impl IntoView {
                         .auth_cans()
                         .await
                         .map_err(|e| format!("Failed to get auth canisters: {e:?}"))?;
-                    let delegated_identity = delegate_short_lived_identity(canisters.identity());
 
                     // Convert provider to serializable form
                     let provider_serde = ProviderInfoSerde {
@@ -93,7 +92,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                         params.image_data.clone(),
                         params.audio_data.clone(),
                         params.token_type,
-                        delegated_identity,
+                        CanistersAuthWire::from(canisters),
                     )
                     .await;
 

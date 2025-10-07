@@ -13,7 +13,7 @@ use videogen_common::{
     VideoGenQueuedResponseV2, VideoGenRequestStatus, VideoGenRequestV2,
     VideoGenRequestWithIdentityV2,
 };
-use yral_types::delegated_identity::DelegatedIdentityWire;
+use yral_canisters_common::{Canisters, CanistersAuthWire};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ProviderInfoSerde {
@@ -36,7 +36,7 @@ pub async fn generate_and_upload_ai_video(
     image_data: Option<String>,
     audio_data: Option<String>,
     token_type: TokenType,
-    delegated_identity_wire: DelegatedIdentityWire,
+    delegated_identity_wire: CanistersAuthWire,
 ) -> Result<String, ServerFnError> {
     leptos::logging::log!("Starting combined video generation and upload");
 
@@ -152,9 +152,16 @@ pub async fn generate_and_upload_ai_video(
         extra_params: HashMap::new(),
     };
 
+    // Get canisters for rate limits (create from delegated identity wire)
+    let base_canisters = Canisters::default();
+    let canisters =
+        Canisters::<true>::from_wire(delegated_identity_wire.clone(), base_canisters)
+            .map_err(|e| ServerFnError::new(format!("Failed to create canisters: {e:?}")))?;
+
     // Generate video
     leptos::logging::log!("Calling video generation API");
-    let video_url = generate_video_server_side(request, delegated_identity_wire.clone()).await?;
+    let video_url =
+        generate_video_server_side(request, delegated_identity_wire.clone(), &canisters).await?;
     leptos::logging::log!("Video generated successfully: {}", video_url);
 
     // Upload video
@@ -178,13 +185,14 @@ pub async fn generate_and_upload_ai_video(
 // Helper function for server-side video generation with polling
 async fn generate_video_server_side(
     request: VideoGenRequestV2,
-    delegated_identity: DelegatedIdentityWire,
+    delegated_identity: CanistersAuthWire,
+    canisters: &Canisters<true>,
 ) -> Result<String, ServerFnError> {
     let videogen_client = VideoGenClient::new(OFF_CHAIN_AGENT_URL.clone());
 
     let identity_request = VideoGenRequestWithIdentityV2 {
         request,
-        delegated_identity,
+        delegated_identity: delegated_identity.id,
     };
 
     // Get the queued response with request_key
@@ -195,17 +203,10 @@ async fn generate_video_server_side(
 
     let request_key = queued_response.request_key;
 
-    // Poll for status using direct HTTP requests (server-side polling with tokio::time::sleep)
+    let rate_limits = canisters.rate_limits().await;
+
     const POLL_INTERVAL_SECS: u64 = 15;
     const MAX_ATTEMPTS: u32 = 20; // 5 minutes total
-
-    let http_client = reqwest::Client::new();
-    let poll_url = format!(
-        "{}/api/v2/video/poll/{}/{}",
-        OFF_CHAIN_AGENT_URL.as_str(),
-        request_key.principal,
-        request_key.counter
-    );
 
     for attempt in 0..MAX_ATTEMPTS {
         if attempt > 0 {
@@ -216,38 +217,29 @@ async fn generate_video_server_side(
             gloo::timers::future::sleep(std::time::Duration::from_secs(POLL_INTERVAL_SECS)).await;
         }
 
-        match http_client.get(&poll_url).send().await {
-            Ok(response) => {
-                if response.status().is_success() {
-                    match response.json::<VideoGenRequestStatus>().await {
-                        Ok(status) => match status {
-                            VideoGenRequestStatus::Complete(video_url) => {
-                                leptos::logging::log!("Video generation completed: {}", video_url);
-                                return Ok(video_url);
-                            }
-                            VideoGenRequestStatus::Failed(error) => {
-                                return Err(ServerFnError::new(format!(
-                                    "Video generation failed: {error}"
-                                )));
-                            }
-                            VideoGenRequestStatus::Pending | VideoGenRequestStatus::Processing => {
-                                leptos::logging::log!(
-                                    "Video generation in progress (attempt {}/{})",
-                                    attempt + 1,
-                                    MAX_ATTEMPTS
-                                );
-                            }
-                        },
-                        Err(e) => {
-                            leptos::logging::log!("Error parsing poll response: {}", e);
-                            // Continue polling on parse errors
-                        }
-                    }
-                } else {
-                    leptos::logging::log!("Poll request failed with status: {}", response.status());
-                    // Continue polling on HTTP errors
+        match videogen_client
+            .poll_video_status_with_client(&request_key, &rate_limits)
+            .await
+        {
+            Ok(status) => match status {
+                VideoGenRequestStatus::Complete(video_url) => {
+                    leptos::logging::log!("Video generation completed: {}", video_url);
+                    return Ok(video_url);
                 }
-            }
+                VideoGenRequestStatus::Failed(error) => {
+                    return Err(ServerFnError::new(format!(
+                        "Video generation failed: {error}"
+                    )));
+                }
+                VideoGenRequestStatus::Pending | VideoGenRequestStatus::Processing => {
+                    leptos::logging::log!(
+                        "Video generation in progress (attempt {}/{})",
+                        attempt + 1,
+                        MAX_ATTEMPTS
+                    );
+                    // Continue polling
+                }
+            },
             Err(e) => {
                 leptos::logging::log!("Error polling status: {}", e);
                 // Continue polling on transient errors
@@ -266,7 +258,7 @@ pub async fn upload_ai_video_from_url(
     video_url: String,
     hashtags: Vec<String>,
     description: String,
-    delegated_identity_wire: DelegatedIdentityWire,
+    delegated_identity_wire: CanistersAuthWire,
     is_nsfw: bool,
     enable_hot_or_not: bool,
 ) -> Result<String, ServerFnError> {
