@@ -100,7 +100,7 @@ pub fn UploadAiPostPage() -> impl IntoView {
                     // Track result
                     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                         match &result {
-                            Ok(video_uid) => {
+                            Ok(video_url) => {
                                 // Track generation success
                                 MixPanelEvent::track_ai_video_generated(
                                     global.clone(),
@@ -110,10 +110,10 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                     token_type_str.clone(),
                                 );
 
-                                // Track upload success
+                                // Track upload success (we don't have video_uid, use video_url)
                                 MixPanelEvent::track_video_upload_success(
                                     global,
-                                    video_uid.clone(),
+                                    video_url.clone(),
                                     global_constants::CREATOR_COMMISSION_PERCENT,
                                     false,
                                     MixpanelPostGameType::HotOrNot,
@@ -135,13 +135,12 @@ pub fn UploadAiPostPage() -> impl IntoView {
 
                     // Handle success
                     match result {
-                        Ok(video_uid) => {
-                            // Note: we don't have the actual video URL from the server function
-                            // but we don't need it since we have the video_uid
-                            generated_video_url.try_set(Some(video_uid.clone()));
+                        Ok(video_url) => {
+                            // Store the video URL for preview
+                            generated_video_url.try_set(Some(video_url.clone()));
                             show_success_modal.try_set(true);
                             notification_nudge.try_set(true);
-                            Ok(video_uid)
+                            Ok(video_url)
                         }
                         Err(e) => {
                             leptos::logging::error!("Failed to generate and upload video: {}", e);

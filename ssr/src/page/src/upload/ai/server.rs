@@ -160,7 +160,7 @@ pub async fn generate_and_upload_ai_video(
     // Upload video
     leptos::logging::log!("Uploading video to platform");
     let video_uid = upload_ai_video_from_url(
-        video_url,
+        video_url.clone(),
         vec![],
         "".to_string(),
         delegated_identity_wire,
@@ -170,7 +170,9 @@ pub async fn generate_and_upload_ai_video(
     .await?;
 
     leptos::logging::log!("Video uploaded successfully with UID: {}", video_uid);
-    Ok(video_uid)
+
+    // Return the original video URL for preview (not the video_uid)
+    Ok(video_url)
 }
 
 // Helper function for server-side video generation with polling
