@@ -77,7 +77,7 @@ impl VideoWatchedHandler {
             let source = if location.pathname.get_untracked().contains("/profile/") {
                 "profile"
             } else {
-                "feed"  // Default to feed for /hot-or-not/ and /post/ routes
+                "feed" // Default to feed for /hot-or-not/ and /post/ routes
             };
 
             let (video_watched, set_video_watched) = signal(false);
@@ -101,7 +101,13 @@ impl VideoWatchedHandler {
             };
             self.setup_timeupdate_listener(ctx, vid_details, container_ref, params, source);
 
-            self.setup_pause_listener(ctx, vid_details, container_ref, self.progress_tracker, source);
+            self.setup_pause_listener(
+                ctx,
+                vid_details,
+                container_ref,
+                self.progress_tracker,
+                source,
+            );
 
             self.setup_mute_listener(ctx, vid_details, muted, is_current);
         }
