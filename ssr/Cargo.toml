@@ -92,7 +92,7 @@ sentry-tower = { workspace = true, optional = true }
 telemetry_axum = { workspace = true, optional = true }
 opentelemetry_sdk = { workspace = true, optional = true }
 google-cloud-alloydb-v1 = { workspace = true, optional = true }
-google-cloud-auth = { version = "0.22.1", optional = true }
+google-cloud-auth = { version = "1.0.0", optional = true }
 jsonwebtoken = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
 dolr-airdrop = { workspace = true, optional = true }
