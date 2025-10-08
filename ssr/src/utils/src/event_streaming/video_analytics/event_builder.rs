@@ -34,6 +34,10 @@ pub struct VideoEventData {
     pub absolute_watched: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub video_duration: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub client_type: Option<String>,
 }
 
 pub struct VideoEventDataBuilder {
@@ -71,6 +75,8 @@ impl VideoEventDataBuilder {
                 percentage_watched: None,
                 absolute_watched: None,
                 video_duration: None,
+                source: None,
+                client_type: Some("web".to_string()),
             },
         }
     }
@@ -106,6 +112,8 @@ impl VideoEventDataBuilder {
                 percentage_watched: None,
                 absolute_watched: None,
                 video_duration: None,
+                source: None,
+                client_type: Some("web".to_string()),
             },
         }
     }
@@ -141,6 +149,11 @@ impl VideoEventDataBuilder {
 
     pub fn with_shares(mut self, shares: u64) -> Self {
         self.data.share_count = shares;
+        self
+    }
+
+    pub fn with_source(mut self, source: &str) -> Self {
+        self.data.source = Some(source.to_string());
         self
     }
 
