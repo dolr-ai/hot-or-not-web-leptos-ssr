@@ -15,7 +15,7 @@ function tracesSampler(samplingContext) {
 }
 
 Sentry.init({
-  dsn: "https://3f7d672f8461961bd7b6bec57acf7f18@sentry.yral.com/3",
+  dsn: "https://9e55a16e81e743d1be0d5388fdfe385a@apm.yral.com/2",
   integrations: [
     Sentry.browserTracingIntegration(),
     Sentry.captureConsoleIntegration(),

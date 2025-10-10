@@ -100,7 +100,7 @@ jobs:
       - name: Setup Sentry CLI
         uses: matbour/setup-sentry-cli@v2
         with:
-          url: https://sentry.yral.com
+          url: https://apm.yral.com
           token: ${{ secrets.SENTRY_AUTH_TOKEN }}
           organization: sentry
           project: leptos-ssr-server
