@@ -382,8 +382,8 @@ fn main() {
         "https://4dc7a6ab39ddb337478982cd49f78524@apm.yral.com/3",
         sentry::ClientOptions {
             release: sentry::release_name!(),
-            debug: true,
-            traces_sample_rate: 1.0,
+            // debug: false,
+            traces_sample_rate: 0.4,
             ..Default::default()
         },
     ));
