@@ -1,6 +1,4 @@
 name: Build and Check linting for preview release
-permissions:
-  contents: read
 
 on:
   workflow_call:
