@@ -22,7 +22,7 @@ on:
 
 jobs:
   build_check:
-    runs-on: warp-ubuntu-latest-x64-32x
+    runs-on: self-hosted
     steps:
       - name: Set Swap Space # Needed to fix OOM error in runner
         uses: pierotofy/set-swap-space@master
