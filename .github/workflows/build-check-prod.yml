@@ -1,4 +1,6 @@
 name: Build and Check linting for prod release
+permissions:
+  contents: read
 
 on:
   workflow_call:
