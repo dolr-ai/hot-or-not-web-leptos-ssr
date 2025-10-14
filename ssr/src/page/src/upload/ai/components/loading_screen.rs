@@ -1,12 +1,12 @@
 use component::back_btn::BackButton;
 use leptos::prelude::*;
 use leptos_icons::*;
-use videogen_common::VideoModel;
+use videogen_common::ProviderInfo;
 
 #[component]
 pub fn VideoGenerationLoadingScreen(
     prompt: String,
-    model: VideoModel,
+    provider: ProviderInfo,
     loading_state: String,
 ) -> impl IntoView {
     let loading_state_1 = loading_state.clone();
@@ -30,10 +30,10 @@ pub fn VideoGenerationLoadingScreen(
                         <p class="text-neutral-300 text-sm leading-relaxed">{prompt}</p>
                     </div>
 
-                    // Model info
+                    // Provider info
                     <div class="flex items-center gap-2 px-4">
                         {
-                            match model.model_icon.clone() {
+                            match provider.model_icon.clone() {
                                 Some(icon_path) => view! {
                                     <img
                                         src=icon_path
@@ -48,9 +48,9 @@ pub fn VideoGenerationLoadingScreen(
                                 }.into_any()
                             }
                         }
-                        <span class="text-neutral-400 text-sm">{model.name}</span>
+                        <span class="text-neutral-400 text-sm">{provider.name}</span>
                         <span class="text-neutral-500 text-sm">|</span>
-                        <span class="text-neutral-500 text-xs">{model.description}</span>
+                        <span class="text-neutral-500 text-xs">{provider.description}</span>
                     </div>
                 </div>
             </div>

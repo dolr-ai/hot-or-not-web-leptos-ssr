@@ -11,20 +11,12 @@ on:
 
 jobs:
   build_check:
-    runs-on: warp-ubuntu-latest-x64-32x
+    runs-on: self-hosted
     steps:
-      - name: Set Swap Space # Needed to fix OOM error in runner
-        uses: pierotofy/set-swap-space@master
-        with:
-          swap-size-gb: 8
-
       - name: Checkout repo and submodules
         uses: actions/checkout@v3
         with:
           submodules: recursive
-
-      - name: Install mold linker
-        uses: rui314/setup-mold@v1
 
       - name: Rust Setup
         uses: dtolnay/rust-toolchain@master
@@ -36,7 +28,7 @@ jobs:
 
       - uses: cargo-bins/cargo-binstall@main
       - name: cargo-leptos setup
-        run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked
+        run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked --force
 
       - name: Cache rust dependencies and build output
         uses: Swatinem/rust-cache@v2
@@ -100,7 +92,7 @@ jobs:
       - name: Setup Sentry CLI
         uses: matbour/setup-sentry-cli@v2
         with:
-          url: https://sentry.yral.com
+          url: https://apm.yral.com
           token: ${{ secrets.SENTRY_AUTH_TOKEN }}
           organization: sentry
           project: leptos-ssr-server

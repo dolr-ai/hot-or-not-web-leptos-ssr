@@ -379,11 +379,11 @@ fn setup_telemetry() -> Option<(
 
 fn main() {
     let _guard = sentry::init((
-        "https://385626ba180040d470df02ac5ba1c6f4@sentry.yral.com/4",
+        "https://4dc7a6ab39ddb337478982cd49f78524@apm.yral.com/3",
         sentry::ClientOptions {
             release: sentry::release_name!(),
-            debug: true,
-            traces_sample_rate: 0.25,
+            // debug: false,
+            traces_sample_rate: 0.4,
             ..Default::default()
         },
     ));

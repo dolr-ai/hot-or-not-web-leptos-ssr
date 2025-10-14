@@ -71,6 +71,15 @@ impl VideoWatchedHandler {
     ) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
+            // Detect source from current pathname
+            use leptos_router::hooks::use_location;
+            let location = use_location();
+            let source = if location.pathname.get_untracked().contains("/profile/") {
+                "profile"
+            } else {
+                "feed" // Default to feed for /hot-or-not/ and /post/ routes
+            };
+
             let (video_watched, set_video_watched) = signal(false);
             let (full_video_watched, set_full_video_watched) = signal(false);
             let playing_started = RwSignal::new(false);
@@ -90,9 +99,15 @@ impl VideoWatchedHandler {
                 set_full_video_watched,
                 playing_started,
             };
-            self.setup_timeupdate_listener(ctx, vid_details, container_ref, params);
+            self.setup_timeupdate_listener(ctx, vid_details, container_ref, params, source);
 
-            self.setup_pause_listener(ctx, vid_details, container_ref, self.progress_tracker);
+            self.setup_pause_listener(
+                ctx,
+                vid_details,
+                container_ref,
+                self.progress_tracker,
+                source,
+            );
 
             self.setup_mute_listener(ctx, vid_details, muted, is_current);
         }
@@ -150,6 +165,7 @@ impl VideoWatchedHandler {
         vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         params: TimeUpdateListenerParams,
+        source: &'static str,
     ) {
         let _ = use_event_listener(container_ref, ev::timeupdate, move |evt| {
             use wasm_bindgen::JsCast;
@@ -178,6 +194,7 @@ impl VideoWatchedHandler {
             {
                 let event_data = VideoEventDataBuilder::from_context(&user, post, &ctx)
                     .with_completion(duration)
+                    .with_source(source)
                     .build();
 
                 send_event_warehouse_ssr_spawn(
@@ -225,6 +242,7 @@ impl VideoWatchedHandler {
         vid_details: Signal<Option<QuickPostDetails>>,
         container_ref: NodeRef<Video>,
         progress_tracker: VideoProgressTracker,
+        source: &'static str,
     ) {
         let _ = use_event_listener(container_ref, ev::pause, move |evt| {
             use wasm_bindgen::JsCast;
@@ -251,6 +269,7 @@ impl VideoWatchedHandler {
 
             let event_data = VideoEventDataBuilder::from_context(&user, post, &ctx)
                 .with_pause_progress(current_time, duration)
+                .with_source(source)
                 .build();
 
             send_event_warehouse_ssr_spawn(

@@ -1,8 +1,10 @@
 use super::types::{SerializablePostDetailsFromFrontend, UploadUrlResponse, VideoMetadata};
-use consts::UPLOAD_URL;
+use consts::{OFF_CHAIN_AGENT_URL, UPLOAD_URL};
 use leptos::prelude::*;
 use leptos::server_fn::codec::Json;
 use serde_json::json;
+use utils::host::show_preview_component;
+use videogen_common::{ProviderInfo, VideoGenClient};
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
 // Server function to download AI video and upload using existing worker flow
@@ -143,4 +145,39 @@ pub async fn upload_ai_video_from_url(
     leptos::logging::log!("Successfully updated metadata for video: {}", video_uid);
 
     Ok(video_uid)
+}
+
+// Server function to fetch available video generation providers from the API
+#[server(endpoint = "fetch_video_providers", input = Json, output = Json)]
+pub async fn fetch_video_providers() -> Result<Vec<ProviderInfo>, ServerFnError> {
+    let client = VideoGenClient::new(OFF_CHAIN_AGENT_URL.clone());
+    let is_preview = show_preview_component();
+
+    // Use get_providers_all for preview mode to include test models
+    let providers_result = if is_preview {
+        client.get_providers_all().await
+    } else {
+        client.get_providers().await
+    };
+
+    match providers_result {
+        Ok(providers_response) => {
+            // Filter out internal/test providers in non-preview mode
+            let providers = if !is_preview {
+                providers_response
+                    .providers
+                    .into_iter()
+                    .filter(|p| !p.is_internal)
+                    .collect()
+            } else {
+                providers_response.providers
+            };
+            Ok(providers)
+        }
+        Err(e) => {
+            leptos::logging::error!("Failed to fetch providers from API: {}", e);
+            // Return empty vector as fallback
+            Ok(Vec::new())
+        }
+    }
 }
