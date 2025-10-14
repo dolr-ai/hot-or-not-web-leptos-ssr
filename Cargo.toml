@@ -206,6 +206,7 @@ base64 = "0.22"
 #     "client",
 #     "ic",
 # ] }
+# yral-username-gen = { path = "../yral-common/username-gen" }
 # ===
 
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
@@ -229,6 +230,7 @@ videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch =
     "client",
     "ic",
 ] }
+yral-username-gen = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 
 # OpenTelemetry dependencies for telemetry_axum
 opentelemetry = { version = "0.24.0", features = ["trace"] }

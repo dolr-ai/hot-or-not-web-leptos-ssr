@@ -1,15 +1,19 @@
+#![allow(dead_code)]
+
+use codee::string::FromToStringCodec;
 use component::content_upload::AuthorizedUserToSeedContent;
-use component::content_upload::YoutubeUpload;
-use component::modal::Modal;
+use component::notification_toggle::NotificationToggle;
 use component::title::TitleText;
+use component::toggle::Toggle;
 use component::{connect::ConnectLogin, social::*};
-use leptos::either::Either;
-use leptos::html::Div;
-use leptos::portal::Portal;
+use consts::NSFW_ENABLED_COOKIE;
+use leptos::html::{Div, Input};
+use leptos::prelude::window;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_meta::*;
-use leptos_router::{components::Redirect, hooks::use_query_map};
+use leptos_router::{hooks::use_navigate, hooks::use_query_map};
+use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use state::app_state::AppState;
 use state::canisters::auth_state;
 use state::content_seed_client::ContentSeedClient;
@@ -33,15 +37,44 @@ fn MenuItem(
         }
     };
     view! {
-        <a on:click=move |_| track_menu_clicked.clone()()  href=href class="grid grid-cols-3 items-center w-full" target=target>
-            <div class="flex flex-row col-span-2 gap-4 items-center">
-                <Icon attr:class="text-2xl" icon=icon />
-                <span class="text-wrap">{text}</span>
+        <a on:click=move |_| track_menu_clicked.clone()()  href=href class="flex items-center justify-between w-full" target=target>
+            <div class="flex flex-row gap-4 items-center">
+                <Icon attr:class="text-xl" icon=icon />
+                <span class="text-base">{text}</span>
             </div>
-            <Icon attr:class="text-2xl justify-self-end" icon=icondata::AiRightOutlined />
+            <Icon attr:class="text-xl" icon=icondata::AiRightOutlined />
         </a>
     }
     .into_any()
+}
+
+#[component]
+fn MenuItemWithToggle(
+    #[prop(into)] text: String,
+    #[prop(into)] icon: icondata::Icon,
+    checked: Signal<bool>,
+    node_ref: NodeRef<Input>,
+) -> impl IntoView {
+    view! {
+        <div class="flex items-center justify-between w-full">
+            <div class="flex flex-row gap-4 items-center flex-1">
+                <Icon attr:class="text-xl flex-shrink-0" icon=icon />
+                <span class="text-base">{text}</span>
+            </div>
+            <div class="flex-shrink-0">
+                <Toggle checked=checked node_ref=node_ref />
+            </div>
+        </div>
+    }
+}
+
+#[component]
+fn SectionHeader(#[prop(into)] text: String) -> impl IntoView {
+    view! {
+        <div class="font-semibold text-xl text-neutral-50">
+            {text}
+        </div>
+    }
 }
 
 #[component]
@@ -89,7 +122,7 @@ fn ProfileLoading() -> impl IntoView {
 }
 
 #[component]
-fn ProfileLoaded(user_details: ProfileDetails) -> impl IntoView {
+fn ProfileLoaded(#[prop(into)] user_details: ProfileDetails) -> impl IntoView {
     view! {
         <img class="size-12 md:size-14 lg:size-16 rounded-full aspect-square object-cover" src=user_details.profile_pic_or_random() />
         <div class="flex flex-col gap-2 w-full">
@@ -111,6 +144,30 @@ pub fn Menu() -> impl IntoView {
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
 
+    // NSFW cookie management
+    let (is_nsfw_enabled, set_nsfw_enabled) = use_cookie_with_options::<bool, FromToStringCodec>(
+        NSFW_ENABLED_COOKIE,
+        UseCookieOptions::default()
+            .path("/")
+            .max_age(consts::auth::REFRESH_MAX_AGE.as_secs() as i64)
+            .same_site(leptos_use::SameSite::Lax),
+    );
+
+    let nsfw_toggle_ref = NodeRef::<Input>::new();
+    let nsfw_enabled_signal = Signal::derive(move || is_nsfw_enabled.get().unwrap_or(false));
+
+    // Handle NSFW toggle
+    let _ = leptos_use::use_event_listener(nsfw_toggle_ref, leptos::ev::change, move |_| {
+        let new_value = !is_nsfw_enabled.get().unwrap_or(false);
+        set_nsfw_enabled(Some(new_value));
+
+        // Perform hard refresh to reload with new NSFW preference
+        #[cfg(feature = "hydrate")]
+        {
+            let _ = window().location().reload();
+        }
+    });
+
     Effect::new(move |_| {
         let query_params = query_map.get();
         let url = query_params.get("text")?;
@@ -120,7 +177,7 @@ pub fn Menu() -> impl IntoView {
         Some(())
     });
 
-    let authorized_fetch_res = auth.derive_resource(
+    let _authorized_fetch_res = auth.derive_resource(
         move || (),
         move |cans, _| {
             send_wrap(async move {
@@ -154,7 +211,7 @@ pub fn Menu() -> impl IntoView {
 
     let upload_content_mount_point = NodeRef::<Div>::new();
 
-    let view_profile_clicked = move || {
+    let _view_profile_clicked = move || {
         if let Some(global) = MixpanelGlobalProps::from_ev_ctx(auth.event_ctx()) {
             MixPanelEvent::track_menu_clicked(global, MixpanelMenuClickedCTAType::ViewProfile);
         }
@@ -162,58 +219,7 @@ pub fn Menu() -> impl IntoView {
 
     view! {
         <Title text=page_title />
-        <Suspense>
-            {move || Suspend::new(async move {
-                if let Err(e) = authorized_fetch_res.await {
-                    return Either::Left(view! { <Redirect path=format!("/error?err={e}") /> });
-                }
-                Either::Right(
-                    view! {
-                        <Modal show=show_content_modal>
-                            {move || {
-                                is_authorized_to_seed_content
-                                    .0
-                                    .get()
-                                    .map(|(_, principal)| {
-                                        view! {
-                                            <YoutubeUpload
-                                                url=query_map.get().get("text").unwrap_or_default()
-                                                user_principal=principal
-                                            />
-                                        }
-                                    })
-                            }}
-                        </Modal>
-                        {move || {
-                            upload_content_mount_point
-                                .get()
-                                .map(|mount| {
-                                    view! {
-                                        <Portal mount>
-                                            <Show when=move || {
-                                                is_authorized_to_seed_content
-                                                    .0
-                                                    .get()
-                                                    .map(|(a, _)| a)
-                                                    .unwrap_or_default() && is_connected()
-                                            }>
-                                                <div class="px-8 w-full md:w-4/12 xl:w-2/12">
-                                                    <button
-                                                        class="py-2 w-full text-lg font-bold text-center text-white rounded-full md:py-3 md:text-xl bg-primary-600"
-                                                        on:click=move |_| show_content_modal.set(true)
-                                                    >
-                                                        Upload Content
-                                                    </button>
-                                                </div>
-                                            </Show>
-                                        </Portal>
-                                    }
-                                })
-                        }}
-                    },
-                )
-            })}
-        </Suspense>
+
         <div class="flex flex-col items-center pt-2 pb-12 w-full min-h-screen text-white bg-black divide-y divide-white/10">
             <div class="flex flex-col gap-20 items-center pb-16 w-full">
                 <TitleText justify_center=false>
@@ -222,44 +228,87 @@ pub fn Menu() -> impl IntoView {
                     </div>
                 </TitleText>
                 <div class="flex flex-col gap-4 items-center w-11/12 lg:w-8/12">
-                    <a on:click=move |_| view_profile_clicked() href="/profile/posts" class="flex flex-row gap-4 justify-center items-center p-4 w-full bg-neutral-900 rounded-lg">
-                        <Suspense fallback=ProfileLoading>
-                            {move || Suspend::new(async move {
-                                let cans = auth.auth_cans().await;
-                                cans.map(|c| {
-                                    view! { <ProfileLoaded user_details=c.profile_details() /> }
-                                })
-                            })}
-                        </Suspense>
-                    </a>
+                    // <a on:click=move |_| view_profile_clicked() href="/profile/posts" class="flex flex-row gap-4 justify-center items-center p-4 w-full bg-neutral-900 rounded-lg">
+                    //     <Suspense fallback=ProfileLoading>
+                    //         {move || Suspend::new(async move {
+                    //             let cans = auth.auth_cans().await;
+                    //             cans.map(|c| {
+                    //                 view! { <ProfileLoaded user_details=c.profile_details() /> }
+                    //             })
+                    //         })}
+                    //     </Suspense>
+                    // </a>
                     <Show when=move || !is_connected()>
                         <div class="px-8 w-full md:w-4/12 xl:w-2/12">
-                            <ConnectLogin />
+                            <div class="w-full">
+                                <ConnectLogin />
+                            </div>
                         </div>
-                        <div class="px-8 w-full font-sans text-sm text-center">
-                            {r#"Your Yral account has been setup. Login to not lose progress."#}
+                        <div class="px-8 w-full font-sans text-sm text-center text-neutral-400">
+                            {r#"Your YRAL account is ready. Log in with Google to save your progress and continue seamlessly."#}
                         </div>
                     </Show>
                     <div node_ref=upload_content_mount_point />
                 </div>
             </div>
-            <div class="flex flex-col gap-8 py-12 px-8 w-full text-lg">
-                <MenuItem click_cta_type=MixpanelMenuClickedCTAType::ReferAndEarn href="/refer-earn" text="Refer & Earn" icon=icondata::AiGiftFilled />
-                <MenuItem
-                    click_cta_type=MixpanelMenuClickedCTAType::TalkToTheTeam
-                    href=domain_specific_href("TELEGRAM")
-                    text="Talk to the team"
-                    icon=icondata::BiWhatsapp
-                    target="_blank"
-                />
-                <MenuItem click_cta_type=MixpanelMenuClickedCTAType::AboutUs href="/about-us" text="About Us" icon=icondata::TbInfoCircle />
-                <MenuItem click_cta_type=MixpanelMenuClickedCTAType::TermsOfService href="/terms-of-service" text="Terms of Service" icon=icondata::TbBook2 />
-                <MenuItem click_cta_type=MixpanelMenuClickedCTAType::PrivacyPolicy href="/privacy-policy" text="Privacy Policy" icon=icondata::TbLock />
-                <MenuItem click_cta_type=MixpanelMenuClickedCTAType::Settings href="/settings" text="Settings" icon=icondata::BiCogRegular />
-                <Show when=is_connected>
-                    <MenuItem click_cta_type=MixpanelMenuClickedCTAType::LogOut href="/logout" text="Logout" icon=icondata::FiLogOut />
-                </Show>
-            // <MenuItem href="/install-app" text="Install App" icon=icondata::TbDownload/>
+            <div class="flex flex-col gap-6 py-8 px-8 w-full">
+
+                // Settings section
+                <SectionHeader text="Settings" />
+                <div class="flex flex-col gap-4">
+                    <MenuItemWithToggle
+                        text="Show NSFW videos"
+                        icon=icondata::AiEyeOutlined
+                        checked=nsfw_enabled_signal
+                        node_ref=nsfw_toggle_ref
+                    />
+                    <NotificationToggle
+                        show_icon=true
+                        show_label=true
+                        icon=icondata::BiCommentDotsRegular
+                        label_text="Enable Notifications".to_string()
+                    />
+                </div>
+
+                <div class="h-px bg-white/10 w-full" />
+
+                // Legal section
+                <SectionHeader text="Legal" />
+                <div class="flex flex-col gap-4">
+                    <MenuItem click_cta_type=MixpanelMenuClickedCTAType::TermsOfService href="/terms-of-service" text="Terms of service" icon=icondata::TbBook2 />
+                    <MenuItem click_cta_type=MixpanelMenuClickedCTAType::PrivacyPolicy href="/privacy-policy" text="Privacy Policy" icon=icondata::TbLock />
+                    <MenuItem click_cta_type=MixpanelMenuClickedCTAType::AboutUs href="/about-us" text="About Us" icon=icondata::TbInfoCircle />
+                </div>
+
+                <div class="h-px bg-white/10 w-full" />
+
+                // Help section
+                <SectionHeader text="Help" />
+                <div class="flex flex-col gap-4">
+                    <MenuItem
+                        click_cta_type=MixpanelMenuClickedCTAType::TalkToTheTeam
+                        href=domain_specific_href("TELEGRAM")
+                        text="Talk to the team"
+                        icon=icondata::BiMessageDetailSolid
+                        target="_blank"
+                    />
+                    <Show when=is_connected>
+                        <button
+                            on:click=move |_| {
+                                let nav = use_navigate();
+                                nav("/settings/delete", Default::default());
+                            }
+                            class="flex items-center justify-between w-full"
+                        >
+                            <div class="flex flex-row gap-4 items-center">
+                                <Icon attr:class="text-xl" icon=icondata::RiDeleteBinSystemLine />
+                                <span class="text-base">Delete Account</span>
+                            </div>
+                            <Icon attr:class="text-xl" icon=icondata::AiRightOutlined />
+                        </button>
+                        <MenuItem click_cta_type=MixpanelMenuClickedCTAType::LogOut href="/logout" text="Logout" icon=icondata::FiLogOut />
+                    </Show>
+                </div>
             </div>
             <MenuFooter />
         </div>
