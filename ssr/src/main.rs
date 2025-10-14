@@ -379,7 +379,7 @@ fn setup_telemetry() -> Option<(
 
 fn main() {
     let _guard = sentry::init((
-        "https://f2b0b4124e3ec7b3c65dff22e6453075@apm.yral.com/5",
+        "https://977a043cf2740d750f871cc121e70f7b@apm.yral.com/7",
         sentry::ClientOptions {
             release: sentry::release_name!(),
             // debug: false,
