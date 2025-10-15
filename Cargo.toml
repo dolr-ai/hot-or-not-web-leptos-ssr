@@ -177,6 +177,7 @@ sea-orm = { version = "1.1.13", features = [
 ] }
 dolr-airdrop = { git = "https://github.com/dolr-ai/yral-neon-postgres", branch = "main" }
 sats-airdrop = { git = "https://github.com/dolr-ai/yral-neon-postgres", branch = "main" }
+cargo-husky = { version = "1.5.0", features = ["user-hooks"] }
 num-traits = "0.2.19"
 num-bigint = "0.4.6"
 base64 = "0.22"

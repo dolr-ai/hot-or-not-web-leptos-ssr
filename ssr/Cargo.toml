@@ -108,7 +108,7 @@ component.workspace = true
 page.workspace = true
 
 [dev-dependencies]
-
+cargo-husky = { workspace = true }
 
 [build-dependencies]
 tonic-build = { workspace = true }
@@ -284,7 +284,10 @@ sats-airdrop = [
     "state/sats-airdrop",
     "page/sats-airdrop",
 ]
-enable-otlp = ["dep:telemetry_axum", "dep:opentelemetry_sdk"]
+enable-otlp = [
+    "dep:telemetry_axum",
+    "dep:opentelemetry_sdk",
+]
 release-bin = [
     "ssr",
     "cloudflare",
