@@ -4,7 +4,8 @@ use serde::Serialize;
 use yral_canisters_common::utils::posts::PostDetails;
 use yral_types::post::PostItemV3;
 
-const RECOMMENDATION_SERVICE_URL: &str = "https://recsys-on-premise.fly.dev/recommend-with-metadata";
+const RECOMMENDATION_SERVICE_URL: &str =
+    "https://recsys-on-premise.fly.dev/recommend-with-metadata";
 
 #[derive(Debug, Serialize, Deserialize)]
 struct NewVideoItem {
@@ -101,15 +102,17 @@ pub async fn get_ml_feed_coldstart_clean(
                 attempt,
                 MAX_RETRIES
             );
-            let posts: Vec<PostItemV3> = response.videos.into_iter().map(|video| {
-                PostItemV3 {
+            let posts: Vec<PostItemV3> = response
+                .videos
+                .into_iter()
+                .map(|video| PostItemV3 {
                     video_id: video.video_id,
                     canister_id: video.canister_id,
                     post_id: video.post_id,
                     publisher_user_id: video.publisher_user_id,
                     nsfw_probability: 0.0,
-                }
-            }).collect();
+                })
+                .collect();
             return Ok(posts);
         }
 
@@ -174,15 +177,17 @@ pub async fn get_ml_feed_coldstart_nsfw(
                 attempt,
                 MAX_RETRIES
             );
-            let posts: Vec<PostItemV3> = response.videos.into_iter().map(|video| {
-                PostItemV3 {
+            let posts: Vec<PostItemV3> = response
+                .videos
+                .into_iter()
+                .map(|video| PostItemV3 {
                     video_id: video.video_id,
                     canister_id: video.canister_id,
                     post_id: video.post_id,
                     publisher_user_id: video.publisher_user_id,
                     nsfw_probability: 0.0,
-                }
-            }).collect();
+                })
+                .collect();
             return Ok(posts);
         }
 
@@ -247,15 +252,17 @@ pub async fn get_ml_feed_clean(
                 attempt,
                 MAX_RETRIES
             );
-            let posts: Vec<PostItemV3> = response.videos.into_iter().map(|video| {
-                PostItemV3 {
+            let posts: Vec<PostItemV3> = response
+                .videos
+                .into_iter()
+                .map(|video| PostItemV3 {
                     video_id: video.video_id,
                     canister_id: video.canister_id,
                     post_id: video.post_id,
                     publisher_user_id: video.publisher_user_id,
                     nsfw_probability: 0.0,
-                }
-            }).collect();
+                })
+                .collect();
             return Ok(posts);
         }
 
@@ -320,15 +327,17 @@ pub async fn get_ml_feed_nsfw(
                 attempt,
                 MAX_RETRIES
             );
-            let posts: Vec<PostItemV3> = response.videos.into_iter().map(|video| {
-                PostItemV3 {
+            let posts: Vec<PostItemV3> = response
+                .videos
+                .into_iter()
+                .map(|video| PostItemV3 {
                     video_id: video.video_id,
                     canister_id: video.canister_id,
                     post_id: video.post_id,
                     publisher_user_id: video.publisher_user_id,
                     nsfw_probability: 0.0,
-                }
-            }).collect();
+                })
+                .collect();
             return Ok(posts);
         }
 
