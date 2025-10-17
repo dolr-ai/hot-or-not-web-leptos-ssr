@@ -2,12 +2,26 @@ use candid::Principal;
 use serde::Deserialize;
 use serde::Serialize;
 use yral_canisters_common::utils::posts::PostDetails;
-use yral_types::post::FeedRequestV3;
-use yral_types::post::FeedResponseV3;
 use yral_types::post::PostItemV3;
 
-const RECOMMENDATION_SERVICE_URL: &str =
-    "https://recommendation-service-82502260393.us-central1.run.app/v2/recommendations";
+const RECOMMENDATION_SERVICE_URL: &str = "https://recsys-on-premise.fly.dev/recommend-with-metadata";
+
+#[derive(Debug, Serialize, Deserialize)]
+struct NewVideoItem {
+    video_id: String,
+    canister_id: String,
+    post_id: String,
+    publisher_user_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct NewFeedResponse {
+    user_id: String,
+    videos: Vec<NewVideoItem>,
+    count: u32,
+    sources: serde_json::Value,
+    timestamp: u64,
+}
 
 /// Piece of post details that should be available as quickly as possible to ensure fast loading of the infinite scroller
 #[derive(Clone)]
@@ -43,25 +57,23 @@ pub struct WatchHistoryItem {
 pub async fn get_ml_feed_coldstart_clean(
     user_id: Principal,
     num_results: u32,
-    filter_results: Vec<String>,
-    ip_address: Option<String>,
+    _filter_results: Vec<String>,
+    _ip_address: Option<String>,
 ) -> Result<Vec<PostItemV3>, anyhow::Error> {
     const MAX_RETRIES: usize = 5;
     let client = reqwest::Client::new();
-    let recommendation_request = FeedRequestV3 {
-        user_id,
-        exclude_items: filter_results,
-        nsfw_label: false,
-        num_results,
-        ip_address,
-    };
 
-    let cache_url = format!("{RECOMMENDATION_SERVICE_URL}/cache");
+    let url = format!(
+        "{}/{}?count={}&rec_type=mixed",
+        RECOMMENDATION_SERVICE_URL,
+        user_id.to_text(),
+        num_results
+    );
 
     for attempt in 1..=MAX_RETRIES {
         let response = client
-            .post(&cache_url)
-            .json(&recommendation_request)
+            .get(&url)
+            .header("accept", "application/json")
             .send()
             .await?;
 
@@ -82,14 +94,23 @@ pub async fn get_ml_feed_coldstart_clean(
             continue;
         }
 
-        let response = response.json::<FeedResponseV3>().await?;
-        if !response.posts.is_empty() {
+        let response = response.json::<NewFeedResponse>().await?;
+        if !response.videos.is_empty() {
             leptos::logging::log!(
                 "FEEDISSUE : ML feed coldstart clean succeeded on attempt {}/{}",
                 attempt,
                 MAX_RETRIES
             );
-            return Ok(response.posts);
+            let posts: Vec<PostItemV3> = response.videos.into_iter().map(|video| {
+                PostItemV3 {
+                    video_id: video.video_id,
+                    canister_id: video.canister_id,
+                    post_id: video.post_id,
+                    publisher_user_id: video.publisher_user_id,
+                    nsfw_probability: 0.0,
+                }
+            }).collect();
+            return Ok(posts);
         }
 
         leptos::logging::warn!(
@@ -109,25 +130,23 @@ pub async fn get_ml_feed_coldstart_clean(
 pub async fn get_ml_feed_coldstart_nsfw(
     user_id: Principal,
     num_results: u32,
-    filter_results: Vec<String>,
-    ip_address: Option<String>,
+    _filter_results: Vec<String>,
+    _ip_address: Option<String>,
 ) -> Result<Vec<PostItemV3>, anyhow::Error> {
     const MAX_RETRIES: usize = 5;
     let client = reqwest::Client::new();
-    let recommendation_request = FeedRequestV3 {
-        user_id,
-        exclude_items: filter_results,
-        nsfw_label: true,
-        num_results,
-        ip_address,
-    };
 
-    let cache_url = format!("{RECOMMENDATION_SERVICE_URL}/cache");
+    let url = format!(
+        "{}/{}?count={}&rec_type=mixed",
+        RECOMMENDATION_SERVICE_URL,
+        user_id.to_text(),
+        num_results
+    );
 
     for attempt in 1..=MAX_RETRIES {
         let response = client
-            .post(&cache_url)
-            .json(&recommendation_request)
+            .get(&url)
+            .header("accept", "application/json")
             .send()
             .await?;
 
@@ -148,14 +167,23 @@ pub async fn get_ml_feed_coldstart_nsfw(
             continue;
         }
 
-        let response = response.json::<FeedResponseV3>().await?;
-        if !response.posts.is_empty() {
+        let response = response.json::<NewFeedResponse>().await?;
+        if !response.videos.is_empty() {
             leptos::logging::log!(
                 "FEEDISSUE : ML feed coldstart nsfw succeeded on attempt {}/{}",
                 attempt,
                 MAX_RETRIES
             );
-            return Ok(response.posts);
+            let posts: Vec<PostItemV3> = response.videos.into_iter().map(|video| {
+                PostItemV3 {
+                    video_id: video.video_id,
+                    canister_id: video.canister_id,
+                    post_id: video.post_id,
+                    publisher_user_id: video.publisher_user_id,
+                    nsfw_probability: 0.0,
+                }
+            }).collect();
+            return Ok(posts);
         }
 
         leptos::logging::warn!(
@@ -175,23 +203,23 @@ pub async fn get_ml_feed_coldstart_nsfw(
 pub async fn get_ml_feed_clean(
     user_id: Principal,
     num_results: u32,
-    filter_results: Vec<String>,
-    ip_address: Option<String>,
+    _filter_results: Vec<String>,
+    _ip_address: Option<String>,
 ) -> Result<Vec<PostItemV3>, anyhow::Error> {
     const MAX_RETRIES: usize = 5;
     let client = reqwest::Client::new();
-    let recommendation_request = FeedRequestV3 {
-        user_id,
-        exclude_items: filter_results,
-        nsfw_label: false,
-        num_results,
-        ip_address,
-    };
+
+    let url = format!(
+        "{}/{}?count={}&rec_type=mixed",
+        RECOMMENDATION_SERVICE_URL,
+        user_id.to_text(),
+        num_results
+    );
 
     for attempt in 1..=MAX_RETRIES {
         let response = client
-            .post(RECOMMENDATION_SERVICE_URL)
-            .json(&recommendation_request)
+            .get(&url)
+            .header("accept", "application/json")
             .send()
             .await?;
 
@@ -212,14 +240,23 @@ pub async fn get_ml_feed_clean(
             continue;
         }
 
-        let response = response.json::<FeedResponseV3>().await?;
-        if !response.posts.is_empty() {
+        let response = response.json::<NewFeedResponse>().await?;
+        if !response.videos.is_empty() {
             leptos::logging::log!(
                 "FEEDISSUE : ML feed clean succeeded on attempt {}/{}",
                 attempt,
                 MAX_RETRIES
             );
-            return Ok(response.posts);
+            let posts: Vec<PostItemV3> = response.videos.into_iter().map(|video| {
+                PostItemV3 {
+                    video_id: video.video_id,
+                    canister_id: video.canister_id,
+                    post_id: video.post_id,
+                    publisher_user_id: video.publisher_user_id,
+                    nsfw_probability: 0.0,
+                }
+            }).collect();
+            return Ok(posts);
         }
 
         leptos::logging::warn!(
@@ -239,23 +276,23 @@ pub async fn get_ml_feed_clean(
 pub async fn get_ml_feed_nsfw(
     user_id: Principal,
     num_results: u32,
-    filter_results: Vec<String>,
-    ip_address: Option<String>,
+    _filter_results: Vec<String>,
+    _ip_address: Option<String>,
 ) -> Result<Vec<PostItemV3>, anyhow::Error> {
     const MAX_RETRIES: usize = 5;
     let client = reqwest::Client::new();
-    let recommendation_request = FeedRequestV3 {
-        user_id,
-        exclude_items: filter_results,
-        nsfw_label: true,
-        num_results,
-        ip_address,
-    };
+
+    let url = format!(
+        "{}/{}?count={}&rec_type=mixed",
+        RECOMMENDATION_SERVICE_URL,
+        user_id.to_text(),
+        num_results
+    );
 
     for attempt in 1..=MAX_RETRIES {
         let response = client
-            .post(RECOMMENDATION_SERVICE_URL)
-            .json(&recommendation_request)
+            .get(&url)
+            .header("accept", "application/json")
             .send()
             .await?;
 
@@ -276,14 +313,23 @@ pub async fn get_ml_feed_nsfw(
             continue;
         }
 
-        let response = response.json::<FeedResponseV3>().await?;
-        if !response.posts.is_empty() {
+        let response = response.json::<NewFeedResponse>().await?;
+        if !response.videos.is_empty() {
             leptos::logging::log!(
                 "FEEDISSUE : ML feed nsfw succeeded on attempt {}/{}",
                 attempt,
                 MAX_RETRIES
             );
-            return Ok(response.posts);
+            let posts: Vec<PostItemV3> = response.videos.into_iter().map(|video| {
+                PostItemV3 {
+                    video_id: video.video_id,
+                    canister_id: video.canister_id,
+                    post_id: video.post_id,
+                    publisher_user_id: video.publisher_user_id,
+                    nsfw_probability: 0.0,
+                }
+            }).collect();
+            return Ok(posts);
         }
 
         leptos::logging::warn!(
