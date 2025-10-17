@@ -306,7 +306,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<MlPostItem>) -> impl IntoVie
                             cnt += 1;
                         }
                     });
-                    if cnt >= 10 {
+                    if cnt >= 5 {
                         break;
                     }
                 }
@@ -314,7 +314,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<MlPostItem>) -> impl IntoVie
 
             // backfill PQ from ML feed server
             // fetch to video_queue based on threshold
-            if priority_q.with_untracked(|q| q.len()) < 100 {
+            if priority_q.with_untracked(|q| q.len()) < 20 {
                 let Some(cursor) = fetch_cursor.try_get_untracked() else {
                     return;
                 };
@@ -394,7 +394,7 @@ pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<MlPostItem>) -> impl IntoVie
         })
     });
 
-    view! { <CommonPostViewWithUpdates initial_posts fetch_video_action threshold_trigger_fetch=20 /> }.into_any()
+    view! { <CommonPostViewWithUpdates initial_posts fetch_video_action threshold_trigger_fetch=5 /> }.into_any()
 }
 
 #[component]
