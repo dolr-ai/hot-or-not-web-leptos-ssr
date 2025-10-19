@@ -24,7 +24,6 @@ jobs:
           toolchain: "nightly-2025-06-15"
           targets: "x86_64-unknown-linux-musl,wasm32-unknown-unknown"
           components: "clippy,rustfmt"
-          override: true
 
       - uses: cargo-bins/cargo-binstall@main
       - name: cargo-leptos setup
