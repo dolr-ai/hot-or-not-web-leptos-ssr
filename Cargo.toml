@@ -72,7 +72,7 @@ reqwest = { version = "0.12", default-features = false, features = [
 hex = "0.4.3"
 leptos_icons = "0.6.1"
 icondata = "0.3.0"
-gloo = { version = "0.11.0", features = ["futures", "net", "net"] }
+gloo = { version = "0.11.0", features = ["futures", "net"] }
 once_cell = "1.19.0"
 k256 = { version = "0.13.4", default-features = false, features = [
     "std",
