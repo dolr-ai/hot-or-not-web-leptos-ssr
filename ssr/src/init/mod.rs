@@ -240,24 +240,24 @@ impl AppStateBuilder {
 
                 HonWorkerJwt(std::sync::Arc::new(jwt))
             },
-            #[cfg(feature = "dolr-airdrop")]
-            dolr_airdrop_db: {
-                let url = env::var("DOLR_AIRDROP_NEON_DB_URL")
-                    .expect("`DOLR_AIRDROP_NEON_DB_URL` is required!");
+            // #[cfg(feature = "dolr-airdrop")]
+            // dolr_airdrop_db: {
+            //     let url = env::var("DOLR_AIRDROP_NEON_DB_URL")
+            //         .expect("`DOLR_AIRDROP_NEON_DB_URL` is required!");
 
-                dolr_airdrop::db::DolrAirdrop::connect_and_migrate(url)
-                    .await
-                    .expect("connect to neon postgres")
-            },
-            #[cfg(feature = "sats-airdrop")]
-            sats_airdrop_db: {
-                let url = env::var("SATS_AIRDROP_NEON_DB_URL")
-                    .expect("`SATS_AIRDROP_NEON_DB_URL` is required!");
+            //     dolr_airdrop::db::DolrAirdrop::connect_and_migrate(url)
+            //         .await
+            //         .expect("connect to neon postgres")
+            // },
+            // #[cfg(feature = "sats-airdrop")]
+            // sats_airdrop_db: {
+            //     let url = env::var("SATS_AIRDROP_NEON_DB_URL")
+            //         .expect("`SATS_AIRDROP_NEON_DB_URL` is required!");
 
-                sats_airdrop::db::SatsAirdrop::connect_and_migrate(url)
-                    .await
-                    .expect("connect to neon postgres")
-            },
+            //     sats_airdrop::db::SatsAirdrop::connect_and_migrate(url)
+            //         .await
+            //         .expect("connect to neon postgres")
+            // },
         };
 
         AppStateRes {

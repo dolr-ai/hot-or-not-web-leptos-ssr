@@ -53,9 +53,9 @@ pub mod server {
         pub alloydb: super::alloydb::AlloyDbInstance,
         #[cfg(any(feature = "alloydb", feature = "sats-airdrop"))]
         pub hon_worker_jwt: HonWorkerJwt,
-        #[cfg(feature = "dolr-airdrop")]
-        pub dolr_airdrop_db: dolr_airdrop::db::DolrAirdrop,
-        #[cfg(feature = "sats-airdrop")]
-        pub sats_airdrop_db: sats_airdrop::db::SatsAirdrop,
+        // #[cfg(feature = "dolr-airdrop")]
+        // pub dolr_airdrop_db: dolr_airdrop::db::DolrAirdrop,
+        // #[cfg(feature = "sats-airdrop")]
+        // pub sats_airdrop_db: sats_airdrop::db::SatsAirdrop,
     }
 }
