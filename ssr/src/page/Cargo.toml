@@ -7,7 +7,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-jsonwebtoken = { workspace = true }
+jsonwebtoken = { workspace = true, optional = true }
 axum = { workspace = true, optional = true }
 console_error_panic_hook = { workspace = true }
 console_log = { workspace = true }
@@ -176,6 +176,7 @@ mock-history = [
 ]
 oauth-ssr = [
     "dep:openidconnect",
+    "dep:jsonwebtoken",
     "consts/oauth-ssr",
     "utils/oauth-ssr",
     "component/oauth-ssr",
