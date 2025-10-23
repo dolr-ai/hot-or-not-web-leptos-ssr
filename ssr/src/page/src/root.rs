@@ -15,6 +15,18 @@ use yral_types::post::PostItemV3;
 
 use crate::post_view::{PostViewCtx, PostViewWithUpdatesMLFeed};
 
+#[cfg(feature = "oauth-ssr")]
+use {
+    auth::server_impl::yral::YralAuthRefreshTokenClaims,
+    axum_extra::extract::{cookie::Key, SignedCookieJar},
+    consts::{
+        auth::REFRESH_TOKEN_COOKIE,
+        yral_auth::{YRAL_AUTH_CLIENT_ID_ENV, YRAL_AUTH_ISSUER_URL, YRAL_AUTH_TRUSTED_KEY},
+    },
+    jsonwebtoken::Validation,
+    leptos_axum::extract_with_state,
+};
+
 fn generate_random_principal() -> Principal {
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -48,11 +60,59 @@ fn generate_random_principal() -> Principal {
     Principal::from_slice(&bytes)
 }
 
+/// Try to extract the user's principal from the refresh token cookie.
+/// Returns None if the user is not logged in or if extraction fails.
+async fn try_get_user_principal() -> Option<Principal> {
+    #[cfg(feature = "oauth-ssr")]
+    {
+        use std::env;
+
+        let key: Key = expect_context();
+        let jar: SignedCookieJar = extract_with_state(&key).await.ok()?;
+
+        let refresh_token = jar.get(REFRESH_TOKEN_COOKIE)?;
+
+        let client_id = env::var(YRAL_AUTH_CLIENT_ID_ENV).ok()?;
+
+        let mut token_validation = Validation::new(jsonwebtoken::Algorithm::ES256);
+        token_validation.set_audience(&[client_id]);
+        token_validation.set_issuer(&[YRAL_AUTH_ISSUER_URL]);
+
+        let decoded = jsonwebtoken::decode::<YralAuthRefreshTokenClaims>(
+            refresh_token.value(),
+            &YRAL_AUTH_TRUSTED_KEY,
+            &token_validation,
+        )
+        .ok()?;
+
+        Some(decoded.claims.sub)
+    }
+    #[cfg(not(feature = "oauth-ssr"))]
+    {
+        None
+    }
+}
+
 #[server]
 #[tracing::instrument]
 async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerFnError> {
-    let random_principal = generate_random_principal();
-    let posts = get_ml_feed_coldstart_clean(random_principal, 15, vec![], None)
+    // Try to get the actual user principal, fall back to random if not logged in
+    let user_principal = match try_get_user_principal().await {
+        Some(principal) => {
+            leptos::logging::log!("Using authenticated user principal: {}", principal);
+            principal
+        }
+        None => {
+            let random = generate_random_principal();
+            leptos::logging::log!(
+                "No authenticated user found, using random principal: {}",
+                random
+            );
+            random
+        }
+    };
+
+    let posts = get_ml_feed_coldstart_clean(user_principal, 15, vec![], None)
         .await
         .map_err(|e| {
             leptos::logging::error!("Error getting top post id global clean feed: {e:?}");
@@ -61,8 +121,7 @@ async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerF
 
     if posts.is_empty() {
         leptos::logging::warn!("Coldstart clean feed returned 0 results, falling back to ML feed");
-        let fallback_principal = generate_random_principal();
-        let posts = get_ml_feed_clean(fallback_principal, 15, vec![], None)
+        let posts = get_ml_feed_clean(user_principal, 15, vec![], None)
             .await
             .map_err(|e| {
                 leptos::logging::error!("Error getting ML feed clean fallback: {e:?}");
@@ -77,8 +136,23 @@ async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerF
 #[server]
 #[tracing::instrument]
 async fn get_top_post_ids_global_nsfw_feed() -> Result<Vec<PostItemV3>, ServerFnError> {
-    let random_principal = generate_random_principal();
-    let posts = get_ml_feed_coldstart_nsfw(random_principal, 15, vec![], None)
+    // Try to get the actual user principal, fall back to random if not logged in
+    let user_principal = match try_get_user_principal().await {
+        Some(principal) => {
+            leptos::logging::log!("Using authenticated user principal: {}", principal);
+            principal
+        }
+        None => {
+            let random = generate_random_principal();
+            leptos::logging::log!(
+                "No authenticated user found, using random principal: {}",
+                random
+            );
+            random
+        }
+    };
+
+    let posts = get_ml_feed_coldstart_nsfw(user_principal, 15, vec![], None)
         .await
         .map_err(|e| {
             leptos::logging::error!("Error getting top post id global nsfw feed: {e:?}");
@@ -87,8 +161,7 @@ async fn get_top_post_ids_global_nsfw_feed() -> Result<Vec<PostItemV3>, ServerFn
 
     if posts.is_empty() {
         leptos::logging::warn!("Coldstart nsfw feed returned 0 results, falling back to ML feed");
-        let fallback_principal = generate_random_principal();
-        let posts = get_ml_feed_nsfw(fallback_principal, 15, vec![], None)
+        let posts = get_ml_feed_nsfw(user_principal, 15, vec![], None)
             .await
             .map_err(|e| {
                 leptos::logging::error!("Error getting ML feed nsfw fallback: {e:?}");
