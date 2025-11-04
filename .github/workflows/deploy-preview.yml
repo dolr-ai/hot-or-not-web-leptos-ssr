@@ -36,7 +36,9 @@ jobs:
           api_key: ${{ secrets.NEON_API_KEY }}
 
   destroy_preview:
-    
+    environment:
+      name: pr-${{ github.event.number }}
+      url: ${{ steps.deploy.outputs.url }}
 
     steps:
       - name: Deploy
