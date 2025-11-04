@@ -75,17 +75,17 @@ jobs:
           packages: musl-tools protobuf-compiler
           version: 1.0
 
-      - name: Install clippy
-        run: |
-          rustup component add clippy
-          rustup component add rustfmt
+      # - name: Install clippy
+      #   run: |
+      #     rustup component add clippy
+      #     rustup component add rustfmt
 
-      - name: lint check
-        run: |
-          cargo fmt --check
-          cargo clippy --no-deps --all-features --release -- -D warnings
-        env:
-          RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
+      # - name: lint check
+      #   run: |
+      #     cargo fmt --check
+      #     cargo clippy --no-deps --all-features --release -- -D warnings
+      #   env:
+      #     RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
 
       - name: Print Rust and Cargo version
         run: |

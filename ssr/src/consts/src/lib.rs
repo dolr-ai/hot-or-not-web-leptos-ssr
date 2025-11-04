@@ -43,7 +43,7 @@ pub const USER_INTERNAL_STORE: &str = "user-internal";
 pub const WALLET_BALANCE_STORE_KEY: &str = "wallet-balance-sats";
 
 pub static OFF_CHAIN_AGENT_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev").unwrap());
+    Lazy::new(|| Url::parse("https://pr-299-dolr-ai-off-chain-agent.fly.dev").unwrap());
 
 pub static ANALYTICS_SERVER_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://marketing-analytics-server.fly.dev").unwrap());
@@ -52,7 +52,7 @@ pub static SMILEY_GAME_STATS_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("https://us-central1-yral-mobile.cloudfunctions.net").unwrap());
 
 pub static OFF_CHAIN_AGENT_GRPC_URL: Lazy<Url> =
-    Lazy::new(|| Url::parse("https://icp-off-chain-agent.fly.dev:443").unwrap());
+    Lazy::new(|| Url::parse("https://pr-299-dolr-ai-off-chain-agent.fly.dev:443").unwrap());
 pub static DOWNLOAD_UPLOAD_SERVICE: Lazy<Url> =
     Lazy::new(|| Url::parse("https://download-upload-service.fly.dev").unwrap());
 
