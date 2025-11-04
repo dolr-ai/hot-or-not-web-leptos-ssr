@@ -36,11 +36,7 @@ jobs:
           api_key: ${{ secrets.NEON_API_KEY }}
 
   destroy_preview:
-    if: ${{github.event.pull_request.state == 'closed'}}
-    runs-on: ubuntu-latest
-    environment:
-      name: pr-${{ github.event.number }}
-      url: ${{ steps.deploy.outputs.url }}
+    
 
     steps:
       - name: Deploy
@@ -74,20 +70,6 @@ jobs:
         id: branch-names
         uses: tj-actions/branch-names@v8
 
-      - name: Create Neon Branch (dolr airdrop)
-        id: neon-dolr-airdrop
-        uses: neondatabase/create-branch-action@v6
-        with:
-          project_id: lively-bush-60037718
-          branch_name: ${{ steps.branch-names.outputs.current_branch }}
-          api_key: ${{ secrets.NEON_API_KEY }}
-      - name: Create Neon Branch (sats airdrop)
-        id: neon-sats-airdrop
-        uses: neondatabase/create-branch-action@v6
-        with:
-          project_id: soft-shadow-62835752
-          branch_name: ${{ steps.branch-names.outputs.current_branch }}
-          api_key: ${{ secrets.NEON_API_KEY }}
 
       - name: Deploy
         id: deploy
