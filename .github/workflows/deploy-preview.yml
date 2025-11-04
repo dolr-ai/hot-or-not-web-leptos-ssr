@@ -18,24 +18,9 @@ jobs:
       erase_components: ${{ contains(github.event.pull_request.labels.*.name, 'type erasured') }}
     secrets: inherit
 
-  delete_neon_branches:
+  destroy_preview:
     if: ${{github.event.pull_request.state == 'closed'}}
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        project_id: ["lively-bush-60037718", "soft-shadow-62835752"]
-    steps:
-      - name: Get branch name
-        id: branch-names
-        uses: tj-actions/branch-names@v8
-      - name: Delete Neon Branches
-        uses: neondatabase/delete-branch-action@v3
-        with:
-          project_id: ${{ matrix.project_id }}
-          branch: ${{ steps.branch-names.outputs.current_branch }}
-          api_key: ${{ secrets.NEON_API_KEY }}
-
-  destroy_preview:
     environment:
       name: pr-${{ github.event.number }}
       url: ${{ steps.deploy.outputs.url }}
@@ -72,7 +57,6 @@ jobs:
         id: branch-names
         uses: tj-actions/branch-names@v8
 
-
       - name: Deploy
         id: deploy
         uses: superfly/fly-pr-review-apps@1.5.0
@@ -99,8 +83,6 @@ jobs:
           flyctl secrets set ANALYTICS_SERVER_TOKEN="$ANALYTICS_SERVER_TOKEN" --app "$APP_NAME" --stage
           flyctl secrets set YRAL_AUTH_MIGRATION_ES256_PEM="$YRAL_AUTH_MIGRATION_ES256_PEM" --app "$APP_NAME" --stage
           flyctl secrets set YRAL_METADATA_NOTIFICATION_API_KEY="$YRAL_METADATA_NOTIFICATION_API_KEY" --app "$APP_NAME" --stage
-          flyctl secrets set DOLR_AIRDROP_NEON_DB_URL="$DOLR_AIRDROP_NEON_DB_URL" --app "$APP_NAME" --stage
-          flyctl secrets set SATS_AIRDROP_NEON_DB_URL="$SATS_AIRDROP_NEON_DB_URL" --app "$APP_NAME" --stage
           flyctl secrets set OTLP_ENDPOINT="$OTLP_ENDPOINT" --app "$APP_NAME" --stage
           flyctl deploy --app $APP_NAME
         env:
@@ -122,8 +104,6 @@ jobs:
           ANALYTICS_SERVER_TOKEN: ${{ secrets.ANALYTICS_SERVER_TOKEN }}
           YRAL_AUTH_MIGRATION_ES256_PEM: ${{ secrets.AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM }}
           YRAL_METADATA_NOTIFICATION_API_KEY: ${{ secrets.YRAL_METADATA_NOTIFICATION_API_KEY }}
-          DOLR_AIRDROP_NEON_DB_URL: ${{ steps.neon-dolr-airdrop.outputs.db_url_pooled }}
-          SATS_AIRDROP_NEON_DB_URL: ${{ steps.neon-sats-airdrop.outputs.db_url_pooled }}
           OTLP_ENDPOINT: ${{ secrets.OTLP_ENDPOINT }}
   e2e-tests:
     needs: preview
