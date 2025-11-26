@@ -68,6 +68,14 @@ fn TokenTransferInner(
     info: TokenMetadata,
     cans_wire: CanistersAuthWire,
 ) -> impl IntoView {
+    if matches!(root, RootType::BTC { .. }) {
+        return Either::Left(view! {
+            <div>
+                <Redirect path="/" />
+            </div>
+        });
+    }
+
     let source_addr = Principal::self_authenticating(&cans_wire.id.from_key);
 
     let destination_ref = NodeRef::<html::Input>::new();
