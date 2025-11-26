@@ -24,21 +24,6 @@ jobs:
           name: build-musl
       - run: chmod +x target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Get Neon Branch (dolr airdrop)
-        id: neon-dolr-airdrop
-        # this only gets the branch details if it already exists
-        uses: neondatabase/create-branch-action@v6
-        with:
-          project_id: lively-bush-60037718
-          branch_name: production
-          api_key: ${{ secrets.NEON_API_KEY }}
-      - name: Get Neon Branch (sats airdrop)
-        id: neon-sats-airdrop
-        uses: neondatabase/create-branch-action@v6
-        with:
-          project_id: soft-shadow-62835752
-          branch_name: production
-          api_key: ${{ secrets.NEON_API_KEY }}
       - name: Set secret tokens
         run: |
           flyctl secrets set CF_TOKEN="$CF_TOKEN" --app "hot-or-not-web-leptos-ssr" --stage
@@ -59,8 +44,6 @@ jobs:
           flyctl secrets set YRAL_AUTH_MIGRATION_ES256_PEM="$YRAL_AUTH_MIGRATION_ES256_PEM" --app "hot-or-not-web-leptos-ssr" --stage
           flyctl secrets set YRAL_METADATA_NOTIFICATION_API_KEY="$YRAL_METADATA_NOTIFICATION_API_KEY" --app "hot-or-not-web-leptos-ssr" --stage
           flyctl secrets set STDB_ADMIN_ACCESS_TOKEN="$STDB_ADMIN_ACCESS_TOKEN" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set DOLR_AIRDROP_NEON_DB_URL="$DOLR_AIRDROP_NEON_DB_URL" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set SATS_AIRDROP_NEON_DB_URL="$SATS_AIRDROP_NEON_DB_URL" --app "hot-or-not-web-leptos-ssr" --stage
           flyctl secrets set OTLP_ENDPOINT="$OTLP_ENDPOINT" --app "hot-or-not-web-leptos-ssr" --stage
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET }}
@@ -82,8 +65,6 @@ jobs:
           YRAL_AUTH_MIGRATION_ES256_PEM: ${{ secrets.AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM }}
           YRAL_METADATA_NOTIFICATION_API_KEY: ${{ secrets.YRAL_METADATA_NOTIFICATION_API_KEY }}
           STDB_ADMIN_ACCESS_TOKEN: ${{ secrets.STDB_ADMIN_ACCESS_TOKEN }}
-          DOLR_AIRDROP_NEON_DB_URL: ${{ steps.neon-dolr-airdrop.outputs.db_url_pooled }}
-          SATS_AIRDROP_NEON_DB_URL: ${{ steps.neon-sats-airdrop.outputs.db_url_pooled }}
           OTLP_ENDPOINT: ${{ secrets.OTLP_ENDPOINT }}
 
       - name: Deploy a docker container to Fly.io
