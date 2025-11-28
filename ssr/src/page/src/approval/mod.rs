@@ -13,7 +13,6 @@ use std::collections::HashMap;
 use utils::ml_feed::QuickPostDetails;
 use utils::posts::FeedPostCtx;
 use utils::send_wrap;
-use web_time::Duration;
 use yral_canisters_common::utils::posts::PostDetails;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
