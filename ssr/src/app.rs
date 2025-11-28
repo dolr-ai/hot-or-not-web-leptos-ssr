@@ -6,6 +6,7 @@ use leptos_meta::*;
 use leptos_router::hooks::use_location;
 use leptos_router::{components::*, path, MatchNestedRoutes};
 use page::about_us::AboutUs;
+use page::approval::ApprovalView;
 use page::internal::clear_sats::ClearSats;
 use page::post_view::PostDetailsCacheCtx;
 use page::pumpdump;
@@ -185,6 +186,7 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/upload") view=UploadPostPage />
                         <Route path=path!("/upload-ai") view=UploadAiPostPage />
                         <Route path=path!("/upload-options") view=UploadOptionsPage />
+                        <Route path=path!("/approve") view=ApprovalView />
                         <Route path=path!("/error") view=ServerErrorPage />
                         <Route path=path!("/menu") view=Menu />
                         <Route path=path!("/settings") view=Settings />
