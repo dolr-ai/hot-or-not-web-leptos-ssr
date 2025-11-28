@@ -10,10 +10,12 @@ use indexmap::IndexSet;
 use leptos::prelude::*;
 use leptos_meta::Title;
 use state::audio_state::AudioState;
+use state::canisters::auth_state;
 use std::collections::HashMap;
 use utils::ml_feed::QuickPostDetails;
 use utils::posts::FeedPostCtx;
 use yral_canisters_common::utils::posts::PostDetails;
+use yral_types::delegated_identity::DelegatedIdentityWire;
 
 use api::{fetch_pending_approval_videos, PendingVideo};
 use overlay::ApprovalOverlay;
@@ -56,10 +58,13 @@ pub struct ApprovalPostItem {
 impl From<PendingVideo> for ApprovalPostItem {
     fn from(v: PendingVideo) -> Self {
         Self {
-            video_uid: v.video_uid,
-            canister_id: v.canister_id.parse().unwrap_or(candid::Principal::anonymous()),
+            video_uid: v.video_id,
+            canister_id: v
+                .canister_id
+                .parse()
+                .unwrap_or(candid::Principal::anonymous()),
             post_id: v.post_id,
-            publisher_user_id: v.publisher_user_id.parse().unwrap_or(candid::Principal::anonymous()),
+            publisher_user_id: v.user_id.parse().unwrap_or(candid::Principal::anonymous()),
         }
     }
 }
@@ -127,10 +132,34 @@ fn ApprovalFeed() -> impl IntoView {
     let recovering_state = RwSignal::new(false);
     let hard_refresh_target = RwSignal::new("/approve".to_string());
 
+    // Get auth state for identity
+    let auth = auth_state();
+
+    // Store the identity wire for use in API calls
+    let identity_wire: RwSignal<Option<DelegatedIdentityWire>> = RwSignal::new(None);
+
+    // Fetch identity when available
+    let identity_resource = LocalResource::new(move || async move {
+        let new_identity = auth.user_identity.await?;
+        Ok::<_, ServerFnError>(new_identity.id_wire)
+    });
+
+    // Update identity_wire when resource resolves
+    Effect::new(move |_| {
+        if let Some(Ok(wire)) = identity_resource.get() {
+            identity_wire.set(Some(wire));
+        }
+    });
+
     // Action to fetch pending videos
     let fetch_action = Action::new(move |_: &()| async move {
-        let offset = video_queue.with_untracked(|q| q.len());
-        match fetch_pending_approval_videos(offset, 20).await {
+        let Some(wire) = identity_wire.get_untracked() else {
+            leptos::logging::warn!("Cannot fetch pending videos: identity not loaded");
+            return;
+        };
+
+        let offset = video_queue.with_untracked(|q| q.len()) as u32;
+        match fetch_pending_approval_videos(wire, offset, 20).await {
             Ok(response) => {
                 if response.videos.is_empty() {
                     queue_end.set(true);
@@ -148,7 +177,9 @@ fn ApprovalFeed() -> impl IntoView {
                             }
                         }
                     });
-                    if !response.has_more {
+                    // Check if we've reached the total count
+                    let queue_len = video_queue.with_untracked(|q| q.len());
+                    if queue_len >= response.total_count {
                         queue_end.set(true);
                     }
                 }
@@ -159,9 +190,12 @@ fn ApprovalFeed() -> impl IntoView {
         }
     });
 
-    // Initial fetch
+    // Initial fetch when identity is loaded
     Effect::new(move |_| {
-        if video_queue.with_untracked(|q| q.is_empty()) && !queue_end.get_untracked() {
+        if identity_wire.get().is_some()
+            && video_queue.with_untracked(|q| q.is_empty())
+            && !queue_end.get_untracked()
+        {
             fetch_action.dispatch(());
         }
     });
@@ -182,6 +216,7 @@ fn ApprovalFeed() -> impl IntoView {
             queue_end
             threshold_trigger_fetch=10
             _hard_refresh_target=hard_refresh_target
+            identity_wire
         />
     }
 }
@@ -197,6 +232,7 @@ fn ApprovalScrollingView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
     queue_end: RwSignal<bool>,
     threshold_trigger_fetch: usize,
     #[prop(optional, into)] _hard_refresh_target: RwSignal<String>,
+    identity_wire: RwSignal<Option<DelegatedIdentityWire>>,
 ) -> impl IntoView {
     use leptos::html;
     use leptos_use::{use_intersection_observer_with_options, UseIntersectionObserverOptions};
@@ -274,7 +310,7 @@ fn ApprovalScrollingView<F: Fn() -> V + Clone + 'static + Send + Sync, V>(
                         view! {
                             <div node_ref=container_ref class="w-full h-full snap-always snap-end" class:hidden=move || post.get().is_none()>
                                 <Show when=show_video>
-                                    <ApprovalBgView video_queue idx=queue_idx current_idx>
+                                    <ApprovalBgView video_queue idx=queue_idx current_idx identity_wire>
                                         <VideoViewForQueue
                                             post
                                             current_idx
@@ -308,11 +344,10 @@ fn ApprovalBgView(
     video_queue: RwSignal<IndexSet<ApprovalPostItem>>,
     idx: usize,
     current_idx: RwSignal<usize>,
+    identity_wire: RwSignal<Option<DelegatedIdentityWire>>,
     children: Children,
 ) -> impl IntoView {
-    let post_with_prev = Memo::new(move |_| {
-        video_queue.with(|q| q.get_index(idx).cloned())
-    });
+    let post_with_prev = Memo::new(move |_| video_queue.with(|q| q.get_index(idx).cloned()));
 
     let PostDetailsCacheCtx {
         post_details: post_details_cache,
@@ -338,7 +373,8 @@ fn ApprovalBgView(
             Some(d) => d,
             None => {
                 let d = utils::send_wrap(resolver.get_post_details()).await?;
-                post_details_cache.try_update_value(|m| m.insert((canister_id, post_id), d.clone()));
+                post_details_cache
+                    .try_update_value(|m| m.insert((canister_id, post_id), d.clone()));
                 d
             }
         };
@@ -364,7 +400,7 @@ fn ApprovalBgView(
                     let post = post_details_res.await
                         .inspect_err(|e| leptos::logging::error!("Failed to load post: {e:#?}"))
                         .ok()?;
-                    Some(view! { <ApprovalOverlay post=post? current_idx high_priority=idx < 3 /> }.into_view())
+                    Some(view! { <ApprovalOverlay post=post? current_idx high_priority=idx < 3 identity_wire /> }.into_view())
                 })}
             </Suspense>
             {children()}

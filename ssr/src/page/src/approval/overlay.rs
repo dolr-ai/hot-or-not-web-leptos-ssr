@@ -7,16 +7,18 @@ use leptos::prelude::*;
 use leptos_icons::*;
 use state::audio_state::AudioState;
 use yral_canisters_common::utils::posts::PostDetails;
+use yral_types::delegated_identity::DelegatedIdentityWire;
 
-use super::api::approve_video;
+use super::api::{approve_video, disapprove_video};
 
 /// Simplified overlay for the approval page
-/// Contains only: creator info, description, mute control, and approval button
+/// Contains only: creator info, description, mute control, and approval/disapproval buttons
 #[component]
 pub fn ApprovalOverlay(
     post: PostDetails,
     current_idx: RwSignal<usize>,
     #[prop(optional, into)] high_priority: bool,
+    identity_wire: RwSignal<Option<DelegatedIdentityWire>>,
 ) -> impl IntoView {
     let display_name = post.username_or_fallback();
     let profile_url = format!("/profile/{}/tokens", post.username_or_principal());
@@ -28,14 +30,24 @@ pub fn ApprovalOverlay(
     let approve_action = Action::new(move |video_uid: &String| {
         let video_uid = video_uid.clone();
         async move {
-            match approve_video(video_uid.clone()).await {
-                Ok(true) => {
-                    leptos::logging::log!("Video {} approved successfully", video_uid);
-                    true
-                }
-                Ok(false) => {
-                    leptos::logging::warn!("Video {} approval returned false", video_uid);
-                    false
+            let Some(wire) = identity_wire.get_untracked() else {
+                leptos::logging::error!("Cannot approve video: identity not loaded");
+                return false;
+            };
+
+            match approve_video(wire, video_uid.clone()).await {
+                Ok(response) => {
+                    if response.success {
+                        leptos::logging::log!("Video {} approved successfully", video_uid);
+                        true
+                    } else {
+                        leptos::logging::warn!(
+                            "Video {} approval failed: {}",
+                            video_uid,
+                            response.message
+                        );
+                        false
+                    }
                 }
                 Err(e) => {
                     leptos::logging::error!("Failed to approve video {}: {:?}", video_uid, e);
@@ -45,13 +57,50 @@ pub fn ApprovalOverlay(
         }
     });
 
-    // Auto-advance to next video after successful approval
+    // Disapproval action
+    let disapprove_action = Action::new(move |video_uid: &String| {
+        let video_uid = video_uid.clone();
+        async move {
+            let Some(wire) = identity_wire.get_untracked() else {
+                leptos::logging::error!("Cannot disapprove video: identity not loaded");
+                return false;
+            };
+
+            match disapprove_video(wire, video_uid.clone()).await {
+                Ok(response) => {
+                    if response.success {
+                        leptos::logging::log!("Video {} disapproved successfully", video_uid);
+                        true
+                    } else {
+                        leptos::logging::warn!(
+                            "Video {} disapproval failed: {}",
+                            video_uid,
+                            response.message
+                        );
+                        false
+                    }
+                }
+                Err(e) => {
+                    leptos::logging::error!("Failed to disapprove video {}: {:?}", video_uid, e);
+                    false
+                }
+            }
+        }
+    });
+
+    // Auto-advance to next video after successful action
     let advance_to_next = move || {
         current_idx.update(|idx| *idx += 1);
         // Scroll to next video
         if let Some(win) = leptos::web_sys::window() {
             // The scrolling container will handle snap scrolling
-            let _ = win.scroll_by_with_x_and_y(0.0, win.inner_height().ok().and_then(|h| h.as_f64()).unwrap_or(800.0));
+            let _ = win.scroll_by_with_x_and_y(
+                0.0,
+                win.inner_height()
+                    .ok()
+                    .and_then(|h| h.as_f64())
+                    .unwrap_or(800.0),
+            );
         }
     };
 
@@ -64,8 +113,21 @@ pub fn ApprovalOverlay(
         }
     });
 
+    // Effect to advance after successful disapproval
+    Effect::new(move |_| {
+        if let Some(result) = disapprove_action.value().get() {
+            if result {
+                advance_to_next();
+            }
+        }
+    });
+
     let is_approving = approve_action.pending();
-    let video_uid_for_button = video_uid.clone();
+    let is_disapproving = disapprove_action.pending();
+    let is_processing = Memo::new(move |_| is_approving.get() || is_disapproving.get());
+
+    let video_uid_for_approve = video_uid.clone();
+    let video_uid_for_disapprove = video_uid.clone();
 
     view! {
         <MuteUnmuteControl muted volume />
@@ -109,18 +171,27 @@ pub fn ApprovalOverlay(
                 </div>
             </div>
 
-            // Bottom content - Approval button
-            <div class="flex flex-col items-center w-full pointer-events-auto mb-4">
+            // Bottom content - Approval/Disapproval buttons
+            <div class="flex flex-col items-center w-full pointer-events-auto mb-4 gap-3">
                 <HighlightedButton
                     classes="w-full max-w-xs".to_string()
                     alt_style=false
-                    disabled=is_approving.get()
+                    disabled=is_processing.get()
                     on_click=move || {
-                        approve_action.dispatch(video_uid_for_button.clone());
+                        approve_action.dispatch(video_uid_for_approve.clone());
                     }
                 >
                     {move || if is_approving.get() { "Approving..." } else { "Approve" }}
                 </HighlightedButton>
+                <button
+                    class="w-full max-w-xs py-3 px-6 rounded-full border border-red-500 text-red-500 font-semibold hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled=is_processing
+                    on:click=move |_| {
+                        disapprove_action.dispatch(video_uid_for_disapprove.clone());
+                    }
+                >
+                    {move || if is_disapproving.get() { "Disapproving..." } else { "Disapprove" }}
+                </button>
             </div>
         </div>
     }.into_any()
