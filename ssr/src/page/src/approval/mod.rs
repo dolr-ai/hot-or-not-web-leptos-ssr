@@ -8,11 +8,10 @@ use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
 use indexmap::IndexSet;
 use leptos::prelude::*;
 use leptos_meta::Title;
-use state::canisters::{auth_state, unauth_canisters};
+use state::canisters::auth_state;
 use std::collections::HashMap;
 use utils::ml_feed::QuickPostDetails;
 use utils::posts::FeedPostCtx;
-use utils::send_wrap;
 use yral_canisters_common::utils::posts::PostDetails;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
@@ -68,15 +67,27 @@ impl PostDetailResolver for ApprovalPostItem {
     }
 
     async fn get_post_details(&self) -> Result<PostDetails, ServerFnError> {
-        let canisters = unauth_canisters();
-        let post_details =
-            send_wrap(canisters.get_post_details_from_canister(self.canister_id, &self.post_id))
-                .await?;
-        post_details.ok_or_else(|| {
-            ServerFnError::new(format!(
-                "Couldn't find post {}/{}",
-                self.canister_id, &self.post_id
-            ))
+        // Return minimal details - we only need the video to play with approve/disapprove buttons
+        Ok(PostDetails {
+            canister_id: self.canister_id,
+            post_id: self.post_id.clone(),
+            uid: self.video_uid.clone(),
+            description: String::new(),
+            views: 0,
+            likes: 0,
+            display_name: None,
+            username: None,
+            propic_url: String::new(),
+            liked_by_user: None,
+            poster_principal: self.publisher_user_id,
+            creator_follows_user: None,
+            user_follows_creator: None,
+            creator_bio: None,
+            hastags: vec![],
+            is_nsfw: false,
+            hot_or_not_feed_ranking_score: None,
+            created_at: web_time::Duration::ZERO,
+            nsfw_probability: 0.0,
         })
     }
 }
