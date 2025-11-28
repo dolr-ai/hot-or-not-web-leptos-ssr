@@ -151,7 +151,7 @@ fn ApprovalFeed() -> impl IntoView {
         }
     });
 
-    // Action to fetch pending videos
+    // Action to fetch pending videos - matches PostViewWithUpdatesMLFeed pattern
     let fetch_action = Action::new(move |_: &()| async move {
         let Some(wire) = identity_wire.get_untracked() else {
             leptos::logging::warn!("Cannot fetch pending videos: identity not loaded");
@@ -164,19 +164,21 @@ fn ApprovalFeed() -> impl IntoView {
                 if response.videos.is_empty() {
                     queue_end.set(true);
                 } else {
-                    video_queue.update(|q| {
-                        for video in response.videos {
-                            let item: ApprovalPostItem = video.into();
-                            if q.insert(item.clone()) {
-                                let len = q.len();
+                    // Match the pattern from PostViewWithUpdatesMLFeed
+                    for video in response.videos {
+                        let item: ApprovalPostItem = video.into();
+                        video_queue.update(|vq| {
+                            if vq.insert(item.clone()) {
+                                let len_vq = vq.len();
+                                if len_vq > video_queue_for_feed.with_untracked(|vqf| vqf.len()) {
+                                    return;
+                                }
                                 video_queue_for_feed.update(|vqf| {
-                                    if len <= vqf.len() {
-                                        vqf[len - 1].value.set(Some(item));
-                                    }
+                                    vqf[len_vq - 1].value.set(Some(item.clone()));
                                 });
                             }
-                        }
-                    });
+                        });
+                    }
                     // Check if we've reached the total count
                     let queue_len = video_queue.with_untracked(|q| q.len());
                     if queue_len >= response.total_count {
@@ -190,16 +192,15 @@ fn ApprovalFeed() -> impl IntoView {
         }
     });
 
-    // Initial fetch when identity is loaded
+    // Initial fetch - matches CommonPostViewWithUpdates pattern
     Effect::new(move |_| {
-        if identity_wire.get().is_some()
-            && video_queue.with_untracked(|q| q.is_empty())
-            && !queue_end.get_untracked()
-        {
+        // Only dispatch if identity is loaded
+        if identity_wire.get().is_some() && !recovering_state.get_untracked() {
             fetch_action.dispatch(());
         }
     });
 
+    // Next videos function - matches the pattern exactly
     let next_videos = move || {
         if !fetch_action.pending().get_untracked() && !queue_end.get_untracked() {
             fetch_action.dispatch(());
