@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use utils::ml_feed::QuickPostDetails;
 use utils::posts::FeedPostCtx;
 use utils::send_wrap;
+use web_time::Duration;
 use yral_canisters_common::utils::posts::PostDetails;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
@@ -69,12 +70,9 @@ impl PostDetailResolver for ApprovalPostItem {
 
     async fn get_post_details(&self) -> Result<PostDetails, ServerFnError> {
         let canisters = unauth_canisters();
-        let post_details = send_wrap(canisters.get_post_details_with_nsfw_info(
-            self.canister_id,
-            self.post_id.clone(),
-            Some(0.0),
-        ))
-        .await?;
+        let post_details =
+            send_wrap(canisters.get_post_details_from_canister(self.canister_id, &self.post_id))
+                .await?;
         post_details.ok_or_else(|| {
             ServerFnError::new(format!(
                 "Couldn't find post {}/{}",
