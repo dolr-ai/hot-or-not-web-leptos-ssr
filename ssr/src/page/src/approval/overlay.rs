@@ -124,7 +124,25 @@ pub fn ApprovalOverlay(
 
     let is_approving = approve_action.pending();
     let is_disapproving = disapprove_action.pending();
+
+    // Track if action has been completed
+    let action_completed: RwSignal<Option<&'static str>> = RwSignal::new(None);
+
+    // Set completed state after successful action
+    Effect::new(move |_| {
+        if let Some(true) = approve_action.value().get() {
+            action_completed.set(Some("approved"));
+        }
+    });
+
+    Effect::new(move |_| {
+        if let Some(true) = disapprove_action.value().get() {
+            action_completed.set(Some("disapproved"));
+        }
+    });
+
     let is_processing = Memo::new(move |_| is_approving.get() || is_disapproving.get());
+    let is_completed = Memo::new(move |_| action_completed.get().is_some());
 
     let video_uid_for_approve = video_uid.clone();
     let video_uid_for_disapprove = video_uid.clone();
@@ -171,27 +189,46 @@ pub fn ApprovalOverlay(
                 </div>
             </div>
 
-            // Bottom content - Approval/Disapproval buttons
+            // Bottom content - Approval/Disapproval buttons or completed message
             <div class="flex flex-col items-center w-full pointer-events-auto mb-4 gap-3">
-                <HighlightedButton
-                    classes="w-full max-w-xs".to_string()
-                    alt_style=false
-                    disabled=is_processing.get()
-                    on_click=move || {
-                        approve_action.dispatch(video_uid_for_approve.clone());
+                <Show
+                    when=is_completed
+                    fallback=move || {
+                        let video_uid_approve = video_uid_for_approve.clone();
+                        let video_uid_disapprove = video_uid_for_disapprove.clone();
+                        view! {
+                            <HighlightedButton
+                                classes="w-full max-w-xs".to_string()
+                                alt_style=false
+                                disabled=is_processing.get()
+                                on_click=move || {
+                                    approve_action.dispatch(video_uid_approve.clone());
+                                }
+                            >
+                                {move || if is_approving.get() { "Approving..." } else { "Approve" }}
+                            </HighlightedButton>
+                            <button
+                                class="w-full max-w-xs py-3 px-6 rounded-full border border-red-500 text-red-500 font-semibold hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                disabled=is_processing
+                                on:click=move |_| {
+                                    disapprove_action.dispatch(video_uid_disapprove.clone());
+                                }
+                            >
+                                {move || if is_disapproving.get() { "Disapproving..." } else { "Disapprove" }}
+                            </button>
+                        }
                     }
                 >
-                    {move || if is_approving.get() { "Approving..." } else { "Approve" }}
-                </HighlightedButton>
-                <button
-                    class="w-full max-w-xs py-3 px-6 rounded-full border border-red-500 text-red-500 font-semibold hover:bg-red-500/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled=is_processing
-                    on:click=move |_| {
-                        disapprove_action.dispatch(video_uid_for_disapprove.clone());
-                    }
-                >
-                    {move || if is_disapproving.get() { "Disapproving..." } else { "Disapprove" }}
-                </button>
+                    <div class="w-full max-w-xs py-3 px-6 rounded-full bg-green-600 text-white font-semibold text-center">
+                        {move || {
+                            match action_completed.get() {
+                                Some("approved") => "Video Approved ✓",
+                                Some("disapproved") => "Video Disapproved ✓",
+                                _ => ""
+                            }
+                        }}
+                    </div>
+                </Show>
             </div>
         </div>
     }.into_any()
