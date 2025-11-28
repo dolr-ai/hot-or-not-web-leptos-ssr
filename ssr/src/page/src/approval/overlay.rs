@@ -94,7 +94,7 @@ pub fn ApprovalOverlay(
         // Scroll to next video
         if let Some(win) = leptos::web_sys::window() {
             // The scrolling container will handle snap scrolling
-            let _ = win.scroll_by_with_x_and_y(
+            win.scroll_by_with_x_and_y(
                 0.0,
                 win.inner_height()
                     .ok()

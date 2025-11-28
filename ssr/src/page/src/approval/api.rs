@@ -91,7 +91,7 @@ pub async fn approve_video(
     });
 
     let url = OFF_CHAIN_AGENT_URL
-        .join(&format!("api/v1/moderation/approve/{}", video_id))
+        .join(&format!("api/v1/moderation/approve/{video_id}"))
         .map_err(|e| ServerFnError::new(format!("Invalid URL: {e}")))?;
 
     let response = client
@@ -114,7 +114,7 @@ pub async fn approve_video(
     if response.status() == reqwest::StatusCode::NOT_FOUND {
         return Ok(ModerationActionResponse {
             success: false,
-            message: format!("Video {} not found", video_id),
+            message: format!("Video {video_id} not found"),
         });
     }
     if !response.status().is_success() {
@@ -144,7 +144,7 @@ pub async fn disapprove_video(
     });
 
     let url = OFF_CHAIN_AGENT_URL
-        .join(&format!("api/v1/moderation/disapprove/{}", video_id))
+        .join(&format!("api/v1/moderation/disapprove/{video_id}"))
         .map_err(|e| ServerFnError::new(format!("Invalid URL: {e}")))?;
 
     let response = client
@@ -167,7 +167,7 @@ pub async fn disapprove_video(
     if response.status() == reqwest::StatusCode::NOT_FOUND {
         return Ok(ModerationActionResponse {
             success: false,
-            message: format!("Video {} not found", video_id),
+            message: format!("Video {video_id} not found"),
         });
     }
     if !response.status().is_success() {
