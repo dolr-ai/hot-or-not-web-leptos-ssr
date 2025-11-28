@@ -271,7 +271,7 @@ pub fn MuteUnmuteControl(muted: RwSignal<bool>, volume: RwSignal<f64>) -> impl I
                         class="w-24 cursor-pointer appearance-none bg-white/50 h-1.5 rounded-full
                         [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full"
                         on:input=move |ev| {
-                            let target = event_target::<web_sys::HtmlInputElement>(&ev);
+                            let target = event_target::<leptos::web_sys::HtmlInputElement>(&ev);
                             if let Ok(val) = target.value().parse::<f64>() {
                                 volume.set(val);
                                 muted.set(val == 0.0);
