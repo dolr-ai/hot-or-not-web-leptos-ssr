@@ -1,9 +1,8 @@
 pub mod api;
 pub mod overlay;
 
-use crate::post_view::video_loader::{BgView, VideoViewForQueue};
 use crate::post_view::PostDetailsCacheCtx;
-use crate::scrolling_post_view::{MuteUnmuteOverlay, PostDetailResolver, ScrollingPostView};
+use crate::scrolling_post_view::{PostDetailResolver, ScrollingPostView};
 use component::spinner::FullScreenSpinner;
 use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
 use indexmap::IndexSet;
