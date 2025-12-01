@@ -437,7 +437,11 @@ fn ApprovalFeedWithUpdates() -> impl IntoView {
     let next_videos = move || {
         let is_pending = fetch_video_action.pending().get_untracked();
         let is_ended = queue_end.get_untracked();
-        leptos::logging::log!("next_videos called: pending={}, queue_end={}", is_pending, is_ended);
+        leptos::logging::log!(
+            "next_videos called: pending={}, queue_end={}",
+            is_pending,
+            is_ended
+        );
         if !is_pending && !is_ended {
             leptos::logging::log!("Dispatching fetch_video_action");
             fetch_video_action.dispatch(());
