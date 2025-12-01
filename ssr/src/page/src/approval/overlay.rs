@@ -10,6 +10,7 @@ use yral_canisters_common::utils::posts::PostDetails;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
 use super::api::{approve_video, disapprove_video};
+use super::ApprovalViewCtx;
 
 /// Simplified overlay for the approval page
 /// Contains only: creator info, description, mute control, and approval/disapproval buttons
@@ -26,9 +27,19 @@ pub fn ApprovalOverlay(
 
     let AudioState { muted, volume } = AudioState::get();
 
+    // Get the completed_actions from context
+    let ApprovalViewCtx {
+        completed_actions, ..
+    } = expect_context();
+
+    let video_uid_for_check = video_uid.clone();
+    let video_uid_for_approve = video_uid.clone();
+    let video_uid_for_disapprove = video_uid.clone();
+
     // Approval action
     let approve_action = Action::new(move |video_uid: &String| {
         let video_uid = video_uid.clone();
+        let video_uid_for_state = video_uid.clone();
         async move {
             let Some(wire) = identity_wire.get_untracked() else {
                 leptos::logging::error!("Cannot approve video: identity not loaded");
@@ -39,6 +50,10 @@ pub fn ApprovalOverlay(
                 Ok(response) => {
                     if response.success {
                         leptos::logging::log!("Video {} approved successfully", video_uid);
+                        // Update context-level state
+                        completed_actions.update(|map| {
+                            map.insert(video_uid_for_state, "approved");
+                        });
                         true
                     } else {
                         leptos::logging::warn!(
@@ -60,6 +75,7 @@ pub fn ApprovalOverlay(
     // Disapproval action
     let disapprove_action = Action::new(move |video_uid: &String| {
         let video_uid = video_uid.clone();
+        let video_uid_for_state = video_uid.clone();
         async move {
             let Some(wire) = identity_wire.get_untracked() else {
                 leptos::logging::error!("Cannot disapprove video: identity not loaded");
@@ -70,6 +86,10 @@ pub fn ApprovalOverlay(
                 Ok(response) => {
                     if response.success {
                         leptos::logging::log!("Video {} disapproved successfully", video_uid);
+                        // Update context-level state
+                        completed_actions.update(|map| {
+                            map.insert(video_uid_for_state, "disapproved");
+                        });
                         true
                     } else {
                         leptos::logging::warn!(
@@ -125,27 +145,12 @@ pub fn ApprovalOverlay(
     let is_approving = approve_action.pending();
     let is_disapproving = disapprove_action.pending();
 
-    // Track if action has been completed
-    let action_completed: RwSignal<Option<&'static str>> = RwSignal::new(None);
-
-    // Set completed state after successful action
-    Effect::new(move |_| {
-        if let Some(true) = approve_action.value().get() {
-            action_completed.set(Some("approved"));
-        }
-    });
-
-    Effect::new(move |_| {
-        if let Some(true) = disapprove_action.value().get() {
-            action_completed.set(Some("disapproved"));
-        }
-    });
-
     let is_processing = Memo::new(move |_| is_approving.get() || is_disapproving.get());
-    let is_completed = Memo::new(move |_| action_completed.get().is_some());
 
-    let video_uid_for_approve = video_uid.clone();
-    let video_uid_for_disapprove = video_uid.clone();
+    // Check if this video has already been processed (from context)
+    let completed_status =
+        Memo::new(move |_| completed_actions.with(|map| map.get(&video_uid_for_check).copied()));
+    let is_completed = Memo::new(move |_| completed_status.get().is_some());
 
     view! {
         <MuteUnmuteControl muted volume />
@@ -221,7 +226,7 @@ pub fn ApprovalOverlay(
                 >
                     <div class="w-full max-w-xs py-3 px-6 rounded-full bg-green-600 text-white font-semibold text-center">
                         {move || {
-                            match action_completed.get() {
+                            match completed_status.get() {
                                 Some("approved") => "Video Approved ✓",
                                 Some("disapproved") => "Video Disapproved ✓",
                                 _ => ""

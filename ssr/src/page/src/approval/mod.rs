@@ -105,6 +105,8 @@ pub struct ApprovalViewCtx {
     pub video_queue_for_feed: RwSignal<Vec<FeedPostCtx<ApprovalPostItem>>>,
     pub current_idx: RwSignal<usize>,
     pub queue_end: RwSignal<bool>,
+    /// Track which videos have been approved/disapproved (video_uid -> "approved" | "disapproved")
+    pub completed_actions: RwSignal<HashMap<String, &'static str>>,
 }
 
 /// BgView for approval - uses ApprovalOverlay instead of VideoDetailsOverlay
@@ -298,6 +300,7 @@ impl ApprovalViewCtx {
         }
         Self {
             video_queue_for_feed: RwSignal::new(video_queue_for_feed),
+            completed_actions: RwSignal::new(HashMap::new()),
             ..Default::default()
         }
     }
@@ -357,6 +360,7 @@ fn ApprovalFeedWithUpdates() -> impl IntoView {
         video_queue_for_feed,
         current_idx,
         queue_end,
+        ..
     } = expect_context();
 
     let identity_wire: RwSignal<Option<DelegatedIdentityWire>> = expect_context();
@@ -365,14 +369,23 @@ fn ApprovalFeedWithUpdates() -> impl IntoView {
 
     let fetch_video_action = Action::new(move |_: &()| async move {
         let Some(wire) = identity_wire.get_untracked() else {
+            leptos::logging::warn!("No identity wire available for fetching videos");
             return;
         };
 
         let offset = video_queue.with_untracked(|q| q.len()) as u32;
+        leptos::logging::log!("Fetching videos with offset: {}", offset);
 
         match fetch_pending_approval_videos(wire, offset, 20).await {
             Ok(response) => {
-                if response.videos.is_empty() && offset == 0 {
+                leptos::logging::log!(
+                    "Received {} videos, total_count: {}",
+                    response.videos.len(),
+                    response.total_count
+                );
+
+                // Only set queue_end if we got no videos back
+                if response.videos.is_empty() {
                     queue_end.set(true);
                     return;
                 }
@@ -392,7 +405,12 @@ fn ApprovalFeedWithUpdates() -> impl IntoView {
                     });
                 }
 
-                if video_queue.with_untracked(|q| q.len()) >= response.total_count {
+                // Only set queue_end if we received fewer videos than requested (means no more available)
+                if response.videos.len() < 20 {
+                    leptos::logging::log!(
+                        "Queue end reached: received {} < 20 requested",
+                        response.videos.len()
+                    );
                     queue_end.set(true);
                 }
             }
