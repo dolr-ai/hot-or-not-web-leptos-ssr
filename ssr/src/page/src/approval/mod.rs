@@ -232,7 +232,13 @@ fn ApprovalScrollingPostView<F: Fn() + Clone + 'static + Send + Sync>(
                                 let queue_len = video_queue.with_untracked(|q| q.len());
                                 let remaining = queue_len.saturating_sub(queue_idx);
 
+                                leptos::logging::log!(
+                                    "Scroll: idx={}, queue_len={}, remaining={}, threshold={}",
+                                    queue_idx, queue_len, remaining, threshold_trigger_fetch
+                                );
+
                                 if remaining <= threshold_trigger_fetch {
+                                    leptos::logging::log!("Triggering fetch: remaining {} <= threshold {}", remaining, threshold_trigger_fetch);
                                     next_videos();
                                 }
                             },
@@ -429,7 +435,11 @@ fn ApprovalFeedWithUpdates() -> impl IntoView {
     });
 
     let next_videos = move || {
-        if !fetch_video_action.pending().get_untracked() && !queue_end.get_untracked() {
+        let is_pending = fetch_video_action.pending().get_untracked();
+        let is_ended = queue_end.get_untracked();
+        leptos::logging::log!("next_videos called: pending={}, queue_end={}", is_pending, is_ended);
+        if !is_pending && !is_ended {
+            leptos::logging::log!("Dispatching fetch_video_action");
             fetch_video_action.dispatch(());
         }
     };
