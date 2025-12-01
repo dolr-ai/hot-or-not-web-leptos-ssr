@@ -385,7 +385,8 @@ fn ApprovalFeedWithUpdates() -> impl IntoView {
                 );
 
                 // Only set queue_end if we got no videos back
-                if response.videos.is_empty() {
+                let videos_count = response.videos.len();
+                if videos_count == 0 {
                     queue_end.set(true);
                     return;
                 }
@@ -406,10 +407,10 @@ fn ApprovalFeedWithUpdates() -> impl IntoView {
                 }
 
                 // Only set queue_end if we received fewer videos than requested (means no more available)
-                if response.videos.len() < 20 {
+                if videos_count < 20 {
                     leptos::logging::log!(
                         "Queue end reached: received {} < 20 requested",
-                        response.videos.len()
+                        videos_count
                     );
                     queue_end.set(true);
                 }
