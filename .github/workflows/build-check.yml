@@ -22,12 +22,19 @@ on:
 
 jobs:
   build_check:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repo and submodules
         uses: actions/checkout@v3
         with:
           submodules: recursive
+        
+      - name: Setup Swap Space
+        uses: thejerrybao/setup-swap-space@v1
+        with:
+          swap-space-path: /swapfile
+          swap-size-gb: 8
+          remove-existing-swap-files: true
 
       - name: Rust Setup
         uses: dtolnay/rust-toolchain@master
