@@ -1,0 +1,145 @@
+name: Temporary Server Setup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  setup-server:
+    name: Setup Server 136.243.176.62
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_BARE_METAL_GITHUB_ACTIONS_SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H 136.243.176.62 >> ~/.ssh/known_hosts
+
+      - name: Check server connectivity
+        run: |
+          ssh -o ConnectTimeout=10 root@136.243.176.62 "echo 'Server connection successful'"
+
+      - name: Setup btrfs on NVMe drive
+        run: |
+          ssh root@136.243.176.62 "
+            set -e
+            echo '=== Setting up btrfs on /dev/nvme1n1 ==='
+
+            # Wipe and partition the drive
+            wipefs -a /dev/nvme1n1
+            parted /dev/nvme1n1 mklabel gpt
+            parted /dev/nvme1n1 mkpart primary btrfs 0% 100%
+
+            # Format with btrfs
+            mkfs.btrfs /dev/nvme1n1p1
+
+            # Create mount point and mount
+            mkdir -p /var/lib/docker
+            mount /dev/nvme1n1p1 /var/lib/docker
+
+            # Add to fstab for persistence
+            UUID=\$(blkid -s UUID -o value /dev/nvme1n1p1)
+            echo \"UUID=\$UUID /var/lib/docker btrfs defaults 0 0\" >> /etc/fstab
+
+            echo 'btrfs setup complete'
+            df -h /var/lib/docker
+          "
+
+      - name: Install Docker
+        run: |
+          ssh root@136.243.176.62 "
+            set -e
+            echo '=== Installing Docker ==='
+
+            # Install prerequisites
+            apt-get update
+            apt-get install -y ca-certificates curl gnupg
+
+            # Add Docker's official GPG key
+            install -m 0755 -d /etc/apt/keyrings
+            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+            chmod a+r /etc/apt/keyrings/docker.gpg
+
+            # Add the repository to Apt sources
+            echo \"deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \$(. /etc/os-release && echo \$VERSION_CODENAME) stable\" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+            # Install Docker
+            apt-get update
+            apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+            # Enable and start Docker
+            systemctl enable docker
+            systemctl start docker
+
+            echo 'Docker installation complete'
+            docker --version
+            docker compose version
+          "
+
+      - name: Configure unattended-upgrades
+        run: |
+          ssh root@136.243.176.62 "
+            set -e
+            echo '=== Configuring unattended-upgrades ==='
+
+            # Install unattended-upgrades
+            apt-get install -y unattended-upgrades apt-listchanges
+
+            # Enable automatic updates
+            cat > /etc/apt/apt.conf.d/20auto-upgrades << 'EOF'
+APT::Periodic::Update-Package-Lists \"1\";
+APT::Periodic::Unattended-Upgrade \"1\";
+APT::Periodic::AutocleanInterval \"7\";
+EOF
+
+            # Configure unattended-upgrades
+            cat > /etc/apt/apt.conf.d/50unattended-upgrades << 'EOF'
+Unattended-Upgrade::Allowed-Origins {
+    \"\${distro_id}:\${distro_codename}\";
+    \"\${distro_id}:\${distro_codename}-security\";
+    \"\${distro_id}ESMApps:\${distro_codename}-apps-security\";
+    \"\${distro_id}ESM:\${distro_codename}-infra-security\";
+};
+Unattended-Upgrade::Package-Blacklist {
+};
+Unattended-Upgrade::AutoFixInterruptedDpkg \"true\";
+Unattended-Upgrade::MinimalSteps \"true\";
+Unattended-Upgrade::Remove-Unused-Kernel-Packages \"true\";
+Unattended-Upgrade::Remove-Unused-Dependencies \"true\";
+Unattended-Upgrade::Automatic-Reboot \"false\";
+EOF
+
+            # Enable the service
+            systemctl enable unattended-upgrades
+            systemctl start unattended-upgrades
+
+            echo 'Unattended-upgrades configuration complete'
+          "
+
+      - name: Create yral-frontend directory
+        run: |
+          ssh root@136.243.176.62 "
+            mkdir -p /home/yral-frontend
+            echo 'Created /home/yral-frontend directory'
+          "
+
+      - name: Final verification
+        run: |
+          ssh root@136.243.176.62 "
+            echo '=== Final Verification ==='
+            echo ''
+            echo 'Disk status:'
+            df -h /var/lib/docker
+            echo ''
+            echo 'Docker status:'
+            docker --version
+            systemctl is-active docker
+            echo ''
+            echo 'Unattended-upgrades status:'
+            systemctl is-active unattended-upgrades
+            echo ''
+            echo 'Setup complete!'
+          "
