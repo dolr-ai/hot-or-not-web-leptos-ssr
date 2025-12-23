@@ -2,6 +2,11 @@ name: Temporary Server Setup
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - joel/bare-metal-migr
+    paths:
+      - '.github/workflows/server-setup-temp.yml'
 
 jobs:
   setup-server:
