@@ -35,16 +35,16 @@ jobs:
 
             # Unmount /var/lib/docker if mounted
             umount -f /var/lib/docker 2>/dev/null || true
-            umount -f /dev/nvme0n1p1 2>/dev/null || true
+            umount -f /dev/nvme1n1p1 2>/dev/null || true
 
-            # Remove fstab entry for nvme0n1
-            sed -i '/nvme0n1/d' /etc/fstab
+            # Remove fstab entry for nvme1n1
+            sed -i '/nvme1n1/d' /etc/fstab
 
             # Wipe the partition first
-            wipefs -a /dev/nvme0n1p1 2>/dev/null || true
+            wipefs -a /dev/nvme1n1p1 2>/dev/null || true
 
             # Delete the partition
-            parted -s /dev/nvme0n1 rm 1 2>/dev/null || true
+            parted -s /dev/nvme1n1 rm 1 2>/dev/null || true
 
             # Sync and settle
             sync
@@ -57,16 +57,16 @@ jobs:
         run: |
           ssh root@136.243.176.62 "
             set -e
-            echo '=== Setting up btrfs on /dev/nvme0n1 ==='
+            echo '=== Setting up btrfs on /dev/nvme1n1 ==='
 
             # Wipe the drive
-            wipefs -a /dev/nvme0n1
+            wipefs -a /dev/nvme1n1
 
             # Create GPT partition table
-            parted /dev/nvme0n1 mklabel gpt
+            parted /dev/nvme1n1 mklabel gpt
 
             # Add NVMe to existing root btrfs filesystem
-            btrfs device add -f /dev/nvme0n1 /
+            btrfs device add -f /dev/nvme1n1 /
 
             echo 'Device added, showing filesystem:'
             btrfs filesystem show
