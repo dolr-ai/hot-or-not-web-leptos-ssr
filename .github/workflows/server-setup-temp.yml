@@ -34,10 +34,21 @@ jobs:
             echo '=== Cleaning up previous setup ==='
 
             # Unmount /var/lib/docker if mounted
-            umount /var/lib/docker 2>/dev/null || true
+            umount -f /var/lib/docker 2>/dev/null || true
+            umount -f /dev/nvme0n1p1 2>/dev/null || true
 
             # Remove fstab entry for nvme0n1
             sed -i '/nvme0n1/d' /etc/fstab
+
+            # Wipe the partition first
+            wipefs -a /dev/nvme0n1p1 2>/dev/null || true
+
+            # Delete the partition
+            parted -s /dev/nvme0n1 rm 1 2>/dev/null || true
+
+            # Sync and settle
+            sync
+            sleep 2
 
             echo 'Cleanup complete'
           "
