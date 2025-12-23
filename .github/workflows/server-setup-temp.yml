@@ -31,22 +31,22 @@ jobs:
         run: |
           ssh root@136.243.176.62 "
             set -e
-            echo '=== Setting up btrfs on /dev/nvme1n1 ==='
+            echo '=== Setting up btrfs on /dev/nvme0n1 ==='
 
             # Wipe and partition the drive
-            wipefs -a /dev/nvme1n1
-            parted /dev/nvme1n1 mklabel gpt
-            parted /dev/nvme1n1 mkpart primary btrfs 0% 100%
+            wipefs -a /dev/nvme0n1
+            parted /dev/nvme0n1 mklabel gpt
+            parted /dev/nvme0n1 mkpart primary btrfs 0% 100%
 
             # Format with btrfs
-            mkfs.btrfs /dev/nvme1n1p1
+            mkfs.btrfs /dev/nvme0n1p1
 
             # Create mount point and mount
             mkdir -p /var/lib/docker
-            mount /dev/nvme1n1p1 /var/lib/docker
+            mount /dev/nvme0n1p1 /var/lib/docker
 
             # Add to fstab for persistence
-            UUID=\$(blkid -s UUID -o value /dev/nvme1n1p1)
+            UUID=\$(blkid -s UUID -o value /dev/nvme0n1p1)
             echo \"UUID=\$UUID /var/lib/docker btrfs defaults 0 0\" >> /etc/fstab
 
             echo 'btrfs setup complete'
