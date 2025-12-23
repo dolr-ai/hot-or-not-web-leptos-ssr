@@ -68,8 +68,8 @@ jobs:
 
       - uses: awalsh128/cache-apt-pkgs-action@v1
         with:
-          packages: musl-tools protobuf-compiler
-          version: 1.0
+          packages: musl-tools protobuf-compiler mold
+          version: 1.1
 
       - name: Install clippy
         run: |
