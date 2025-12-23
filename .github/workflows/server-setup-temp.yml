@@ -27,30 +27,45 @@ jobs:
         run: |
           ssh -o ConnectTimeout=10 root@136.243.176.62 "echo 'Server connection successful'"
 
-      - name: Cleanup previous btrfs setup
+      - name: Diagnose and cleanup drives
         run: |
           ssh root@136.243.176.62 "
-            set -e
-            echo '=== Cleaning up previous setup ==='
-
-            # Unmount /var/lib/docker if mounted
+            echo '=== Current disk state ==='
+            lsblk -f
+            echo ''
+            echo '=== Mounts ==='
+            mount | grep nvme || echo 'No nvme mounts'
+            echo ''
+            echo '=== Processes using nvme drives ==='
+            fuser -vm /dev/nvme0n1* 2>/dev/null || echo 'None on nvme0n1'
+            fuser -vm /dev/nvme1n1* 2>/dev/null || echo 'None on nvme1n1'
+            echo ''
+            echo '=== Stopping Docker if running ==='
+            systemctl stop docker 2>/dev/null || true
+            systemctl stop containerd 2>/dev/null || true
+            echo ''
+            echo '=== Unmounting everything ==='
             umount -f /var/lib/docker 2>/dev/null || true
+            umount -f /dev/nvme0n1p1 2>/dev/null || true
             umount -f /dev/nvme1n1p1 2>/dev/null || true
-
-            # Remove fstab entry for nvme1n1
+            umount -l /var/lib/docker 2>/dev/null || true
+            echo ''
+            echo '=== Remove fstab entries ==='
+            sed -i '/nvme0n1/d' /etc/fstab
             sed -i '/nvme1n1/d' /etc/fstab
-
-            # Wipe the partition first
+            echo ''
+            echo '=== Kill any remaining processes ==='
+            fuser -km /dev/nvme1n1 2>/dev/null || true
+            fuser -km /dev/nvme1n1p1 2>/dev/null || true
+            echo ''
+            echo '=== Delete partitions ==='
             wipefs -a /dev/nvme1n1p1 2>/dev/null || true
-
-            # Delete the partition
             parted -s /dev/nvme1n1 rm 1 2>/dev/null || true
-
-            # Sync and settle
+            echo ''
             sync
-            sleep 2
-
-            echo 'Cleanup complete'
+            sleep 3
+            echo '=== Final state ==='
+            lsblk -f
           "
 
       - name: Setup btrfs on NVMe drive
