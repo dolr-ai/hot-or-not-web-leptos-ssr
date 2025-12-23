@@ -23,136 +23,44 @@ jobs:
         run: |
           ssh-keyscan -H 136.243.176.62 >> ~/.ssh/known_hosts
 
-      - name: Check server connectivity
+      - name: Reboot server
         run: |
-          ssh -o ConnectTimeout=10 root@136.243.176.62 "echo 'Server connection successful'"
+          ssh root@136.243.176.62 "reboot" || true
+          echo "Reboot command sent, waiting for server to come back..."
 
-      - name: Diagnose and cleanup drives
+      - name: Wait for server to come back
         run: |
-          ssh root@136.243.176.62 "
-            echo '=== Current disk state ==='
-            lsblk -f
-            echo ''
-            echo '=== Mounts ==='
-            mount | grep nvme || echo 'No nvme mounts'
-            echo ''
-            echo '=== Processes using nvme drives ==='
-            fuser -vm /dev/nvme0n1* 2>/dev/null || echo 'None on nvme0n1'
-            fuser -vm /dev/nvme1n1* 2>/dev/null || echo 'None on nvme1n1'
-            echo ''
-            echo '=== Stopping Docker if running ==='
-            systemctl stop docker 2>/dev/null || true
-            systemctl stop containerd 2>/dev/null || true
-            echo ''
-            echo '=== Unmounting everything ==='
-            umount -f /var/lib/docker 2>/dev/null || true
-            umount -f /dev/nvme0n1p1 2>/dev/null || true
-            umount -f /dev/nvme1n1p1 2>/dev/null || true
-            umount -l /var/lib/docker 2>/dev/null || true
-            echo ''
-            echo '=== Remove fstab entries ==='
-            sed -i '/nvme0n1/d' /etc/fstab
-            sed -i '/nvme1n1/d' /etc/fstab
-            echo ''
-            echo '=== Kill any remaining processes ==='
-            fuser -km /dev/nvme1n1 2>/dev/null || true
-            fuser -km /dev/nvme1n1p1 2>/dev/null || true
-            echo ''
-            echo '=== Delete partitions ==='
-            wipefs -a /dev/nvme1n1p1 2>/dev/null || true
-            parted -s /dev/nvme1n1 rm 1 2>/dev/null || true
-            echo ''
-            sync
-            sleep 3
-            echo '=== Final state ==='
-            lsblk -f
-          "
+          echo "Waiting 60 seconds for reboot..."
+          sleep 60
 
-      - name: Setup btrfs on NVMe drive
+          echo "Checking if server is back..."
+          for i in {1..30}; do
+            if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no root@136.243.176.62 "echo 'Server is back'" 2>/dev/null; then
+              echo "Server is online!"
+              break
+            fi
+            echo "Attempt $i: Server not ready, waiting 10 seconds..."
+            sleep 10
+          done
+
+      - name: Check Docker status
         run: |
           ssh root@136.243.176.62 "
-            set -e
-            echo '=== Setting up btrfs - adding /dev/nvme0n1 to root ==='
-
-            # Wipe the secondary drive
-            wipefs -a /dev/nvme0n1
-
-            # Create GPT partition table
-            parted -s /dev/nvme0n1 mklabel gpt
-
-            # Add nvme0n1 to existing root btrfs filesystem (on nvme1n1p2)
-            btrfs device add -f /dev/nvme0n1 /
-
-            echo 'Device added, showing filesystem:'
-            btrfs filesystem show
-
-            # Balance the filesystem across both devices
-            echo 'Starting balance (this may take a while)...'
-            btrfs balance start / --full-balance
-
-            echo 'Balance complete, final status:'
-            btrfs filesystem show
+            echo '=== Docker Status ==='
+            systemctl status docker || echo 'Docker not running'
+            echo ''
+            echo '=== Docker Version ==='
+            docker --version || echo 'Docker not installed'
+            echo ''
+            echo '=== Docker Compose Version ==='
+            docker compose version || echo 'Docker compose not available'
+            echo ''
+            echo '=== Disk Status ==='
             df -h /
-            btrfs filesystem usage /
+            echo ''
+            echo '=== Btrfs Filesystem ==='
+            btrfs filesystem show
+            echo ''
+            echo '=== Block Devices ==='
             lsblk -f
-          "
-
-      - name: Install Docker
-        run: |
-          ssh root@136.243.176.62 "
-            set -e
-            echo '=== Installing Docker ==='
-
-            # Install prerequisites
-            apt-get update
-            apt-get install -y ca-certificates curl gnupg
-
-            # Add Docker's official GPG key
-            install -m 0755 -d /etc/apt/keyrings
-            curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-            chmod a+r /etc/apt/keyrings/docker.gpg
-
-            # Add the repository to Apt sources
-            echo \"deb [arch=\$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \$(. /etc/os-release && echo \$VERSION_CODENAME) stable\" | tee /etc/apt/sources.list.d/docker.list > /dev/null
-
-            # Install Docker
-            apt-get update
-            apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-            # Enable and start Docker
-            systemctl enable docker
-            systemctl start docker
-
-            echo 'Docker installation complete'
-            docker --version
-            docker compose version
-          "
-
-      - name: Configure unattended-upgrades
-        run: |
-          ssh root@136.243.176.62 'set -e && echo "=== Configuring unattended-upgrades ===" && apt-get install -y unattended-upgrades apt-listchanges && echo "APT::Periodic::Update-Package-Lists \"1\";" > /etc/apt/apt.conf.d/20auto-upgrades && echo "APT::Periodic::Unattended-Upgrade \"1\";" >> /etc/apt/apt.conf.d/20auto-upgrades && echo "APT::Periodic::AutocleanInterval \"7\";" >> /etc/apt/apt.conf.d/20auto-upgrades && systemctl enable unattended-upgrades && systemctl start unattended-upgrades && echo "Unattended-upgrades configuration complete"'
-
-      - name: Create yral-frontend directory
-        run: |
-          ssh root@136.243.176.62 "
-            mkdir -p /home/yral-frontend
-            echo 'Created /home/yral-frontend directory'
-          "
-
-      - name: Final verification
-        run: |
-          ssh root@136.243.176.62 "
-            echo '=== Final Verification ==='
-            echo ''
-            echo 'Disk status:'
-            df -h /var/lib/docker
-            echo ''
-            echo 'Docker status:'
-            docker --version
-            systemctl is-active docker
-            echo ''
-            echo 'Unattended-upgrades status:'
-            systemctl is-active unattended-upgrades
-            echo ''
-            echo 'Setup complete!'
           "
