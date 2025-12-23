@@ -27,30 +27,48 @@ jobs:
         run: |
           ssh -o ConnectTimeout=10 root@136.243.176.62 "echo 'Server connection successful'"
 
+      - name: Cleanup previous btrfs setup
+        run: |
+          ssh root@136.243.176.62 "
+            set -e
+            echo '=== Cleaning up previous setup ==='
+
+            # Unmount /var/lib/docker if mounted
+            umount /var/lib/docker 2>/dev/null || true
+
+            # Remove fstab entry for nvme0n1
+            sed -i '/nvme0n1/d' /etc/fstab
+
+            echo 'Cleanup complete'
+          "
+
       - name: Setup btrfs on NVMe drive
         run: |
           ssh root@136.243.176.62 "
             set -e
             echo '=== Setting up btrfs on /dev/nvme0n1 ==='
 
-            # Wipe and partition the drive
+            # Wipe the drive
             wipefs -a /dev/nvme0n1
+
+            # Create GPT partition table
             parted /dev/nvme0n1 mklabel gpt
-            parted /dev/nvme0n1 mkpart primary btrfs 0% 100%
 
-            # Format with btrfs
-            mkfs.btrfs /dev/nvme0n1p1
+            # Add NVMe to existing root btrfs filesystem
+            btrfs device add -f /dev/nvme0n1 /
 
-            # Create mount point and mount
-            mkdir -p /var/lib/docker
-            mount /dev/nvme0n1p1 /var/lib/docker
+            echo 'Device added, showing filesystem:'
+            btrfs filesystem show
 
-            # Add to fstab for persistence
-            UUID=\$(blkid -s UUID -o value /dev/nvme0n1p1)
-            echo \"UUID=\$UUID /var/lib/docker btrfs defaults 0 0\" >> /etc/fstab
+            # Balance the filesystem across both devices
+            echo 'Starting balance (this may take a while)...'
+            btrfs balance start / --full-balance
 
-            echo 'btrfs setup complete'
-            df -h /var/lib/docker
+            echo 'Balance complete, final status:'
+            btrfs filesystem show
+            df -h /
+            btrfs filesystem usage /
+            lsblk -f
           "
 
       - name: Install Docker
