@@ -72,16 +72,16 @@ jobs:
         run: |
           ssh root@136.243.176.62 "
             set -e
-            echo '=== Setting up btrfs on /dev/nvme1n1 ==='
+            echo '=== Setting up btrfs - adding /dev/nvme0n1 to root ==='
 
-            # Wipe the drive
-            wipefs -a /dev/nvme1n1
+            # Wipe the secondary drive
+            wipefs -a /dev/nvme0n1
 
             # Create GPT partition table
-            parted /dev/nvme1n1 mklabel gpt
+            parted -s /dev/nvme0n1 mklabel gpt
 
-            # Add NVMe to existing root btrfs filesystem
-            btrfs device add -f /dev/nvme1n1 /
+            # Add nvme0n1 to existing root btrfs filesystem (on nvme1n1p2)
+            btrfs device add -f /dev/nvme0n1 /
 
             echo 'Device added, showing filesystem:'
             btrfs filesystem show
