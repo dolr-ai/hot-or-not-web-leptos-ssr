@@ -68,8 +68,13 @@ jobs:
 
       - uses: awalsh128/cache-apt-pkgs-action@v1
         with:
-          packages: musl-tools protobuf-compiler mold
-          version: 1.1
+          packages: musl-tools protobuf-compiler
+          version: 1.0
+
+      - name: Install mold linker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mold
 
       - name: Install clippy
         run: |
