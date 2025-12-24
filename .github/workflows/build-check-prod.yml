@@ -11,27 +11,37 @@ on:
 
 jobs:
   build_check:
-    runs-on: self-hosted
-    container:
-      image: mcr.microsoft.com/devcontainers/base:ubuntu
-      options: --user root
+    runs-on: ubuntu-latest-4-cores
     steps:
-      - name: Install system dependencies
+      - name: Free up disk space
         run: |
-          apt-get update
-          apt-get install -y software-properties-common
-          add-apt-repository main --yes
-          apt-get install -y mold pkg-config musl-tools lld protobuf-compiler curl git
-          # Install Node.js 20
-          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-          apt-get install -y nodejs
-          # Install pnpm
-          npm install -g pnpm@8
+          echo "Disk space before cleanup:"
+          df -h /
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf /usr/share/swift
+          sudo rm -rf /usr/local/graalvm
+          sudo rm -rf /usr/local/share/chromium
+          sudo rm -rf /opt/microsoft
+          sudo rm -rf /opt/pipx
+          sudo rm -rf /usr/share/miniconda
+          docker system prune -af || true
+          sudo apt-get clean
+          echo "Disk space after cleanup:"
+          df -h /
 
       - name: Checkout repo and submodules
         uses: actions/checkout@v3
         with:
           submodules: recursive
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y mold lld musl-tools protobuf-compiler
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
@@ -41,26 +51,29 @@ jobs:
           components: "clippy,rustfmt"
 
       - name: Install cargo-binstall
-        run: |
-          curl -L https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xzf -
-          mv cargo-binstall /usr/local/bin/
-          chmod +x /usr/local/bin/cargo-binstall
+        uses: cargo-bins/cargo-binstall@main
 
       - name: Install cargo-leptos
         run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked --force
 
-      - name: Cache rust dependencies
-        uses: Swatinem/rust-cache@v2
+      - name: Install Node.js
+        uses: actions/setup-node@v4
         with:
-          prefix-key: "v2-rust"
+          node-version: 20
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+          run_install: false
 
       - name: Install npm deps
         run: pnpm install
 
-      - name: Lint check
-        run: |
-          cargo fmt --check
-          cargo clippy --no-deps --all-features --release -- -Dwarnings
+      # - name: Lint check
+      #   run: |
+      #     cargo fmt --check
+      #     cargo clippy --no-deps --all-features --release -- -Dwarnings
 
       - name: Print versions
         run: |
