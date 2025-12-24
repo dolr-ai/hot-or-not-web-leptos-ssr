@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+      - joel/bare-metal-migr
 
 concurrency:
   group: deploy-baremetal-${{ github.ref }}
