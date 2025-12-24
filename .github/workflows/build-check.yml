@@ -22,48 +22,34 @@ on:
 
 jobs:
   build_check:
-    runs-on: ubuntu-latest-8-cores
+    runs-on: self-hosted
+    container:
+      image: mcr.microsoft.com/devcontainers/base:ubuntu
+      options: --user root
     steps:
-      - name: Free up disk space
+      - name: Clean up disk space
         run: |
-          echo "Before cleanup:"
-          df -h /
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
-          sudo rm -rf /usr/local/share/boost
-          sudo rm -rf /usr/share/swift
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
-          sudo rm -rf /usr/local/graalvm
-          sudo rm -rf /usr/local/share/chromium
-          sudo rm -rf /opt/microsoft
-          sudo rm -rf /opt/az
-          sudo rm -rf /opt/pipx
-          sudo rm -rf /usr/share/miniconda
-          sudo rm -rf /usr/share/gradle-*
-          sudo rm -rf /usr/share/sbt
-          docker system prune -af || true
-          sudo apt-get clean
-          echo "After cleanup:"
-          df -h /
+          echo "Disk space before cleanup:"
+          df -h
+          rm -rf /root/.cargo/registry/cache || true
+          rm -rf /root/.cargo/git/checkouts || true
+          echo "Disk space after cleanup:"
+          df -h
 
-      - name: Setup Swap Space
-        uses: thejerrybao/setup-swap-space@v1
-        with:
-          swap-space-path: /swapfile
-          swap-size-gb: 8
-          remove-existing-swap-files: true
+      - name: Install system dependencies
+        run: |
+          apt-get update
+          apt-get install -y software-properties-common
+          add-apt-repository main --yes
+          apt-get install -y mold pkg-config musl-tools lld protobuf-compiler curl git
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y nodejs
+          npm install -g pnpm@8
 
       - name: Checkout repo and submodules
         uses: actions/checkout@v3
         with:
           submodules: recursive
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mold lld musl-tools protobuf-compiler
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@master
@@ -72,36 +58,14 @@ jobs:
           targets: "x86_64-unknown-linux-musl,wasm32-unknown-unknown"
           components: "clippy,rustfmt"
 
-      - uses: cargo-bins/cargo-binstall@main
+      - name: Install cargo-binstall
+        run: |
+          curl -L https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xzf -
+          mv cargo-binstall /usr/local/bin/
+          chmod +x /usr/local/bin/cargo-binstall
 
       - name: Install cargo-leptos
         run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked --force
-
-      - name: Cache rust dependencies
-        uses: Swatinem/rust-cache@v2
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - uses: pnpm/action-setup@v3
-        name: Install pnpm
-        with:
-          version: 8
-          run_install: false
-
-      - name: Get pnpm store directory
-        shell: bash
-        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-
-      - uses: actions/cache@v4
-        name: Setup pnpm cache
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
 
       - name: Install npm deps
         run: pnpm install
@@ -131,6 +95,7 @@ jobs:
 
       - name: Strip debug symbols
         run: |
+          apt-get install -y binutils
           objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
           objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
 
@@ -149,3 +114,13 @@ jobs:
 
       - name: Find and display hash file
         run: find . -name "hash.txt" -type f
+
+      - name: Clean up build artifacts
+        if: always()
+        run: |
+          rm -rf target/x86_64-unknown-linux-musl/prod-release/deps || true
+          rm -rf target/x86_64-unknown-linux-musl/prod-release/build || true
+          rm -rf target/x86_64-unknown-linux-musl/prod-release/incremental || true
+          rm -rf target/wasm32-unknown-unknown || true
+          echo "Disk space after cleanup:"
+          df -h
