@@ -11,107 +11,98 @@ on:
 
 jobs:
   build_check:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    container:
+      image: mcr.microsoft.com/devcontainers/base:ubuntu
+      options: --user root
     steps:
-      - name: Setup Swap Space
-        uses: thejerrybao/setup-swap-space@v1
-        with:
-          swap-space-path: /swapfile
-          swap-size-gb: 8
-          remove-existing-swap-files: true
+      - name: Clean up disk space
+        run: |
+          echo "Disk space before cleanup:"
+          df -h
+          # Clean up cargo cache inside container
+          rm -rf /root/.cargo/registry/cache || true
+          rm -rf /root/.cargo/git/checkouts || true
+          echo "Disk space after cleanup:"
+          df -h
+
+      - name: Install system dependencies
+        run: |
+          apt-get update
+          apt-get install -y software-properties-common
+          add-apt-repository main --yes
+          apt-get install -y mold pkg-config musl-tools lld protobuf-compiler curl git
+          # Install Node.js 20
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y nodejs
+          # Install pnpm
+          npm install -g pnpm@8
 
       - name: Checkout repo and submodules
         uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - name: Rust Setup
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "nightly-2025-06-15"
           targets: "x86_64-unknown-linux-musl,wasm32-unknown-unknown"
           components: "clippy,rustfmt"
 
-      - uses: cargo-bins/cargo-binstall@main
-      - name: cargo-leptos setup
-        run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked --force
-
-      - name: Cache rust dependencies and build output
-        uses: Swatinem/rust-cache@v2
-
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - uses: pnpm/action-setup@v3
-        name: Install pnpm
-        with:
-          version: 8
-          run_install: false
-
-      - name: Get pnpm store directory
-        shell: bash
+      - name: Install cargo-binstall
         run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+          curl -L https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xzf -
+          mv cargo-binstall /usr/local/bin/
+          chmod +x /usr/local/bin/cargo-binstall
 
-      - uses: actions/cache@v4
-        name: Setup pnpm cache
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+      - name: Install cargo-leptos
+        run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked --force
 
       - name: Install npm deps
         run: pnpm install
 
-      - uses: awalsh128/cache-apt-pkgs-action@v1
-        with:
-          packages: musl-tools protobuf-compiler
-          version: 1.0
-
-      - name: Install clippy
-        run: |
-          rustup component add clippy
-          rustup component add rustfmt
-
-      - name: lint check
+      - name: Lint check
         run: |
           cargo fmt --check
           cargo clippy --no-deps --all-features --release -- -Dwarnings
-        env:
-          RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
 
-      - name: Print Rust and Cargo version
+      - name: Print versions
         run: |
           rustc --version
           cargo --version
 
-      - name: Build the Leptos project to `musl` output
+      - name: Build the Leptos project
         run: cargo leptos build --release --lib-features release-lib --bin-features release-bin
         env:
-          RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
           LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
           LEPTOS_HASH_FILES: true
           LEPTOS_TAILWIND_VERSION: v4.1.7
+
       - name: Setup Sentry CLI
         uses: matbour/setup-sentry-cli@v2
+        if: ${{ inputs.publish-artifact }}
         with:
           url: https://apm.yral.com
           token: ${{ secrets.SENTRY_AUTH_TOKEN }}
           organization: sentry
           project: leptos-ssr-server
+
       - name: Upload sentry Rust source context
+        if: ${{ inputs.publish-artifact }}
+        shell: bash
         run: |
-          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
+          apt-get install -y binutils
+          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr.d
           objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
-          objcopy --add-gnu-debuglink target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{.d,}
+          objcopy --add-gnu-debuglink=target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr.d target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
           sentry-cli debug-files upload --org sentry --project leptos-ssr-server --auth-token $SENTRY_AUTH_TOKEN --include-sources .
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         continue-on-error: true
+
       - run: touch .empty
+
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
         if: ${{ inputs.publish-artifact }}
@@ -124,5 +115,14 @@ jobs:
             .empty
 
       - name: Find and display hash file
+        run: find . -name "hash.txt" -type f
+
+      - name: Clean up build artifacts
+        if: always()
         run: |
-          find . -name "hash.txt" -type f
+          rm -rf target/x86_64-unknown-linux-musl/prod-release/deps || true
+          rm -rf target/x86_64-unknown-linux-musl/prod-release/build || true
+          rm -rf target/x86_64-unknown-linux-musl/prod-release/incremental || true
+          rm -rf target/wasm32-unknown-unknown || true
+          echo "Disk space after cleanup:"
+          df -h /

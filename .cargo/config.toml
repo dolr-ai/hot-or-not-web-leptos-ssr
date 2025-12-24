@@ -1,5 +1,5 @@
-# Target-specific settings for native Linux platforms
-[target.'cfg(target_os = "linux")']
+# Target-specific settings for musl builds (production)
+[target.x86_64-unknown-linux-musl]
 rustflags = [
   "-C",
   "link-arg=-fuse-ld=mold",
@@ -7,6 +7,10 @@ rustflags = [
   "link-arg=-fdebug-types-section",
   "--cfg=web_sys_unstable_apis",
 ]
+
+# Settings for native GNU Linux (host builds, proc-macros, etc.)
+[target.x86_64-unknown-linux-gnu]
+rustflags = ["--cfg=web_sys_unstable_apis"]
 
 # Settings for WebAssembly targets
 [target.wasm32-unknown-unknown]

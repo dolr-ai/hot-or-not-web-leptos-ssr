@@ -1,9 +1,20 @@
-name: Deploy to Fly on push to main
+name: Deploy to Bare Metal Servers
+
 on:
   workflow_dispatch:
   push:
     branches:
       - main
+      - joel/bare-metal-migr
+
+concurrency:
+  group: deploy-baremetal-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DOCKER_REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  PROXY_IMAGE_NAME: ${{ github.repository_owner }}/yral-front-leptos-redis-proxy
 
 jobs:
   build_check:
@@ -12,65 +23,267 @@ jobs:
       publish-artifact: true
     secrets: inherit
 
-  deploy:
-    name: Deploy
+  build-and-push:
+    name: Build and Push Docker Images
     needs: build_check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      image_tag: ${{ github.sha }}
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Download build
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: build-musl
-      - run: chmod +x target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Set secret tokens
-        run: |
-          flyctl secrets set CF_TOKEN="$CF_TOKEN" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set BACKEND_ADMIN_IDENTITY="$BACKEND_ADMIN_IDENTITY" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set COOKIE_KEY="$COOKIE_KEY" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set REDIS_URL="$REDIS_URL" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set GRPC_AUTH_TOKEN="$GRPC_AUTH_TOKEN" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set "HON_GOOGLE_SERVICE_ACCOUNT=$HON_GOOGLE_SERVICE_ACCOUNT" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set QSTASH_TOKEN="$QSTASH_TOKEN" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set GA4_API_SECRET="$GA4_API_SECRET" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set NSFW_GRPC_TOKEN="$NSFW_GRPC_TOKEN" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set ALLOYDB_INSTANCE="$ALLOYDB_INSTANCE" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set ALLOYDB_DB_PASSWORD="$ALLOYDB_DB_PASSWORD" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set ALLOYDB_SERVICE_ACCOUNT_JSON="$ALLOYDB_SERVICE_ACCOUNT_JSON" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set HON_WORKER_JWT="$HON_WORKER_JWT" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set ANALYTICS_SERVER_TOKEN="$ANALYTICS_SERVER_TOKEN" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set YRAL_AUTH_CLIENT_SECRET="$YRAL_AUTH_CLIENT_SECRET" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set YRAL_AUTH_MIGRATION_ES256_PEM="$YRAL_AUTH_MIGRATION_ES256_PEM" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set YRAL_METADATA_NOTIFICATION_API_KEY="$YRAL_METADATA_NOTIFICATION_API_KEY" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set STDB_ADMIN_ACCESS_TOKEN="$STDB_ADMIN_ACCESS_TOKEN" --app "hot-or-not-web-leptos-ssr" --stage
-          flyctl secrets set OTLP_ENDPOINT="$OTLP_ENDPOINT" --app "hot-or-not-web-leptos-ssr" --stage
-        env:
-          CF_TOKEN: ${{ secrets.CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET }}
-          BACKEND_ADMIN_IDENTITY: ${{ secrets.YRAL_DAPP_BACKEND_APP_ADMIN_AND_PROPOSAL_SUBMITTER_IDENTITY_PRIVATE_KEY }}
-          COOKIE_KEY: ${{ secrets.AUTH_SESSION_COOKIE_SIGNING_SECRET_KEY }}
-          REDIS_URL: ${{ secrets.AUTH_FLY_IO_UPSTASH_REDIS_DATABASE_CONNECTION_STRING }}
-          FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
-          GRPC_AUTH_TOKEN: ${{ secrets.OFF_CHAIN_AGENT_GRPC_AUTH_TOKEN }}
-          HON_GOOGLE_SERVICE_ACCOUNT: ${{ secrets.HOT_OR_NOT_FEED_INTELLIGENCE_FIREBASE_PROJECT_EVENTS_BQ_SERVICE_ACCOUNT_JSON_FOR_WEB_LEPTOS_SSR_APP }}
-          QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
-          GA4_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET }}
-          NSFW_GRPC_TOKEN: ${{ secrets.TOKEN_TO_SIGN_OUTGOING_CALLS_TO_NSFW_DETECT_SERVICE }}
-          ALLOYDB_INSTANCE: ${{ secrets.HOT_OR_NOT_ALLOYDB_INSTANCE }}
-          ALLOYDB_DB_PASSWORD: ${{ secrets.HOT_OR_NOT_ALLOYDB_DB_PASSWORD }}
-          ALLOYDB_SERVICE_ACCOUNT_JSON: ${{ secrets.HOT_OR_NOT_ALLOYDB_SERVICE_ACCOUNT }}
-          HON_WORKER_JWT: ${{ secrets.HOT_OR_NOT_WORKER_JWT }}
-          ANALYTICS_SERVER_TOKEN: ${{ secrets.ANALYTICS_SERVER_TOKEN }}
-          YRAL_AUTH_CLIENT_SECRET: ${{ secrets.YRAL_AUTH_V2_SECRET_KEY }}
-          YRAL_AUTH_MIGRATION_ES256_PEM: ${{ secrets.AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM }}
-          YRAL_METADATA_NOTIFICATION_API_KEY: ${{ secrets.YRAL_METADATA_NOTIFICATION_API_KEY }}
-          STDB_ADMIN_ACCESS_TOKEN: ${{ secrets.STDB_ADMIN_ACCESS_TOKEN }}
-          OTLP_ENDPOINT: ${{ secrets.OTLP_ENDPOINT }}
 
-      - name: Deploy a docker container to Fly.io
-        run: flyctl deploy --remote-only -c fly-prod.toml
+      - name: Make binary executable
+        run: chmod +x target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for frontend
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long,prefix=
+            type=raw,value=latest
+
+      - name: Extract metadata for fly-redis-proxy
+        id: meta-proxy
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_REGISTRY }}/${{ env.PROXY_IMAGE_NAME }}
+          tags: |
+            type=sha,format=long,prefix=
+            type=raw,value=latest
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push fly-redis-proxy image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./deploy-baremetal/fly-redis-proxy
+          file: ./deploy-baremetal/fly-redis-proxy/Dockerfile
+          push: true
+          tags: ${{ steps.meta-proxy.outputs.tags }}
+          labels: ${{ steps.meta-proxy.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  fetch-redis-password:
+    name: Fetch Fly Redis Password
+    needs: build_check
+    runs-on: ubuntu-latest
+
+    outputs:
+      password: ${{ steps.redis.outputs.password }}
+
+    steps:
+      - name: Install Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Fetch Redis password from Fly
+        id: redis
         env:
           FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
+        run: |
+          # Get Redis status and extract password from Private URL
+          OUTPUT=$(flyctl redis status yral-metadata-auth 2>&1)
+          REDIS_URL=$(echo "$OUTPUT" | grep "Private URL" | awk '{print $NF}')
+
+          # Extract password first, then mask it immediately
+          REDIS_PASSWORD=$(echo "$REDIS_URL" | sed -n 's|redis://default:\([^@]*\)@.*|\1|p')
+          if [ -n "$REDIS_PASSWORD" ]; then
+            echo "::add-mask::$REDIS_PASSWORD"
+            echo "::add-mask::$REDIS_URL"
+          fi
+
+          if [ -z "$REDIS_URL" ]; then
+            echo "Error: Could not fetch Redis URL from flyctl redis status"
+            exit 1
+          fi
+          if [ -z "$REDIS_PASSWORD" ]; then
+            echo "Error: Could not extract Redis password from URL"
+            exit 1
+          fi
+          echo "password=$REDIS_PASSWORD" >> $GITHUB_OUTPUT
+          echo "Redis password fetched successfully"
+
+  prepare-servers:
+    name: Prepare Server List
+    runs-on: ubuntu-latest
+    outputs:
+      servers: ${{ steps.parse.outputs.servers }}
+    steps:
+      - name: Parse server IPs
+        id: parse
+        run: |
+          # Convert comma-separated IPs to JSON array
+          IPS="${{ vars.FRONTEND_BAREMETAL_SERVER_IPS }}"
+          JSON=$(echo "$IPS" | tr ',' '\n' | jq -R . | jq -s -c .)
+          echo "servers=$JSON" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: Deploy to Server
+    needs: [build-and-push, fetch-redis-password, prepare-servers]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        server: ${{ fromJson(needs.prepare-servers.outputs.servers) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HETZNER_BARE_METAL_GITHUB_ACTIONS_SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        run: |
+          ssh-keyscan -H ${{ matrix.server }} >> ~/.ssh/known_hosts
+
+      - name: Check server connectivity
+        run: |
+          ssh -o ConnectTimeout=10 root@${{ matrix.server }} "echo 'Server ${{ matrix.server }} connection successful'"
+
+      - name: Sync deployment files to server
+        run: |
+          rsync -avz --delete \
+            ./deploy-baremetal/ \
+            root@${{ matrix.server }}:/home/yral-frontend/
+
+      - name: Log in to GHCR on server
+        run: |
+          ssh root@${{ matrix.server }} "
+            echo '${{ secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          "
+
+      - name: Deploy with Docker Compose
+        env:
+          ALLOYDB_SERVICE_ACCOUNT_JSON: ${{ secrets.HOT_OR_NOT_ALLOYDB_SERVICE_ACCOUNT }}
+          HON_GOOGLE_SERVICE_ACCOUNT: ${{ secrets.HOT_OR_NOT_FEED_INTELLIGENCE_FIREBASE_PROJECT_EVENTS_BQ_SERVICE_ACCOUNT_JSON_FOR_WEB_LEPTOS_SSR_APP }}
+        run: |
+          # Shell-escape JSON secrets
+          ALLOYDB_SA_JSON_ESCAPED=$(printf '%q' "$ALLOYDB_SERVICE_ACCOUNT_JSON")
+          HON_GOOGLE_SA_ESCAPED=$(printf '%q' "$HON_GOOGLE_SERVICE_ACCOUNT")
+
+          ssh root@${{ matrix.server }} "
+            cd /home/yral-frontend
+
+            echo 'Pulling latest images...'
+            APP_IMAGE=ghcr.io/${{ github.repository }} \
+            PROXY_IMAGE=ghcr.io/${{ env.PROXY_IMAGE_NAME }} \
+            IMAGE_TAG=${{ github.sha }} \
+            docker compose pull
+
+            echo 'Stopping existing containers...'
+            docker compose down --remove-orphans || true
+
+            echo 'Starting services...'
+            APP_IMAGE=ghcr.io/${{ github.repository }} \
+            PROXY_IMAGE=ghcr.io/${{ env.PROXY_IMAGE_NAME }} \
+            IMAGE_TAG=${{ github.sha }} \
+            FLY_API_TOKEN='${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}' \
+            FLY_REDIS_PASSWORD='${{ needs.fetch-redis-password.outputs.password }}' \
+            CF_TOKEN='${{ secrets.CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET }}' \
+            BACKEND_ADMIN_IDENTITY='${{ secrets.YRAL_DAPP_BACKEND_APP_ADMIN_AND_PROPOSAL_SUBMITTER_IDENTITY_PRIVATE_KEY }}' \
+            COOKIE_KEY='${{ secrets.AUTH_SESSION_COOKIE_SIGNING_SECRET_KEY }}' \
+            GRPC_AUTH_TOKEN='${{ secrets.OFF_CHAIN_AGENT_GRPC_AUTH_TOKEN }}' \
+            HON_GOOGLE_SERVICE_ACCOUNT=$HON_GOOGLE_SA_ESCAPED \
+            QSTASH_TOKEN='${{ secrets.QSTASH_TOKEN }}' \
+            GA4_API_SECRET='${{ secrets.GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET }}' \
+            NSFW_GRPC_TOKEN='${{ secrets.TOKEN_TO_SIGN_OUTGOING_CALLS_TO_NSFW_DETECT_SERVICE }}' \
+            ALLOYDB_INSTANCE='${{ secrets.HOT_OR_NOT_ALLOYDB_INSTANCE }}' \
+            ALLOYDB_DB_PASSWORD='${{ secrets.HOT_OR_NOT_ALLOYDB_DB_PASSWORD }}' \
+            ALLOYDB_SERVICE_ACCOUNT_JSON=$ALLOYDB_SA_JSON_ESCAPED \
+            HON_WORKER_JWT='${{ secrets.HOT_OR_NOT_WORKER_JWT }}' \
+            ANALYTICS_SERVER_TOKEN='${{ secrets.ANALYTICS_SERVER_TOKEN }}' \
+            YRAL_AUTH_CLIENT_SECRET='${{ secrets.YRAL_AUTH_V2_SECRET_KEY }}' \
+            YRAL_AUTH_MIGRATION_ES256_PEM='${{ secrets.AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM }}' \
+            YRAL_METADATA_NOTIFICATION_API_KEY='${{ secrets.YRAL_METADATA_NOTIFICATION_API_KEY }}' \
+            STDB_ADMIN_ACCESS_TOKEN='${{ secrets.STDB_ADMIN_ACCESS_TOKEN }}' \
+            OTLP_ENDPOINT='${{ secrets.OTLP_ENDPOINT }}' \
+            docker compose up -d
+
+            echo 'Waiting for services to start...'
+            sleep 15
+
+            echo 'Services status:'
+            docker compose ps
+          "
+
+      - name: Verify deployment
+        run: |
+          ssh root@${{ matrix.server }} "
+            cd /home/yral-frontend
+            echo '=== Container Status ==='
+            docker compose ps
+            echo ''
+            echo '=== Redis Proxy Logs (last 10 lines) ==='
+            docker compose logs --tail=10 fly-redis-proxy 2>/dev/null || echo 'Logs not yet available'
+            echo ''
+            echo '=== Frontend Logs (last 20 lines) ==='
+            docker compose logs --tail=20 yral-frontend 2>/dev/null || echo 'Logs not yet available'
+          "
+
+      - name: Health check
+        run: |
+          echo 'Waiting for health check...'
+          sleep 10
+          ssh root@${{ matrix.server }} "
+            curl -f http://localhost:80/health || echo 'Health check endpoint not ready'
+          "
+
+  deployment-summary:
+    name: Deployment Summary
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Deployment summary
+        run: |
+          echo "## Bare Metal Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Deployment Status: ${{ needs.deploy.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Images" >> $GITHUB_STEP_SUMMARY
+          echo "- ghcr.io/${{ github.repository }}:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- ghcr.io/${{ github.repository_owner }}/yral-front-leptos-redis-proxy:${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Services" >> $GITHUB_STEP_SUMMARY
+          echo "- fly-redis-proxy (Fly Redis tunnel for yral-metadata-auth)" >> $GITHUB_STEP_SUMMARY
+          echo "- yral-frontend (Leptos SSR on port 8080)" >> $GITHUB_STEP_SUMMARY
+          echo "- caddy (TLS termination + reverse proxy)" >> $GITHUB_STEP_SUMMARY
 
   e2e-tests:
     needs: deploy

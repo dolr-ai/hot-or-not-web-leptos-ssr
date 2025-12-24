@@ -1,0 +1,24 @@
+#!/usr/bin/expect -f
+
+# Disable timeout
+set timeout -1
+
+# Spawn the command with the token from environment
+spawn flyctl -t $env(FLY_API_TOKEN) redis proxy -o gobazzinga-inc-584
+
+# Expect the database selection prompt, type to filter, then select
+expect "*Select a database to connect to*" {
+    # Type to filter to yral-metadata-auth (for auth session storage)
+    send "yral-metadata-auth"
+    sleep 0.5
+    send "\r"
+}
+
+# Expect the confirmation message
+expect "Proxying local port"
+
+# Wait indefinitely to keep the proxy alive
+expect {
+    timeout { exp_continue }
+    eof     { exit 1 }
+}

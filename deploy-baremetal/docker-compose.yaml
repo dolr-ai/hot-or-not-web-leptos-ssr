@@ -1,0 +1,90 @@
+services:
+  fly-redis-proxy:
+    image: ${PROXY_IMAGE:-ghcr.io/dolr-ai/yral-front-leptos-redis-proxy}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      - FLY_API_TOKEN=${FLY_API_TOKEN}
+    networks:
+      - frontend-net
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "16379"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  yral-frontend:
+    image: ${APP_IMAGE:-ghcr.io/dolr-ai/yral-front-leptos}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      # === Leptos Configuration ===
+      LEPTOS_SITE_ROOT: "site"
+      LEPTOS_ENV: "production"
+      LEPTOS_SITE_ADDR: "0.0.0.0:8080"
+      LEPTOS_HASH_FILES: "true"
+
+      # === Cloudflare Configuration ===
+      CF_TOKEN: ${CF_TOKEN}
+      CF_ACCOUNT_ID: "a209c523d2d9646cc56227dbe6ce3ede"
+
+      # === Auth Configuration ===
+      BACKEND_ADMIN_IDENTITY: ${BACKEND_ADMIN_IDENTITY}
+      COOKIE_KEY: ${COOKIE_KEY}
+      YRAL_AUTH_REDIRECT_URL: ${YRAL_AUTH_REDIRECT_URL:-https://yral.com/auth/google_redirect}
+      YRAL_AUTH_CLIENT_ID: "4ec00561-91bb-4e60-9743-8bed684145ba"
+      YRAL_AUTH_CLIENT_SECRET: ${YRAL_AUTH_CLIENT_SECRET}
+      YRAL_AUTH_MIGRATION_ES256_PEM: ${YRAL_AUTH_MIGRATION_ES256_PEM}
+
+      # === Redis Configuration (via Fly proxy) ===
+      REDIS_URL: redis://default:${FLY_REDIS_PASSWORD}@fly-redis-proxy:16379
+
+      # === Database Configuration ===
+      ALLOYDB_INSTANCE: ${ALLOYDB_INSTANCE}
+      ALLOYDB_DB_PASSWORD: ${ALLOYDB_DB_PASSWORD}
+      ALLOYDB_SERVICE_ACCOUNT_JSON: ${ALLOYDB_SERVICE_ACCOUNT_JSON}
+      ALLOYDB_DB_NAME: "postgres"
+      ALLOYDB_DB_USER: "postgres"
+
+      # === gRPC & External Services ===
+      GRPC_AUTH_TOKEN: ${GRPC_AUTH_TOKEN}
+      HON_GOOGLE_SERVICE_ACCOUNT: ${HON_GOOGLE_SERVICE_ACCOUNT}
+      QSTASH_TOKEN: ${QSTASH_TOKEN}
+      GA4_API_SECRET: ${GA4_API_SECRET}
+      NSFW_GRPC_TOKEN: ${NSFW_GRPC_TOKEN}
+      HON_WORKER_JWT: ${HON_WORKER_JWT}
+      ANALYTICS_SERVER_TOKEN: ${ANALYTICS_SERVER_TOKEN}
+      YRAL_METADATA_NOTIFICATION_API_KEY: ${YRAL_METADATA_NOTIFICATION_API_KEY}
+      STDB_ADMIN_ACCESS_TOKEN: ${STDB_ADMIN_ACCESS_TOKEN}
+
+      # === Observability ===
+      SENTRY_ENVIRONMENT: "production"
+      OTLP_ENDPOINT: ${OTLP_ENDPOINT}
+    networks:
+      - frontend-net
+    depends_on:
+      fly-redis-proxy:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3 QUIC support
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - frontend-net
+    depends_on:
+      - yral-frontend
+
+networks:
+  frontend-net:
+    driver: bridge
+
+volumes:
+  caddy_data:
+  caddy_config:
