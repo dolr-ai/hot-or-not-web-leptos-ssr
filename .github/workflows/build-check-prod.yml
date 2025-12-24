@@ -12,48 +12,67 @@ on:
 jobs:
   build_check:
     runs-on: self-hosted
+    container:
+      image: mcr.microsoft.com/devcontainers/base:ubuntu
+      options: --user root
     steps:
+      - name: Install system dependencies
+        run: |
+          apt-get update
+          apt-get install -y software-properties-common
+          add-apt-repository main --yes
+          apt-get install -y mold pkg-config musl-tools lld protobuf-compiler curl git
+          # Install Node.js 20
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y nodejs
+          # Install pnpm
+          npm install -g pnpm@8
+
       - name: Checkout repo and submodules
         uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      - name: Build and check in devcontainer
-        uses: devcontainers/ci@v0.3
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
         with:
-          imageName: ghcr.io/${{ github.repository }}-devcontainer
-          push: never
-          runCmd: |
-            # Install Rust nightly with required targets
-            rustup install nightly-2025-06-15
-            rustup default nightly-2025-06-15
-            rustup target add x86_64-unknown-linux-musl wasm32-unknown-unknown
-            rustup component add clippy rustfmt
+          toolchain: "nightly-2025-06-15"
+          targets: "x86_64-unknown-linux-musl,wasm32-unknown-unknown"
+          components: "clippy,rustfmt"
 
-            # Install cargo-leptos
-            cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked --force
+      - name: Install cargo-binstall
+        run: |
+          curl -L https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xzf -
+          mv cargo-binstall /usr/local/bin/
+          chmod +x /usr/local/bin/cargo-binstall
 
-            # Install npm deps
-            pnpm install
+      - name: Install cargo-leptos
+        run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked --force
 
-            # Lint check
-            echo "Running lint checks..."
-            cargo fmt --check
-            cargo clippy --no-deps --all-features --release -- -Dwarnings
+      - name: Cache rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: "v2-rust"
 
-            # Print versions
-            rustc --version
-            cargo --version
+      - name: Install npm deps
+        run: pnpm install
 
-            # Build
-            echo "Building Leptos project..."
-            LEPTOS_BIN_TARGET_TRIPLE=x86_64-unknown-linux-musl \
-            LEPTOS_HASH_FILES=true \
-            LEPTOS_TAILWIND_VERSION=v4.1.7 \
-            cargo leptos build --release --lib-features release-lib --bin-features release-bin
+      - name: Lint check
+        run: |
+          cargo fmt --check
+          cargo clippy --no-deps --all-features --release -- -Dwarnings
 
-            # Create empty file for artifact (ensures upload works even if hash.txt missing)
-            touch .empty
+      - name: Print versions
+        run: |
+          rustc --version
+          cargo --version
+
+      - name: Build the Leptos project
+        run: cargo leptos build --release --lib-features release-lib --bin-features release-bin
+        env:
+          LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
+          LEPTOS_HASH_FILES: true
+          LEPTOS_TAILWIND_VERSION: v4.1.7
 
       - name: Setup Sentry CLI
         uses: matbour/setup-sentry-cli@v2
@@ -67,6 +86,7 @@ jobs:
       - name: Upload sentry Rust source context
         if: ${{ inputs.publish-artifact }}
         run: |
+          apt-get install -y binutils
           objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
           objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
           objcopy --add-gnu-debuglink target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{.d,}
@@ -74,6 +94,8 @@ jobs:
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         continue-on-error: true
+
+      - run: touch .empty
 
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
@@ -87,5 +109,4 @@ jobs:
             .empty
 
       - name: Find and display hash file
-        run: |
-          find . -name "hash.txt" -type f
+        run: find . -name "hash.txt" -type f
