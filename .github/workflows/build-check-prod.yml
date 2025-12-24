@@ -18,86 +18,54 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y mold lld musl-tools protobuf-compiler
-
-      - name: Rust Setup
-        uses: dtolnay/rust-toolchain@master
+      - name: Build and check in devcontainer
+        uses: devcontainers/ci@v0.3
         with:
-          toolchain: "nightly-2025-06-15"
-          targets: "x86_64-unknown-linux-musl,wasm32-unknown-unknown"
-          components: "clippy,rustfmt"
+          imageName: ghcr.io/${{ github.repository }}-devcontainer
+          push: never
+          runCmd: |
+            # Install Rust nightly with required targets
+            rustup install nightly-2025-06-15
+            rustup default nightly-2025-06-15
+            rustup target add x86_64-unknown-linux-musl wasm32-unknown-unknown
+            rustup component add clippy rustfmt
 
-      - uses: cargo-bins/cargo-binstall@main
-      - name: cargo-leptos setup
-        run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked --force
+            # Install cargo-leptos
+            cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked --force
 
-      - name: Cache rust dependencies and build output
-        uses: Swatinem/rust-cache@v2
-        with:
-          prefix-key: "v1-rust"
+            # Install npm deps
+            pnpm install
 
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
+            # Lint check
+            echo "Running lint checks..."
+            cargo fmt --check
+            cargo clippy --no-deps --all-features --release -- -Dwarnings
 
-      - uses: pnpm/action-setup@v3
-        name: Install pnpm
-        with:
-          version: 8
-          run_install: false
+            # Print versions
+            rustc --version
+            cargo --version
 
-      - name: Get pnpm store directory
-        shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+            # Build
+            echo "Building Leptos project..."
+            LEPTOS_BIN_TARGET_TRIPLE=x86_64-unknown-linux-musl \
+            LEPTOS_HASH_FILES=true \
+            LEPTOS_TAILWIND_VERSION=v4.1.7 \
+            cargo leptos build --release --lib-features release-lib --bin-features release-bin
 
-      - uses: actions/cache@v4
-        name: Setup pnpm cache
-        with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+            # Create empty file for artifact (ensures upload works even if hash.txt missing)
+            touch .empty
 
-      - name: Install npm deps
-        run: pnpm install
-
-      - name: Install clippy
-        run: |
-          rustup component add clippy
-          rustup component add rustfmt
-
-      - name: lint check
-        run: |
-          cargo fmt --check
-          cargo clippy --no-deps --all-features --release -- -Dwarnings
-        env:
-          RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
-
-      - name: Print Rust and Cargo version
-        run: |
-          rustc --version
-          cargo --version
-
-      - name: Build the Leptos project to `musl` output
-        run: cargo leptos build --release --lib-features release-lib --bin-features release-bin
-        env:
-          RUSTUP_TOOLCHAIN: "nightly-2025-06-15"
-          LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
-          LEPTOS_HASH_FILES: true
-          LEPTOS_TAILWIND_VERSION: v4.1.7
       - name: Setup Sentry CLI
         uses: matbour/setup-sentry-cli@v2
+        if: ${{ inputs.publish-artifact }}
         with:
           url: https://apm.yral.com
           token: ${{ secrets.SENTRY_AUTH_TOKEN }}
           organization: sentry
           project: leptos-ssr-server
+
       - name: Upload sentry Rust source context
+        if: ${{ inputs.publish-artifact }}
         run: |
           objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
           objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
@@ -106,7 +74,7 @@ jobs:
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         continue-on-error: true
-      - run: touch .empty
+
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4
         if: ${{ inputs.publish-artifact }}
