@@ -94,9 +94,10 @@ jobs:
           LEPTOS_TAILWIND_VERSION: v4.1.7
 
       - name: Strip debug symbols
+        shell: bash
         run: |
           apt-get install -y binutils
-          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr{,.d}
+          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr.d
           objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
 
       - run: touch .empty
