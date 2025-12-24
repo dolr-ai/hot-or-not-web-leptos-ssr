@@ -59,3 +59,14 @@ www.yral.com {
     # Redirect everything else to HTTPS
     redir https://{host}{uri} permanent
 }
+
+# Testing via IP (remove after DNS is pointed)
+:8080 {
+    reverse_proxy yral-frontend:8080 {
+        header_up Host {host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    encode gzip zstd
+}

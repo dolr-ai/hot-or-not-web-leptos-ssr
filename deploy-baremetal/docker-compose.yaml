@@ -72,6 +72,7 @@ services:
       - "80:80"
       - "443:443"
       - "443:443/udp"  # HTTP/3 QUIC support
+      - "8080:8080"    # Testing via IP (remove after DNS is pointed)
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
