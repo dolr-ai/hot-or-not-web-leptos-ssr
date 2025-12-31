@@ -12,8 +12,7 @@ use priority_queue::DoublePriorityQueue;
 use serde::{Deserialize, Serialize};
 use state::canisters::{auth_state, unauth_canisters};
 use std::{cmp::Reverse, collections::HashMap};
-use utils::ml_feed::QuickPostDetails;
-use yral_types::post::PostItemV3;
+use utils::ml_feed::{PostItem, QuickPostDetails};
 
 use candid::Principal;
 use codee::string::FromToStringCodec;
@@ -80,24 +79,14 @@ impl std::hash::Hash for MlPostItem {
     }
 }
 
-impl From<PostItemV3> for MlPostItem {
-    fn from(value: PostItemV3) -> Self {
-        // TODO: it might make more sense to impl TryForm, but this is changing soon I'm not bothering
+impl From<PostItem> for MlPostItem {
+    fn from(value: PostItem) -> Self {
         Self {
-            canister_id: value
-                .canister_id
-                .parse()
-                .expect("ml feed to return correct value"),
-            post_id: value
-                .post_id
-                .parse()
-                .expect("ml feed to return a number as string"),
+            canister_id: value.canister_id,
+            post_id: value.post_id,
             video_uid: value.video_id,
-            nsfw_probability: value.nsfw_probability,
-            publisher_user_id: value
-                .publisher_user_id
-                .parse()
-                .expect("ml feed to return correct value"),
+            nsfw_probability: 0.0, // New API doesn't provide nsfw_probability
+            publisher_user_id: value.publisher_user_id,
         }
     }
 }
@@ -328,20 +317,16 @@ pub fn PostViewWithUpdatesMLFeed(initial_posts: Vec<MlPostItem>) -> impl IntoVie
                 let cans_false: Canisters<false> = Default::default();
                 let cans_true = auth.auth_cans_if_available();
 
-                let video_queue_c = video_queue
-                    .get_untracked()
-                    .iter()
-                    .map(|item| item.video_uid.clone())
-                    .collect();
+                let video_queue_len = video_queue.get_untracked().len();
                 let chunks = if let Some(cans_true) = cans_true.as_ref() {
                     let mut fetch_stream = new_video_fetch_stream_auth(cans_true, auth, cursor);
                     fetch_stream
-                        .fetch_post_uids_hybrid(3, nsfw_enabled.unwrap_or(false), video_queue_c)
+                        .fetch_post_uids_hybrid(nsfw_enabled.unwrap_or(false), video_queue_len)
                         .await
                 } else {
                     let mut fetch_stream = new_video_fetch_stream(&cans_false, auth, cursor);
                     fetch_stream
-                        .fetch_post_uids_hybrid(3, nsfw_enabled.unwrap_or(false), video_queue_c)
+                        .fetch_post_uids_hybrid(nsfw_enabled.unwrap_or(false), video_queue_len)
                         .await
                 };
 
