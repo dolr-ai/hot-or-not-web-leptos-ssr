@@ -97,7 +97,8 @@ pub mod yral_auth {
     use jsonwebtoken::DecodingKey;
     use std::sync::LazyLock;
 
-    pub const YRAL_AUTH_AUTHORIZATION_URL: &str = "https://pr-30-dolr-ai-yral-auth-v2.fly.dev/oauth/auth";
+    pub const YRAL_AUTH_AUTHORIZATION_URL: &str =
+        "https://pr-30-dolr-ai-yral-auth-v2.fly.dev/oauth/auth";
     pub const YRAL_AUTH_TOKEN_URL: &str = "https://pr-30-dolr-ai-yral-auth-v2.fly.dev/oauth/token";
     pub const YRAL_AUTH_ISSUER_URL: &str = "https://pr-30-dolr-ai-yral-auth-v2.fly.dev";
 
