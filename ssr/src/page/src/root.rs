@@ -9,9 +9,9 @@ use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use utils::host::show_nsfw_content;
 use utils::ml_feed::{
     get_ml_feed_clean, get_ml_feed_coldstart_clean, get_ml_feed_coldstart_nsfw, get_ml_feed_nsfw,
+    PostItem,
 };
 use utils::try_or_redirect_opt;
-use yral_types::post::PostItemV3;
 
 use crate::post_view::{PostViewCtx, PostViewWithUpdatesMLFeed};
 
@@ -50,9 +50,9 @@ fn generate_random_principal() -> Principal {
 
 #[server]
 #[tracing::instrument]
-async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerFnError> {
+async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItem>, ServerFnError> {
     let random_principal = generate_random_principal();
-    let posts = get_ml_feed_coldstart_clean(random_principal, 15, vec![], None)
+    let posts = get_ml_feed_coldstart_clean(random_principal, 15)
         .await
         .map_err(|e| {
             leptos::logging::error!("Error getting top post id global clean feed: {e:?}");
@@ -62,7 +62,7 @@ async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerF
     if posts.is_empty() {
         leptos::logging::warn!("Coldstart clean feed returned 0 results, falling back to ML feed");
         let fallback_principal = generate_random_principal();
-        let posts = get_ml_feed_clean(fallback_principal, 15, vec![], None)
+        let posts = get_ml_feed_clean(fallback_principal, 15)
             .await
             .map_err(|e| {
                 leptos::logging::error!("Error getting ML feed clean fallback: {e:?}");
@@ -76,9 +76,9 @@ async fn get_top_post_ids_global_clean_feed() -> Result<Vec<PostItemV3>, ServerF
 
 #[server]
 #[tracing::instrument]
-async fn get_top_post_ids_global_nsfw_feed() -> Result<Vec<PostItemV3>, ServerFnError> {
+async fn get_top_post_ids_global_nsfw_feed() -> Result<Vec<PostItem>, ServerFnError> {
     let random_principal = generate_random_principal();
-    let posts = get_ml_feed_coldstart_nsfw(random_principal, 15, vec![], None)
+    let posts = get_ml_feed_coldstart_nsfw(random_principal, 15)
         .await
         .map_err(|e| {
             leptos::logging::error!("Error getting top post id global nsfw feed: {e:?}");
@@ -88,7 +88,7 @@ async fn get_top_post_ids_global_nsfw_feed() -> Result<Vec<PostItemV3>, ServerFn
     if posts.is_empty() {
         leptos::logging::warn!("Coldstart nsfw feed returned 0 results, falling back to ML feed");
         let fallback_principal = generate_random_principal();
-        let posts = get_ml_feed_nsfw(fallback_principal, 15, vec![], None)
+        let posts = get_ml_feed_nsfw(fallback_principal, 15)
             .await
             .map_err(|e| {
                 leptos::logging::error!("Error getting ML feed nsfw fallback: {e:?}");

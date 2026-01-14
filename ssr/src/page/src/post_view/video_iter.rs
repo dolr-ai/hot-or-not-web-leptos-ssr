@@ -111,32 +111,19 @@ impl<
 
     pub async fn fetch_post_uids_ml_feed_chunked(
         &self,
-        chunks: usize,
         allow_nsfw: bool,
-        video_queue: Vec<String>,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
-        let _ = chunks;
         let user_principal_id = self.user_principal().await?;
 
         let show_nsfw = allow_nsfw || show_nsfw_content();
         let top_posts = if show_nsfw {
-            get_ml_feed_nsfw(
-                user_principal_id,
-                self.cursor.limit as u32,
-                video_queue.clone(),
-                None,
-            )
-            .await
-            .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
+            get_ml_feed_nsfw(user_principal_id, self.cursor.limit as u32)
+                .await
+                .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
         } else {
-            get_ml_feed_clean(
-                user_principal_id,
-                self.cursor.limit as u32,
-                video_queue.clone(),
-                None,
-            )
-            .await
-            .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
+            get_ml_feed_clean(user_principal_id, self.cursor.limit as u32)
+                .await
+                .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
         };
 
         let top_posts = top_posts.into_iter().map(Into::into).collect();
@@ -152,32 +139,19 @@ impl<
 
     pub async fn fetch_post_uids_mlfeed_cache_chunked(
         &self,
-        chunks: usize,
         allow_nsfw: bool,
-        video_queue: Vec<String>,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
-        let _ = chunks;
         let user_principal_id = self.user_principal().await?;
 
         let show_nsfw = allow_nsfw || show_nsfw_content();
         let top_posts = if show_nsfw {
-            get_ml_feed_coldstart_nsfw(
-                user_principal_id,
-                self.cursor.limit as u32,
-                video_queue.clone(),
-                None,
-            )
-            .await
-            .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
+            get_ml_feed_coldstart_nsfw(user_principal_id, self.cursor.limit as u32)
+                .await
+                .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
         } else {
-            get_ml_feed_coldstart_clean(
-                user_principal_id,
-                self.cursor.limit as u32,
-                video_queue.clone(),
-                None,
-            )
-            .await
-            .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
+            get_ml_feed_coldstart_clean(user_principal_id, self.cursor.limit as u32)
+                .await
+                .map_err(|e| ServerFnError::new(format!("Error fetching ml feed: {e:?}")))?
         };
 
         let top_posts = top_posts.into_iter().map(Into::into).collect();
@@ -193,25 +167,20 @@ impl<
 
     pub async fn fetch_post_uids_hybrid(
         &mut self,
-        chunks: usize,
         allow_nsfw: bool,
-        video_queue: Vec<String>,
+        video_queue_len: usize,
     ) -> Result<FetchVideosRes<'a>, ServerFnError> {
-        if video_queue.len() < 5 {
+        if video_queue_len < 5 {
             self.cursor.set_limit(30);
-            self.fetch_post_uids_mlfeed_cache_chunked(chunks, allow_nsfw, video_queue)
-                .await
+            self.fetch_post_uids_mlfeed_cache_chunked(allow_nsfw).await
         } else {
-            let res = self
-                .fetch_post_uids_ml_feed_chunked(chunks, allow_nsfw, video_queue.clone())
-                .await;
+            let res = self.fetch_post_uids_ml_feed_chunked(allow_nsfw).await;
 
             match res {
                 Ok(res) => Ok(res),
                 Err(_) => {
                     self.cursor.set_limit(50);
-                    self.fetch_post_uids_mlfeed_cache_chunked(chunks, allow_nsfw, video_queue)
-                        .await
+                    self.fetch_post_uids_mlfeed_cache_chunked(allow_nsfw).await
                 }
             }
         }

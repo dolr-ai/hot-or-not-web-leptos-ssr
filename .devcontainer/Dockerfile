@@ -9,5 +9,12 @@ RUN sudo apt install --yes software-properties-common
 # Add the main repository for mold
 RUN sudo add-apt-repository main --yes
 
-# Install mold
-RUN sudo apt install --yes mold pkg-config
+# Install build dependencies
+RUN sudo apt install --yes mold pkg-config musl-tools lld
+
+# Install Node.js 20
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash - && \
+    sudo apt install --yes nodejs
+
+# Install pnpm
+RUN sudo npm install -g pnpm@8

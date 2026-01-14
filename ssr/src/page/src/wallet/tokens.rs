@@ -1050,7 +1050,7 @@ fn WalletCardOptions(
     Some(view! {
         <div class="flex justify-around items-center">
             <ActionButtonLink
-                disabled=is_utility_token
+                disabled=true
                 href=format!("/token/transfer/{root}")
                 label="Send".to_string()
             >
