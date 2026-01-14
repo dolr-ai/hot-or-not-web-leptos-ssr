@@ -233,20 +233,26 @@ async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
 fn setup_sentry_subscriber() {
     use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+    // Configure sentry to only capture errors (not debug/info/warn)
+    let sentry_layer = sentry_tracing::layer().event_filter(|metadata| match *metadata.level() {
+        tracing::Level::ERROR => sentry_tracing::EventFilter::Event,
+        tracing::Level::WARN => sentry_tracing::EventFilter::Breadcrumb,
+        _ => sentry_tracing::EventFilter::Ignore,
+    });
+
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| {
-                // axum logs rejections from built-in extractors with the `axum::rejection`
-                // target, at `TRACE` level. `axum::rejection=trace` enables showing those events
+                // Default to info level, with warn for noisy crates
                 format!(
-                    "{}=debug,tower_http=debug,axum::rejection=trace",
+                    "{}=info,tower_http=warn,axum::rejection=warn,hyper=warn,reqwest=warn",
                     env!("CARGO_CRATE_NAME")
                 )
                 .into()
             }),
         )
         .with(tracing_subscriber::fmt::layer())
-        .with(sentry_tracing::layer())
+        .with(sentry_layer)
         .init();
 }
 
