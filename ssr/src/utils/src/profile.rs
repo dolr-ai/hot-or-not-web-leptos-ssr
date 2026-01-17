@@ -5,7 +5,7 @@ use leptos::prelude::*;
 use yral_canisters_client::{
     ic::USER_INFO_SERVICE_ID,
     individual_user_template::{PostStatus as IndividualPostStatus, Result6},
-    user_post_service::{PostStatus as ServicePostStatus, Result3},
+    user_post_service::{PostStatus as ServicePostStatus, Result1},
 };
 
 use yral_canisters_common::{
@@ -68,8 +68,8 @@ impl CursoredDataProvider for PostsProvider {
                     .await?;
 
                 let posts = match posts_res {
-                    Result3::Ok(posts) => posts,
-                    Result3::Err(get_posts_of_user_profile_error) => {
+                    Result1::Ok(posts) => posts,
+                    Result1::Err(get_posts_of_user_profile_error) => {
                         log::warn!("failed to get posts {get_posts_of_user_profile_error:?}");
                         return Ok(PageEntry {
                             data: vec![],
