@@ -21,6 +21,7 @@ pub async fn generate_video_with_identity_v2(
     let identity_request = VideoGenRequestWithIdentityV2 {
         request,
         delegated_identity,
+        upload_handling: None,
     };
 
     // Get the queued response with request_key

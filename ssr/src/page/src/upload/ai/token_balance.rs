@@ -30,5 +30,10 @@ pub async fn load_token_balance(
             // The UI will handle displaying appropriate text for free generation
             Ok(TokenBalance::new(0u64.into(), 0))
         }
+        videogen_common::TokenType::YralProSubscription => {
+            // Pro subscription users have access without balance tracking
+            // Return 0 as a placeholder - UI will handle subscription display
+            Ok(TokenBalance::new(0u64.into(), 0))
+        }
     }
 }

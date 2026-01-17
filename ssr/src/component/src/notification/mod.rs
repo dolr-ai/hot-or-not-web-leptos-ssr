@@ -40,6 +40,14 @@ fn NotificationItem(notif: NotificationData, is_read: bool) -> impl IntoView {
             "Someone Liked your video!".to_string(),
             format!("{} liked your video", v.by_user_principal),
         ),
+        NotificationType::VideoApproved(_v) => (
+            "Video Approved!".to_string(),
+            "Your video has been approved and is now visible".to_string(),
+        ),
+        NotificationType::VideoDisapproved(_v) => (
+            "Video Not Approved".to_string(),
+            "Your video was not approved due to policy violations".to_string(),
+        ),
     };
 
     let notif = StoredValue::new(notif.clone());
@@ -77,6 +85,20 @@ fn NotificationItem(notif: NotificationData, is_read: bool) -> impl IntoView {
                     (
                         format!("/hot-or-not/{}/{}", cans.user_canister(), v.post_id),
                         user_details.profile_pic_or_random(),
+                    )
+                }
+                NotificationType::VideoApproved(v) => {
+                    let icon = cans.profile_details().profile_pic_or_random();
+                    (
+                        format!("/hot-or-not/{}/{}", cans.user_canister(), v.post_id),
+                        icon,
+                    )
+                }
+                NotificationType::VideoDisapproved(v) => {
+                    let icon = cans.profile_details().profile_pic_or_random();
+                    (
+                        format!("/hot-or-not/{}/{}", cans.user_canister(), v.post_id),
+                        icon,
                     )
                 }
             };
