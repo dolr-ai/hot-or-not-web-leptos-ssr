@@ -89,17 +89,11 @@ fn NotificationItem(notif: NotificationData, is_read: bool) -> impl IntoView {
                 }
                 NotificationType::VideoApproved(v) => {
                     let icon = cans.profile_details().profile_pic_or_random();
-                    (
-                        format!("/hot-or-not/{}/{}", v.canister_id, v.post_id),
-                        icon,
-                    )
+                    (format!("/hot-or-not/{}/{}", v.canister_id, v.post_id), icon)
                 }
                 NotificationType::VideoDisapproved(v) => {
                     let icon = cans.profile_details().profile_pic_or_random();
-                    (
-                        format!("/hot-or-not/{}/{}", v.canister_id, v.post_id),
-                        icon,
-                    )
+                    (format!("/hot-or-not/{}/{}", v.canister_id, v.post_id), icon)
                 }
             };
             Ok(path)
