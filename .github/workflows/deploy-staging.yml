@@ -72,9 +72,9 @@ jobs:
           OTLP_ENDPOINT: ${{ secrets.OTLP_ENDPOINT }}
           DRAGONFLY_PASSWORD: ${{ secrets.DRAGONFLY_PASSWORD }}
           DRAGONFLY_HOSTS: ${{ vars.DRAGONFLY_HOSTS }}
-          DRAGONFLY_CA_CERT: ${{ secrets.DRAGONFLY_CA_CERT}}
-          DRAGONFLY_CLIENT_CERT: ${{ secrets.DRAGONFLY_CLIENT_CERT}}
-          DRAGONFLY_CLIENT_KEY: ${{ secrets.DRAGONFLY_CLIENT_KEY}}
+          DRAGONFLY_CA_CERT: ${{ secrets.DRAGONFLY_CA_CERT }}
+          DRAGONFLY_CLIENT_CERT: ${{ secrets.DRAGONFLY_CLIENT_CERT }}
+          DRAGONFLY_CLIENT_KEY: ${{ secrets.DRAGONFLY_CLIENT_KEY }}
 
       - name: Deploy a docker container to Fly.io
         run: flyctl deploy --remote-only -c fly-staging.toml

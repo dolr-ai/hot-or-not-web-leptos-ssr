@@ -21,7 +21,7 @@ pub const TEST_KEY_PREFIX: &str = "test";
 const SENTINEL_RECONNECT_DELAY: Duration = Duration::from_secs(1);
 
 pub fn format_to_dragonfly_key(key_prefix: &str, key: &str) -> String {
-    format!("{}:{}", key_prefix, key)
+    format!("{key_prefix}:{key}")
 }
 
 pub fn normalize_pem(pem: String) -> Vec<u8> {
@@ -36,7 +36,7 @@ pub fn normalize_pem(pem: String) -> Vec<u8> {
     if normalized.ends_with('\n') {
         normalized.into_bytes()
     } else {
-        format!("{}\n", normalized).into_bytes()
+        format!("{normalized}\n").into_bytes()
     }
 }
 
@@ -278,7 +278,7 @@ impl SentinelConnectionManager {
         host: String,
         tls_certs: redis::TlsCertificates,
     ) -> std::result::Result<(), RedisError> {
-        let url = format!("rediss://{}:{}", host, REDIS_SENTINEL_PORT);
+        let url = format!("rediss://{host}:{REDIS_SENTINEL_PORT}");
         let client = redis::Client::build_with_tls(url, tls_certs)?;
 
         let mut pubsub = client.get_async_pubsub().await?;
