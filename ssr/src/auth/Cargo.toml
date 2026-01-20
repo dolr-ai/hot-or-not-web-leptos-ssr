@@ -20,6 +20,7 @@ yral-types.workspace = true
 bb8 =  {workspace = true, optional = true}
 redis = {workspace = true, optional = true}
 bb8-redis =  {workspace = true, optional = true}
+futures = {workspace=true}
 enum_dispatch = {workspace = true, optional = true}
 tokio = {workspace = true, optional = true}
 redb = {workspace = true, optional = true}
@@ -36,6 +37,9 @@ yral-canisters-client = { workspace = true, optional = true }
 global-constants = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 hex = { workspace = true, optional = true }
+tracing = { workspace = true }
+rustls = { workspace = true }
+anyhow = { workspace = true }
 
 [features]
 ssr = [

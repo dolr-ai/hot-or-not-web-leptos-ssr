@@ -38,6 +38,13 @@ services:
       # === Redis Configuration (via Fly proxy) ===
       REDIS_URL: redis://default:${FLY_REDIS_PASSWORD}@fly-redis-proxy:16379
 
+      # === Redis Configuration (via Fly proxy) ===
+      DRAGONFLY_PASSWORD: ${{ secrets.DRAGONFLY_PASSWORD }}
+      DRAGONFLY_HOSTS: ${{ vars.DRAGONFLY_HOSTS }}
+      DRAGONFLY_CA_CERT: ${{ secrets.DRAGONFLY_CA_CERT}}
+      DRAGONFLY_CLIENT_CERT: ${{ secrets.DRAGONFLY_CLIENT_CERT}}
+      DRAGONFLY_CLIENT_KEY: ${{ secrets.DRAGONFLY_CLIENT_KEY}}
+
       # === Database Configuration ===
       ALLOYDB_INSTANCE: ${ALLOYDB_INSTANCE}
       ALLOYDB_DB_PASSWORD: ${ALLOYDB_DB_PASSWORD}

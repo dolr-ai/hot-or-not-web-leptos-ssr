@@ -232,6 +232,12 @@ jobs:
             YRAL_METADATA_NOTIFICATION_API_KEY='${{ secrets.YRAL_METADATA_NOTIFICATION_API_KEY }}' \
             STDB_ADMIN_ACCESS_TOKEN='${{ secrets.STDB_ADMIN_ACCESS_TOKEN }}' \
             OTLP_ENDPOINT='${{ secrets.OTLP_ENDPOINT }}' \
+            DRAGONFLY_PASSWORD='${{ secrets.DRAGONFLY_PASSWORD }}' \
+            DRAGONFLY_HOSTS='${{ vars.DRAGONFLY_HOSTS }}' \
+            DRAGONFLY_CA_CERT='${{ secrets.DRAGONFLY_CA_CERT}}' \
+            DRAGONFLY_CLIENT_CERT='${{ secrets.DRAGONFLY_CLIENT_CERT}}' \
+            DRAGONFLY_CLIENT_KEY='${{ secrets.DRAGONFLY_CLIENT_KEY}}' \
+            
             docker compose up -d
 
             echo 'Waiting for services to start...'

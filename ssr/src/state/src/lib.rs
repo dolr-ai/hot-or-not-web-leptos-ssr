@@ -39,6 +39,8 @@ pub mod server {
         #[cfg(feature = "cloudflare")]
         pub cloudflare: gob_cloudflare::CloudflareAuth,
         pub kv: KVStoreImpl,
+        #[cfg(feature = "redis-kv")]
+        pub dragonfly_kv: KVStoreImpl,
         pub routes: Vec<AxumRouteListing>,
         pub cookie_key: Key,
         #[cfg(feature = "oauth-ssr")]
