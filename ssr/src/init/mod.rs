@@ -4,7 +4,6 @@ pub mod containers;
 use std::env;
 
 #[cfg(feature = "redis-kv")]
-use auth::server_impl::store::dragonfly_kv::init_dragonfly_redis;
 use auth::server_impl::store::{dragonfly_kv::DragonflyKV, KVStoreImpl};
 use axum_extra::extract::cookie::Key;
 use leptos::prelude::*;
