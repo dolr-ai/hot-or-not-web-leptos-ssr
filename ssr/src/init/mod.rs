@@ -208,12 +208,10 @@ impl AppStateBuilder {
     }
 
     #[cfg(feature = "redis-kv")]
-    async fn init_dragonfly_kv(&mut self) -> KVStoreImpl {
-        KVStoreImpl::Dragonfly(
-            DragonflyKV::new()
-                .await
-                .expect("Failed to initialize dragonfly redis"),
-        )
+    async fn init_dragonfly_kv(&mut self) -> DragonflyKV {
+        DragonflyKV::new()
+            .await
+            .expect("Failed to initialize dragonfly redis")
     }
 
     pub async fn build(mut self) -> AppStateRes {

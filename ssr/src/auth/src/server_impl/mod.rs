@@ -20,7 +20,7 @@ use yral_canisters_common::utils::time::current_epoch;
 
 use consts::auth::{REFRESH_MAX_AGE, REFRESH_TOKEN_COOKIE};
 
-use crate::{delegate_identity, AnonymousIdentity};
+use crate::{delegate_identity, server_impl::store::dragonfly_kv::DragonflyKV, AnonymousIdentity};
 
 use self::store::{KVStore, KVStoreImpl};
 use yral_types::delegated_identity::DelegatedIdentityWire;
@@ -64,7 +64,7 @@ pub fn extract_principal_from_cookie_legacy(
 
 async fn fetch_identity_from_kv(
     kv: &KVStoreImpl,
-    _dragonfly_kv: &KVStoreImpl,
+    _dragonfly_kv: &DragonflyKV,
     principal: Principal,
 ) -> Result<Option<k256::SecretKey>, ServerFnError> {
     let Some(identity_jwk) = kv.read(principal.to_text()).await? else {
@@ -81,7 +81,7 @@ async fn fetch_identity_from_kv(
 pub async fn try_extract_identity_legacy(
     jar: &SignedCookieJar,
     kv: &KVStoreImpl,
-    dragonfly_kv: &KVStoreImpl,
+    dragonfly_kv: &DragonflyKV,
 ) -> Result<Option<k256::SecretKey>, ServerFnError> {
     let Some(principal) = extract_principal_from_cookie_legacy(jar)? else {
         return Ok(None);
@@ -91,7 +91,7 @@ pub async fn try_extract_identity_legacy(
 
 async fn generate_and_save_identity_legacy(
     kv: &KVStoreImpl,
-    dragonfly_kv: &KVStoreImpl,
+    dragonfly_kv: &DragonflyKV,
 ) -> Result<Secp256k1Identity, ServerFnError> {
     let base_identity_key = k256::SecretKey::random(&mut OsRng);
     let base_identity = Secp256k1Identity::from_private_key(base_identity_key.clone());
@@ -141,7 +141,7 @@ async fn extract_identity_legacy(
     }
 
     let kv: KVStoreImpl = expect_context();
-    let dragonfly_kv: KVStoreImpl = expect_context();
+    let dragonfly_kv: DragonflyKV = expect_context();
     let Some(id) = try_extract_identity_legacy(jar, &kv, &dragonfly_kv).await? else {
         return Ok(None);
     };
@@ -159,7 +159,7 @@ pub async fn extract_identity_impl() -> Result<Option<DelegatedIdentityWire>, Se
     #[cfg(not(feature = "oauth-ssr"))]
     {
         let kv: KVStoreImpl = expect_context();
-        let dragonfly_kv: KVStoreImpl = expect_context();
+        let dragonfly_kv: DragonflyKV = expect_context();
         let base_identity =
             if let Some(identity) = try_extract_identity_legacy(&jar, &kv, &dragonfly_kv).await? {
                 Secp256k1Identity::from_private_key(identity)
@@ -208,7 +208,7 @@ pub async fn logout_identity_impl() -> Result<DelegatedIdentityWire, ServerFnErr
     #[cfg(not(feature = "oauth-ssr"))]
     {
         let kv: KVStoreImpl = expect_context();
-        let dragonfly_kv: KVStoreImpl = expect_context();
+        let dragonfly_kv: DragonflyKV = expect_context();
         let identity = generate_and_save_identity_legacy(&kv, &dragonfly_kv).await?;
 
         let refresh_token = serde_json::to_string(&RefreshTokenLegacy {
@@ -260,7 +260,7 @@ pub async fn generate_anonymous_identity_if_required_impl(
         }
 
         let kv: KVStoreImpl = expect_context();
-        let dragonfly_kv: KVStoreImpl = expect_context();
+        let dragonfly_kv: DragonflyKV = expect_context();
         let identity = generate_and_save_identity_legacy(&kv, &dragonfly_kv).await?;
         Ok(Some(AnonymousIdentity {
             identity: delegate_identity(&identity).into(),
