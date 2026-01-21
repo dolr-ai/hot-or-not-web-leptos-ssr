@@ -23,7 +23,7 @@ Sentry.init({
     Sentry.extraErrorDataIntegration(),
     Sentry.httpClientIntegration(),
     Sentry.replayIntegration({
-      networkDetailAllowUrls: [/^\//, 'yral.com', 'yral-ml-feed-server.fly.dev', 'icp-off-chain-agent.fly.dev'],
+      networkDetailAllowUrls: [/^\//, 'yral.com', 'yral-ml-feed-server.fly.dev', 'offchain.yral.com'],
       maskAllText: false,
       blockAllMedia: false,
     }),
@@ -31,7 +31,7 @@ Sentry.init({
   tracesSampler: tracesSampler,
   replaysSessionSampleRate: 0.5, // 0.1 once stailised
   replaysOnErrorSampleRate: 1.0,
-  tracePropagationTargets: [/^\//, 'yral.com', 'yral-ml-feed-server.fly.dev', 'icp-off-chain-agent.fly.dev'],
+  tracePropagationTargets: [/^\//, 'yral.com', 'yral-ml-feed-server.fly.dev', 'offchain.yral.com'],
 });
 
 window.Sentry = Sentry;
