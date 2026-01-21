@@ -105,19 +105,15 @@ axum-extra = { version = "0.10.1", features = [
 ] }
 openidconnect = { version = "3.5.0" }
 dotenv = { version = "0.15.0" }
-redis = { version = "1.0.2", features = [
+redis = { version = "0.25.2", features = [
     "tokio-rustls-comp",
     "aio",
     "ahash",
     "connection-manager",
-    "cluster",
-    "cluster-async",
-    "acl",
-    "sentinel",
+    "keep-alive",
 ], default-features = false }
-bb8 = { version = "0.9.1" }
-bb8-redis = { version = "0.26.0" }
-rustls = { version = "0.23.26" }
+bb8 = { version = "0.8.3" }
+bb8-redis = { version = "0.15.0" }
 gob-cloudflare = { git = "https://github.com/yral-dapp/gob-cloudflare", rev = "c847ba87ecc73a33520b24bd62503420d7e23e3e", default-features = false }
 gloo-utils = { version = "0.2.0", features = ["serde"] }
 hmac = { version = "0.12.1" }
