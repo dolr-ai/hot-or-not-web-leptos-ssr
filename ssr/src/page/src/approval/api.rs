@@ -1,5 +1,6 @@
 use consts::OFF_CHAIN_AGENT_URL;
 use leptos::prelude::*;
+use leptos::server_fn::codec::Json;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -30,7 +31,7 @@ pub struct ModerationActionResponse {
 }
 
 /// Fetch videos pending approval
-#[server(endpoint = "fetch_pending_approval_videos")]
+#[server(endpoint = "fetch_pending_approval_videos", input = Json)]
 pub async fn fetch_pending_approval_videos(
     delegated_identity_wire: DelegatedIdentityWire,
     offset: u32,
@@ -80,7 +81,7 @@ pub async fn fetch_pending_approval_videos(
 }
 
 /// Approve a video
-#[server(endpoint = "approve_video")]
+#[server(endpoint = "approve_video", input = Json)]
 pub async fn approve_video(
     delegated_identity_wire: DelegatedIdentityWire,
     video_id: String,
@@ -133,7 +134,7 @@ pub async fn approve_video(
 }
 
 /// Disapprove a video (delete from approval queue)
-#[server(endpoint = "disapprove_video")]
+#[server(endpoint = "disapprove_video", input = Json)]
 pub async fn disapprove_video(
     delegated_identity_wire: DelegatedIdentityWire,
     video_id: String,
