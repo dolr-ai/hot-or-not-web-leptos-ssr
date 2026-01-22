@@ -46,9 +46,9 @@ jobs:
           flyctl secrets set OTLP_ENDPOINT="$OTLP_ENDPOINT" --app "hot-or-not-web-leptos-ssr-staging" --stage
           flyctl secrets set DRAGONFLY_PASSWORD="$DRAGONFLY_PASSWORD" --app "hot-or-not-web-leptos-ssr-staging" --stage
           flyctl secrets set DRAGONFLY_HOSTS="$DRAGONFLY_HOSTS" --app "hot-or-not-web-leptos-ssr-staging" --stage
-          flyctl secrets set DRAGONFLY_CA_CERT="$DRAGONFLY_CA_CERT" --app "hot-or-not-web-leptos-ssr-staging" --stage
-          flyctl secrets set DRAGONFLY_CLIENT_CERT="$DRAGONFLY_CLIENT_CERT" --app "hot-or-not-web-leptos-ssr-staging" --stage
-          flyctl secrets set DRAGONFLY_CLIENT_KEY="$DRAGONFLY_CLIENT_KEY" --app "hot-or-not-web-leptos-ssr-staging" --stage
+          printf '%s' "$DRAGONFLY_CA_CERT" | flyctl secrets set DRAGONFLY_CA_CERT=- --app "hot-or-not-web-leptos-ssr-staging" --stage
+          printf '%s' "$DRAGONFLY_CLIENT_CERT" | flyctl secrets set DRAGONFLY_CLIENT_CERT=- --app "hot-or-not-web-leptos-ssr-staging" --stage
+          printf '%s' "$DRAGONFLY_CLIENT_KEY" | flyctl secrets set DRAGONFLY_CLIENT_KEY=- --app "hot-or-not-web-leptos-ssr-staging" --stage
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET }}
           BACKEND_ADMIN_IDENTITY: ${{ secrets.YRAL_DAPP_BACKEND_APP_ADMIN_AND_PROPOSAL_SUBMITTER_IDENTITY_PRIVATE_KEY }}
