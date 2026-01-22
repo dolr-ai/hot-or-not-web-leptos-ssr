@@ -182,36 +182,42 @@ impl AppStateBuilder {
     }
 
     async fn init_redis_kv(&mut self) -> KVStoreImpl {
-        #[cfg(all(feature = "local-bin", feature = "redis-kv"))]
-        {
-            use auth::server_impl::store::redis_kv::RedisKV;
-            let redis_url: String;
-
-            {
-                self.containers.start_redis().await;
-                redis_url = "redis://127.0.0.1:6379".to_string();
-            }
-            log::info!(
-                "initialized local redis instance as feature passed 'local-bin' and 'redis-kv'"
-            );
-            return KVStoreImpl::Redis(RedisKV::new(&redis_url).await.unwrap());
-        }
-
         #[cfg(feature = "redis-kv")]
         {
-            use auth::server_impl::store::dragonfly_kv::DragonflyKV;
-            log::info!("initialized dragonfly redis instance");
-            return KVStoreImpl::DragonflyKV(
-                DragonflyKV::new()
-                    .await
-                    .expect("failed to initialize dragonfly redis"),
-            );
+            #[cfg(feature = "local-bin")]
+            {
+                use auth::server_impl::store::redis_kv::RedisKV;
+
+                self.containers.start_redis().await;
+                let redis_url = "redis://127.0.0.1:6379";
+
+                log::info!("initiating local redis instnace (feature='local-bin') enabled");
+
+                KVStoreImpl::Redis(
+                    RedisKV::new(redis_url)
+                        .await
+                        .expect("failed to initialize local redis"),
+                )
+            }
+
+            #[cfg(not(feature = "local-bin"))]
+            {
+                use auth::server_impl::store::dragonfly_kv::DragonflyKV;
+
+                log::info!("initialized dragonfly redis instance");
+                KVStoreImpl::DragonflyKV(
+                    DragonflyKV::new()
+                        .await
+                        .expect("failed to initialize dragonfly redis"),
+                )
+            }
         }
 
         #[cfg(not(feature = "redis-kv"))]
         {
             use auth::server_impl::store::redb_kv::ReDBKV;
-            return KVStoreImpl::ReDB(ReDBKV::new().expect("Failed to initialize ReDB"));
+            log::info!("initiating reDB instnace enabled (since no feature flag passed)");
+            KVStoreImpl::ReDB(ReDBKV::new().expect("Failed to initialize ReDB"))
         }
     }
 
