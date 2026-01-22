@@ -204,7 +204,7 @@ impl AppStateBuilder {
             {
                 use auth::server_impl::store::dragonfly_kv::DragonflyKV;
 
-                log::info!("initialized dragonfly redis instance");
+                log::info!("initializing dragonfly redis instance");
                 KVStoreImpl::DragonflyKV(
                     DragonflyKV::new()
                         .await
