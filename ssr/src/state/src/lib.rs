@@ -19,9 +19,6 @@ pub mod server {
 pub mod server {
 
     use auth::server_impl::store::KVStoreImpl;
-
-    #[cfg(feature = "redis-kv")]
-    use auth::server_impl::store::dragonfly_kv::DragonflyKV;
     use axum::extract::FromRef;
     use axum_extra::extract::cookie::Key;
     use leptos::prelude::*;
@@ -41,8 +38,6 @@ pub mod server {
         #[cfg(feature = "cloudflare")]
         pub cloudflare: gob_cloudflare::CloudflareAuth,
         pub kv: KVStoreImpl,
-        #[cfg(feature = "redis-kv")]
-        pub dragonfly_kv: DragonflyKV,
         pub routes: Vec<AxumRouteListing>,
         pub cookie_key: Key,
         #[cfg(feature = "oauth-ssr")]

@@ -31,4 +31,5 @@ pub(crate) trait KVStore: Send {
 pub enum KVStoreImpl {
     ReDB(redb_kv::ReDBKV),
     Redis(redis_kv::RedisKV),
+    DragonflyKV(dragonfly_kv::DragonflyKV),
 }
