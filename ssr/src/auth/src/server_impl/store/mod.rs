@@ -1,4 +1,3 @@
-pub mod dragonfly_kv;
 pub mod redb_kv;
 pub mod redis_kv;
 
@@ -16,8 +15,6 @@ pub enum KVError {
     Redis(#[from] RedisError),
     #[error("{0}")]
     Bb8(#[from] bb8::RunError<RedisError>),
-    #[error("{0}")]
-    Other(#[from] anyhow::Error),
 }
 
 #[enum_dispatch]
