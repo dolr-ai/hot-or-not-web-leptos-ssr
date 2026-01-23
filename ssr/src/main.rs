@@ -34,7 +34,6 @@ pub async fn server_fn_handler(
             #[cfg(feature = "cloudflare")]
             provide_context(app_state.cloudflare.clone());
             provide_context(app_state.kv.clone());
-            provide_context(app_state.dragonfly_kv.clone());
             provide_context(app_state.cookie_key.clone());
 
             #[cfg(feature = "oauth-ssr")]
@@ -79,7 +78,6 @@ pub async fn leptos_routes_handler(state: State<AppState>, req: Request<AxumBody
             #[cfg(feature = "cloudflare")]
             provide_context(app_state.cloudflare.clone());
             provide_context(app_state.kv.clone());
-            provide_context(app_state.dragonfly_kv.clone());
             provide_context(app_state.cookie_key.clone());
             #[cfg(feature = "oauth-ssr")]
             provide_context(app_state.yral_oauth_client.clone());
