@@ -14,7 +14,7 @@ services:
       start_period: 60s
 
   yral-frontend:
-    image: ${APP_IMAGE:-ghcr.io/dolr-ai/yral-front-leptos}:${IMAGE_TAG:-latest}
+    image: ${APP_IMAGE:-ghcr.io/dolr-ai/hot-or-not-web-leptos-ssr}:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
       # === Leptos Configuration ===
@@ -38,7 +38,7 @@ services:
       # === Redis Configuration (via Fly proxy) ===
       REDIS_URL: redis://default:${FLY_REDIS_PASSWORD}@fly-redis-proxy:16379
 
-      # === Redis Configuration (via Fly proxy) ===
+      # === Redis Configuration (Dragonfly) ===
       DRAGONFLY_PASSWORD: ${DRAGONFLY_PASSWORD}
       DRAGONFLY_HOSTS: ${DRAGONFLY_HOSTS}
       DRAGONFLY_CA_CERT: ${DRAGONFLY_CA_CERT}
