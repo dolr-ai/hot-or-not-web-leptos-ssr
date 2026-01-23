@@ -3,7 +3,8 @@ pub mod containers;
 
 use std::env;
 
-use auth::server_impl::store::KVStoreImpl;
+#[cfg(feature = "redis-kv")]
+use auth::server_impl::store::{dragonfly_kv::DragonflyKV, KVStoreImpl};
 use axum_extra::extract::cookie::Key;
 use leptos::prelude::*;
 use leptos_axum::AxumRouteListing;
@@ -205,8 +206,19 @@ impl AppStateBuilder {
         }
     }
 
+    #[cfg(feature = "redis-kv")]
+    async fn init_dragonfly_kv(&mut self) -> DragonflyKV {
+        DragonflyKV::new()
+            .await
+            .expect("Failed to initialize dragonfly redis")
+    }
+
     pub async fn build(mut self) -> AppStateRes {
         let kv = self.init_kv().await;
+
+        #[cfg(feature = "redis-kv")]
+        let dragonfly_kv = self.init_dragonfly_kv().await;
+
         #[cfg(feature = "local-bin")]
         {
             self.containers.start_backend().await;
@@ -222,6 +234,8 @@ impl AppStateBuilder {
             #[cfg(feature = "cloudflare")]
             cloudflare: init_cf(),
             kv,
+            #[cfg(feature = "redis-kv")]
+            dragonfly_kv,
             cookie_key: init_cookie_key(),
             #[cfg(feature = "oauth-ssr")]
             yral_oauth_client: init_yral_oauth(),
