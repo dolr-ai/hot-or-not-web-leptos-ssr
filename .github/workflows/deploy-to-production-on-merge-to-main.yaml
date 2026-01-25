@@ -237,7 +237,6 @@ jobs:
             DRAGONFLY_CA_CERT='${{ secrets.DRAGONFLY_CA_CERT }}' \
             DRAGONFLY_CLIENT_CERT='${{ secrets.DRAGONFLY_CLIENT_CERT }}' \
             DRAGONFLY_CLIENT_KEY='${{ secrets.DRAGONFLY_CLIENT_KEY }}' \
-            
             docker compose up -d
 
             echo 'Waiting for services to start...'
