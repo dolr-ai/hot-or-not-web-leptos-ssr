@@ -3,9 +3,7 @@ use ic_agent::AgentError;
 use indexmap::IndexSet;
 use leptos::prelude::*;
 use yral_canisters_client::{
-    ic::USER_INFO_SERVICE_ID,
-    individual_user_template::Result6,
-    user_post_service::Result1,
+    ic::USER_INFO_SERVICE_ID, individual_user_template::Result6, user_post_service::Result1,
 };
 
 use yral_canisters_common::{
