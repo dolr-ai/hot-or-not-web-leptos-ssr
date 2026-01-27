@@ -1,6 +1,6 @@
 services:
   yral-frontend:
-    image: ${APP_IMAGE:-ghcr.io/dolr-ai/yral-front-leptos}:${IMAGE_TAG:-latest}
+    image: ${APP_IMAGE:-ghcr.io/dolr-ai/hot-or-not-web-leptos-ssr}:${IMAGE_TAG:-latest}
     restart: unless-stopped
     environment:
       # === Leptos Configuration ===

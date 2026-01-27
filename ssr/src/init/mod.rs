@@ -192,7 +192,6 @@ impl AppStateBuilder {
                 let redis_url = "redis://127.0.0.1:6379";
 
                 log::info!("initiating local redis instnace (feature='local-bin') enabled");
-
                 KVStoreImpl::Redis(
                     RedisKV::new(redis_url)
                         .await
