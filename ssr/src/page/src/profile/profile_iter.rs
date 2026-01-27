@@ -1,7 +1,5 @@
 use candid::Principal;
-use yral_canisters_client::individual_user_template::{
-    GetPostsOfUserProfileError, PostStatus, Result6,
-};
+use yral_canisters_client::individual_user_template::{GetPostsOfUserProfileError, Result6};
 
 use yral_canisters_common::{utils::posts::PostDetails, Canisters, Error as CanistersError};
 
@@ -48,10 +46,8 @@ impl<const LIMIT: u64> ProfVideoStream<LIMIT> for ProfileVideoStream<LIMIT> {
         match posts {
             Result6::Ok(v) => {
                 let end = v.len() < LIMIT as usize;
-                // Filter out banned/deleted posts - only show ReadyToView
                 let posts = v
                     .into_iter()
-                    .filter(|post| matches!(post.status, PostStatus::ReadyToView))
                     .map(|mut details| {
                         details.created_by_unique_user_name = username.clone();
                         PostDetails::from_canister_post(

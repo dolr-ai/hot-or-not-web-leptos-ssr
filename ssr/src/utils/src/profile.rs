@@ -4,8 +4,8 @@ use indexmap::IndexSet;
 use leptos::prelude::*;
 use yral_canisters_client::{
     ic::USER_INFO_SERVICE_ID,
-    individual_user_template::{PostStatus as IndividualPostStatus, Result6},
-    user_post_service::{PostStatus as ServicePostStatus, Result1},
+    individual_user_template::Result6,
+    user_post_service::Result1,
 };
 
 use yral_canisters_common::{
@@ -78,12 +78,6 @@ impl CursoredDataProvider for PostsProvider {
                     }
                 };
 
-                // Filter out banned/deleted posts - only show ReadyToView
-                let posts: Vec<_> = posts
-                    .into_iter()
-                    .filter(|post| matches!(post.status, ServicePostStatus::ReadyToView))
-                    .collect();
-
                 let list_end = posts.len() < (end - start);
 
                 let post_details: Vec<PostDetails> = posts
@@ -127,12 +121,6 @@ impl CursoredDataProvider for PostsProvider {
                         });
                     }
                 };
-
-                // Filter out banned/deleted posts - only show ReadyToView
-                let posts: Vec<_> = posts
-                    .into_iter()
-                    .filter(|post| matches!(post.status, IndividualPostStatus::ReadyToView))
-                    .collect();
 
                 let list_end = posts.len() < (end - start);
                 self.start_index.update_untracked(|c| *c = end);
