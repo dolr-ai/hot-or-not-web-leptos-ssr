@@ -1,18 +1,4 @@
 services:
-  fly-redis-proxy:
-    image: ${PROXY_IMAGE:-ghcr.io/dolr-ai/yral-front-leptos-redis-proxy}:${IMAGE_TAG:-latest}
-    restart: unless-stopped
-    environment:
-      - FLY_API_TOKEN=${FLY_API_TOKEN}
-    networks:
-      - frontend-net
-    healthcheck:
-      test: ["CMD", "nc", "-z", "127.0.0.1", "16379"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 60s
-
   yral-frontend:
     image: ${APP_IMAGE:-ghcr.io/dolr-ai/hot-or-not-web-leptos-ssr}:${IMAGE_TAG:-latest}
     restart: unless-stopped
@@ -35,10 +21,7 @@ services:
       YRAL_AUTH_CLIENT_SECRET: ${YRAL_AUTH_CLIENT_SECRET}
       YRAL_AUTH_MIGRATION_ES256_PEM: ${YRAL_AUTH_MIGRATION_ES256_PEM}
 
-      # === Redis Configuration (via Fly proxy) ===
-      REDIS_URL: redis://default:${FLY_REDIS_PASSWORD}@fly-redis-proxy:16379
-
-      # === Redis Configuration (Dragonfly) ===
+      # === Redis Configuration for Dragonfly ===
       DRAGONFLY_PASSWORD: ${DRAGONFLY_PASSWORD}
       DRAGONFLY_HOSTS: ${DRAGONFLY_HOSTS}
       DRAGONFLY_CA_CERT: ${DRAGONFLY_CA_CERT}
@@ -68,9 +51,6 @@ services:
       OTLP_ENDPOINT: ${OTLP_ENDPOINT}
     networks:
       - frontend-net
-    depends_on:
-      fly-redis-proxy:
-        condition: service_healthy
 
   caddy:
     image: caddy:2-alpine

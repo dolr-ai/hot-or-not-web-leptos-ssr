@@ -3,8 +3,7 @@ pub mod containers;
 
 use std::env;
 
-#[cfg(feature = "redis-kv")]
-use auth::server_impl::store::{dragonfly_kv::DragonflyKV, KVStoreImpl};
+use auth::server_impl::store::KVStoreImpl;
 use axum_extra::extract::cookie::Key;
 use leptos::prelude::*;
 use leptos_axum::AxumRouteListing;
@@ -182,42 +181,49 @@ impl AppStateBuilder {
         }
     }
 
-    async fn init_kv(&mut self) -> KVStoreImpl {
+    async fn init_redis_kv(&mut self) -> KVStoreImpl {
         #[cfg(feature = "redis-kv")]
         {
-            use auth::server_impl::store::redis_kv::RedisKV;
-            let redis_url: String;
             #[cfg(feature = "local-bin")]
             {
+                use auth::server_impl::store::redis_kv::RedisKV;
+
                 self.containers.start_redis().await;
-                redis_url = "redis://127.0.0.1:6379".to_string();
+                let redis_url = "redis://127.0.0.1:6379";
+
+                log::info!("initiating local redis instnace (feature='local-bin') enabled");
+                KVStoreImpl::Redis(
+                    RedisKV::new(redis_url)
+                        .await
+                        .expect("failed to initialize local redis"),
+                )
             }
+
             #[cfg(not(feature = "local-bin"))]
             {
-                redis_url = env::var("REDIS_URL").expect("`REDIS_URL` is required!");
+                use auth::server_impl::store::dragonfly_kv::DragonflyKV;
+
+                log::info!("initializing dragonfly redis instance");
+                KVStoreImpl::DragonflyKV(
+                    DragonflyKV::new()
+                        .await
+                        .expect("failed to initialize dragonfly redis"),
+                )
             }
-            KVStoreImpl::Redis(RedisKV::new(&redis_url).await.unwrap())
         }
 
         #[cfg(not(feature = "redis-kv"))]
         {
             use auth::server_impl::store::redb_kv::ReDBKV;
+            log::info!("initiating reDB instnace enabled (since no feature flag passed)");
             KVStoreImpl::ReDB(ReDBKV::new().expect("Failed to initialize ReDB"))
         }
     }
 
-    #[cfg(feature = "redis-kv")]
-    async fn init_dragonfly_kv(&mut self) -> DragonflyKV {
-        DragonflyKV::new()
-            .await
-            .expect("Failed to initialize dragonfly redis")
-    }
-
     pub async fn build(mut self) -> AppStateRes {
-        let kv = self.init_kv().await;
-
-        #[cfg(feature = "redis-kv")]
-        let dragonfly_kv = self.init_dragonfly_kv().await;
+        // if feature is local it will return local redis instance and if redis-kv not passed it will return reRB
+        // else it will return dragonfly kv
+        let kv = self.init_redis_kv().await;
 
         #[cfg(feature = "local-bin")]
         {
@@ -234,8 +240,6 @@ impl AppStateBuilder {
             #[cfg(feature = "cloudflare")]
             cloudflare: init_cf(),
             kv,
-            #[cfg(feature = "redis-kv")]
-            dragonfly_kv,
             cookie_key: init_cookie_key(),
             #[cfg(feature = "oauth-ssr")]
             yral_oauth_client: init_yral_oauth(),
