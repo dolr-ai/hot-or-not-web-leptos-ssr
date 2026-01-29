@@ -158,6 +158,33 @@ impl DragonflyPool {
         let mut guard = self.cached_conn.write().await;
         *guard = None;
     }
+
+    pub async fn execute_with_retry<F, Fut, T>(
+        &self,
+        mut operation: F,
+    ) -> std::result::Result<T, RedisError>
+    where
+        F: FnMut(MultiplexedConnection) -> Fut,
+        Fut: std::future::Future<Output = std::result::Result<T, RedisError>>,
+    {
+        let conn = self.get().await?;
+        match operation(conn).await {
+            Ok(result) => Ok(result),
+            Err(e)
+                if e.is_connection_dropped()
+                    || e.is_timeout()
+                    || e.is_connection_refusal()
+                    || e.is_io_error() =>
+            {
+                tracing::warn!(error = %e, "Connection error detected, invalidating cache and retrying");
+                self.invalidate().await;
+
+                let fresh_conn = self.get().await?;
+                operation(fresh_conn).await
+            }
+            Err(e) => Err(e),
+        }
+    }
 }
 
 // ============================================================================
@@ -510,15 +537,26 @@ const AUTH_FIELD: &str = "auth";
 
 impl KVStore for DragonflyKV {
     async fn read(&self, key: String) -> Result<Option<String>, KVError> {
-        let mut con = self.0.get().await?;
-        let value: Option<String> = con.hget(key, AUTH_FIELD).await?;
+        let value: Option<String> = self
+            .0
+            .execute_with_retry(|mut conn| {
+                let key = key.clone();
+                async move { conn.hget(key, AUTH_FIELD).await }
+            })
+            .await?;
         Ok(value)
     }
 
     async fn write(&self, key: String, value: String) -> Result<(), KVError> {
-        let mut con = self.0.get().await?;
-        con.hset::<_, _, _, ()>(key, AUTH_FIELD, value).await?;
-        Ok(())
+        let result: () = self
+            .0
+            .execute_with_retry(|mut conn| {
+                let key = key.clone();
+                let value = value.clone();
+                async move { conn.hset::<_, _, _, ()>(key, AUTH_FIELD, value).await }
+            })
+            .await?;
+        Ok(result)
     }
 }
 
