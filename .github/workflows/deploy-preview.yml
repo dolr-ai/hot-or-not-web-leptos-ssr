@@ -2,9 +2,12 @@ name: deploy preview
 on:
   pull_request:
     types: [opened, reopened, synchronize, closed, labeled, unlabeled]
+
 permissions:
   deployments: write
   pull-requests: read
+  id-token: write   
+  contents: read
 
 env:
   FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
@@ -62,6 +65,37 @@ jobs:
         id: deploy
         uses: superfly/fly-pr-review-apps@1.5.0
 
+      - name: Import Secrets from Vault
+        uses: hashicorp/vault-action@v3
+        with:
+          url: https://vault.yral.com
+          method: jwt
+          role: hot-or-not-web-leptos-ssr-role
+          jwtGithubAudience: "https://github.com/dolr-ai"
+          secrets: |
+            secret/data/hot-or-not-web-leptos-ssr/config cf_token | CF_TOKEN
+            secret/data/hot-or-not-web-leptos-ssr/config backend_admin_identity | BACKEND_ADMIN_IDENTITY
+            secret/data/hot-or-not-web-leptos-ssr/config cookie_key | COOKIE_KEY
+            secret/data/hot-or-not-web-leptos-ssr/config grpc_auth_token | GRPC_AUTH_TOKEN
+            secret/data/hot-or-not-web-leptos-ssr/config hon_google_service_account | HON_GOOGLE_SERVICE_ACCOUNT
+            secret/data/hot-or-not-web-leptos-ssr/config qstash_token | QSTASH_TOKEN
+            secret/data/hot-or-not-web-leptos-ssr/config ga4_api_secret | GA4_API_SECRET
+            secret/data/hot-or-not-web-leptos-ssr/config nsfw_grpc_token | NSFW_GRPC_TOKEN
+            secret/data/hot-or-not-web-leptos-ssr/config alloydb_instance | ALLOYDB_INSTANCE
+            secret/data/hot-or-not-web-leptos-ssr/config alloydb_db_password | ALLOYDB_DB_PASSWORD
+            secret/data/hot-or-not-web-leptos-ssr/config alloydb_service_account_json | ALLOYDB_SERVICE_ACCOUNT_JSON
+            secret/data/hot-or-not-web-leptos-ssr/config hon_worker_jwt | HON_WORKER_JWT
+            secret/data/hot-or-not-web-leptos-ssr/config yral_auth_client_secret | YRAL_AUTH_CLIENT_SECRET
+            secret/data/hot-or-not-web-leptos-ssr/config analytics_server_token | ANALYTICS_SERVER_TOKEN
+            secret/data/hot-or-not-web-leptos-ssr/config yral_auth_migration_es256_pem | YRAL_AUTH_MIGRATION_ES256_PEM
+            secret/data/hot-or-not-web-leptos-ssr/config yral_metadata_notification_api_key | YRAL_METADATA_NOTIFICATION_API_KEY
+            secret/data/hot-or-not-web-leptos-ssr/config otlp_endpoint | OTLP_ENDPOINT
+            secret/data/hot-or-not-web-leptos-ssr/config dragonfly_password | DRAGONFLY_PASSWORD
+            secret/data/hot-or-not-web-leptos-ssr/config dragonfly_hosts | DRAGONFLY_HOSTS
+            secret/data/hot-or-not-web-leptos-ssr/config dragonfly_ca_cert | DRAGONFLY_CA_CERT
+            secret/data/hot-or-not-web-leptos-ssr/config dragonfly_client_cert | DRAGONFLY_CLIENT_CERT
+            secret/data/hot-or-not-web-leptos-ssr/config dragonfly_client_key | DRAGONFLY_CLIENT_KEY
+
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Set secret tokens
         run: |
@@ -91,29 +125,29 @@ jobs:
           printf '%s' "$DRAGONFLY_CLIENT_KEY" | flyctl secrets set DRAGONFLY_CLIENT_KEY=- --app "$APP_NAME" --stage
           flyctl deploy --app $APP_NAME
         env:
-          CF_TOKEN: ${{ secrets.CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET }}
-          BACKEND_ADMIN_IDENTITY: ${{ secrets.YRAL_DAPP_BACKEND_APP_ADMIN_AND_PROPOSAL_SUBMITTER_IDENTITY_PRIVATE_KEY }}
-          COOKIE_KEY: ${{ secrets.AUTH_SESSION_COOKIE_SIGNING_SECRET_KEY }}
           FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
-          GRPC_AUTH_TOKEN: ${{ secrets.OFF_CHAIN_AGENT_GRPC_AUTH_TOKEN }}
-          HON_GOOGLE_SERVICE_ACCOUNT: ${{ secrets.HOT_OR_NOT_FEED_INTELLIGENCE_FIREBASE_PROJECT_EVENTS_BQ_SERVICE_ACCOUNT_JSON_FOR_WEB_LEPTOS_SSR_APP }}
-          QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
-          GA4_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET }}
-          NSFW_GRPC_TOKEN: ${{ secrets.TOKEN_TO_SIGN_OUTGOING_CALLS_TO_NSFW_DETECT_SERVICE }}
-          ALLOYDB_INSTANCE: ${{ secrets.HOT_OR_NOT_ALLOYDB_INSTANCE }}
-          ALLOYDB_DB_PASSWORD: ${{ secrets.HOT_OR_NOT_ALLOYDB_DB_PASSWORD }}
-          ALLOYDB_SERVICE_ACCOUNT_JSON: ${{ secrets.HOT_OR_NOT_ALLOYDB_SERVICE_ACCOUNT }}
-          HON_WORKER_JWT: ${{ secrets.HOT_OR_NOT_WORKER_JWT }}
-          YRAL_AUTH_CLIENT_SECRET: ${{ secrets.YRAL_AUTH_V2_PREVIEW_SECRET_KEY }}
-          ANALYTICS_SERVER_TOKEN: ${{ secrets.ANALYTICS_SERVER_TOKEN }}
-          YRAL_AUTH_MIGRATION_ES256_PEM: ${{ secrets.AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM }}
-          YRAL_METADATA_NOTIFICATION_API_KEY: ${{ secrets.YRAL_METADATA_NOTIFICATION_API_KEY }}
-          OTLP_ENDPOINT: ${{ secrets.OTLP_ENDPOINT }}
-          DRAGONFLY_PASSWORD: ${{ secrets.DRAGONFLY_PASSWORD }}
-          DRAGONFLY_HOSTS: ${{ vars.DRAGONFLY_HOSTS }}
-          DRAGONFLY_CA_CERT: ${{ secrets.DRAGONFLY_CA_CERT }}
-          DRAGONFLY_CLIENT_CERT: ${{ secrets.DRAGONFLY_CLIENT_CERT }}
-          DRAGONFLY_CLIENT_KEY: ${{ secrets.DRAGONFLY_CLIENT_KEY }}
+          CF_TOKEN: ${{ env.CF_TOKEN }}}
+          BACKEND_ADMIN_IDENTITY: ${{ env.BACKEND_ADMIN_IDENTITY }}
+          COOKIE_KEY: ${{ env.COOKIE_KEY }}
+          GRPC_AUTH_TOKEN: ${{ env.GRPC_AUTH_TOKEN }}
+          HON_GOOGLE_SERVICE_ACCOUNT: ${{ env.HON_GOOGLE_SERVICE_ACCOUNT }}
+          QSTASH_TOKEN: ${{ env.QSTASH_TOKEN }}
+          GA4_API_SECRET: ${{ env.GA4_API_SECRET }}
+          NSFW_GRPC_TOKEN: ${{ env.NSFW_GRPC_TOKEN }}
+          ALLOYDB_INSTANCE: ${{ env.ALLOYDB_INSTANCE }}
+          ALLOYDB_DB_PASSWORD: ${{ env.ALLOYDB_DB_PASSWORD }}
+          ALLOYDB_SERVICE_ACCOUNT_JSON: ${{ env.ALLOYDB_SERVICE_ACCOUNT_JSON }}
+          HON_WORKER_JWT: ${{ env.HON_WORKER_JWT }}
+          YRAL_AUTH_CLIENT_SECRET: ${{ env.YRAL_AUTH_CLIENT_SECRET }}
+          ANALYTICS_SERVER_TOKEN: ${{ env.ANALYTICS_SERVER_TOKEN }}
+          YRAL_AUTH_MIGRATION_ES256_PEM: ${{ env.YRAL_AUTH_MIGRATION_ES256_PEM }}
+          YRAL_METADATA_NOTIFICATION_API_KEY: ${{ env.YRAL_METADATA_NOTIFICATION_API_KEY }}
+          OTLP_ENDPOINT: ${{ env.OTLP_ENDPOINT }}
+          DRAGONFLY_PASSWORD: ${{ env.DRAGONFLY_PASSWORD }}
+          DRAGONFLY_HOSTS: ${{ env.DRAGONFLY_HOSTS }}
+          DRAGONFLY_CA_CERT: ${{ env.DRAGONFLY_CA_CERT }}
+          DRAGONFLY_CLIENT_CERT: ${{ env.DRAGONFLY_CLIENT_CERT }}
+          DRAGONFLY_CLIENT_KEY: ${{ env.DRAGONFLY_CLIENT_KEY }}
   e2e-tests:
     needs: preview
     uses: ./.github/workflows/e2e-tests.yml
