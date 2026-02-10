@@ -73,28 +73,28 @@ jobs:
           role: hot-or-not-web-leptos-ssr-role
           jwtGithubAudience: "https://github.com/dolr-ai"
           secrets: |
-            secret/hot-or-not-web-leptos-ssr/config cf_token | CF_TOKEN
-            secret/hot-or-not-web-leptos-ssr/config backend_admin_identity | BACKEND_ADMIN_IDENTITY
-            secret/hot-or-not-web-leptos-ssr/config cookie_key | COOKIE_KEY
-            secret/hot-or-not-web-leptos-ssr/config grpc_auth_token | GRPC_AUTH_TOKEN
-            secret/hot-or-not-web-leptos-ssr/config hon_google_service_account | HON_GOOGLE_SERVICE_ACCOUNT
-            secret/hot-or-not-web-leptos-ssr/config qstash_token | QSTASH_TOKEN
-            secret/hot-or-not-web-leptos-ssr/config ga4_api_secret | GA4_API_SECRET
-            secret/hot-or-not-web-leptos-ssr/config nsfw_grpc_token | NSFW_GRPC_TOKEN
-            secret/hot-or-not-web-leptos-ssr/config alloydb_instance | ALLOYDB_INSTANCE
-            secret/hot-or-not-web-leptos-ssr/config alloydb_db_password | ALLOYDB_DB_PASSWORD
-            secret/hot-or-not-web-leptos-ssr/config alloydb_service_account_json | ALLOYDB_SERVICE_ACCOUNT_JSON
-            secret/hot-or-not-web-leptos-ssr/config hon_worker_jwt | HON_WORKER_JWT
-            secret/hot-or-not-web-leptos-ssr/config yral_auth_client_secret | YRAL_AUTH_CLIENT_SECRET
-            secret/hot-or-not-web-leptos-ssr/config analytics_server_token | ANALYTICS_SERVER_TOKEN
-            secret/hot-or-not-web-leptos-ssr/config yral_auth_migration_es256_pem | YRAL_AUTH_MIGRATION_ES256_PEM
-            secret/hot-or-not-web-leptos-ssr/config yral_metadata_notification_api_key | YRAL_METADATA_NOTIFICATION_API_KEY
-            secret/hot-or-not-web-leptos-ssr/config otlp_endpoint | OTLP_ENDPOINT
-            secret/hot-or-not-web-leptos-ssr/config dragonfly_password | DRAGONFLY_PASSWORD
-            secret/hot-or-not-web-leptos-ssr/config dragonfly_hosts | DRAGONFLY_HOSTS
-            secret/hot-or-not-web-leptos-ssr/config dragonfly_ca_cert | DRAGONFLY_CA_CERT
-            secret/hot-or-not-web-leptos-ssr/config dragonfly_client_cert | DRAGONFLY_CLIENT_CERT
-            secret/hot-or-not-web-leptos-ssr/config dragonfly_client_key | DRAGONFLY_CLIENT_KEY
+            secret/data/hot-or-not-web-leptos-ssr/config cf_token | CF_TOKEN ;
+            secret/data/hot-or-not-web-leptos-ssr/config backend_admin_identity | BACKEND_ADMIN_IDENTITY ;
+            secret/data/hot-or-not-web-leptos-ssr/config cookie_key | COOKIE_KEY ;
+            secret/data/hot-or-not-web-leptos-ssr/config grpc_auth_token | GRPC_AUTH_TOKEN ;
+            secret/data/hot-or-not-web-leptos-ssr/config hon_google_service_account | HON_GOOGLE_SERVICE_ACCOUNT ;
+            secret/data/hot-or-not-web-leptos-ssr/config qstash_token | QSTASH_TOKEN ;
+            secret/data/hot-or-not-web-leptos-ssr/config ga4_api_secret | GA4_API_SECRET ;
+            secret/data/hot-or-not-web-leptos-ssr/config nsfw_grpc_token | NSFW_GRPC_TOKEN ;
+            secret/data/hot-or-not-web-leptos-ssr/config alloydb_instance | ALLOYDB_INSTANCE ;
+            secret/data/hot-or-not-web-leptos-ssr/config alloydb_db_password | ALLOYDB_DB_PASSWORD ;
+            secret/data/hot-or-not-web-leptos-ssr/config alloydb_service_account_json | ALLOYDB_SERVICE_ACCOUNT_JSON ;
+            secret/data/hot-or-not-web-leptos-ssr/config hon_worker_jwt | HON_WORKER_JWT ;
+            secret/data/hot-or-not-web-leptos-ssr/config yral_auth_client_secret | YRAL_AUTH_CLIENT_SECRET ;
+            secret/data/hot-or-not-web-leptos-ssr/config analytics_server_token | ANALYTICS_SERVER_TOKEN ;
+            secret/data/hot-or-not-web-leptos-ssr/config yral_auth_migration_es256_pem | YRAL_AUTH_MIGRATION_ES256_PEM ;
+            secret/data/hot-or-not-web-leptos-ssr/config yral_metadata_notification_api_key | YRAL_METADATA_NOTIFICATION_API_KEY ;
+            secret/data/hot-or-not-web-leptos-ssr/config otlp_endpoint | OTLP_ENDPOINT ;
+            secret/data/hot-or-not-web-leptos-ssr/config dragonfly_password | DRAGONFLY_PASSWORD ;
+            secret/data/hot-or-not-web-leptos-ssr/config dragonfly_hosts | DRAGONFLY_HOSTS ;
+            secret/data/hot-or-not-web-leptos-ssr/config dragonfly_ca_cert | DRAGONFLY_CA_CERT ;
+            secret/data/hot-or-not-web-leptos-ssr/config dragonfly_client_cert | DRAGONFLY_CLIENT_CERT ;
+            secret/data/hot-or-not-web-leptos-ssr/config dragonfly_client_key | DRAGONFLY_CLIENT_KEY ;
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - name: Set secret tokens
