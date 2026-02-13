@@ -214,26 +214,26 @@ base64 = "0.22"
 
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], rev = "2a53bcb7ea5504243975e03843807c9b873d2d30", version = "0.1.0" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", rev = "2a53bcb7ea5504243975e03843807c9b873d2d30" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", rev = "2a53bcb7ea5504243975e03843807c9b873d2d30" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev = "2a53bcb7ea5504243975e03843807c9b873d2d30", features = [
+], rev = "dd5c45a7feb2339625ed95911c9275da0a1405a5", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", rev = "dd5c45a7feb2339625ed95911c9275da0a1405a5" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", rev = "dd5c45a7feb2339625ed95911c9275da0a1405a5" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev = "dd5c45a7feb2339625ed95911c9275da0a1405a5", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "2a53bcb7ea5504243975e03843807c9b873d2d30" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "dd5c45a7feb2339625ed95911c9275da0a1405a5" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], rev = "2a53bcb7ea5504243975e03843807c9b873d2d30" }
-global-constants = { git = "https://github.com/dolr-ai/yral-common.git", rev = "2a53bcb7ea5504243975e03843807c9b873d2d30" }
-yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", rev = "2a53bcb7ea5504243975e03843807c9b873d2d30", default-features = false, features = [
+], rev = "dd5c45a7feb2339625ed95911c9275da0a1405a5" }
+global-constants = { git = "https://github.com/dolr-ai/yral-common.git", rev = "dd5c45a7feb2339625ed95911c9275da0a1405a5" }
+yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", rev = "dd5c45a7feb2339625ed95911c9275da0a1405a5", default-features = false, features = [
     "ic-git",
     "wasm-bindgen",
 ] }
-videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "2a53bcb7ea5504243975e03843807c9b873d2d30", features = [
+videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "dd5c45a7feb2339625ed95911c9275da0a1405a5", features = [
     "client",
     "ic",
 ] }
-yral-username-gen = { git = "https://github.com/dolr-ai/yral-common.git", rev = "2a53bcb7ea5504243975e03843807c9b873d2d30" }
+yral-username-gen = { git = "https://github.com/dolr-ai/yral-common.git", rev = "dd5c45a7feb2339625ed95911c9275da0a1405a5" }
 
 # OpenTelemetry dependencies for telemetry_axum
 opentelemetry = { version = "0.24.0", features = ["trace"] }
