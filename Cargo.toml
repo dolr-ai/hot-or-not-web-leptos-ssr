@@ -214,26 +214,26 @@ base64 = "0.22"
 
 yral-pump-n-dump-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], rev = "52746e7d3f12a0019c73ab1e8c98623a5d66e217", version = "0.1.0" }
-sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", rev = "52746e7d3f12a0019c73ab1e8c98623a5d66e217" }
-yral-types = { git = "https://github.com/dolr-ai/yral-common.git", rev = "52746e7d3f12a0019c73ab1e8c98623a5d66e217" }
-yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", rev = "52746e7d3f12a0019c73ab1e8c98623a5d66e217", features = [
+], branch = "master", version = "0.1.0" }
+sns-validation = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-types = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-canisters-client = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
     "full",
 ] }
-yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "52746e7d3f12a0019c73ab1e8c98623a5d66e217" }
+yral-canisters-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 hon-worker-common = { git = "https://github.com/dolr-ai/yral-common.git", features = [
     "client",
-], rev = "52746e7d3f12a0019c73ab1e8c98623a5d66e217" }
-global-constants = { git = "https://github.com/dolr-ai/yral-common.git", rev = "52746e7d3f12a0019c73ab1e8c98623a5d66e217" }
-yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", rev = "52746e7d3f12a0019c73ab1e8c98623a5d66e217", default-features = false, features = [
+], branch = "master" }
+global-constants = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
+yral-identity = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", default-features = false, features = [
     "ic-git",
     "wasm-bindgen",
 ] }
-videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", rev = "52746e7d3f12a0019c73ab1e8c98623a5d66e217", features = [
+videogen-common = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master", features = [
     "client",
     "ic",
 ] }
-yral-username-gen = { git = "https://github.com/dolr-ai/yral-common.git", rev = "52746e7d3f12a0019c73ab1e8c98623a5d66e217" }
+yral-username-gen = { git = "https://github.com/dolr-ai/yral-common.git", branch = "master" }
 
 # OpenTelemetry dependencies for telemetry_axum
 opentelemetry = { version = "0.24.0", features = ["trace"] }
