@@ -1,4 +1,7 @@
+# .github/workflows/deploy-preview.yml
+
 name: deploy preview
+
 on:
   pull_request:
     types: [opened, reopened, synchronize, closed, labeled, unlabeled]
@@ -38,18 +41,17 @@ jobs:
           REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
           IMAGE="ghcr.io/${{ github.repository_owner }}/${REPO_NAME}"
           IMAGE_TAG="pr-${PR_NUMBER}"
-          PREVIEW_DOMAIN="pr-${PR_NUMBER}-${REPO_NAME}.preview.yourdomain.com"
+          PREVIEW_DOMAIN="pr-${PR_NUMBER}-${REPO_NAME}.preview.yral.com"
           PREVIEW_URL="https://${PREVIEW_DOMAIN}"
-          # Unique app name in Coolify per PR per repo
           APP_NAME="pr-${PR_NUMBER}-${REPO_NAME}"
 
-          echo "pr_number=${PR_NUMBER}"         >> $GITHUB_OUTPUT
-          echo "repo_name=${REPO_NAME}"         >> $GITHUB_OUTPUT
-          echo "image=${IMAGE}"                 >> $GITHUB_OUTPUT
-          echo "image_tag=${IMAGE_TAG}"         >> $GITHUB_OUTPUT
-          echo "preview_url=${PREVIEW_URL}"     >> $GITHUB_OUTPUT
-          echo "preview_domain=${PREVIEW_DOMAIN}" >> $GITHUB_OUTPUT
-          echo "app_name=${APP_NAME}"           >> $GITHUB_OUTPUT
+          echo "pr_number=${PR_NUMBER}"             >> $GITHUB_OUTPUT
+          echo "repo_name=${REPO_NAME}"             >> $GITHUB_OUTPUT
+          echo "image=${IMAGE}"                     >> $GITHUB_OUTPUT
+          echo "image_tag=${IMAGE_TAG}"             >> $GITHUB_OUTPUT
+          echo "preview_domain=${PREVIEW_DOMAIN}"   >> $GITHUB_OUTPUT
+          echo "preview_url=${PREVIEW_URL}"         >> $GITHUB_OUTPUT
+          echo "app_name=${APP_NAME}"               >> $GITHUB_OUTPUT
 
       - name: Download Build Artifact
         uses: actions/download-artifact@v4
@@ -64,7 +66,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}   # runner pushes using GITHUB_TOKEN
 
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v5
@@ -76,40 +78,39 @@ jobs:
           cache-from: type=registry,ref=${{ steps.meta.outputs.image }}:cache-${{ steps.meta.outputs.image_tag }}
           cache-to: type=registry,ref=${{ steps.meta.outputs.image }}:cache-${{ steps.meta.outputs.image_tag }},mode=max
 
-      - name: Create or Get Coolify Application for this PR
+      - name: Create or Get Coolify Application for PR
         id: coolify_app
         run: |
           APP_NAME="${{ steps.meta.outputs.app_name }}"
           IMAGE="${{ steps.meta.outputs.image }}"
           IMAGE_TAG="${{ steps.meta.outputs.image_tag }}"
           PREVIEW_DOMAIN="${{ steps.meta.outputs.preview_domain }}"
-          PROJECT_UUID="${{ secrets.COOLIFY_PROJECT_UUID }}"
-          SERVER_UUID="${{ secrets.COOLIFY_SERVER_UUID }}"
 
-          # Check if an application already exists for this PR
-          # We store the app UUID in GitHub deployment environment to reuse it
+          # Check if app already exists for this PR (e.g. new commit pushed to same PR)
           EXISTING=$(curl -s \
             "${{ secrets.COOLIFY_URL }}/api/v1/applications" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
             | jq -r --arg name "$APP_NAME" '.[] | select(.name == $name) | .uuid // empty')
 
           if [ -n "$EXISTING" ]; then
-            echo "Found existing Coolify app: $EXISTING"
+            echo "Reusing existing Coolify app: $EXISTING"
             echo "app_uuid=${EXISTING}" >> $GITHUB_OUTPUT
           else
-            echo "Creating new Coolify app for $APP_NAME"
+            echo "Creating new Coolify app: $APP_NAME"
 
             RESPONSE=$(curl -s -X POST \
               "${{ secrets.COOLIFY_URL }}/api/v1/applications/dockerimage" \
               -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
               -H "Content-Type: application/json" \
               -d "{
-                \"name\":           \"${APP_NAME}\",
-                \"project_uuid\":   \"${PROJECT_UUID}\",
-                \"server_uuid\":    \"${SERVER_UUID}\",
-                \"docker_image\":   \"${IMAGE}:${IMAGE_TAG}\",
-                \"domains\":        \"https://${PREVIEW_DOMAIN}\",
-                \"ports_exposes\":  \"3000\"
+                \"name\":          \"${APP_NAME}\",
+                \"project_uuid\":  \"${{ secrets.COOLIFY_PROJECT_UUID }}\",
+                \"server_uuid\":   \"${{ secrets.COOLIFY_SERVER_UUID }}\",
+                \"docker_image\":  \"${IMAGE}:${IMAGE_TAG}\",
+                \"domains\":       \"https://${PREVIEW_DOMAIN}\",
+                \"ports_exposes\": \"8080\",
+                \"is_static\":     false,
+                \"source_type\":   \"github_app\"
               }")
 
             echo "Create response: $RESPONSE"
@@ -122,7 +123,6 @@ jobs:
               exit 1
             fi
 
-            echo "Created Coolify app: $APP_UUID"
             echo "app_uuid=${APP_UUID}" >> $GITHUB_OUTPUT
           fi
 
@@ -223,7 +223,7 @@ jobs:
           IMAGE="${{ steps.meta.outputs.image }}"
           IMAGE_TAG="${{ steps.meta.outputs.image_tag }}"
 
-          # Update image tag to latest push for this PR
+          # Update image tag (important on subsequent pushes to same PR)
           curl -s -X PATCH \
             "${{ secrets.COOLIFY_URL }}/api/v1/applications/${APP_UUID}" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
@@ -336,24 +336,24 @@ jobs:
       - name: Compute Metadata
         id: meta
         run: |
-          REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
           PR_NUMBER=${{ github.event.number }}
+          REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
           APP_NAME="pr-${PR_NUMBER}-${REPO_NAME}"
           echo "app_name=${APP_NAME}"   >> $GITHUB_OUTPUT
           echo "repo_name=${REPO_NAME}" >> $GITHUB_OUTPUT
+          echo "pr_number=${PR_NUMBER}" >> $GITHUB_OUTPUT
 
       - name: Find and Delete Coolify Application
         run: |
           APP_NAME="${{ steps.meta.outputs.app_name }}"
 
-          # Find the app UUID by name
           APP_UUID=$(curl -s \
             "${{ secrets.COOLIFY_URL }}/api/v1/applications" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
             | jq -r --arg name "$APP_NAME" '.[] | select(.name == $name) | .uuid // empty')
 
           if [ -z "$APP_UUID" ]; then
-            echo "No Coolify app found for $APP_NAME — already deleted or never created"
+            echo "No app found for $APP_NAME — skipping"
             exit 0
           fi
 
@@ -365,12 +365,9 @@ jobs:
 
       - name: Delete GHCR Image Tag
         run: |
-          # Best effort cleanup of the image tag — non-fatal if it fails
-          PR_NUMBER=${{ github.event.number }}
+          PR_NUMBER="${{ steps.meta.outputs.pr_number }}"
           REPO_NAME="${{ steps.meta.outputs.repo_name }}"
           IMAGE_TAG="pr-${PR_NUMBER}"
-
-          echo "Cleaning up GHCR image tag ${IMAGE_TAG} for ${REPO_NAME}"
 
           VERSIONS=$(curl -s \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
@@ -385,7 +382,7 @@ jobs:
               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               -H "Accept: application/vnd.github+json" \
               "https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/${REPO_NAME}/versions/${VERSION_ID}"
-            echo "Deleted image tag ${IMAGE_TAG}"
+            echo "Deleted GHCR image tag ${IMAGE_TAG}"
           else
             echo "Image tag not found, skipping"
           fi
