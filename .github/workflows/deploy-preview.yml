@@ -2,99 +2,135 @@ name: deploy preview
 on:
   pull_request:
     types: [opened, reopened, synchronize, closed, labeled, unlabeled]
-permissions:
-  deployments: write
-  pull-requests: read
 
-env:
-  FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
-  FLY_ORG: gobazzinga-inc-584
+permissions:
+  pull-requests: write
+  deployments: write
+  packages: write
 
 jobs:
   build_check:
     uses: ./.github/workflows/build-check.yml
     with:
       publish-artifact: true
-      erase_components: ${{ contains(github.event.pull_request.labels.*.name, 'type erasured') }}
     secrets: inherit
 
-
-  destroy_preview:
-    if: ${{github.event.pull_request.state == 'closed'}}
-    runs-on: ubuntu-latest
-    environment:
-      name: pr-${{ github.event.number }}
-      url: ${{ steps.deploy.outputs.url }}
-
-    steps:
-      - name: Deploy
-        id: destroy
-        uses: superfly/fly-pr-review-apps@1.2.1
-
   preview:
-    if: ${{ github.event.pull_request.state == 'open'}}
+    if: ${{ github.event.pull_request.state == 'open' }}
     needs: build_check
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
-    # Only run one deployment at a time per PR.
     concurrency:
-      group: pr-${{ github.event.number }}
+      group: pr-${{ github.event.number }}-${{ github.event.repository.name }}
+      cancel-in-progress: true
 
-    # Create a GitHub deployment environment per staging app so it shows up
-    # in the pull request UI.
     environment:
       name: pr-${{ github.event.number }}
-      url: ${{ steps.deploy.outputs.url }}
+      url: ${{ steps.meta.outputs.preview_url }}
 
     steps:
       - uses: actions/checkout@v3
-      - name: Download build
+
+      - name: Compute Preview Metadata
+        id: meta
+        run: |
+          PR_NUMBER=${{ github.event.number }}
+          REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
+          IMAGE="ghcr.io/${{ github.repository_owner }}/${REPO_NAME}"
+          IMAGE_TAG="pr-${PR_NUMBER}"
+          PREVIEW_DOMAIN="pr-${PR_NUMBER}-${REPO_NAME}.preview.yourdomain.com"
+          PREVIEW_URL="https://${PREVIEW_DOMAIN}"
+          # Unique app name in Coolify per PR per repo
+          APP_NAME="pr-${PR_NUMBER}-${REPO_NAME}"
+
+          echo "pr_number=${PR_NUMBER}"         >> $GITHUB_OUTPUT
+          echo "repo_name=${REPO_NAME}"         >> $GITHUB_OUTPUT
+          echo "image=${IMAGE}"                 >> $GITHUB_OUTPUT
+          echo "image_tag=${IMAGE_TAG}"         >> $GITHUB_OUTPUT
+          echo "preview_url=${PREVIEW_URL}"     >> $GITHUB_OUTPUT
+          echo "preview_domain=${PREVIEW_DOMAIN}" >> $GITHUB_OUTPUT
+          echo "app_name=${APP_NAME}"           >> $GITHUB_OUTPUT
+
+      - name: Download Build Artifact
         uses: actions/download-artifact@v4
         with:
           name: build-musl
-      - run: chmod +x target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
 
-      - name: Get branch name
-        id: branch-names
-        uses: tj-actions/branch-names@v8
+      - name: Fix Binary Permissions
+        run: chmod +x target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
 
-      - name: Deploy
-        id: deploy
-        uses: superfly/fly-pr-review-apps@1.5.0
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Set secret tokens
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.preview
+          push: true
+          tags: ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.image_tag }}
+          cache-from: type=registry,ref=${{ steps.meta.outputs.image }}:cache-${{ steps.meta.outputs.image_tag }}
+          cache-to: type=registry,ref=${{ steps.meta.outputs.image }}:cache-${{ steps.meta.outputs.image_tag }},mode=max
+
+      - name: Create or Get Coolify Application for this PR
+        id: coolify_app
         run: |
-          APP_NAME="pr-${{github.event.number}}-${{github.repository_owner}}-hot-or-not-web-leptos-ssr"
-          flyctl secrets set CF_TOKEN="$CF_TOKEN" --app "$APP_NAME" --stage
-          flyctl secrets set BACKEND_ADMIN_IDENTITY="$BACKEND_ADMIN_IDENTITY" --app "$APP_NAME" --stage
-          flyctl secrets set COOKIE_KEY="$COOKIE_KEY" --app "$APP_NAME" --stage
-          flyctl secrets set GRPC_AUTH_TOKEN="$GRPC_AUTH_TOKEN" --app "$APP_NAME" --stage
-          flyctl secrets set "HON_GOOGLE_SERVICE_ACCOUNT=$HON_GOOGLE_SERVICE_ACCOUNT" --app "$APP_NAME" --stage
-          flyctl secrets set QSTASH_TOKEN="$QSTASH_TOKEN" --app "$APP_NAME" --stage
-          flyctl secrets set GA4_API_SECRET="$GA4_API_SECRET" --app "$APP_NAME" --stage
-          flyctl secrets set NSFW_GRPC_TOKEN="$NSFW_GRPC_TOKEN" --app "$APP_NAME" --stage
-          flyctl secrets set ALLOYDB_INSTANCE="$ALLOYDB_INSTANCE" --app "$APP_NAME" --stage
-          flyctl secrets set ALLOYDB_DB_PASSWORD="$ALLOYDB_DB_PASSWORD" --app "$APP_NAME" --stage
-          flyctl secrets set ALLOYDB_SERVICE_ACCOUNT_JSON="$ALLOYDB_SERVICE_ACCOUNT_JSON" --app "$APP_NAME" --stage
-          flyctl secrets set HON_WORKER_JWT="$HON_WORKER_JWT" --app "$APP_NAME" --stage
-          flyctl secrets set YRAL_AUTH_CLIENT_SECRET="$YRAL_AUTH_CLIENT_SECRET" --app "$APP_NAME" --stage
-          flyctl secrets set YRAL_AUTH_REDIRECT_URL="https://$APP_NAME.fly.dev/auth/google_redirect" --app "$APP_NAME" --stage
-          flyctl secrets set ANALYTICS_SERVER_TOKEN="$ANALYTICS_SERVER_TOKEN" --app "$APP_NAME" --stage
-          flyctl secrets set YRAL_AUTH_MIGRATION_ES256_PEM="$YRAL_AUTH_MIGRATION_ES256_PEM" --app "$APP_NAME" --stage
-          flyctl secrets set YRAL_METADATA_NOTIFICATION_API_KEY="$YRAL_METADATA_NOTIFICATION_API_KEY" --app "$APP_NAME" --stage
-          flyctl secrets set OTLP_ENDPOINT="$OTLP_ENDPOINT" --app "$APP_NAME" --stage
-          flyctl secrets set DRAGONFLY_PASSWORD="$DRAGONFLY_PASSWORD" --app "$APP_NAME" --stage
-          flyctl secrets set DRAGONFLY_HOSTS="$DRAGONFLY_HOSTS" --app "$APP_NAME" --stage
-          printf '%s' "$DRAGONFLY_CA_CERT" | flyctl secrets set DRAGONFLY_CA_CERT=- --app "$APP_NAME" --stage
-          printf '%s' "$DRAGONFLY_CLIENT_CERT" | flyctl secrets set DRAGONFLY_CLIENT_CERT=- --app "$APP_NAME" --stage
-          printf '%s' "$DRAGONFLY_CLIENT_KEY" | flyctl secrets set DRAGONFLY_CLIENT_KEY=- --app "$APP_NAME" --stage
-          flyctl deploy --app $APP_NAME
+          APP_NAME="${{ steps.meta.outputs.app_name }}"
+          IMAGE="${{ steps.meta.outputs.image }}"
+          IMAGE_TAG="${{ steps.meta.outputs.image_tag }}"
+          PREVIEW_DOMAIN="${{ steps.meta.outputs.preview_domain }}"
+          PROJECT_UUID="${{ secrets.COOLIFY_PROJECT_UUID }}"
+          SERVER_UUID="${{ secrets.COOLIFY_SERVER_UUID }}"
+
+          # Check if an application already exists for this PR
+          # We store the app UUID in GitHub deployment environment to reuse it
+          EXISTING=$(curl -s \
+            "${{ secrets.COOLIFY_URL }}/api/v1/applications" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            | jq -r --arg name "$APP_NAME" '.[] | select(.name == $name) | .uuid // empty')
+
+          if [ -n "$EXISTING" ]; then
+            echo "Found existing Coolify app: $EXISTING"
+            echo "app_uuid=${EXISTING}" >> $GITHUB_OUTPUT
+          else
+            echo "Creating new Coolify app for $APP_NAME"
+
+            RESPONSE=$(curl -s -X POST \
+              "${{ secrets.COOLIFY_URL }}/api/v1/applications/dockerimage" \
+              -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"name\":           \"${APP_NAME}\",
+                \"project_uuid\":   \"${PROJECT_UUID}\",
+                \"server_uuid\":    \"${SERVER_UUID}\",
+                \"docker_image\":   \"${IMAGE}:${IMAGE_TAG}\",
+                \"domains\":        \"https://${PREVIEW_DOMAIN}\",
+                \"ports_exposes\":  \"3000\"
+              }")
+
+            echo "Create response: $RESPONSE"
+
+            APP_UUID=$(echo $RESPONSE | jq -r '.uuid // empty')
+
+            if [ -z "$APP_UUID" ]; then
+              echo "Failed to create Coolify application"
+              echo "$RESPONSE"
+              exit 1
+            fi
+
+            echo "Created Coolify app: $APP_UUID"
+            echo "app_uuid=${APP_UUID}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Push Environment Variables to Coolify
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET }}
           BACKEND_ADMIN_IDENTITY: ${{ secrets.YRAL_DAPP_BACKEND_APP_ADMIN_AND_PROPOSAL_SUBMITTER_IDENTITY_PRIVATE_KEY }}
           COOKIE_KEY: ${{ secrets.AUTH_SESSION_COOKIE_SIGNING_SECRET_KEY }}
-          FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
           GRPC_AUTH_TOKEN: ${{ secrets.OFF_CHAIN_AGENT_GRPC_AUTH_TOKEN }}
           HON_GOOGLE_SERVICE_ACCOUNT: ${{ secrets.HOT_OR_NOT_FEED_INTELLIGENCE_FIREBASE_PROJECT_EVENTS_BQ_SERVICE_ACCOUNT_JSON_FOR_WEB_LEPTOS_SSR_APP }}
           QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
@@ -114,11 +150,268 @@ jobs:
           DRAGONFLY_CA_CERT: ${{ secrets.DRAGONFLY_CA_CERT }}
           DRAGONFLY_CLIENT_CERT: ${{ secrets.DRAGONFLY_CLIENT_CERT }}
           DRAGONFLY_CLIENT_KEY: ${{ secrets.DRAGONFLY_CLIENT_KEY }}
+          APP_URL: ${{ steps.meta.outputs.preview_url }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          YRAL_AUTH_REDIRECT_URL: "${{ steps.meta.outputs.preview_url }}/auth/google_redirect"
+        run: |
+          APP_UUID="${{ steps.coolify_app.outputs.app_uuid }}"
+
+          ENV_JSON=$(jq -n \
+            --arg cf_token                           "$CF_TOKEN" \
+            --arg backend_admin_identity             "$BACKEND_ADMIN_IDENTITY" \
+            --arg cookie_key                         "$COOKIE_KEY" \
+            --arg grpc_auth_token                    "$GRPC_AUTH_TOKEN" \
+            --arg hon_google_service_account         "$HON_GOOGLE_SERVICE_ACCOUNT" \
+            --arg qstash_token                       "$QSTASH_TOKEN" \
+            --arg ga4_api_secret                     "$GA4_API_SECRET" \
+            --arg nsfw_grpc_token                    "$NSFW_GRPC_TOKEN" \
+            --arg alloydb_instance                   "$ALLOYDB_INSTANCE" \
+            --arg alloydb_db_password                "$ALLOYDB_DB_PASSWORD" \
+            --arg alloydb_service_account_json       "$ALLOYDB_SERVICE_ACCOUNT_JSON" \
+            --arg hon_worker_jwt                     "$HON_WORKER_JWT" \
+            --arg yral_auth_client_secret            "$YRAL_AUTH_CLIENT_SECRET" \
+            --arg analytics_server_token             "$ANALYTICS_SERVER_TOKEN" \
+            --arg yral_auth_migration_es256_pem      "$YRAL_AUTH_MIGRATION_ES256_PEM" \
+            --arg yral_metadata_notification_api_key "$YRAL_METADATA_NOTIFICATION_API_KEY" \
+            --arg otlp_endpoint                      "$OTLP_ENDPOINT" \
+            --arg dragonfly_password                 "$DRAGONFLY_PASSWORD" \
+            --arg dragonfly_hosts                    "$DRAGONFLY_HOSTS" \
+            --arg dragonfly_ca_cert                  "$DRAGONFLY_CA_CERT" \
+            --arg dragonfly_client_cert              "$DRAGONFLY_CLIENT_CERT" \
+            --arg dragonfly_client_key               "$DRAGONFLY_CLIENT_KEY" \
+            --arg app_url                            "$APP_URL" \
+            --arg pr_number                          "$PR_NUMBER" \
+            --arg yral_auth_redirect_url             "$YRAL_AUTH_REDIRECT_URL" \
+            '[
+              {"key": "CF_TOKEN",                           "value": $cf_token},
+              {"key": "BACKEND_ADMIN_IDENTITY",             "value": $backend_admin_identity},
+              {"key": "COOKIE_KEY",                         "value": $cookie_key},
+              {"key": "GRPC_AUTH_TOKEN",                    "value": $grpc_auth_token},
+              {"key": "HON_GOOGLE_SERVICE_ACCOUNT",         "value": $hon_google_service_account},
+              {"key": "QSTASH_TOKEN",                       "value": $qstash_token},
+              {"key": "GA4_API_SECRET",                     "value": $ga4_api_secret},
+              {"key": "NSFW_GRPC_TOKEN",                    "value": $nsfw_grpc_token},
+              {"key": "ALLOYDB_INSTANCE",                   "value": $alloydb_instance},
+              {"key": "ALLOYDB_DB_PASSWORD",                "value": $alloydb_db_password},
+              {"key": "ALLOYDB_SERVICE_ACCOUNT_JSON",       "value": $alloydb_service_account_json},
+              {"key": "HON_WORKER_JWT",                     "value": $hon_worker_jwt},
+              {"key": "YRAL_AUTH_CLIENT_SECRET",            "value": $yral_auth_client_secret},
+              {"key": "ANALYTICS_SERVER_TOKEN",             "value": $analytics_server_token},
+              {"key": "YRAL_AUTH_MIGRATION_ES256_PEM",      "value": $yral_auth_migration_es256_pem},
+              {"key": "YRAL_METADATA_NOTIFICATION_API_KEY", "value": $yral_metadata_notification_api_key},
+              {"key": "OTLP_ENDPOINT",                      "value": $otlp_endpoint},
+              {"key": "DRAGONFLY_PASSWORD",                 "value": $dragonfly_password},
+              {"key": "DRAGONFLY_HOSTS",                    "value": $dragonfly_hosts},
+              {"key": "DRAGONFLY_CA_CERT",                  "value": $dragonfly_ca_cert},
+              {"key": "DRAGONFLY_CLIENT_CERT",              "value": $dragonfly_client_cert},
+              {"key": "DRAGONFLY_CLIENT_KEY",               "value": $dragonfly_client_key},
+              {"key": "APP_URL",                            "value": $app_url},
+              {"key": "PR_NUMBER",                          "value": $pr_number},
+              {"key": "YRAL_AUTH_REDIRECT_URL",             "value": $yral_auth_redirect_url}
+            ]')
+
+          curl -s -X PATCH \
+            "${{ secrets.COOLIFY_URL }}/api/v1/applications/${APP_UUID}/envs" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"data\": ${ENV_JSON}}"
+
+      - name: Update Image Tag and Deploy
+        id: deploy
+        run: |
+          APP_UUID="${{ steps.coolify_app.outputs.app_uuid }}"
+          IMAGE="${{ steps.meta.outputs.image }}"
+          IMAGE_TAG="${{ steps.meta.outputs.image_tag }}"
+
+          # Update image tag to latest push for this PR
+          curl -s -X PATCH \
+            "${{ secrets.COOLIFY_URL }}/api/v1/applications/${APP_UUID}" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"docker_image\": \"${IMAGE}:${IMAGE_TAG}\"}"
+
+          # Trigger deploy
+          RESPONSE=$(curl -s -X POST \
+            "${{ secrets.COOLIFY_URL }}/api/v1/deploy" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"uuid\": \"${APP_UUID}\",
+              \"force\": true
+            }")
+
+          echo "Deploy response: $RESPONSE"
+
+          DEPLOY_UUID=$(echo $RESPONSE | jq -r '.deployment_uuid // empty')
+          if [ -z "$DEPLOY_UUID" ]; then
+            echo "Failed to trigger deployment"
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+          echo "deploy_uuid=${DEPLOY_UUID}" >> $GITHUB_OUTPUT
+
+      - name: Wait for Deployment
+        run: |
+          DEPLOY_UUID="${{ steps.deploy.outputs.deploy_uuid }}"
+          MAX_WAIT=120
+          WAITED=0
+
+          while [ $WAITED -lt $MAX_WAIT ]; do
+            STATUS=$(curl -s \
+              "${{ secrets.COOLIFY_URL }}/api/v1/deployments/${DEPLOY_UUID}" \
+              -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+              | jq -r '.status // empty')
+
+            echo "Status: ${STATUS} (${WAITED}s elapsed)"
+
+            if [ "$STATUS" = "finished" ]; then exit 0
+            elif [ "$STATUS" = "failed" ] || [ "$STATUS" = "error" ]; then exit 1
+            fi
+
+            sleep 10
+            WAITED=$((WAITED + 10))
+          done
+
+          echo "Timed out"
+          exit 1
+
+      - name: Comment Preview URL on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ steps.meta.outputs.pr_number }};
+            const previewUrl = "${{ steps.meta.outputs.preview_url }}";
+            const branch = "${{ github.head_ref }}";
+            const sha = "${{ github.event.pull_request.head.sha }}".substring(0, 7);
+            const image = "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.image_tag }}";
+
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber
+            });
+
+            for (const comment of comments.data) {
+              if (comment.body.includes("<!-- coolify-preview -->")) {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: comment.id
+                });
+              }
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: `<!-- coolify-preview -->
+            ## 🚀 Preview Deployment Ready
+
+            | | |
+            |---|---|
+            | **URL** | [${previewUrl}](${previewUrl}) |
+            | **Branch** | \`${branch}\` |
+            | **Commit** | \`${sha}\` |
+            | **Image** | \`${image}\` |
+
+            > Updated on every push. Destroyed when this PR is closed or merged.`
+            });
+
   e2e-tests:
     needs: preview
     uses: ./.github/workflows/e2e-tests.yml
-    if: ${{ github.event.pull_request.state == 'open'}}
+    if: ${{ github.event.pull_request.state == 'open' }}
     secrets: inherit
     with:
-      preview_url: https://pr-${{github.event.number}}-${{github.repository_owner}}-hot-or-not-web-leptos-ssr.fly.dev
-      build_name: PR-${{github.event.number}}-commit-${{github.sha}}-attempt-${{github.run_attempt}}
+      preview_url: "https://pr-${{ github.event.number }}-${{ github.event.repository.name }}.preview.yourdomain.com"
+      build_name: "PR-${{ github.event.number }}-commit-${{ github.sha }}-attempt-${{ github.run_attempt }}"
+
+  destroy-preview:
+    if: ${{ github.event.pull_request.state == 'closed' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Compute Metadata
+        id: meta
+        run: |
+          REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
+          PR_NUMBER=${{ github.event.number }}
+          APP_NAME="pr-${PR_NUMBER}-${REPO_NAME}"
+          echo "app_name=${APP_NAME}"   >> $GITHUB_OUTPUT
+          echo "repo_name=${REPO_NAME}" >> $GITHUB_OUTPUT
+
+      - name: Find and Delete Coolify Application
+        run: |
+          APP_NAME="${{ steps.meta.outputs.app_name }}"
+
+          # Find the app UUID by name
+          APP_UUID=$(curl -s \
+            "${{ secrets.COOLIFY_URL }}/api/v1/applications" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            | jq -r --arg name "$APP_NAME" '.[] | select(.name == $name) | .uuid // empty')
+
+          if [ -z "$APP_UUID" ]; then
+            echo "No Coolify app found for $APP_NAME — already deleted or never created"
+            exit 0
+          fi
+
+          echo "Deleting Coolify app $APP_NAME ($APP_UUID)"
+
+          curl -s -X DELETE \
+            "${{ secrets.COOLIFY_URL }}/api/v1/applications/${APP_UUID}" \
+            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
+
+      - name: Delete GHCR Image Tag
+        run: |
+          # Best effort cleanup of the image tag — non-fatal if it fails
+          PR_NUMBER=${{ github.event.number }}
+          REPO_NAME="${{ steps.meta.outputs.repo_name }}"
+          IMAGE_TAG="pr-${PR_NUMBER}"
+
+          echo "Cleaning up GHCR image tag ${IMAGE_TAG} for ${REPO_NAME}"
+
+          VERSIONS=$(curl -s \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/${REPO_NAME}/versions")
+
+          VERSION_ID=$(echo $VERSIONS | jq -r --arg tag "$IMAGE_TAG" \
+            '.[] | select(.metadata.container.tags[] == $tag) | .id // empty')
+
+          if [ -n "$VERSION_ID" ]; then
+            curl -s -X DELETE \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/${REPO_NAME}/versions/${VERSION_ID}"
+            echo "Deleted image tag ${IMAGE_TAG}"
+          else
+            echo "Image tag not found, skipping"
+          fi
+
+      - name: Update PR Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = ${{ github.event.number }};
+            const merged = ${{ github.event.pull_request.merged }};
+
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber
+            });
+
+            for (const comment of comments.data) {
+              if (comment.body.includes("<!-- coolify-preview -->")) {
+                await github.rest.issues.updateComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: comment.id,
+                  body: `<!-- coolify-preview -->
+            ## Preview Deployment
+            > ${merged ? "✅ PR merged — preview destroyed." : "🗑️ PR closed — preview destroyed."}`
+                });
+              }
+            }
