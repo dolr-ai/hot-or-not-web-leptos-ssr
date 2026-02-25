@@ -164,19 +164,20 @@ jobs:
           YRAL_AUTH_REDIRECT_URL: "${{ steps.meta.outputs.preview_url }}/auth/google_redirect"
         run: |
           APP_UUID="${{ steps.coolify_app.outputs.app_uuid }}"
+          flatten() { echo "$1" | tr -d '\n\r'; }
 
           ENV_JSON=$(jq -n \
             --arg cf_token                           "$CF_TOKEN" \
             --arg backend_admin_identity             "$BACKEND_ADMIN_IDENTITY" \
             --arg cookie_key                         "$COOKIE_KEY" \
             --arg grpc_auth_token                    "$GRPC_AUTH_TOKEN" \
-            --arg hon_google_service_account         "$HON_GOOGLE_SERVICE_ACCOUNT" \
+            --arg hon_google_service_account         "$(flatten "$HON_GOOGLE_SERVICE_ACCOUNT")" \
             --arg qstash_token                       "$QSTASH_TOKEN" \
             --arg ga4_api_secret                     "$GA4_API_SECRET" \
             --arg nsfw_grpc_token                    "$NSFW_GRPC_TOKEN" \
             --arg alloydb_instance                   "$ALLOYDB_INSTANCE" \
             --arg alloydb_db_password                "$ALLOYDB_DB_PASSWORD" \
-            --arg alloydb_service_account_json       "$ALLOYDB_SERVICE_ACCOUNT_JSON" \
+            --arg alloydb_service_account_json       "$(flatten "$ALLOYDB_SERVICE_ACCOUNT_JSON")" \
             --arg hon_worker_jwt                     "$HON_WORKER_JWT" \
             --arg yral_auth_client_secret            "$YRAL_AUTH_CLIENT_SECRET" \
             --arg analytics_server_token             "$ANALYTICS_SERVER_TOKEN" \
@@ -185,38 +186,38 @@ jobs:
             --arg otlp_endpoint                      "$OTLP_ENDPOINT" \
             --arg dragonfly_password                 "$DRAGONFLY_PASSWORD" \
             --arg dragonfly_hosts                    "$DRAGONFLY_HOSTS" \
-            --arg dragonfly_ca_cert                  "$DRAGONFLY_CA_CERT" \
-            --arg dragonfly_client_cert              "$DRAGONFLY_CLIENT_CERT" \
-            --arg dragonfly_client_key               "$DRAGONFLY_CLIENT_KEY" \
+            --arg dragonfly_ca_cert                  "$(flatten "$DRAGONFLY_CA_CERT")" \
+            --arg dragonfly_client_cert              "$(flatten "$DRAGONFLY_CLIENT_CERT")" \
+            --arg dragonfly_client_key               "$(flatten "$DRAGONFLY_CLIENT_KEY")" \
             --arg app_url                            "$APP_URL" \
             --arg pr_number                          "$PR_NUMBER" \
             --arg yral_auth_redirect_url             "$YRAL_AUTH_REDIRECT_URL" \
             '[
-              {"key": "CF_TOKEN",                           "value": $cf_token},
-              {"key": "BACKEND_ADMIN_IDENTITY",             "value": $backend_admin_identity},
-              {"key": "COOKIE_KEY",                         "value": $cookie_key},
-              {"key": "GRPC_AUTH_TOKEN",                    "value": $grpc_auth_token},
-              {"key": "HON_GOOGLE_SERVICE_ACCOUNT",         "value": $hon_google_service_account},
-              {"key": "QSTASH_TOKEN",                       "value": $qstash_token},
-              {"key": "GA4_API_SECRET",                     "value": $ga4_api_secret},
-              {"key": "NSFW_GRPC_TOKEN",                    "value": $nsfw_grpc_token},
-              {"key": "ALLOYDB_INSTANCE",                   "value": $alloydb_instance},
-              {"key": "ALLOYDB_DB_PASSWORD",                "value": $alloydb_db_password},
-              {"key": "ALLOYDB_SERVICE_ACCOUNT_JSON",       "value": $alloydb_service_account_json},
-              {"key": "HON_WORKER_JWT",                     "value": $hon_worker_jwt},
-              {"key": "YRAL_AUTH_CLIENT_SECRET",            "value": $yral_auth_client_secret},
-              {"key": "ANALYTICS_SERVER_TOKEN",             "value": $analytics_server_token},
-              {"key": "YRAL_AUTH_MIGRATION_ES256_PEM",      "value": $yral_auth_migration_es256_pem},
-              {"key": "YRAL_METADATA_NOTIFICATION_API_KEY", "value": $yral_metadata_notification_api_key},
-              {"key": "OTLP_ENDPOINT",                      "value": $otlp_endpoint},
-              {"key": "DRAGONFLY_PASSWORD",                 "value": $dragonfly_password},
-              {"key": "DRAGONFLY_HOSTS",                    "value": $dragonfly_hosts},
-              {"key": "DRAGONFLY_CA_CERT",                  "value": $dragonfly_ca_cert},
-              {"key": "DRAGONFLY_CLIENT_CERT",              "value": $dragonfly_client_cert},
-              {"key": "DRAGONFLY_CLIENT_KEY",               "value": $dragonfly_client_key},
-              {"key": "APP_URL",                            "value": $app_url},
-              {"key": "PR_NUMBER",                          "value": $pr_number},
-              {"key": "YRAL_AUTH_REDIRECT_URL",             "value": $yral_auth_redirect_url}
+              {"key": "CF_TOKEN",                           "value": $cf_token, "is_literal": true},
+              {"key": "BACKEND_ADMIN_IDENTITY",             "value": $backend_admin_identity, "is_literal": true},
+              {"key": "COOKIE_KEY",                         "value": $cookie_key, "is_literal": true},
+              {"key": "GRPC_AUTH_TOKEN",                    "value": $grpc_auth_token, "is_literal": true},
+              {"key": "HON_GOOGLE_SERVICE_ACCOUNT",         "value": $hon_google_service_account, "is_literal": true},
+              {"key": "QSTASH_TOKEN",                       "value": $qstash_token, "is_literal": true},
+              {"key": "GA4_API_SECRET",                     "value": $ga4_api_secret, "is_literal": true},
+              {"key": "NSFW_GRPC_TOKEN",                    "value": $nsfw_grpc_token, "is_literal": true},
+              {"key": "ALLOYDB_INSTANCE",                   "value": $alloydb_instance, "is_literal": true},
+              {"key": "ALLOYDB_DB_PASSWORD",                "value": $alloydb_db_password, "is_literal": true},
+              {"key": "ALLOYDB_SERVICE_ACCOUNT_JSON",       "value": $alloydb_service_account_json, "is_literal": true},
+              {"key": "HON_WORKER_JWT",                     "value": $hon_worker_jwt, "is_literal": true},
+              {"key": "YRAL_AUTH_CLIENT_SECRET",            "value": $yral_auth_client_secret, "is_literal": true},
+              {"key": "ANALYTICS_SERVER_TOKEN",             "value": $analytics_server_token, "is_literal": true},
+              {"key": "YRAL_AUTH_MIGRATION_ES256_PEM",      "value": $yral_auth_migration_es256_pem, "is_literal": true},
+              {"key": "YRAL_METADATA_NOTIFICATION_API_KEY", "value": $yral_metadata_notification_api_key, "is_literal": true},
+              {"key": "OTLP_ENDPOINT",                      "value": $otlp_endpoint, "is_literal": true},
+              {"key": "DRAGONFLY_PASSWORD",                 "value": $dragonfly_password, "is_literal": true},
+              {"key": "DRAGONFLY_HOSTS",                    "value": $dragonfly_hosts, "is_literal": true},
+              {"key": "DRAGONFLY_CA_CERT",                  "value": $dragonfly_ca_cert, "is_literal": true},
+              {"key": "DRAGONFLY_CLIENT_CERT",              "value": $dragonfly_client_cert, "is_literal": true},
+              {"key": "DRAGONFLY_CLIENT_KEY",               "value": $dragonfly_client_key, "is_literal": true},
+              {"key": "APP_URL",                            "value": $app_url, "is_literal": true},
+              {"key": "PR_NUMBER",                          "value": $pr_number, "is_literal": true},
+              {"key": "YRAL_AUTH_REDIRECT_URL",             "value": $yral_auth_redirect_url, "is_literal": true}
             ]')
 
           curl -s -X PATCH \
