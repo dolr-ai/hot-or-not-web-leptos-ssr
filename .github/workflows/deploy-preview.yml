@@ -21,7 +21,10 @@ jobs:
   preview:
     if: ${{ github.event.pull_request.state == 'open' }}
     needs: build_check
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     concurrency:
       group: pr-${{ github.event.number }}-${{ github.event.repository.name }}
@@ -32,7 +35,8 @@ jobs:
       url: ${{ steps.meta.outputs.preview_url }}
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Compute Preview Metadata
         id: meta
