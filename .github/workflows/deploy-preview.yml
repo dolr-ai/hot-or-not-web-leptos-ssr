@@ -219,7 +219,7 @@ jobs:
               {"key": "YRAL_AUTH_REDIRECT_URL",             "value": $yral_auth_redirect_url}
             ]')
 
-          curl -s -X PATCH \
+          curl -s -X POST \
             "${{ secrets.COOLIFY_URL }}/api/v1/applications/${APP_UUID}/envs" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
             -H "Content-Type: application/json" \
@@ -237,11 +237,11 @@ jobs:
             "${{ secrets.COOLIFY_URL }}/api/v1/applications/${APP_UUID}" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{\"docker_image\": \"${IMAGE}:${IMAGE_TAG}\"}"
+            -d "{\"docker_registry_image_tag\": \"${IMAGE_TAG}\"}"
 
           # Trigger deploy
           RESPONSE=$(curl -s -X POST \
-            "${{ secrets.COOLIFY_URL }}/api/v1/deploy" \
+            "${{ secrets.COOLIFY_URL }}/api/v1/applications/${APP_UUID}/start" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d "{
