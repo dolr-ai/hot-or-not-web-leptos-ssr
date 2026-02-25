@@ -110,14 +110,16 @@ jobs:
               -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
               -H "Content-Type: application/json" \
               -d "{
-                \"name\":          \"${APP_NAME}\",
-                \"project_uuid\":  \"${{ secrets.COOLIFY_PROJECT_UUID }}\",
-                \"server_uuid\":   \"${{ secrets.COOLIFY_SERVER_UUID }}\",
-                \"docker_image\":  \"${IMAGE}:${IMAGE_TAG}\",
-                \"domains\":       \"https://${PREVIEW_DOMAIN}\",
+                \"name\": \"${APP_NAME}\",
+                \"project_uuid\": \"${{ secrets.COOLIFY_PROJECT_UUID }}\",
+                \"server_uuid\": \"${{ secrets.COOLIFY_SERVER_UUID }}\",
+                \"environment_name\": \"preview\",
+                \"environment_uuid\": \"${{ secrets.COOLIFY_ENV_UUID }}\",
+                \"docker_registry_image_name\": \"${IMAGE} \",
+                \"docker_registry_image_tag\": \"${IMAGE_TAG}\",
+                \"domains\": \"https://${PREVIEW_DOMAIN}\",
                 \"ports_exposes\": \"8080\",
-                \"is_static\":     false,
-                \"source_type\":   \"github_app\"
+                \"is_static\": false,
               }")
 
             echo "Create response: $RESPONSE"
