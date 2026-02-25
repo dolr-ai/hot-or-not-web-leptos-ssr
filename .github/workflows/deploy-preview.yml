@@ -219,8 +219,8 @@ jobs:
               {"key": "YRAL_AUTH_REDIRECT_URL",             "value": $yral_auth_redirect_url}
             ]')
 
-          curl -s -X POST \
-            "${{ secrets.COOLIFY_URL }}/api/v1/applications/${APP_UUID}/envs" \
+          curl -s -X PATCH \
+            "${{ secrets.COOLIFY_URL }}/api/v1/applications/${APP_UUID}/envs/bulk" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
             -H "Content-Type: application/json" \
             -d "{\"data\": ${ENV_JSON}}"
@@ -285,56 +285,13 @@ jobs:
           echo "Timed out"
           exit 1
 
-      - name: Comment Preview URL on PR
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNumber = ${{ steps.meta.outputs.pr_number }};
-            const previewUrl = "${{ steps.meta.outputs.preview_url }}";
-            const branch = "${{ github.head_ref }}";
-            const sha = "${{ github.event.pull_request.head.sha }}".substring(0, 7);
-            const image = "${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.image_tag }}";
-
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber
-            });
-
-            for (const comment of comments.data) {
-              if (comment.body.includes("<!-- coolify-preview -->")) {
-                await github.rest.issues.deleteComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: comment.id
-                });
-              }
-            }
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body: `<!-- coolify-preview -->
-            ## 🚀 Preview Deployment Ready
-
-            | | |
-            |---|---|
-            | **URL** | [${previewUrl}](${previewUrl}) |
-            | **Branch** | \`${branch}\` |
-            | **Commit** | \`${sha}\` |
-            | **Image** | \`${image}\` |
-
-            > Updated on every push. Destroyed when this PR is closed or merged.`
-            });
-
   e2e-tests:
     needs: preview
     uses: ./.github/workflows/e2e-tests.yml
     if: ${{ github.event.pull_request.state == 'open' }}
     secrets: inherit
     with:
-      preview_url: "https://pr-${{ github.event.number }}-${{ github.event.repository.name }}.preview.yourdomain.com"
+      preview_url: "https://pr-${{ github.event.number }}-${{ github.event.repository.name }}.preview.yral.com"
       build_name: "PR-${{ github.event.number }}-commit-${{ github.sha }}-attempt-${{ github.run_attempt }}"
 
   destroy-preview:
