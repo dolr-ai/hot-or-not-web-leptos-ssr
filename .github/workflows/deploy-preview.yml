@@ -167,6 +167,11 @@ jobs:
           flatten() { echo "$1" | tr -d '\n\r'; }
 
           ENV_JSON=$(jq -n \
+            --arg cf_account_id                      "a209c523d2d9646cc56227dbe6ce3ede" \
+            --arg yral_auth_client_id                "5c86a459-493d-463e-965d-be6ed74f3e5f" \ 
+            --arg sentry_environment                 "staging" \
+            --arg alloydb_db_name                    "postgres" \
+            --arg alloydb_db_user                    "postgres" \
             --arg cf_token                           "$CF_TOKEN" \
             --arg backend_admin_identity             "$BACKEND_ADMIN_IDENTITY" \
             --arg cookie_key                         "$COOKIE_KEY" \
@@ -193,6 +198,11 @@ jobs:
             --arg pr_number                          "$PR_NUMBER" \
             --arg yral_auth_redirect_url             "$YRAL_AUTH_REDIRECT_URL" \
             '[
+              {"key": "CF_ACCOUNT_ID",                      "value": $cf_account_id, "is_literal": true},
+              {"key": "YRAL_AUTH_CLIENT_ID",                "value": $yral_auth_client_id, "is_literal": true},
+              {"key": "SENTRY_ENVIRONMENT",                 "value": $sentry_environment, "is_literal": true},
+              {"key": "ALLOYDB_DB_NAME",                    "value": $alloydb_db_name, "is_literal": true},
+              {"key": "ALLOYDB_DB_USER",                    "value": $alloydb_db_user, "is_literal": true},
               {"key": "CF_TOKEN",                           "value": $cf_token, "is_literal": true},
               {"key": "BACKEND_ADMIN_IDENTITY",             "value": $backend_admin_identity, "is_literal": true},
               {"key": "COOKIE_KEY",                         "value": $cookie_key, "is_literal": true},
