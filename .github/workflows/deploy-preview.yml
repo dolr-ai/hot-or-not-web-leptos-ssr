@@ -162,16 +162,21 @@ jobs:
           APP_URL: ${{ steps.meta.outputs.preview_url }}
           PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
           YRAL_AUTH_REDIRECT_URL: "${{ steps.meta.outputs.preview_url }}/auth/google_redirect"
+          CF_ACCOUNT_ID: "a209c523d2d9646cc56227dbe6ce3ede"
+          YRAL_AUTH_CLIENT_ID: "5c86a459-493d-463e-965d-be6ed74f3e5f"
+          SENTRY_ENVIRONMENT: "staging"
+          ALLOYDB_DB_NAME: "postgres"
+          ALLOYDB_DB_USER: "postgres"
         run: |
           APP_UUID="${{ steps.coolify_app.outputs.app_uuid }}"
           flatten() { echo "$1" | tr -d '\n\r'; }
 
           ENV_JSON=$(jq -n \
-            --arg cf_account_id                      "a209c523d2d9646cc56227dbe6ce3ede" \
-            --arg yral_auth_client_id                "5c86a459-493d-463e-965d-be6ed74f3e5f" \ 
-            --arg sentry_environment                 "staging" \
-            --arg alloydb_db_name                    "postgres" \
-            --arg alloydb_db_user                    "postgres" \
+            --arg cf_account_id                      "$CF_ACCOUNT_ID" \
+            --arg yral_auth_client_id                "$YRAL_AUTH_CLIENT_ID" \
+            --arg sentry_environment                 "$SENTRY_ENVIRONMENT" \
+            --arg alloydb_db_name                    "$ALLOYDB_DB_NAME" \
+            --arg alloydb_db_user                    "$ALLOYDB_DB_USER" \
             --arg cf_token                           "$CF_TOKEN" \
             --arg backend_admin_identity             "$BACKEND_ADMIN_IDENTITY" \
             --arg cookie_key                         "$COOKIE_KEY" \
