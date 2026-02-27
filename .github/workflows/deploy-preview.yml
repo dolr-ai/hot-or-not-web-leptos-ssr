@@ -241,8 +241,8 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{\"data\": ${ENV_JSON}}")
 
-          if [ "$RESPONSE" != "200" ]; then
-            echo "Failed with HTTP $RESPONSE"
+          if [ "$RESPONSE" -lt 200 ] || [ "$RESPONSE" -ge 300 ]; then
+            echo "Failed to push environment variables (HTTP $RESPONSE)"
             exit 1
           fi
 
