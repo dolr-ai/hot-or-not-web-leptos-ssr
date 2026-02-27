@@ -235,11 +235,16 @@ jobs:
               {"key": "YRAL_AUTH_REDIRECT_URL",             "value": $yral_auth_redirect_url, "is_literal": true}
             ]')
 
-          curl -s -X PATCH \
+          RESPONSE=$(curl -s -o /tmp/curl_response.txt -w "%{http_code}" -X PATCH \
             "${{ secrets.COOLIFY_URL }}/api/v1/applications/${APP_UUID}/envs/bulk" \
             -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{\"data\": ${ENV_JSON}}"
+            -d "{\"data\": ${ENV_JSON}}")
+
+          if [ "$RESPONSE" != "200" ]; then
+            echo "Failed with HTTP $RESPONSE"
+            exit 1
+          fi
 
       - name: Update Image Tag and Deploy
         id: deploy
