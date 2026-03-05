@@ -3,8 +3,9 @@
 name: deploy preview
 
 on:
-  pull_request:
-    types: [opened, reopened, synchronize, closed, labeled, unlabeled]
+  workflow_dispatch:
+  # pull_request:
+  #   types: [opened, reopened, synchronize, closed, labeled, unlabeled]
 
 permissions:
   pull-requests: write
@@ -143,21 +144,22 @@ jobs:
           role: hot-or-not-web-leptos-ssr-role
           jwtGithubAudience: "https://github.com/dolr-ai"
           secrets: |
-            secret/data/hot-or-not-web-leptos-ssr/CF_TOKEN value | CF_TOKEN
-            secret/data/hot-or-not-web-leptos-ssr/BACKEND_ADMIN_IDENTITY value | BACKEND_ADMIN_IDENTITY
-            secret/data/hot-or-not-web-leptos-ssr/COOKIE_KEY value | COOKIE_KEY
-            secret/data/hot-or-not-web-leptos-ssr/GRPC_AUTH_TOKEN value | GRPC_AUTH_TOKEN
-            secret/data/hot-or-not-web-leptos-ssr/HON_GOOGLE_SERVICE_ACCOUNT value | HON_GOOGLE_SERVICE_ACCOUNT
+            secret/data/hot-or-not-web-leptos-ssr/CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET value | CF_TOKEN
+            secret/data/hot-or-not-web-leptos-ssr/YRAL_DAPP_BACKEND_APP_ADMIN_AND_PROPOSAL_SUBMITTER_IDENTITY_PRIVATE_KEY value | BACKEND_ADMIN_IDENTITY
+            secret/data/hot-or-not-web-leptos-ssr/AUTH_SESSION_COOKIE_SIGNING_SECRET_KEY value | COOKIE_KEY
+            secret/data/hot-or-not-web-leptos-ssr/OFF_CHAIN_AGENT_GRPC_AUTH_TOKEN value | GRPC_AUTH_TOKEN
+            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_FEED_INTELLIGENCE_FIREBASE_PROJECT_EVENTS_BQ_SERVICE_ACCOUNT_JSON_FOR_WEB_LEPTOS_SSR_APP value | HON_GOOGLE_SERVICE_ACCOUNT
             secret/data/hot-or-not-web-leptos-ssr/QSTASH_TOKEN value | QSTASH_TOKEN
-            secret/data/hot-or-not-web-leptos-ssr/GA4_API_SECRET value | GA4_API_SECRET
-            secret/data/hot-or-not-web-leptos-ssr/NSFW_GRPC_TOKEN value | NSFW_GRPC_TOKEN
-            secret/data/hot-or-not-web-leptos-ssr/ALLOYDB_INSTANCE value | ALLOYDB_INSTANCE
-            secret/data/hot-or-not-web-leptos-ssr/ALLOYDB_DB_PASSWORD value | ALLOYDB_DB_PASSWORD
-            secret/data/hot-or-not-web-leptos-ssr/ALLOYDB_SERVICE_ACCOUNT_JSON value | ALLOYDB_SERVICE_ACCOUNT_JSON
-            secret/data/hot-or-not -web-leptos-ssr/HON_WORKER_JWT value | HON_WORKER_JWT
-            secret/data/hot-or-not-web-leptos-ssr/YRAL_AUTH_CLIENT_SECRET value | YRAL_AUTH_CLIENT_SECRET
+            secret/data/hot-or-not-web-leptos-ssr/GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET value | GA4_API_SECRET
+            secret/data/hot-or-not-web-leptos-ssr/TOKEN_TO_SIGN_OUTGOING_CALLS_TO_NSFW_DETECT_SERVICE value | NSFW_GRPC_TOKEN
+            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_ALLOYDB_INSTANCE value | ALLOYDB_INSTANCE
+            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_ALLOYDB_DB_PASSWORD value | ALLOYDB_DB_PASSWORD
+            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_ALLOYDB_SERVICE_ACCOUNT_JSON value | ALLOYDB_SERVICE_ACCOUNT_JSON
+            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_WORKER_JWT value | HON_WORKER_JWT
+            secret/data/hot-or-not-web-leptos-ssr/YRAL_AUTH_V2_SECRET_KEY value | YRAL_AUTH_CLIENT_SECRET
+            secret/data/hot-or-not-web-leptos-ssr/STDB_ADMIN_ACCESS_TOKEN value | STDB_ADMIN_ACCESS_TOKEN
             secret/data/hot-or-not-web-leptos-ssr/ANALYTICS_SERVER_TOKEN value | ANALYTICS_SERVER_TOKEN
-            secret/data/hot-or-not-web-leptos-ssr/YRAL_AUTH_MIGRATION_ES256_PEM value | YRAL_AUTH_MIGRATION_ES256_PEM
+            secret/data/hot-or-not-web-leptos-ssr/AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM value | YRAL_AUTH_MIGRATION_ES256_PEM
             secret/data/hot-or-not-web-leptos-ssr/YRAL_METADATA_NOTIFICATION_API_KEY value | YRAL_METADATA_NOTIFICATION_API_KEY
             secret/data/hot-or-not-web-leptos-ssr/OTLP_ENDPOINT value | OTLP_ENDPOINT
             secret/data/DRAGONFLY_CLUSTER_1_PASSWORD value | DRAGONFLY_PASSWORD
@@ -180,13 +182,14 @@ jobs:
           ALLOYDB_DB_PASSWORD: ${{ env.ALLOYDB_DB_PASSWORD }}
           ALLOYDB_SERVICE_ACCOUNT_JSON: ${{ env.ALLOYDB_SERVICE_ACCOUNT_JSON }}
           HON_WORKER_JWT: ${{ env.HON_WORKER_JWT }}
-          YRAL_AUTH_CLIENT_SECRET: ${{ env.YRAL_AUTH_CLIENT_SECRET }}
           ANALYTICS_SERVER_TOKEN: ${{ env.ANALYTICS_SERVER_TOKEN }}
+          YRAL_AUTH_CLIENT_SECRET: ${{ env.YRAL_AUTH_CLIENT_SECRET }}
           YRAL_AUTH_MIGRATION_ES256_PEM: ${{ env.YRAL_AUTH_MIGRATION_ES256_PEM }}
           YRAL_METADATA_NOTIFICATION_API_KEY: ${{ env.YRAL_METADATA_NOTIFICATION_API_KEY }}
+          STDB_ADMIN_ACCESS_TOKEN: ${{ env.STDB_ADMIN_ACCESS_TOKEN }}
           OTLP_ENDPOINT: ${{ env.OTLP_ENDPOINT }}
           DRAGONFLY_PASSWORD: ${{ env.DRAGONFLY_PASSWORD }}
-          DRAGONFLY_HOSTS: ${{ vars.DRAGONFLY_HOSTS }}
+          DRAGONFLY_HOSTS: ${{ env.DRAGONFLY_HOSTS }}
           DRAGONFLY_CA_CERT: ${{ env.DRAGONFLY_CA_CERT }}
           DRAGONFLY_CLIENT_CERT: ${{ env.DRAGONFLY_CLIENT_CERT }}
           DRAGONFLY_CLIENT_KEY: ${{ env.DRAGONFLY_CLIENT_KEY }}
@@ -224,6 +227,7 @@ jobs:
             --arg analytics_server_token             "$ANALYTICS_SERVER_TOKEN" \
             --arg yral_auth_migration_es256_pem      "$YRAL_AUTH_MIGRATION_ES256_PEM" \
             --arg yral_metadata_notification_api_key "$YRAL_METADATA_NOTIFICATION_API_KEY" \
+            --arg stdb_admin_access_token            "$STDB_ADMIN_ACCESS_TOKEN" \
             --arg otlp_endpoint                      "$OTLP_ENDPOINT" \
             --arg dragonfly_password                 "$DRAGONFLY_PASSWORD" \
             --arg dragonfly_hosts                    "$DRAGONFLY_HOSTS" \
@@ -255,6 +259,7 @@ jobs:
               {"key": "ANALYTICS_SERVER_TOKEN",             "value": $analytics_server_token, "is_literal": true},
               {"key": "YRAL_AUTH_MIGRATION_ES256_PEM",      "value": $yral_auth_migration_es256_pem, "is_literal": true},
               {"key": "YRAL_METADATA_NOTIFICATION_API_KEY", "value": $yral_metadata_notification_api_key, "is_literal": true},
+              {"key": "STDB_ADMIN_ACCESS_TOKEN",            "value": $stdb_admin_access_token, "is_literal": true},
               {"key": "OTLP_ENDPOINT",                      "value": $otlp_endpoint, "is_literal": true},
               {"key": "DRAGONFLY_PASSWORD",                 "value": $dragonfly_password, "is_literal": true},
               {"key": "DRAGONFLY_HOSTS",                    "value": $dragonfly_hosts, "is_literal": true},
