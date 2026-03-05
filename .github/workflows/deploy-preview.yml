@@ -7,6 +7,8 @@ on:
     types: [opened, reopened, synchronize, closed, labeled, unlabeled]
 
 permissions:
+  id-token: write
+  contents: read
   pull-requests: write
   deployments: write
   packages: write
@@ -22,9 +24,6 @@ jobs:
     if: ${{ github.event.pull_request.state == 'open' }}
     needs: build_check
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
 
     concurrency:
       group: pr-${{ github.event.number }}-${{ github.event.repository.name }}
