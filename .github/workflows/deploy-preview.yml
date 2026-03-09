@@ -84,56 +84,6 @@ jobs:
           cache-from: type=registry,ref=${{ steps.meta.outputs.image }}:cache-${{ steps.meta.outputs.image_tag }}
           cache-to: type=registry,ref=${{ steps.meta.outputs.image }}:cache-${{ steps.meta.outputs.image_tag }},mode=max
 
-      - name: Create or Get Coolify Application for PR
-        id: coolify_app
-        run: |
-          APP_NAME="${{ steps.meta.outputs.app_name }}"
-          IMAGE="${{ steps.meta.outputs.image }}"
-          IMAGE_TAG="${{ steps.meta.outputs.image_tag }}"
-          PREVIEW_DOMAIN="${{ steps.meta.outputs.preview_domain }}"
-
-          # Check if app already exists for this PR (e.g. new commit pushed to same PR)
-          EXISTING=$(curl -s \
-            "${{ secrets.COOLIFY_URL }}/api/v1/applications" \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
-            | jq -r --arg name "$APP_NAME" '.[] | select(.name == $name) | .uuid // empty')
-
-          if [ -n "$EXISTING" ]; then
-            echo "Reusing existing Coolify app: $EXISTING"
-            echo "app_uuid=${EXISTING}" >> $GITHUB_OUTPUT
-          else
-            echo "Creating new Coolify app: $APP_NAME"
-
-            RESPONSE=$(curl -s -X POST \
-              "${{ secrets.COOLIFY_URL }}/api/v1/applications/dockerimage" \
-              -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
-              -H "Content-Type: application/json" \
-              -d "{
-                \"name\": \"${APP_NAME}\",
-                \"project_uuid\": \"${{ secrets.COOLIFY_PROJECT_UUID }}\",
-                \"server_uuid\": \"${{ secrets.COOLIFY_SERVER_UUID }}\",
-                \"environment_name\": \"preview\",
-                \"environment_uuid\": \"${{ secrets.COOLIFY_ENV_UUID }}\",
-                \"docker_registry_image_name\": \"${IMAGE}\",
-                \"docker_registry_image_tag\": \"${IMAGE_TAG}\",
-                \"domains\": \"https://${PREVIEW_DOMAIN}\",
-                \"ports_exposes\": \"8080\",
-                \"is_static\": false
-              }")
-
-            echo "Create response: $RESPONSE"
-
-            APP_UUID=$(echo $RESPONSE | jq -r '.uuid // empty')
-
-            if [ -z "$APP_UUID" ]; then
-              echo "Failed to create Coolify application"
-              echo "$RESPONSE"
-              exit 1
-            fi
-
-            echo "app_uuid=${APP_UUID}" >> $GITHUB_OUTPUT
-          fi
-
       - name: Import Secrets from Vault
         uses: hashicorp/vault-action@v3
         with:
@@ -160,11 +110,67 @@ jobs:
             secret/data/hot-or-not-web-leptos-ssr/AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM value | YRAL_AUTH_MIGRATION_ES256_PEM ;
             secret/data/hot-or-not-web-leptos-ssr/YRAL_METADATA_NOTIFICATION_API_KEY value | YRAL_METADATA_NOTIFICATION_API_KEY ;
             secret/data/hot-or-not-web-leptos-ssr/OTLP_ENDPOINT value | OTLP_ENDPOINT ;
+            secret/data/hot-or-not-web-leptos-ssr/hot-or-not-web-leptos-ssr/PREVIEW_YRAL_AUTH_CLIENT_ID value | YRAL_AUTH_CLIENT_ID ;
+            secret/data/hot-or-not-web-leptos-ssr/hot-or-not-web-leptos-ssr/PREVIEW_CF_ACCOUNT_ID value | CF_ACCOUNT_ID ;
             secret/data/DRAGONFLY_CLUSTER_1_PASSWORD value | DRAGONFLY_PASSWORD ;
             secret/data/DRAGONFLY_CLUSTER_1_HOSTS value | DRAGONFLY_HOSTS ;
             secret/data/DRAGONFLY_CLUSTER_1_CA_CERT value | DRAGONFLY_CA_CERT ;
             secret/data/DRAGONFLY_CLUSTER_1_CLIENT_CERT value | DRAGONFLY_CLIENT_CERT ;
             secret/data/DRAGONFLY_CLUSTER_1_CLIENT_KEY value | DRAGONFLY_CLIENT_KEY ;
+            secret/data/COOLIFY_TOKEN value | COOLIFY_TOKEN ;
+            secret/data/COOLIFY_PROJECT_UUID value | COOLIFY_PROJECT_UUID ;
+            secret/data/COOLIFY_SERVER_UUID value | COOLIFY_SERVER_UUID ;
+            secret/data/COOLIFY_ENV_UUID value | COOLIFY_ENV_UUID ;
+
+      - name: Create or Get Coolify Application for PR
+        id: coolify_app
+        run: |
+          APP_NAME="${{ steps.meta.outputs.app_name }}"
+          IMAGE="${{ steps.meta.outputs.image }}"
+          IMAGE_TAG="${{ steps.meta.outputs.image_tag }}"
+          PREVIEW_DOMAIN="${{ steps.meta.outputs.preview_domain }}"
+
+          # Check if app already exists for this PR (e.g. new commit pushed to same PR)
+          EXISTING=$(curl -s \
+            "https://coolify.yral.com/api/v1/applications" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            | jq -r --arg name "$APP_NAME" '.[] | select(.name == $name) | .uuid // empty')
+
+          if [ -n "$EXISTING" ]; then
+            echo "Reusing existing Coolify app: $EXISTING"
+            echo "app_uuid=${EXISTING}" >> $GITHUB_OUTPUT
+          else
+            echo "Creating new Coolify app: $APP_NAME"
+
+            RESPONSE=$(curl -s -X POST \
+              "https://coolify.yral.com/api/v1/applications/dockerimage" \
+              -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"name\": \"${APP_NAME}\",
+                \"project_uuid\": \"${COOLIFY_PROJECT_UUID}\",
+                \"server_uuid\": \"${COOLIFY_SERVER_UUID}\",
+                \"environment_name\": \"preview\",
+                \"environment_uuid\": \"${COOLIFY_ENV_UUID}\",
+                \"docker_registry_image_name\": \"${IMAGE}\",
+                \"docker_registry_image_tag\": \"${IMAGE_TAG}\",
+                \"domains\": \"https://${PREVIEW_DOMAIN}\",
+                \"ports_exposes\": \"8080\",
+                \"is_static\": false
+              }")
+
+            echo "Create response: $RESPONSE"
+
+            APP_UUID=$(echo $RESPONSE | jq -r '.uuid // empty')
+
+            if [ -z "$APP_UUID" ]; then
+              echo "Failed to create Coolify application"
+              echo "$RESPONSE"
+              exit 1
+            fi
+
+            echo "app_uuid=${APP_UUID}" >> $GITHUB_OUTPUT
+          fi
 
       - name: Push Environment Variables to Coolify
         env:
@@ -194,8 +200,8 @@ jobs:
           APP_URL: ${{ steps.meta.outputs.preview_url }}
           PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
           YRAL_AUTH_REDIRECT_URL: "${{ steps.meta.outputs.preview_url }}/auth/google_redirect"
-          CF_ACCOUNT_ID: "a209c523d2d9646cc56227dbe6ce3ede"
-          YRAL_AUTH_CLIENT_ID: "5c86a459-493d-463e-965d-be6ed74f3e5f"
+          CF_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
+          YRAL_AUTH_CLIENT_ID: ${{ env.YRAL_AUTH_CLIENT_ID }}
           SENTRY_ENVIRONMENT: "staging"
           ALLOYDB_DB_NAME: "postgres"
           ALLOYDB_DB_USER: "postgres"
@@ -270,8 +276,8 @@ jobs:
             ]')
 
           RESPONSE=$(curl -s -o /tmp/curl_response.txt -w "%{http_code}" -X PATCH \
-            "${{ secrets.COOLIFY_URL }}/api/v1/applications/${APP_UUID}/envs/bulk" \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            "https://coolify.yral.com/api/v1/applications/${APP_UUID}/envs/bulk" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "{\"data\": ${ENV_JSON}}")
 
@@ -289,15 +295,15 @@ jobs:
 
           # Update image tag (important on subsequent pushes to same PR)
           curl -s -X PATCH \
-            "${{ secrets.COOLIFY_URL }}/api/v1/applications/${APP_UUID}" \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            "https://coolify.yral.com/api/v1/applications/${APP_UUID}" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "{\"docker_registry_image_tag\": \"${IMAGE_TAG}\"}"
 
           # Trigger deploy
           RESPONSE=$(curl -s -X POST \
-            "${{ secrets.COOLIFY_URL }}/api/v1/applications/${APP_UUID}/start" \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            "https://coolify.yral.com/api/v1/applications/${APP_UUID}/start" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "{
               \"uuid\": \"${APP_UUID}\",
@@ -323,8 +329,8 @@ jobs:
 
           while [ $WAITED -lt $MAX_WAIT ]; do
             STATUS=$(curl -s \
-              "${{ secrets.COOLIFY_URL }}/api/v1/deployments/${DEPLOY_UUID}" \
-              -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+              "https://coolify.yral.com/api/v1/deployments/${DEPLOY_UUID}" \
+              -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
               | jq -r '.status // empty')
 
             echo "Status: ${STATUS} (${WAITED}s elapsed)"
@@ -354,6 +360,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Import Secrets from Vault
+        uses: hashicorp/vault-action@v3
+        with:
+          url: https://vault.yral.com
+          method: jwt
+          role: hot-or-not-web-leptos-ssr-role
+          jwtGithubAudience: "https://github.com/dolr-ai"
+          secrets: |
+            secret/data/COOLIFY_TOKEN value | COOLIFY_TOKEN ;
+
       - name: Compute Metadata
         id: meta
         run: |
@@ -369,8 +385,8 @@ jobs:
           APP_NAME="${{ steps.meta.outputs.app_name }}"
 
           APP_UUID=$(curl -s \
-            "${{ secrets.COOLIFY_URL }}/api/v1/applications" \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}" \
+            "https://coolify.yral.com/api/v1/applications" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
             | jq -r --arg name "$APP_NAME" '.[] | select(.name == $name) | .uuid // empty')
 
           if [ -z "$APP_UUID" ]; then
@@ -381,55 +397,5 @@ jobs:
           echo "Deleting Coolify app $APP_NAME ($APP_UUID)"
 
           curl -s -X DELETE \
-            "${{ secrets.COOLIFY_URL }}/api/v1/applications/${APP_UUID}" \
-            -H "Authorization: Bearer ${{ secrets.COOLIFY_TOKEN }}"
-
-      - name: Delete GHCR Image Tag
-        run: |
-          PR_NUMBER="${{ steps.meta.outputs.pr_number }}"
-          REPO_NAME="${{ steps.meta.outputs.repo_name }}"
-          IMAGE_TAG="pr-${PR_NUMBER}"
-
-          VERSIONS=$(curl -s \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/${REPO_NAME}/versions")
-
-          VERSION_ID=$(echo $VERSIONS | jq -r --arg tag "$IMAGE_TAG" \
-            '.[] | select(.metadata.container.tags[] == $tag) | .id // empty')
-
-          if [ -n "$VERSION_ID" ]; then
-            curl -s -X DELETE \
-              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/${REPO_NAME}/versions/${VERSION_ID}"
-            echo "Deleted GHCR image tag ${IMAGE_TAG}"
-          else
-            echo "Image tag not found, skipping"
-          fi
-
-      - name: Update PR Comment
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNumber = ${{ github.event.number }};
-            const merged = ${{ github.event.pull_request.merged }};
-
-            const comments = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber
-            });
-
-            for (const comment of comments.data) {
-              if (comment.body.includes("<!-- coolify-preview -->")) {
-                await github.rest.issues.updateComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  comment_id: comment.id,
-                  body: `<!-- coolify-preview -->
-            ## Preview Deployment
-            > ${merged ? "✅ PR merged — preview destroyed." : "🗑️ PR closed — preview destroyed."}`
-                });
-              }
-            }
+            "https://coolify.yral.com/api/v1/applications/${APP_UUID}" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}"
