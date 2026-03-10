@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - main
-      - joel/bare-metal-migr
 
 concurrency:
   group: deploy-baremetal-${{ github.ref }}
@@ -96,6 +95,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      packages: read
     strategy:
       fail-fast: false
       matrix:
@@ -188,6 +188,10 @@ jobs:
           DRAGONFLY_CLIENT_CERT: ${{ env.DRAGONFLY_CLIENT_CERT }}
           DRAGONFLY_CLIENT_KEY: ${{ env.DRAGONFLY_CLIENT_KEY }}
         run: |
+          # Shell-escape JSON secrets
+          ALLOYDB_SA_JSON_ESCAPED=$(printf '%q' "$ALLOYDB_SERVICE_ACCOUNT_JSON")
+          HON_GOOGLE_SA_ESCAPED=$(printf '%q' "$HON_GOOGLE_SERVICE_ACCOUNT")
+          
           ssh root@${{ matrix.server }} "
             cd /home/yral-frontend
 
@@ -206,13 +210,13 @@ jobs:
             BACKEND_ADMIN_IDENTITY='${BACKEND_ADMIN_IDENTITY}' \
             COOKIE_KEY='${COOKIE_KEY}' \
             GRPC_AUTH_TOKEN='${GRPC_AUTH_TOKEN}' \
-            HON_GOOGLE_SERVICE_ACCOUNT='${HON_GOOGLE_SERVICE_ACCOUNT}' \
+            HON_GOOGLE_SERVICE_ACCOUNT=$HON_GOOGLE_SA_ESCAPED \
             QSTASH_TOKEN='${QSTASH_TOKEN}' \
             GA4_API_SECRET='${GA4_API_SECRET}' \
             NSFW_GRPC_TOKEN='${NSFW_GRPC_TOKEN}' \
             ALLOYDB_INSTANCE='${ALLOYDB_INSTANCE}' \
             ALLOYDB_DB_PASSWORD='${ALLOYDB_DB_PASSWORD}' \
-            ALLOYDB_SERVICE_ACCOUNT_JSON='${ALLOYDB_SERVICE_ACCOUNT_JSON}' \
+            ALLOYDB_SERVICE_ACCOUNT_JSON=$ALLOYDB_SA_JSON_ESCAPED \
             HON_WORKER_JWT='${HON_WORKER_JWT}' \
             ANALYTICS_SERVER_TOKEN='${ANALYTICS_SERVER_TOKEN}' \
             YRAL_AUTH_CLIENT_SECRET='${YRAL_AUTH_CLIENT_SECRET}' \
