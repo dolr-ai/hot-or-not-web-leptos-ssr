@@ -110,8 +110,8 @@ jobs:
             secret/data/hot-or-not-web-leptos-ssr/AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM value | YRAL_AUTH_MIGRATION_ES256_PEM ;
             secret/data/hot-or-not-web-leptos-ssr/YRAL_METADATA_NOTIFICATION_API_KEY value | YRAL_METADATA_NOTIFICATION_API_KEY ;
             secret/data/hot-or-not-web-leptos-ssr/OTLP_ENDPOINT value | OTLP_ENDPOINT ;
-            secret/data/hot-or-not-web-leptos-ssr/hot-or-not-web-leptos-ssr/PREVIEW_YRAL_AUTH_CLIENT_ID value | YRAL_AUTH_CLIENT_ID ;
-            secret/data/hot-or-not-web-leptos-ssr/hot-or-not-web-leptos-ssr/PREVIEW_CF_ACCOUNT_ID value | CF_ACCOUNT_ID ;
+            secret/data/hot-or-not-web-leptos-ssr/PREVIEW_YRAL_AUTH_CLIENT_ID value | YRAL_AUTH_CLIENT_ID ;
+            secret/data/hot-or-not-web-leptos-ssr/PREVIEW_CF_ACCOUNT_ID value | CF_ACCOUNT_ID ;
             secret/data/DRAGONFLY_CLUSTER_1_PASSWORD value | DRAGONFLY_PASSWORD ;
             secret/data/DRAGONFLY_CLUSTER_1_HOSTS value | DRAGONFLY_HOSTS ;
             secret/data/DRAGONFLY_CLUSTER_1_CA_CERT value | DRAGONFLY_CA_CERT ;
