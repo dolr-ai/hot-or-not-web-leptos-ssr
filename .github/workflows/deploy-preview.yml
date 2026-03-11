@@ -2,8 +2,8 @@ name: deploy preview
 
 on:
   workflow_dispatch:
-  # pull_request:
-  #   types: [opened, reopened, synchronize, closed, labeled, unlabeled]
+  pull_request:
+    types: [opened, reopened, synchronize, closed, labeled, unlabeled]
 
 permissions:
   id-token: write
