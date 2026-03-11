@@ -1,124 +1,400 @@
 name: deploy preview
+
 on:
+  workflow_dispatch:
   pull_request:
     types: [opened, reopened, synchronize, closed, labeled, unlabeled]
-permissions:
-  deployments: write
-  pull-requests: read
 
-env:
-  FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
-  FLY_ORG: gobazzinga-inc-584
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+  deployments: write
+  packages: write
 
 jobs:
   build_check:
     uses: ./.github/workflows/build-check.yml
     with:
       publish-artifact: true
-      erase_components: ${{ contains(github.event.pull_request.labels.*.name, 'type erasured') }}
     secrets: inherit
 
-
-  destroy_preview:
-    if: ${{github.event.pull_request.state == 'closed'}}
-    runs-on: ubuntu-latest
-    environment:
-      name: pr-${{ github.event.number }}
-      url: ${{ steps.deploy.outputs.url }}
-
-    steps:
-      - name: Deploy
-        id: destroy
-        uses: superfly/fly-pr-review-apps@1.2.1
-
   preview:
-    if: ${{ github.event.pull_request.state == 'open'}}
+    if: ${{ github.event.pull_request.state == 'open' }}
     needs: build_check
     runs-on: ubuntu-latest
 
-    # Only run one deployment at a time per PR.
     concurrency:
-      group: pr-${{ github.event.number }}
+      group: pr-${{ github.event.number }}-${{ github.event.repository.name }}
+      cancel-in-progress: true
 
-    # Create a GitHub deployment environment per staging app so it shows up
-    # in the pull request UI.
     environment:
       name: pr-${{ github.event.number }}
-      url: ${{ steps.deploy.outputs.url }}
+      url: ${{ steps.meta.outputs.preview_url }}
 
     steps:
-      - uses: actions/checkout@v3
-      - name: Download build
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compute Preview Metadata
+        id: meta
+        run: |
+          PR_NUMBER=${{ github.event.number }}
+          REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
+          IMAGE="ghcr.io/${{ github.repository_owner }}/${REPO_NAME}"
+          IMAGE_TAG="pr-${PR_NUMBER}"
+          PREVIEW_DOMAIN="pr-${PR_NUMBER}-${REPO_NAME}.preview.yral.com"
+          PREVIEW_URL="https://${PREVIEW_DOMAIN}"
+          APP_NAME="pr-${PR_NUMBER}-${REPO_NAME}"
+
+          echo "pr_number=${PR_NUMBER}"             >> $GITHUB_OUTPUT
+          echo "repo_name=${REPO_NAME}"             >> $GITHUB_OUTPUT
+          echo "image=${IMAGE}"                     >> $GITHUB_OUTPUT
+          echo "image_tag=${IMAGE_TAG}"             >> $GITHUB_OUTPUT
+          echo "preview_domain=${PREVIEW_DOMAIN}"   >> $GITHUB_OUTPUT
+          echo "preview_url=${PREVIEW_URL}"         >> $GITHUB_OUTPUT
+          echo "app_name=${APP_NAME}"               >> $GITHUB_OUTPUT
+
+      - name: Download Build Artifact
         uses: actions/download-artifact@v4
         with:
           name: build-musl
-      - run: chmod +x target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
 
-      - name: Get branch name
-        id: branch-names
-        uses: tj-actions/branch-names@v8
+      - name: Fix Binary Permissions
+        run: chmod +x target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
 
-      - name: Deploy
-        id: deploy
-        uses: superfly/fly-pr-review-apps@1.5.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}   # runner pushes using GITHUB_TOKEN
 
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - name: Set secret tokens
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.preview
+          push: true
+          tags: ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.image_tag }}
+          cache-from: type=registry,ref=${{ steps.meta.outputs.image }}:cache-${{ steps.meta.outputs.image_tag }}
+          cache-to: type=registry,ref=${{ steps.meta.outputs.image }}:cache-${{ steps.meta.outputs.image_tag }},mode=max
+
+      - name: Import Secrets from Vault
+        uses: hashicorp/vault-action@v3
+        with:
+          url: https://vault.yral.com
+          method: jwt
+          role: hot-or-not-web-leptos-ssr-role
+          jwtGithubAudience: "https://github.com/dolr-ai"
+          secrets: |
+            secret/data/hot-or-not-web-leptos-ssr/CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET value | CF_TOKEN ;
+            secret/data/hot-or-not-web-leptos-ssr/YRAL_DAPP_BACKEND_APP_ADMIN_AND_PROPOSAL_SUBMITTER_IDENTITY_PRIVATE_KEY value | BACKEND_ADMIN_IDENTITY ;
+            secret/data/hot-or-not-web-leptos-ssr/AUTH_SESSION_COOKIE_SIGNING_SECRET_KEY value | COOKIE_KEY ;
+            secret/data/hot-or-not-web-leptos-ssr/OFF_CHAIN_AGENT_GRPC_AUTH_TOKEN value | GRPC_AUTH_TOKEN ;
+            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_FEED_INTELLIGENCE_FIREBASE_PROJECT_EVENTS_BQ_SERVICE_ACCOUNT_JSON_FOR_WEB_LEPTOS_SSR_APP value | HON_GOOGLE_SERVICE_ACCOUNT ;
+            secret/data/hot-or-not-web-leptos-ssr/QSTASH_TOKEN value | QSTASH_TOKEN ;
+            secret/data/hot-or-not-web-leptos-ssr/GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET value | GA4_API_SECRET ;
+            secret/data/hot-or-not-web-leptos-ssr/TOKEN_TO_SIGN_OUTGOING_CALLS_TO_NSFW_DETECT_SERVICE value | NSFW_GRPC_TOKEN ;
+            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_ALLOYDB_INSTANCE value | ALLOYDB_INSTANCE ;
+            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_ALLOYDB_DB_PASSWORD value | ALLOYDB_DB_PASSWORD ;
+            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_ALLOYDB_SERVICE_ACCOUNT value | ALLOYDB_SERVICE_ACCOUNT_JSON ;
+            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_WORKER_JWT value | HON_WORKER_JWT ;
+            secret/data/hot-or-not-web-leptos-ssr/YRAL_AUTH_V2_PREVIEW_SECRET_KEY value | YRAL_AUTH_CLIENT_SECRET ;
+            secret/data/hot-or-not-web-leptos-ssr/STDB_ADMIN_ACCESS_TOKEN value | STDB_ADMIN_ACCESS_TOKEN ;
+            secret/data/hot-or-not-web-leptos-ssr/ANALYTICS_SERVER_TOKEN value | ANALYTICS_SERVER_TOKEN ;
+            secret/data/hot-or-not-web-leptos-ssr/AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM value | YRAL_AUTH_MIGRATION_ES256_PEM ;
+            secret/data/hot-or-not-web-leptos-ssr/YRAL_METADATA_NOTIFICATION_API_KEY value | YRAL_METADATA_NOTIFICATION_API_KEY ;
+            secret/data/hot-or-not-web-leptos-ssr/OTLP_ENDPOINT value | OTLP_ENDPOINT ;
+            secret/data/hot-or-not-web-leptos-ssr/PREVIEW_YRAL_AUTH_CLIENT_ID value | YRAL_AUTH_CLIENT_ID ;
+            secret/data/hot-or-not-web-leptos-ssr/PREVIEW_CF_ACCOUNT_ID value | CF_ACCOUNT_ID ;
+            secret/data/DRAGONFLY_CLUSTER_1_PASSWORD value | DRAGONFLY_PASSWORD ;
+            secret/data/DRAGONFLY_CLUSTER_1_HOSTS value | DRAGONFLY_HOSTS ;
+            secret/data/DRAGONFLY_CLUSTER_1_CA_CERT value | DRAGONFLY_CA_CERT ;
+            secret/data/DRAGONFLY_CLUSTER_1_CLIENT_CERT value | DRAGONFLY_CLIENT_CERT ;
+            secret/data/DRAGONFLY_CLUSTER_1_CLIENT_KEY value | DRAGONFLY_CLIENT_KEY ;
+            secret/data/COOLIFY_TOKEN value | COOLIFY_TOKEN ;
+            secret/data/COOLIFY_PROJECT_UUID value | COOLIFY_PROJECT_UUID ;
+            secret/data/COOLIFY_SERVER_UUID value | COOLIFY_SERVER_UUID ;
+            secret/data/COOLIFY_ENV_UUID value | COOLIFY_ENV_UUID ;
+
+      - name: Create or Get Coolify Application for PR
+        id: coolify_app
         run: |
-          APP_NAME="pr-${{github.event.number}}-${{github.repository_owner}}-hot-or-not-web-leptos-ssr"
-          flyctl secrets set CF_TOKEN="$CF_TOKEN" --app "$APP_NAME" --stage
-          flyctl secrets set BACKEND_ADMIN_IDENTITY="$BACKEND_ADMIN_IDENTITY" --app "$APP_NAME" --stage
-          flyctl secrets set COOKIE_KEY="$COOKIE_KEY" --app "$APP_NAME" --stage
-          flyctl secrets set GRPC_AUTH_TOKEN="$GRPC_AUTH_TOKEN" --app "$APP_NAME" --stage
-          flyctl secrets set "HON_GOOGLE_SERVICE_ACCOUNT=$HON_GOOGLE_SERVICE_ACCOUNT" --app "$APP_NAME" --stage
-          flyctl secrets set QSTASH_TOKEN="$QSTASH_TOKEN" --app "$APP_NAME" --stage
-          flyctl secrets set GA4_API_SECRET="$GA4_API_SECRET" --app "$APP_NAME" --stage
-          flyctl secrets set NSFW_GRPC_TOKEN="$NSFW_GRPC_TOKEN" --app "$APP_NAME" --stage
-          flyctl secrets set ALLOYDB_INSTANCE="$ALLOYDB_INSTANCE" --app "$APP_NAME" --stage
-          flyctl secrets set ALLOYDB_DB_PASSWORD="$ALLOYDB_DB_PASSWORD" --app "$APP_NAME" --stage
-          flyctl secrets set ALLOYDB_SERVICE_ACCOUNT_JSON="$ALLOYDB_SERVICE_ACCOUNT_JSON" --app "$APP_NAME" --stage
-          flyctl secrets set HON_WORKER_JWT="$HON_WORKER_JWT" --app "$APP_NAME" --stage
-          flyctl secrets set YRAL_AUTH_CLIENT_SECRET="$YRAL_AUTH_CLIENT_SECRET" --app "$APP_NAME" --stage
-          flyctl secrets set YRAL_AUTH_REDIRECT_URL="https://$APP_NAME.fly.dev/auth/google_redirect" --app "$APP_NAME" --stage
-          flyctl secrets set ANALYTICS_SERVER_TOKEN="$ANALYTICS_SERVER_TOKEN" --app "$APP_NAME" --stage
-          flyctl secrets set YRAL_AUTH_MIGRATION_ES256_PEM="$YRAL_AUTH_MIGRATION_ES256_PEM" --app "$APP_NAME" --stage
-          flyctl secrets set YRAL_METADATA_NOTIFICATION_API_KEY="$YRAL_METADATA_NOTIFICATION_API_KEY" --app "$APP_NAME" --stage
-          flyctl secrets set OTLP_ENDPOINT="$OTLP_ENDPOINT" --app "$APP_NAME" --stage
-          flyctl secrets set DRAGONFLY_PASSWORD="$DRAGONFLY_PASSWORD" --app "$APP_NAME" --stage
-          flyctl secrets set DRAGONFLY_HOSTS="$DRAGONFLY_HOSTS" --app "$APP_NAME" --stage
-          printf '%s' "$DRAGONFLY_CA_CERT" | flyctl secrets set DRAGONFLY_CA_CERT=- --app "$APP_NAME" --stage
-          printf '%s' "$DRAGONFLY_CLIENT_CERT" | flyctl secrets set DRAGONFLY_CLIENT_CERT=- --app "$APP_NAME" --stage
-          printf '%s' "$DRAGONFLY_CLIENT_KEY" | flyctl secrets set DRAGONFLY_CLIENT_KEY=- --app "$APP_NAME" --stage
-          flyctl deploy --app $APP_NAME
+          APP_NAME="${{ steps.meta.outputs.app_name }}"
+          IMAGE="${{ steps.meta.outputs.image }}"
+          IMAGE_TAG="${{ steps.meta.outputs.image_tag }}"
+          PREVIEW_DOMAIN="${{ steps.meta.outputs.preview_domain }}"
+
+          # Check if app already exists for this PR (e.g. new commit pushed to same PR)
+          EXISTING=$(curl -s \
+            "https://coolify.yral.com/api/v1/applications" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            | jq -r --arg name "$APP_NAME" '.[] | select(.name == $name) | .uuid // empty')
+
+          if [ -n "$EXISTING" ]; then
+            echo "Reusing existing Coolify app: $EXISTING"
+            echo "app_uuid=${EXISTING}" >> $GITHUB_OUTPUT
+          else
+            echo "Creating new Coolify app: $APP_NAME"
+
+            RESPONSE=$(curl -s -X POST \
+              "https://coolify.yral.com/api/v1/applications/dockerimage" \
+              -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"name\": \"${APP_NAME}\",
+                \"project_uuid\": \"${COOLIFY_PROJECT_UUID}\",
+                \"server_uuid\": \"${COOLIFY_SERVER_UUID}\",
+                \"environment_name\": \"preview\",
+                \"environment_uuid\": \"${COOLIFY_ENV_UUID}\",
+                \"docker_registry_image_name\": \"${IMAGE}\",
+                \"docker_registry_image_tag\": \"${IMAGE_TAG}\",
+                \"domains\": \"https://${PREVIEW_DOMAIN}\",
+                \"ports_exposes\": \"8080\",
+                \"is_static\": false
+              }")
+
+            echo "Create response: $RESPONSE"
+
+            APP_UUID=$(echo $RESPONSE | jq -r '.uuid // empty')
+
+            if [ -z "$APP_UUID" ]; then
+              echo "Failed to create Coolify application"
+              echo "$RESPONSE"
+              exit 1
+            fi
+
+            echo "app_uuid=${APP_UUID}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Push Environment Variables to Coolify
         env:
-          CF_TOKEN: ${{ secrets.CLOUDFLARE_STREAM_IMAGES_ANALYTICS_READ_WRITE_SECRET }}
-          BACKEND_ADMIN_IDENTITY: ${{ secrets.YRAL_DAPP_BACKEND_APP_ADMIN_AND_PROPOSAL_SUBMITTER_IDENTITY_PRIVATE_KEY }}
-          COOKIE_KEY: ${{ secrets.AUTH_SESSION_COOKIE_SIGNING_SECRET_KEY }}
-          FLY_API_TOKEN: ${{ secrets.HOT_OR_NOT_WEB_LEPTOS_SSR_FLY_IO_GITHUB_ACTION }}
-          GRPC_AUTH_TOKEN: ${{ secrets.OFF_CHAIN_AGENT_GRPC_AUTH_TOKEN }}
-          HON_GOOGLE_SERVICE_ACCOUNT: ${{ secrets.HOT_OR_NOT_FEED_INTELLIGENCE_FIREBASE_PROJECT_EVENTS_BQ_SERVICE_ACCOUNT_JSON_FOR_WEB_LEPTOS_SSR_APP }}
-          QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
-          GA4_API_SECRET: ${{ secrets.GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET }}
-          NSFW_GRPC_TOKEN: ${{ secrets.TOKEN_TO_SIGN_OUTGOING_CALLS_TO_NSFW_DETECT_SERVICE }}
-          ALLOYDB_INSTANCE: ${{ secrets.HOT_OR_NOT_ALLOYDB_INSTANCE }}
-          ALLOYDB_DB_PASSWORD: ${{ secrets.HOT_OR_NOT_ALLOYDB_DB_PASSWORD }}
-          ALLOYDB_SERVICE_ACCOUNT_JSON: ${{ secrets.HOT_OR_NOT_ALLOYDB_SERVICE_ACCOUNT }}
-          HON_WORKER_JWT: ${{ secrets.HOT_OR_NOT_WORKER_JWT }}
-          YRAL_AUTH_CLIENT_SECRET: ${{ secrets.YRAL_AUTH_V2_PREVIEW_SECRET_KEY }}
-          ANALYTICS_SERVER_TOKEN: ${{ secrets.ANALYTICS_SERVER_TOKEN }}
-          YRAL_AUTH_MIGRATION_ES256_PEM: ${{ secrets.AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM }}
-          YRAL_METADATA_NOTIFICATION_API_KEY: ${{ secrets.YRAL_METADATA_NOTIFICATION_API_KEY }}
-          OTLP_ENDPOINT: ${{ secrets.OTLP_ENDPOINT }}
-          DRAGONFLY_PASSWORD: ${{ secrets.DRAGONFLY_PASSWORD }}
-          DRAGONFLY_HOSTS: ${{ vars.DRAGONFLY_HOSTS }}
-          DRAGONFLY_CA_CERT: ${{ secrets.DRAGONFLY_CA_CERT }}
-          DRAGONFLY_CLIENT_CERT: ${{ secrets.DRAGONFLY_CLIENT_CERT }}
-          DRAGONFLY_CLIENT_KEY: ${{ secrets.DRAGONFLY_CLIENT_KEY }}
+          CF_TOKEN: ${{ env.CF_TOKEN }}
+          BACKEND_ADMIN_IDENTITY: ${{ env.BACKEND_ADMIN_IDENTITY }}
+          COOKIE_KEY: ${{ env.COOKIE_KEY }}
+          GRPC_AUTH_TOKEN: ${{ env.GRPC_AUTH_TOKEN }}
+          HON_GOOGLE_SERVICE_ACCOUNT: ${{ env.HON_GOOGLE_SERVICE_ACCOUNT }}
+          QSTASH_TOKEN: ${{ env.QSTASH_TOKEN }}
+          GA4_API_SECRET: ${{ env.GA4_API_SECRET }}
+          NSFW_GRPC_TOKEN: ${{ env.NSFW_GRPC_TOKEN }}
+          ALLOYDB_INSTANCE: ${{ env.ALLOYDB_INSTANCE }}
+          ALLOYDB_DB_PASSWORD: ${{ env.ALLOYDB_DB_PASSWORD }}
+          ALLOYDB_SERVICE_ACCOUNT_JSON: ${{ env.ALLOYDB_SERVICE_ACCOUNT_JSON }}
+          HON_WORKER_JWT: ${{ env.HON_WORKER_JWT }}
+          ANALYTICS_SERVER_TOKEN: ${{ env.ANALYTICS_SERVER_TOKEN }}
+          YRAL_AUTH_CLIENT_SECRET: ${{ env.YRAL_AUTH_CLIENT_SECRET }}
+          YRAL_AUTH_MIGRATION_ES256_PEM: ${{ env.YRAL_AUTH_MIGRATION_ES256_PEM }}
+          YRAL_METADATA_NOTIFICATION_API_KEY: ${{ env.YRAL_METADATA_NOTIFICATION_API_KEY }}
+          STDB_ADMIN_ACCESS_TOKEN: ${{ env.STDB_ADMIN_ACCESS_TOKEN }}
+          OTLP_ENDPOINT: ${{ env.OTLP_ENDPOINT }}
+          DRAGONFLY_PASSWORD: ${{ env.DRAGONFLY_PASSWORD }}
+          DRAGONFLY_HOSTS: ${{ env.DRAGONFLY_HOSTS }}
+          DRAGONFLY_CA_CERT: ${{ env.DRAGONFLY_CA_CERT }}
+          DRAGONFLY_CLIENT_CERT: ${{ env.DRAGONFLY_CLIENT_CERT }}
+          DRAGONFLY_CLIENT_KEY: ${{ env.DRAGONFLY_CLIENT_KEY }}
+          APP_URL: ${{ steps.meta.outputs.preview_url }}
+          PR_NUMBER: ${{ steps.meta.outputs.pr_number }}
+          YRAL_AUTH_REDIRECT_URL: "${{ steps.meta.outputs.preview_url }}/auth/google_redirect"
+          CF_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
+          YRAL_AUTH_CLIENT_ID: ${{ env.YRAL_AUTH_CLIENT_ID }}
+          SENTRY_ENVIRONMENT: "staging"
+          ALLOYDB_DB_NAME: "postgres"
+          ALLOYDB_DB_USER: "postgres"
+        run: |
+          APP_UUID="${{ steps.coolify_app.outputs.app_uuid }}"
+          flatten() { echo "$1" | tr -d '\n\r'; }
+
+          ENV_JSON=$(jq -n \
+            --arg cf_account_id                      "$CF_ACCOUNT_ID" \
+            --arg yral_auth_client_id                "$YRAL_AUTH_CLIENT_ID" \
+            --arg sentry_environment                 "$SENTRY_ENVIRONMENT" \
+            --arg alloydb_db_name                    "$ALLOYDB_DB_NAME" \
+            --arg alloydb_db_user                    "$ALLOYDB_DB_USER" \
+            --arg cf_token                           "$CF_TOKEN" \
+            --arg backend_admin_identity             "$BACKEND_ADMIN_IDENTITY" \
+            --arg cookie_key                         "$COOKIE_KEY" \
+            --arg grpc_auth_token                    "$GRPC_AUTH_TOKEN" \
+            --arg hon_google_service_account         "$(flatten "$HON_GOOGLE_SERVICE_ACCOUNT")" \
+            --arg qstash_token                       "$QSTASH_TOKEN" \
+            --arg ga4_api_secret                     "$GA4_API_SECRET" \
+            --arg nsfw_grpc_token                    "$NSFW_GRPC_TOKEN" \
+            --arg alloydb_instance                   "$ALLOYDB_INSTANCE" \
+            --arg alloydb_db_password                "$ALLOYDB_DB_PASSWORD" \
+            --arg alloydb_service_account_json       "$(flatten "$ALLOYDB_SERVICE_ACCOUNT_JSON")" \
+            --arg hon_worker_jwt                     "$HON_WORKER_JWT" \
+            --arg yral_auth_client_secret            "$YRAL_AUTH_CLIENT_SECRET" \
+            --arg analytics_server_token             "$ANALYTICS_SERVER_TOKEN" \
+            --arg yral_auth_migration_es256_pem      "$YRAL_AUTH_MIGRATION_ES256_PEM" \
+            --arg yral_metadata_notification_api_key "$YRAL_METADATA_NOTIFICATION_API_KEY" \
+            --arg stdb_admin_access_token            "$STDB_ADMIN_ACCESS_TOKEN" \
+            --arg otlp_endpoint                      "$OTLP_ENDPOINT" \
+            --arg dragonfly_password                 "$DRAGONFLY_PASSWORD" \
+            --arg dragonfly_hosts                    "$DRAGONFLY_HOSTS" \
+            --arg dragonfly_ca_cert                  "$DRAGONFLY_CA_CERT" \
+            --arg dragonfly_client_cert              "$DRAGONFLY_CLIENT_CERT" \
+            --arg dragonfly_client_key               "$DRAGONFLY_CLIENT_KEY" \
+            --arg app_url                            "$APP_URL" \
+            --arg pr_number                          "$PR_NUMBER" \
+            --arg yral_auth_redirect_url             "$YRAL_AUTH_REDIRECT_URL" \
+            '[
+              {"key": "CF_ACCOUNT_ID",                      "value": $cf_account_id, "is_literal": true},
+              {"key": "YRAL_AUTH_CLIENT_ID",                "value": $yral_auth_client_id, "is_literal": true},
+              {"key": "SENTRY_ENVIRONMENT",                 "value": $sentry_environment, "is_literal": true},
+              {"key": "ALLOYDB_DB_NAME",                    "value": $alloydb_db_name, "is_literal": true},
+              {"key": "ALLOYDB_DB_USER",                    "value": $alloydb_db_user, "is_literal": true},
+              {"key": "CF_TOKEN",                           "value": $cf_token, "is_literal": true},
+              {"key": "BACKEND_ADMIN_IDENTITY",             "value": $backend_admin_identity, "is_literal": true},
+              {"key": "COOKIE_KEY",                         "value": $cookie_key, "is_literal": true},
+              {"key": "GRPC_AUTH_TOKEN",                    "value": $grpc_auth_token, "is_literal": true},
+              {"key": "HON_GOOGLE_SERVICE_ACCOUNT",         "value": $hon_google_service_account, "is_literal": true},
+              {"key": "QSTASH_TOKEN",                       "value": $qstash_token, "is_literal": true},
+              {"key": "GA4_API_SECRET",                     "value": $ga4_api_secret, "is_literal": true},
+              {"key": "NSFW_GRPC_TOKEN",                    "value": $nsfw_grpc_token, "is_literal": true},
+              {"key": "ALLOYDB_INSTANCE",                   "value": $alloydb_instance, "is_literal": true},
+              {"key": "ALLOYDB_DB_PASSWORD",                "value": $alloydb_db_password, "is_literal": true},
+              {"key": "ALLOYDB_SERVICE_ACCOUNT_JSON",       "value": $alloydb_service_account_json, "is_literal": true},
+              {"key": "HON_WORKER_JWT",                     "value": $hon_worker_jwt, "is_literal": true},
+              {"key": "YRAL_AUTH_CLIENT_SECRET",            "value": $yral_auth_client_secret, "is_literal": true},
+              {"key": "ANALYTICS_SERVER_TOKEN",             "value": $analytics_server_token, "is_literal": true},
+              {"key": "YRAL_AUTH_MIGRATION_ES256_PEM",      "value": $yral_auth_migration_es256_pem, "is_literal": true},
+              {"key": "YRAL_METADATA_NOTIFICATION_API_KEY", "value": $yral_metadata_notification_api_key, "is_literal": true},
+              {"key": "STDB_ADMIN_ACCESS_TOKEN",            "value": $stdb_admin_access_token, "is_literal": true},
+              {"key": "OTLP_ENDPOINT",                      "value": $otlp_endpoint, "is_literal": true},
+              {"key": "DRAGONFLY_PASSWORD",                 "value": $dragonfly_password, "is_literal": true},
+              {"key": "DRAGONFLY_HOSTS",                    "value": $dragonfly_hosts, "is_literal": true},
+              {"key": "DRAGONFLY_CA_CERT",                  "value": $dragonfly_ca_cert, "is_multiline": true},
+              {"key": "DRAGONFLY_CLIENT_CERT",              "value": $dragonfly_client_cert, "is_multiline": true},
+              {"key": "DRAGONFLY_CLIENT_KEY",               "value": $dragonfly_client_key, "is_multiline": true},
+              {"key": "APP_URL",                            "value": $app_url, "is_literal": true},
+              {"key": "PR_NUMBER",                          "value": $pr_number, "is_literal": true},
+              {"key": "YRAL_AUTH_REDIRECT_URL",             "value": $yral_auth_redirect_url, "is_literal": true}
+            ]')
+
+          RESPONSE=$(curl -s -o /tmp/curl_response.txt -w "%{http_code}" -X PATCH \
+            "https://coolify.yral.com/api/v1/applications/${APP_UUID}/envs/bulk" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"data\": ${ENV_JSON}}")
+
+          if [ "$RESPONSE" -lt 200 ] || [ "$RESPONSE" -ge 300 ]; then
+            echo "Failed to push environment variables (HTTP $RESPONSE)"
+            exit 1
+          fi
+
+      - name: Update Image Tag and Deploy
+        id: deploy
+        run: |
+          APP_UUID="${{ steps.coolify_app.outputs.app_uuid }}"
+          IMAGE="${{ steps.meta.outputs.image }}"
+          IMAGE_TAG="${{ steps.meta.outputs.image_tag }}"
+
+          # Update image tag (important on subsequent pushes to same PR)
+          curl -s -X PATCH \
+            "https://coolify.yral.com/api/v1/applications/${APP_UUID}" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"docker_registry_image_tag\": \"${IMAGE_TAG}\"}"
+
+          # Trigger deploy
+          RESPONSE=$(curl -s -X POST \
+            "https://coolify.yral.com/api/v1/applications/${APP_UUID}/start" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"uuid\": \"${APP_UUID}\",
+              \"force\": true
+            }")
+
+          echo "Deploy response: $RESPONSE"
+
+          DEPLOY_UUID=$(echo $RESPONSE | jq -r '.deployment_uuid // empty')
+          if [ -z "$DEPLOY_UUID" ]; then
+            echo "Failed to trigger deployment"
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+          echo "deploy_uuid=${DEPLOY_UUID}" >> $GITHUB_OUTPUT
+
+      - name: Wait for Deployment
+        run: |
+          DEPLOY_UUID="${{ steps.deploy.outputs.deploy_uuid }}"
+          MAX_WAIT=120
+          WAITED=0
+
+          while [ $WAITED -lt $MAX_WAIT ]; do
+            STATUS=$(curl -s \
+              "https://coolify.yral.com/api/v1/deployments/${DEPLOY_UUID}" \
+              -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+              | jq -r '.status // empty')
+
+            echo "Status: ${STATUS} (${WAITED}s elapsed)"
+
+            if [ "$STATUS" = "finished" ]; then exit 0
+            elif [ "$STATUS" = "failed" ] || [ "$STATUS" = "error" ]; then exit 1
+            fi
+
+            sleep 10
+            WAITED=$((WAITED + 10))
+          done
+
+          echo "Timed out"
+          exit 1
+
   e2e-tests:
     needs: preview
     uses: ./.github/workflows/e2e-tests.yml
-    if: ${{ github.event.pull_request.state == 'open'}}
+    if: ${{ github.event.pull_request.state == 'open' }}
     secrets: inherit
     with:
-      preview_url: https://pr-${{github.event.number}}-${{github.repository_owner}}-hot-or-not-web-leptos-ssr.fly.dev
-      build_name: PR-${{github.event.number}}-commit-${{github.sha}}-attempt-${{github.run_attempt}}
+      preview_url: "https://pr-${{ github.event.number }}-${{ github.event.repository.name }}.preview.yral.com"
+      build_name: "PR-${{ github.event.number }}-commit-${{ github.sha }}-attempt-${{ github.run_attempt }}"
+
+  destroy-preview:
+    if: ${{ github.event.pull_request.state == 'closed' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Import Secrets from Vault
+        uses: hashicorp/vault-action@v3
+        with:
+          url: https://vault.yral.com
+          method: jwt
+          role: hot-or-not-web-leptos-ssr-role
+          jwtGithubAudience: "https://github.com/dolr-ai"
+          secrets: |
+            secret/data/COOLIFY_TOKEN value | COOLIFY_TOKEN ;
+
+      - name: Compute Metadata
+        id: meta
+        run: |
+          PR_NUMBER=${{ github.event.number }}
+          REPO_NAME=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
+          APP_NAME="pr-${PR_NUMBER}-${REPO_NAME}"
+          echo "app_name=${APP_NAME}"   >> $GITHUB_OUTPUT
+          echo "repo_name=${REPO_NAME}" >> $GITHUB_OUTPUT
+          echo "pr_number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+
+      - name: Find and Delete Coolify Application
+        run: |
+          APP_NAME="${{ steps.meta.outputs.app_name }}"
+
+          APP_UUID=$(curl -s \
+            "https://coolify.yral.com/api/v1/applications" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}" \
+            | jq -r --arg name "$APP_NAME" '.[] | select(.name == $name) | .uuid // empty')
+
+          if [ -z "$APP_UUID" ]; then
+            echo "No app found for $APP_NAME — skipping"
+            exit 0
+          fi
+
+          echo "Deleting Coolify app $APP_NAME ($APP_UUID)"
+
+          curl -s -X DELETE \
+            "https://coolify.yral.com/api/v1/applications/${APP_UUID}" \
+            -H "Authorization: Bearer ${COOLIFY_TOKEN}"
