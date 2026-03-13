@@ -103,7 +103,7 @@ axum-extra = { version = "0.10.1", features = [
     "cookie-private",
     "typed-header",
 ] }
-openidconnect = { version = "3.5.0" }
+openidconnect = { version = "4.0.1" }
 dotenv = { version = "0.15.0" }
 redis = { version = "1.0.2", features = [
     "tokio-rustls-comp",
