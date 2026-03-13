@@ -332,7 +332,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
 
     let tokens = [
         TokenType::Yral,
-        // TokenType::Sats, // TODO: enable once SATS are added back
+        TokenType::Sats,
         TokenType::Btc,
         TokenType::Dolr,
         TokenType::Usdc,
