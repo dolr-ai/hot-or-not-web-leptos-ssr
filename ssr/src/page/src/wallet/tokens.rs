@@ -206,7 +206,7 @@ impl From<TokenType> for AirdropStatusFetcherType {
 impl From<TokenType> for WithdrawalStateFetcherType {
     fn from(value: TokenType) -> Self {
         match value {
-            TokenType::Sats => Self::Sats,
+            TokenType::Sats | TokenType::Btc => Self::Sats,
             TokenType::Cents => Self::Cents,
             _ => Self::Noop,
         }
@@ -332,7 +332,7 @@ pub fn TokenList(user_principal: Principal, user_canister: Principal) -> impl In
 
     let tokens = [
         TokenType::Yral,
-        TokenType::Sats,
+        // TokenType::Sats,
         TokenType::Btc,
         TokenType::Dolr,
         TokenType::Usdc,
@@ -606,6 +606,7 @@ pub fn WithdrawSection(
 ) -> impl IntoView {
     let withdrawer = match token_name.as_str() {
         s if s == SATS_TOKEN_NAME => Box::new(WithdrawSats) as Withdrawer,
+        "Bitcoin" => Box::new(WithdrawSats) as Withdrawer,
         s if s == CENT_TOKEN_NAME => Box::new(WithdrawCents),
         _ => unimplemented!("Withdrawing is not implemented for a token"),
     };
@@ -627,6 +628,7 @@ pub fn WithdrawSection(
         if let Some(global) = global {
             let token_clicked = match token_name_analytics.as_str() {
                 s if s == SATS_TOKEN_NAME => StakeType::Sats,
+                "Bitcoin" => StakeType::Btc,
                 s if s == CENT_TOKEN_NAME => StakeType::Cents,
                 _ => unimplemented!("Withdrawing is not implemented for a token"),
             };
