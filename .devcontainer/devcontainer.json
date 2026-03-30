@@ -5,9 +5,6 @@
   "customizations": {
     "vscode": {
       "extensions": [
-        // copilot
-        "GitHub.copilot",
-        "GitHub.copilot-chat",
         // docker
         "ms-azuretools.vscode-containers",
         // editor
