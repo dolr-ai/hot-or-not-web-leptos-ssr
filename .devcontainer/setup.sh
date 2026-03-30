@@ -1,3 +1,9 @@
+# Install system packages
+echo ""
+echo "Installing system packages..."
+sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils
+echo "✓ Installed dnsutils (dig, nslookup, host)"
+
 # Install cargo binstall
 curl -L https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz -o cargo-binstall.tgz;
 tar -xzf cargo-binstall.tgz;
