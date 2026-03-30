@@ -182,7 +182,7 @@ async fn main_impl() -> Result<(), Box<dyn std::error::Error>> {
                 .allow_methods([Method::POST, Method::GET, Method::PUT, Method::OPTIONS])
                 .allow_origin(AllowOrigin::predicate(|origin, _| {
                     if let Ok(host) = origin.to_str() {
-                        is_host_or_origin_from_preview_domain(host) || host == "yral.com"
+                        is_host_or_origin_from_preview_domain(host) || host == "legacy.yral.com"
                     } else {
                         false
                     }
