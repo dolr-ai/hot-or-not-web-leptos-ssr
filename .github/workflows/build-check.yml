@@ -22,29 +22,17 @@ on:
 
 jobs:
   build_check:
-    runs-on: self-hosted
-    container:
-      image: mcr.microsoft.com/devcontainers/base:ubuntu
-      options: --user root
+    runs-on: ubuntu-latest
     steps:
-      - name: Clean up disk space
-        run: |
-          echo "Disk space before cleanup:"
-          df -h
-          rm -rf /root/.cargo/registry/cache || true
-          rm -rf /root/.cargo/git/checkouts || true
-          echo "Disk space after cleanup:"
-          df -h
-
       - name: Install system dependencies
         run: |
-          apt-get update
-          apt-get install -y software-properties-common
-          add-apt-repository main --yes
-          apt-get install -y mold pkg-config musl-tools lld protobuf-compiler curl git
-          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-          apt-get install -y nodejs
-          npm install -g pnpm@8
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common
+          sudo add-apt-repository main --yes
+          sudo apt-get install -y mold pkg-config musl-tools lld protobuf-compiler curl git
+          curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
+          sudo apt-get install -y nodejs
+          sudo npm install -g pnpm@8
 
       - name: Checkout repo and submodules
         uses: actions/checkout@v3
