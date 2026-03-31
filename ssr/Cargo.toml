@@ -94,9 +94,6 @@ opentelemetry_sdk = { workspace = true, optional = true }
 google-cloud-alloydb-v1 = { workspace = true, optional = true }
 google-cloud-auth = { version = "0.22.1", optional = true }
 jsonwebtoken = { workspace = true, optional = true }
-sea-orm = { workspace = true, optional = true }
-dolr-airdrop = { workspace = true, optional = true }
-sats-airdrop = { workspace = true, optional = true }
 videogen-common = { workspace = true }
 
 # local deps
@@ -271,19 +268,6 @@ alloydb = [
     "state/alloydb",
     "page/alloydb",
 ]
-neon-postgres = ["dep:sea-orm", "state/neon-postgres", "page/neon-postgres"]
-dolr-airdrop = [
-    "neon-postgres",
-    "dep:dolr-airdrop",
-    "state/dolr-airdrop",
-    "page/dolr-airdrop",
-]
-sats-airdrop = [
-    "neon-postgres",
-    "dep:sats-airdrop",
-    "state/sats-airdrop",
-    "page/sats-airdrop",
-]
 enable-otlp = ["dep:telemetry_axum", "dep:opentelemetry_sdk"]
 release-bin = [
     "ssr",
@@ -300,8 +284,6 @@ release-bin = [
     "component/release-bin",
     "page/release-bin",
     "alloydb",
-    "dolr-airdrop",
-    "sats-airdrop",
 ]
 release-lib = [
     "hydrate",
