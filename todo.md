@@ -1,4 +1,3 @@
-- run all workflows on github hosted runners instead of self-hosted. Self hosted runners are gone
 - remove percy and all nightwatch tests
 - remove home feed
 - remove profile
