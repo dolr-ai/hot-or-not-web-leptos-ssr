@@ -23,3 +23,6 @@ git submodule update --init --recursive;
 
 # Enable the env file
 cp .env.example .env;
+
+# Install JS dependencies
+pnpm install;
