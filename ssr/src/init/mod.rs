@@ -258,7 +258,6 @@ impl AppStateBuilder {
 
                 HonWorkerJwt(std::sync::Arc::new(jwt))
             },
-
         };
 
         AppStateRes {
