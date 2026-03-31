@@ -62,11 +62,9 @@ pub fn VideoDetailsOverlay(
                     global,
                     track_video_id_for_impressions,
                     post_clone.poster_principal.to_text(),
-                    MixpanelPostGameType::HotOrNot,
                     post_clone.likes,
                     post_clone.views,
                     post_clone.is_nsfw,
-                    true,
                 );
             }
         }
@@ -97,13 +95,10 @@ pub fn VideoDetailsOverlay(
                 show_nsfw_permission.set(true);
                 if let Some(global) = MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(ev_ctx, false)
                 {
-                    let is_hot_or_not = true;
                     MixPanelEvent::track_video_clicked(
                         global,
                         post.poster_principal.to_text(),
-                        is_hot_or_not,
                         video_id,
-                        MixpanelPostGameType::HotOrNot,
                         MixpanelVideoClickedCTAType::NsfwToggle,
                     );
                 }
@@ -128,13 +123,10 @@ pub fn VideoDetailsOverlay(
                     if let Some(global) =
                         MixpanelGlobalProps::from_ev_ctx_with_nsfw_info(ev_ctx, false)
                     {
-                        let is_hot_or_not = true;
                         MixPanelEvent::track_video_clicked(
                             global,
                             post.poster_principal.to_text(),
-                            is_hot_or_not,
                             video_id,
-                            MixpanelPostGameType::HotOrNot,
                             MixpanelVideoClickedCTAType::NsfwToggle,
                         );
                     }
@@ -154,13 +146,10 @@ pub fn VideoDetailsOverlay(
         let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) else {
             return;
         };
-        let is_hot_or_not = true;
         MixPanelEvent::track_video_clicked(
             global,
             post.poster_principal.to_string(),
-            is_hot_or_not,
             video_id,
-            MixpanelPostGameType::HotOrNot,
             MixpanelVideoClickedCTAType::CreatorProfile,
         );
     };

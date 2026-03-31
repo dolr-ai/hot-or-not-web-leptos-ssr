@@ -205,7 +205,6 @@ impl LikeVideo {
             let video_id = post_details.uid.clone();
             let hastag_count = post_details.hastags.len();
             let is_nsfw = post_details.is_nsfw;
-            let is_hotornot = post_details.hot_or_not_feed_ranking_score.is_some();
             let view_count = post_details.views;
             let post_id = post_details.post_id;
             let publisher_canister_id = post_details.canister_id;
@@ -230,7 +229,6 @@ impl LikeVideo {
                     "creator_category": "NA",
                     "hashtag_count": hastag_count,
                     "is_NSFW": is_nsfw,
-                    "is_hotorNot": is_hotornot,
                     "feed_type": "NA",
                     "view_count": view_count,
                     "like_count": likes.get(),
@@ -256,7 +254,6 @@ impl ShareVideo {
             let video_id = post_details.uid.clone();
             let hastag_count = post_details.hastags.len();
             let is_nsfw = post_details.is_nsfw;
-            let is_hotornot = post_details.hot_or_not_feed_ranking_score.is_some();
             let view_count = post_details.views;
             let like_count = post_details.likes;
             let nsfw_probability = post_details.nsfw_probability;
@@ -279,7 +276,6 @@ impl ShareVideo {
                     "creator_category": "NA",
                     "hashtag_count": hastag_count,
                     "is_NSFW": is_nsfw,
-                    "is_hotorNot": is_hotornot,
                     "feed_type": "NA",
                     "view_count": view_count,
                     "like_count": like_count,
@@ -326,7 +322,6 @@ impl VideoUploadUploadButtonClicked {
         ctx: EventCtx,
         hashtag_inp: NodeRef<Input>,
         is_nsfw: NodeRef<Input>,
-        enable_hot_or_not: NodeRef<Input>,
     ) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
@@ -342,10 +337,6 @@ impl VideoUploadUploadButtonClicked {
                 .get_untracked()
                 .map(|v| v.checked())
                 .unwrap_or_default();
-            let is_hotornot_val = enable_hot_or_not
-                .get_untracked()
-                .map(|v| v.checked())
-                .unwrap_or_default();
 
             Effect::new(move |_| {
                 let _ = send_event_ssr_spawn(
@@ -357,7 +348,6 @@ impl VideoUploadUploadButtonClicked {
                         "creator_category": "NA",
                         "hashtag_count": hashtag_count,
                         "is_NSFW": is_nsfw_val,
-                        "is_hotorNot": is_hotornot_val,
                     })
                     .to_string(),
                 );
@@ -403,7 +393,6 @@ impl VideoUploadUnsuccessful {
         error: String,
         hashtags_len: usize,
         is_nsfw: bool,
-        enable_hot_or_not: bool,
     ) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
@@ -421,7 +410,6 @@ impl VideoUploadUnsuccessful {
                     "creator_category": "NA",
                     "hashtag_count": hashtags_len,
                     "is_NSFW": is_nsfw,
-                    "is_hotorNot": enable_hot_or_not,
                     "fail_reason": error,
                 })
                 .to_string(),
@@ -440,7 +428,6 @@ impl VideoUploadSuccessful {
         video_id: String,
         hashtags_len: usize,
         is_nsfw: bool,
-        enable_hot_or_not: bool,
         post_id: u64,
     ) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
@@ -461,7 +448,6 @@ impl VideoUploadSuccessful {
                     "creator_category": "NA",
                     "hashtag_count": hashtags_len,
                     "is_NSFW": is_nsfw,
-                    "is_hotorNot": enable_hot_or_not,
                     "is_filter_used": false,
                     "video_id": video_id,
                     "post_id": post_id,

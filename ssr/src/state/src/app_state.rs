@@ -13,14 +13,6 @@ pub struct AppState {
 impl AppState {
     pub fn from_type(app_type: &AppType) -> Self {
         match app_type {
-            AppType::HotOrNot => Self {
-                app_type: AppType::HotOrNot,
-                id: "hotornot",
-                name: "Hot Or Not",
-                description: "Vote on the hottest content and earn rewards",
-                theme_color: "#FF4500",
-                assets_dir: "hotornot",
-            },
             AppType::YRAL => Self {
                 app_type: AppType::YRAL,
                 id: "yral",

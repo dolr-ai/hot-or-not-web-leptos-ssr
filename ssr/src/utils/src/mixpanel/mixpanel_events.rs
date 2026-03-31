@@ -13,7 +13,6 @@ use leptos_use::{use_cookie, use_cookie_with_options, UseCookieOptions, UseTimeo
 use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
-use yral_canisters_common::utils::vote::VoteKind;
 use yral_canisters_common::Canisters;
 use yral_metadata_client::MetadataClient;
 
@@ -415,27 +414,6 @@ impl TryFrom<String> for BottomNavigationCategory {
     }
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum MixpanelPostGameType {
-    HotOrNot,
-}
-
-impl From<VoteKind> for ChosenGameOption {
-    fn from(value: VoteKind) -> Self {
-        match value {
-            VoteKind::Hot => Self::Hot,
-            VoteKind::Not => Self::Not,
-        }
-    }
-}
-
-#[derive(Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ChosenGameOption {
-    Hot,
-    Not,
-}
 
 #[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -474,14 +452,6 @@ pub enum MixpanelProfileClickedCTAType {
     Videos,
     GamesPlayed,
     MemeCoin,
-}
-
-#[derive(Serialize, Clone)]
-#[serde(rename_all = "snake_case")]
-pub enum GameConclusion {
-    Pending,
-    Win,
-    Loss,
 }
 
 #[derive(Serialize, Clone)]
@@ -721,17 +691,13 @@ derive_event!(track_nsfw_false = "NSFW_false" => {
 
 derive_event!(track_video_clicked {
     publisher_user_id: String,
-    is_game_enabled: bool,
     video_id: String,
-    game_type: MixpanelPostGameType,
     cta_type: MixpanelVideoClickedCTAType
 });
 
 derive_event!(track_video_reported {
     publisher_user_id: String,
-    is_game_enabled: bool,
     video_id: String,
-    game_type: MixpanelPostGameType,
     is_nsfw: bool,
     report_reason: String
 });
@@ -740,9 +706,7 @@ derive_event!(track_video_clicked_profile = "video_clicked" => {
     publisher_user_id: String,
     like_count: u64,
     view_count: u64,
-    is_game_enabled: bool,
     video_id: String,
-    game_type: MixpanelPostGameType,
     cta_type: MixpanelVideoClickedCTAType,
     position: Option<u64>,
     is_own_profile: bool,
@@ -755,8 +719,6 @@ derive_event!(track_video_clicked_leaderboard = "video_clicked" => {
     publisher_user_id: String,
     like_count: u64,
     view_count: u64,
-    is_game_enabled: bool,
-    game_type: MixpanelPostGameType,
     is_leaderboard_active: bool,
     is_nsfw: bool,
     cta_type: MixpanelVideoClickedCTAType
@@ -770,62 +732,25 @@ derive_event!(track_refer_and_earn { refer_link: String });
 
 derive_event!(track_video_viewed {
     video_id: String,
-    publiser_user_id: String,
-    game_type: MixpanelPostGameType,
-    is_game_enabled: bool
+    publiser_user_id: String
 });
 
 derive_event!(track_video_impression {
     video_id: String,
     publisher_user_id: String,
-    game_type: MixpanelPostGameType,
     like_count: u64,
     view_count: u64,
-    is_nsfw: bool,
-    is_game_enabled: bool
+    is_nsfw: bool
 });
 
 derive_event!(track_video_started {
     video_id: String,
-    publisher_user_id: String,
-    game_type: MixpanelPostGameType,
-    is_game_enabled: bool
-});
-
-derive_event!(track_game_played {
-    video_id: String,
-    publisher_user_id: String,
-    game_type: MixpanelPostGameType,
-    stake_amount: u64,
-    stake_type: StakeType,
-    option_chosen: ChosenGameOption,
-    like_count: u64,
-    view_count: u64,
-    is_game_enabled: bool,
-    conclusion: GameConclusion,
-    won_loss_amount: String,
-    creator_comission_percentage: u64,
-    is_nsfw: bool
-});
-
-derive_event!(track_game_clicked {
-    publisher_user_id: String,
-    like_count: u64,
-    view_count: u64,
-    is_game_enabled: bool,
-    video_id: String,
-    game_type: MixpanelPostGameType,
-    option_chosen: ChosenGameOption,
-    stake_amount: u64,
-    stake_type: StakeType,
-    is_nsfw: bool
+    publisher_user_id: String
 });
 
 derive_event!(track_video_upload_success {
     video_id: String,
     creator_comission_percentage: u64,
-    is_game_enabled: bool,
-    game_type: MixpanelPostGameType,
     upload_type: Option<String>,
     token_type: String
 });
@@ -841,15 +766,6 @@ derive_event!(track_third_party_wallet_transferred {
     transferred_to: String,
     token_name: String,
     gas_fee: f64
-});
-
-derive_event!(track_how_to_play_clicked {
-    video_id: String,
-    game_type: MixpanelPostGameType,
-    stake_amount: u64,
-    stake_type: StakeType,
-    option_chosen: ChosenGameOption,
-    conclusion: GameConclusion
 });
 
 derive_event!(track_username_saved {});
