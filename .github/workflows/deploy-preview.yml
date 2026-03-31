@@ -105,9 +105,6 @@ jobs:
             secret/data/hot-or-not-web-leptos-ssr/QSTASH_TOKEN value | QSTASH_TOKEN ;
             secret/data/hot-or-not-web-leptos-ssr/GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET value | GA4_API_SECRET ;
             secret/data/hot-or-not-web-leptos-ssr/TOKEN_TO_SIGN_OUTGOING_CALLS_TO_NSFW_DETECT_SERVICE value | NSFW_GRPC_TOKEN ;
-            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_ALLOYDB_INSTANCE value | ALLOYDB_INSTANCE ;
-            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_ALLOYDB_DB_PASSWORD value | ALLOYDB_DB_PASSWORD ;
-            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_ALLOYDB_SERVICE_ACCOUNT value | ALLOYDB_SERVICE_ACCOUNT_JSON ;
             secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_WORKER_JWT value | HON_WORKER_JWT ;
             secret/data/hot-or-not-web-leptos-ssr/YRAL_AUTH_V2_PREVIEW_SECRET_KEY value | YRAL_AUTH_CLIENT_SECRET ;
             secret/data/hot-or-not-web-leptos-ssr/ANALYTICS_SERVER_TOKEN value | ANALYTICS_SERVER_TOKEN ;
@@ -186,9 +183,6 @@ jobs:
           QSTASH_TOKEN: ${{ env.QSTASH_TOKEN }}
           GA4_API_SECRET: ${{ env.GA4_API_SECRET }}
           NSFW_GRPC_TOKEN: ${{ env.NSFW_GRPC_TOKEN }}
-          ALLOYDB_INSTANCE: ${{ env.ALLOYDB_INSTANCE }}
-          ALLOYDB_DB_PASSWORD: ${{ env.ALLOYDB_DB_PASSWORD }}
-          ALLOYDB_SERVICE_ACCOUNT_JSON: ${{ env.ALLOYDB_SERVICE_ACCOUNT_JSON }}
           HON_WORKER_JWT: ${{ env.HON_WORKER_JWT }}
           ANALYTICS_SERVER_TOKEN: ${{ env.ANALYTICS_SERVER_TOKEN }}
           YRAL_AUTH_CLIENT_SECRET: ${{ env.YRAL_AUTH_CLIENT_SECRET }}
@@ -206,8 +200,6 @@ jobs:
           CF_ACCOUNT_ID: ${{ env.CF_ACCOUNT_ID }}
           YRAL_AUTH_CLIENT_ID: ${{ env.YRAL_AUTH_CLIENT_ID }}
           SENTRY_ENVIRONMENT: "staging"
-          ALLOYDB_DB_NAME: "postgres"
-          ALLOYDB_DB_USER: "postgres"
         run: |
           APP_UUID="${{ steps.coolify_app.outputs.app_uuid }}"
           flatten() { echo "$1" | tr -d '\n\r'; }
@@ -216,8 +208,6 @@ jobs:
             --arg cf_account_id                      "$CF_ACCOUNT_ID" \
             --arg yral_auth_client_id                "$YRAL_AUTH_CLIENT_ID" \
             --arg sentry_environment                 "$SENTRY_ENVIRONMENT" \
-            --arg alloydb_db_name                    "$ALLOYDB_DB_NAME" \
-            --arg alloydb_db_user                    "$ALLOYDB_DB_USER" \
             --arg cf_token                           "$CF_TOKEN" \
             --arg backend_admin_identity             "$BACKEND_ADMIN_IDENTITY" \
             --arg cookie_key                         "$COOKIE_KEY" \
@@ -226,9 +216,6 @@ jobs:
             --arg qstash_token                       "$QSTASH_TOKEN" \
             --arg ga4_api_secret                     "$GA4_API_SECRET" \
             --arg nsfw_grpc_token                    "$NSFW_GRPC_TOKEN" \
-            --arg alloydb_instance                   "$ALLOYDB_INSTANCE" \
-            --arg alloydb_db_password                "$ALLOYDB_DB_PASSWORD" \
-            --arg alloydb_service_account_json       "$(flatten "$ALLOYDB_SERVICE_ACCOUNT_JSON")" \
             --arg hon_worker_jwt                     "$HON_WORKER_JWT" \
             --arg yral_auth_client_secret            "$YRAL_AUTH_CLIENT_SECRET" \
             --arg analytics_server_token             "$ANALYTICS_SERVER_TOKEN" \
@@ -247,8 +234,6 @@ jobs:
               {"key": "CF_ACCOUNT_ID",                      "value": $cf_account_id, "is_literal": true},
               {"key": "YRAL_AUTH_CLIENT_ID",                "value": $yral_auth_client_id, "is_literal": true},
               {"key": "SENTRY_ENVIRONMENT",                 "value": $sentry_environment, "is_literal": true},
-              {"key": "ALLOYDB_DB_NAME",                    "value": $alloydb_db_name, "is_literal": true},
-              {"key": "ALLOYDB_DB_USER",                    "value": $alloydb_db_user, "is_literal": true},
               {"key": "CF_TOKEN",                           "value": $cf_token, "is_literal": true},
               {"key": "BACKEND_ADMIN_IDENTITY",             "value": $backend_admin_identity, "is_literal": true},
               {"key": "COOKIE_KEY",                         "value": $cookie_key, "is_literal": true},
@@ -257,9 +242,6 @@ jobs:
               {"key": "QSTASH_TOKEN",                       "value": $qstash_token, "is_literal": true},
               {"key": "GA4_API_SECRET",                     "value": $ga4_api_secret, "is_literal": true},
               {"key": "NSFW_GRPC_TOKEN",                    "value": $nsfw_grpc_token, "is_literal": true},
-              {"key": "ALLOYDB_INSTANCE",                   "value": $alloydb_instance, "is_literal": true},
-              {"key": "ALLOYDB_DB_PASSWORD",                "value": $alloydb_db_password, "is_literal": true},
-              {"key": "ALLOYDB_SERVICE_ACCOUNT_JSON",       "value": $alloydb_service_account_json, "is_literal": true},
               {"key": "HON_WORKER_JWT",                     "value": $hon_worker_jwt, "is_literal": true},
               {"key": "YRAL_AUTH_CLIENT_SECRET",            "value": $yral_auth_client_secret, "is_literal": true},
               {"key": "ANALYTICS_SERVER_TOKEN",             "value": $analytics_server_token, "is_literal": true},

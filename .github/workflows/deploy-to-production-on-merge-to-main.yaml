@@ -134,9 +134,6 @@ jobs:
             secret/data/hot-or-not-web-leptos-ssr/QSTASH_TOKEN value | QSTASH_TOKEN ;
             secret/data/hot-or-not-web-leptos-ssr/GOOGLE_ANALYTICS_MEASUREMENT_PROTOCOL_API_SECRET value | GA4_API_SECRET ;
             secret/data/hot-or-not-web-leptos-ssr/TOKEN_TO_SIGN_OUTGOING_CALLS_TO_NSFW_DETECT_SERVICE value | NSFW_GRPC_TOKEN ;
-            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_ALLOYDB_INSTANCE value | ALLOYDB_INSTANCE ;
-            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_ALLOYDB_DB_PASSWORD value | ALLOYDB_DB_PASSWORD ;
-            secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_ALLOYDB_SERVICE_ACCOUNT value | ALLOYDB_SERVICE_ACCOUNT_JSON ;
             secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_WORKER_JWT value | HON_WORKER_JWT ;
             secret/data/hot-or-not-web-leptos-ssr/YRAL_AUTH_V2_SECRET_KEY value | YRAL_AUTH_CLIENT_SECRET ;
             secret/data/hot-or-not-web-leptos-ssr/ANALYTICS_SERVER_TOKEN value | ANALYTICS_SERVER_TOKEN ;
@@ -164,10 +161,8 @@ jobs:
       - name: Deploy with Docker Compose
         env:
           HON_GOOGLE_SERVICE_ACCOUNT: ${{ env.HON_GOOGLE_SERVICE_ACCOUNT }}
-          ALLOYDB_SERVICE_ACCOUNT_JSON: ${{ env.ALLOYDB_SERVICE_ACCOUNT_JSON }}
         run: |
           # Shell-escape JSON secrets
-          ALLOYDB_SA_JSON_ESCAPED=$(printf '%q' "$ALLOYDB_SERVICE_ACCOUNT_JSON")
           HON_GOOGLE_SA_ESCAPED=$(printf '%q' "$HON_GOOGLE_SERVICE_ACCOUNT")
           
           ssh root@${{ matrix.server }} "
@@ -192,9 +187,6 @@ jobs:
             QSTASH_TOKEN='${{ env.QSTASH_TOKEN }}' \
             GA4_API_SECRET='${{ env.GA4_API_SECRET }}' \
             NSFW_GRPC_TOKEN='${{ env.NSFW_GRPC_TOKEN }}' \
-            ALLOYDB_INSTANCE='${{ env.ALLOYDB_INSTANCE }}' \
-            ALLOYDB_DB_PASSWORD='${{ env.ALLOYDB_DB_PASSWORD }}' \
-            ALLOYDB_SERVICE_ACCOUNT_JSON=$ALLOYDB_SA_JSON_ESCAPED \
             HON_WORKER_JWT='${{ env.HON_WORKER_JWT }}' \
             ANALYTICS_SERVER_TOKEN='${{ env.ANALYTICS_SERVER_TOKEN }}' \
             YRAL_AUTH_CLIENT_SECRET='${{ env.YRAL_AUTH_CLIENT_SECRET }}' \

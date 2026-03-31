@@ -212,7 +212,6 @@ mock-wallet-history = [
     "state/mock-wallet-history",
 ]
 qstash = ["consts/qstash", "utils/qstash", "component/qstash", "state/qstash"]
-alloydb = ["state/alloydb"]
 release-bin = [
     "ssr",
     "cloudflare",
@@ -227,7 +226,6 @@ release-bin = [
     "utils/release-bin",
     "component/release-bin",
     "state/release-bin",
-    "alloydb",
 ]
 release-lib = [
     "hydrate",

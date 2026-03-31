@@ -91,8 +91,6 @@ sentry = { workspace = true, optional = true }
 sentry-tower = { workspace = true, optional = true }
 telemetry_axum = { workspace = true, optional = true }
 opentelemetry_sdk = { workspace = true, optional = true }
-google-cloud-alloydb-v1 = { workspace = true, optional = true }
-google-cloud-auth = { version = "0.22.1", optional = true }
 jsonwebtoken = { workspace = true, optional = true }
 videogen-common = { workspace = true }
 
@@ -262,12 +260,6 @@ qstash = [
     "component/qstash",
     "page/qstash",
 ]
-alloydb = [
-    "dep:google-cloud-alloydb-v1",
-    "dep:google-cloud-auth",
-    "state/alloydb",
-    "page/alloydb",
-]
 enable-otlp = ["dep:telemetry_axum", "dep:opentelemetry_sdk"]
 release-bin = [
     "ssr",
@@ -283,7 +275,6 @@ release-bin = [
     "state/release-bin",
     "component/release-bin",
     "page/release-bin",
-    "alloydb",
 ]
 release-lib = [
     "hydrate",

@@ -1,13 +1,10 @@
 #[cfg(feature = "backend-admin")]
 pub mod admin_canisters;
-#[cfg(feature = "alloydb")]
-pub mod alloydb;
 pub mod app_state;
 pub mod app_type;
 pub mod audio_state;
 pub mod canisters;
 pub mod content_seed_client;
-pub mod hn_bet_state;
 
 #[cfg(not(feature = "ssr"))]
 pub mod server {
@@ -25,7 +22,6 @@ pub mod server {
     use leptos_axum::AxumRouteListing;
     use yral_canisters_common::Canisters;
 
-    // #[cfg(feature = "alloydb")]
     #[derive(Clone)]
     pub struct HonWorkerJwt(pub std::sync::Arc<String>);
 
@@ -48,9 +44,6 @@ pub mod server {
         pub grpc_offchain_channel: tonic::transport::Channel,
         #[cfg(feature = "qstash")]
         pub qstash: utils::qstash::QStashClient,
-        #[cfg(feature = "alloydb")]
-        pub alloydb: super::alloydb::AlloyDbInstance,
-        #[cfg(feature = "alloydb")]
         pub hon_worker_jwt: HonWorkerJwt,
     }
 }

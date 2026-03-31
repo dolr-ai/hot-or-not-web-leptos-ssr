@@ -82,7 +82,6 @@ regex = { workspace = true, optional = true }
 tonic-build = { workspace = true }
 anyhow = { workspace = true }
 send_wrapper = { workspace = true }
-google-cloud-alloydb-v1 = { workspace = true, optional = true }
 jsonwebtoken = { workspace = true, optional = true }
 rand = { workspace = true }
 
@@ -158,7 +157,6 @@ backend-admin = []
 ga4 = []
 mock-wallet-history = ["dep:rand_chacha"]
 qstash = []
-alloydb = ["dep:google-cloud-alloydb-v1"]
 release-bin = [
     "ssr",
     "cloudflare",
@@ -168,7 +166,6 @@ release-bin = [
     "oauth-ssr",
     "ga4",
     "qstash",
-    "alloydb",
 ]
 release-lib = [
     "hydrate",
