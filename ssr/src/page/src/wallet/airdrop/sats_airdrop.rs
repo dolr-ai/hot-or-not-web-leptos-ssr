@@ -4,47 +4,27 @@ use hon_worker_common::ClaimRequest;
 use leptos::prelude::*;
 use yral_identity::Signature;
 
-#[cfg(not(feature = "sats-airdrop"))]
-mod mock;
-#[cfg(feature = "sats-airdrop")]
-mod real;
-
 #[server(input = server_fn::codec::Json)]
 pub async fn claim_sats_airdrop(
-    user_canister: Principal,
-    request: ClaimRequest,
-    signature: Signature,
+    _user_canister: Principal,
+    _request: ClaimRequest,
+    _signature: Signature,
 ) -> Result<u64, ServerFnError> {
-    #[cfg(not(feature = "sats-airdrop"))]
-    use mock::claim_sats_airdrop as call;
-    #[cfg(feature = "sats-airdrop")]
-    use real::claim_sats_airdrop as call;
-
-    call(user_canister, request, signature).await
+    Ok(100)
 }
 
 #[server(input = server_fn::codec::Json)]
 pub async fn is_user_eligible_for_sats_airdrop(
-    user_canister: Principal,
-    user_principal: Principal,
+    _user_canister: Principal,
+    _user_principal: Principal,
 ) -> Result<bool, ServerFnError> {
-    #[cfg(not(feature = "sats-airdrop"))]
-    use mock::is_user_eligible_for_sats_airdrop as call;
-    #[cfg(feature = "sats-airdrop")]
-    use real::is_user_eligible_for_sats_airdrop as call;
-
-    call(user_canister, user_principal).await
+    Ok(true)
 }
 
 #[server(input = server_fn::codec::Json)]
 pub async fn get_sats_airdrop_status(
-    user_canister: Principal,
-    user_principal: Principal,
+    _user_canister: Principal,
+    _user_principal: Principal,
 ) -> Result<AirdropStatus, ServerFnError> {
-    #[cfg(not(feature = "sats-airdrop"))]
-    use mock::get_sats_airdrop_status as call;
-    #[cfg(feature = "sats-airdrop")]
-    use real::get_sats_airdrop_status as call;
-
-    call(user_canister, user_principal).await
+    Ok(AirdropStatus::Available)
 }

@@ -22,85 +22,71 @@ on:
 
 jobs:
   build_check:
-    runs-on: self-hosted
-    container:
-      image: mcr.microsoft.com/devcontainers/base:ubuntu
-      options: --user root
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
     steps:
-      - name: Clean up disk space
-        run: |
-          echo "Disk space before cleanup:"
-          df -h
-          rm -rf /root/.cargo/registry/cache || true
-          rm -rf /root/.cargo/git/checkouts || true
-          echo "Disk space after cleanup:"
-          df -h
-
-      - name: Install system dependencies
-        run: |
-          apt-get update
-          apt-get install -y software-properties-common
-          add-apt-repository main --yes
-          apt-get install -y mold pkg-config musl-tools lld protobuf-compiler curl git
-          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-          apt-get install -y nodejs
-          npm install -g pnpm@8
-
       - name: Checkout repo and submodules
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
+      - name: Set up swap space
+        uses: pierotofy/set-swap-space@master
         with:
-          toolchain: "nightly-2025-06-15"
-          targets: "x86_64-unknown-linux-musl,wasm32-unknown-unknown"
-          components: "clippy,rustfmt"
+          swap-size-gb: 32
 
-      - name: Install cargo-binstall
-        run: |
-          curl -L https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz | tar -xzf -
-          mv cargo-binstall /usr/local/bin/
-          chmod +x /usr/local/bin/cargo-binstall
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Install cargo-leptos
-        run: cargo binstall --no-confirm cargo-leptos --version 0.2.40 --locked --force
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install npm deps
-        run: pnpm install
+      - name: Cache Rust build artifacts
+        uses: actions/cache@v4
+        with:
+          path: target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '**/rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
 
-      - name: Lint check
-        run: |
-          cargo fmt --check
-          cargo clippy --no-deps --all-features --release -- -Dwarnings
+      - name: Create SSH agent socket placeholder
+        run: mkdir -p ~/.ssh && touch ~/.ssh/agent.sock
 
-      - name: Print versions
-        run: |
-          rustc --version
-          cargo --version
+      - name: Create gh config placeholder
+        run: mkdir -p ~/.config/gh
 
-      - name: Build the Leptos project
-        run: |
-          RUSTFLAGS_VALUE=""
-          if [[ "${{ inputs.erase_components }}" == "true" ]]; then
-            RUSTFLAGS_VALUE="--cfg=erase_components"
-          fi
-          echo "Using RUSTFLAGS: $RUSTFLAGS_VALUE"
-          RUSTFLAGS="$RUSTFLAGS_VALUE" cargo leptos build --release --lib-features release-lib --bin-features release-bin
+      - name: Run build check in devcontainer
+        uses: devcontainers/ci@v0.3
         env:
           LEPTOS_BIN_TARGET_TRIPLE: x86_64-unknown-linux-musl
-          LEPTOS_HASH_FILES: true
+          LEPTOS_HASH_FILES: "true"
           LEPTOS_TAILWIND_VERSION: v4.1.7
-
-      - name: Strip debug symbols
-        shell: bash
-        run: |
-          apt-get install -y binutils
-          objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr.d
-          objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
-
-      - run: touch .empty
+          RUSTFLAGS: ${{ inputs.erase_components == 'true' && '--cfg=erase_components' || '' }}
+        with:
+          imageName: ghcr.io/${{ github.repository }}/devcontainer
+          cacheFrom: ghcr.io/${{ github.repository }}/devcontainer
+          push: filter
+          refFilterForPush: refs/heads/main
+          env: |
+            LEPTOS_BIN_TARGET_TRIPLE
+            LEPTOS_HASH_FILES
+            LEPTOS_TAILWIND_VERSION
+            RUSTFLAGS
+          runCmd: |
+            pnpm install
+            cargo fmt --check
+            cargo clippy --no-deps --all-features --release -- -Dwarnings
+            cargo leptos build --release --lib-features release-lib --bin-features release-bin
+            objcopy --only-keep-debug target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr.d
+            objcopy --strip-debug --strip-unneeded target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
+            touch .empty
 
       - name: Archive production artifacts
         uses: actions/upload-artifact@v4

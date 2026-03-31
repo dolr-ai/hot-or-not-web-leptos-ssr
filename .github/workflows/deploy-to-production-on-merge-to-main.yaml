@@ -139,7 +139,6 @@ jobs:
             secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_ALLOYDB_SERVICE_ACCOUNT value | ALLOYDB_SERVICE_ACCOUNT_JSON ;
             secret/data/hot-or-not-web-leptos-ssr/HOT_OR_NOT_WORKER_JWT value | HON_WORKER_JWT ;
             secret/data/hot-or-not-web-leptos-ssr/YRAL_AUTH_V2_SECRET_KEY value | YRAL_AUTH_CLIENT_SECRET ;
-            secret/data/hot-or-not-web-leptos-ssr/STDB_ADMIN_ACCESS_TOKEN value | STDB_ADMIN_ACCESS_TOKEN ;
             secret/data/hot-or-not-web-leptos-ssr/ANALYTICS_SERVER_TOKEN value | ANALYTICS_SERVER_TOKEN ;
             secret/data/hot-or-not-web-leptos-ssr/AUTH_JWT_ES256_SIGNING_SECRET_KEY_PEM value | YRAL_AUTH_MIGRATION_ES256_PEM ;
             secret/data/hot-or-not-web-leptos-ssr/YRAL_METADATA_NOTIFICATION_API_KEY value | YRAL_METADATA_NOTIFICATION_API_KEY ;
@@ -201,7 +200,6 @@ jobs:
             YRAL_AUTH_CLIENT_SECRET='${{ env.YRAL_AUTH_CLIENT_SECRET }}' \
             YRAL_AUTH_MIGRATION_ES256_PEM='${{ env.YRAL_AUTH_MIGRATION_ES256_PEM }}' \
             YRAL_METADATA_NOTIFICATION_API_KEY='${{ env.YRAL_METADATA_NOTIFICATION_API_KEY }}' \
-            STDB_ADMIN_ACCESS_TOKEN='${{ env.STDB_ADMIN_ACCESS_TOKEN }}' \
             OTLP_ENDPOINT='${{ env.OTLP_ENDPOINT }}' \
             DRAGONFLY_PASSWORD='${{ env.DRAGONFLY_PASSWORD }}' \
             DRAGONFLY_HOSTS='${{ env.DRAGONFLY_HOSTS }}' \
@@ -262,5 +260,5 @@ jobs:
     uses: ./.github/workflows/e2e-tests.yml
     secrets: inherit
     with:
-      preview_url: https://yral.com
+      preview_url: https://legacy.yral.com
       build_name: main-commit-${{github.sha}}-attempt-${{github.run_attempt}}

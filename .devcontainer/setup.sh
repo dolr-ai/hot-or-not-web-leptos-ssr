@@ -1,3 +1,9 @@
+# Install system packages
+echo ""
+echo "Installing system packages..."
+sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils whois;
+echo "✓ Installed dnsutils (dig, nslookup, host) and whois"
+
 # Install cargo binstall
 curl -L https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz -o cargo-binstall.tgz;
 tar -xzf cargo-binstall.tgz;
@@ -17,3 +23,6 @@ git submodule update --init --recursive;
 
 # Enable the env file
 cp .env.example .env;
+
+# Install JS dependencies
+pnpm install;

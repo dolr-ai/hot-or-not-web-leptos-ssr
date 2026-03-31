@@ -11,7 +11,4 @@ pub const YRAL_METADATA_CONTAINER_TAG: &str = "a4879e2e711c17beeb12ed6987ba315c1
 pub static PUMP_AND_DUMP_WORKER_URL: Lazy<Url> =
     Lazy::new(|| Url::parse("http://localhost:8787/").unwrap());
 
-// default for `spacetime start` is `:3000` but that clashes with ssr
-pub const STDB_URL: &str = "http://localhost:5000";
-
 pub const BACKEND_MODULE_IDENTITY: &str = "local-backend";

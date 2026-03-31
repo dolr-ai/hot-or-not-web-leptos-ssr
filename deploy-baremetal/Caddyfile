@@ -9,7 +9,7 @@
 }
 
 # Main frontend domain
-yral.com {
+legacy.yral.com {
     # Reverse proxy to frontend container
     reverse_proxy yral-frontend:8080 {
         # Health checking
@@ -47,8 +47,8 @@ yral.com {
 }
 
 # WWW redirect to apex domain
-www.yral.com {
-    redir https://yral.com{uri} permanent
+www.legacy.yral.com {
+    redir https://legacy.yral.com{uri} permanent
 }
 
 # Health check endpoint on HTTP (for load balancer health checks)
