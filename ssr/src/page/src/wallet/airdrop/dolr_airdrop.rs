@@ -1,8 +1,6 @@
 use candid::Principal;
 use leptos::prelude::*;
 
-mod mock;
-
 #[server(endpoint = "dolr_airdrop_eligibility", input = server_fn::codec::Json)]
 pub async fn is_user_eligible_for_dolr_airdrop(
     _user_canister: Principal,
