@@ -1,5 +1,7 @@
 use crate::event_streaming::events::EventCtx;
-use crate::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, MixpanelVideoClickedCTAType};
+use crate::mixpanel::mixpanel_events::{
+    MixPanelEvent, MixpanelGlobalProps, MixpanelVideoClickedCTAType,
+};
 use crate::ml_feed::QuickPostDetails;
 
 #[derive(Clone)]

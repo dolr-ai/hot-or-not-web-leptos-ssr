@@ -429,12 +429,7 @@ pub fn VideoUploader(
                 }
                 Err(_) => {
                     let e = res.as_ref().err().unwrap().to_string();
-                    VideoUploadUnsuccessful.send_event(
-                        ev_ctx,
-                        e,
-                        hashtags_len,
-                        is_nsfw,
-                    );
+                    VideoUploadUnsuccessful.send_event(ev_ctx, e, hashtags_len, is_nsfw);
                 }
             }
             try_or_redirect_opt!(res);

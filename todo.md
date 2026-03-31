@@ -1,0 +1,5 @@
+- run all workflows on github hosted runners instead of self-hosted. Self hosted runners are gone
+- remove percy
+- remove home feed
+- remove profile
+- remove video upload

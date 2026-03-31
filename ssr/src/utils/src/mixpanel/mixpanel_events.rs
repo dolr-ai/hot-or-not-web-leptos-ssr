@@ -414,7 +414,6 @@ impl TryFrom<String> for BottomNavigationCategory {
     }
 }
 
-
 #[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum MixpanelVideoClickedCTAType {

@@ -317,12 +317,7 @@ impl VideoUploadInitiated {
 pub struct VideoUploadUploadButtonClicked;
 
 impl VideoUploadUploadButtonClicked {
-    pub fn send_event(
-        &self,
-        ctx: EventCtx,
-        hashtag_inp: NodeRef<Input>,
-        is_nsfw: NodeRef<Input>,
-    ) {
+    pub fn send_event(&self, ctx: EventCtx, hashtag_inp: NodeRef<Input>, is_nsfw: NodeRef<Input>) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // video_upload_upload_button_clicked - analytics
@@ -386,14 +381,7 @@ impl VideoUploadVideoSelected {
 pub struct VideoUploadUnsuccessful;
 
 impl VideoUploadUnsuccessful {
-    #[allow(clippy::too_many_arguments)]
-    pub fn send_event(
-        &self,
-        ctx: EventCtx,
-        error: String,
-        hashtags_len: usize,
-        is_nsfw: bool,
-    ) {
+    pub fn send_event(&self, ctx: EventCtx, error: String, hashtags_len: usize, is_nsfw: bool) {
         #[cfg(all(feature = "hydrate", feature = "ga4"))]
         {
             // video_upload_unsuccessful - analytics
