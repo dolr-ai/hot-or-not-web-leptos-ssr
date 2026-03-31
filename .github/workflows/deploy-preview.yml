@@ -60,6 +60,12 @@ jobs:
         with:
           name: build-musl
 
+      - name: Debug artifact layout
+        run: |
+          echo "=== CWD ===" && pwd
+          echo "=== Top-level files ===" && ls -la
+          echo "=== target/ (if present) ===" && find target -maxdepth 5 -ls 2>/dev/null || echo "target/ not found"
+
       - name: Fix Binary Permissions
         run: chmod +x target/x86_64-unknown-linux-musl/prod-release/hot-or-not-web-leptos-ssr
 
