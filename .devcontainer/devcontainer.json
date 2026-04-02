@@ -19,9 +19,7 @@
         "rust-lang.rust-analyzer",
         "vadimcn.vscode-lldb",
         // tailwindcss
-        "bradlc.vscode-tailwindcss",
-        // git
-        "eamodio.gitlens"
+        "bradlc.vscode-tailwindcss"
       ]
     }
   },

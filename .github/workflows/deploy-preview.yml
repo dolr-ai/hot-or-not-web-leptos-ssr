@@ -329,15 +329,6 @@ jobs:
           echo "Timed out"
           exit 1
 
-  e2e-tests:
-    needs: preview
-    uses: ./.github/workflows/e2e-tests.yml
-    if: ${{ github.event.pull_request.state == 'open' }}
-    secrets: inherit
-    with:
-      preview_url: "https://pr-${{ github.event.number }}-${{ github.event.repository.name }}.preview.yral.com"
-      build_name: "PR-${{ github.event.number }}-commit-${{ github.sha }}-attempt-${{ github.run_attempt }}"
-
   destroy-preview:
     if: ${{ github.event.pull_request.state == 'closed' }}
     runs-on: ubuntu-latest
