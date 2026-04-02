@@ -33,6 +33,5 @@
     // build dependency for ml-feed-server bindings
     "ghcr.io/devcontainers-extra/features/protoc:1": {}
   },
-  "onCreateCommand": "rustup install;",
-  "postCreateCommand": "bash .devcontainer/setup.sh"
+  "postCreateCommand": "bash .devcontainer/post-create.sh"
 }
