@@ -19,8 +19,6 @@ pub struct VideoEventData {
     pub hashtag_count: Option<usize>,
     #[serde(rename = "is_NSFW", skip_serializing_if = "Option::is_none")]
     pub is_nsfw: Option<bool>,
-    #[serde(rename = "is_hotorNot", skip_serializing_if = "Option::is_none")]
-    pub is_hotor_not: Option<bool>,
     pub feed_type: String,
     pub view_count: Option<u64>,
     pub like_count: Option<u64>,
@@ -64,7 +62,6 @@ impl VideoEventDataBuilder {
                 creator_category: "NA".to_string(),
                 hashtag_count: None,
                 is_nsfw: None,
-                is_hotor_not: None,
                 feed_type: "NA".to_string(),
                 view_count: None,
                 like_count: None,
@@ -101,7 +98,6 @@ impl VideoEventDataBuilder {
                 creator_category: "NA".to_string(),
                 hashtag_count: None,
                 is_nsfw,
-                is_hotor_not: None,
                 feed_type: "NA".to_string(),
                 view_count: None,
                 like_count: None,

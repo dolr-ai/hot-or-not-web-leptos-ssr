@@ -1,7 +1,7 @@
 use crate::event_streaming::events::EventCtx;
-use crate::mixpanel::mixpanel_events::MixpanelGlobalProps;
-use crate::mixpanel::mixpanel_events::MixpanelVideoClickedCTAType;
-use crate::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelPostGameType};
+use crate::mixpanel::mixpanel_events::{
+    MixPanelEvent, MixpanelGlobalProps, MixpanelVideoClickedCTAType,
+};
 use crate::ml_feed::QuickPostDetails;
 
 #[derive(Clone)]
@@ -41,8 +41,6 @@ impl VideoAnalyticsProvider for MixpanelProvider {
                     global,
                     post.video_uid.clone(),
                     post.publisher_user_id.to_text(),
-                    MixpanelPostGameType::HotOrNot,
-                    true,
                 );
             }
             VideoAnalyticsEvent::VideoViewed { post, is_logged_in } => {
@@ -51,17 +49,13 @@ impl VideoAnalyticsProvider for MixpanelProvider {
                     global,
                     post.video_uid.clone(),
                     post.publisher_user_id.to_text(),
-                    MixpanelPostGameType::HotOrNot,
-                    true,
                 );
             }
             VideoAnalyticsEvent::VideoMuted { post, muted } => {
                 MixPanelEvent::track_video_clicked(
                     global,
                     post.publisher_user_id.to_text(),
-                    true,
                     post.video_uid.clone(),
-                    MixpanelPostGameType::HotOrNot,
                     if muted {
                         MixpanelVideoClickedCTAType::Mute
                     } else {

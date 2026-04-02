@@ -98,7 +98,7 @@ pub fn PreVideoUpload(
                 )
                 .await
                 .inspect_err(|e| {
-                    VideoUploadUnsuccessful.send_event(ev_ctx, e.to_string(), 0, false, true);
+                    VideoUploadUnsuccessful.send_event(ev_ctx, e.to_string(), 0, false);
                     if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
                         MixPanelEvent::track_video_upload_error_shown(global, e.to_string());
                     }
@@ -366,7 +366,6 @@ pub fn VideoUploader(
     let published: RwSignal<bool> = RwSignal::new(false);
 
     let is_nsfw = params.is_nsfw;
-    let enable_hot_or_not = params.enable_hot_or_not;
 
     let auth = auth_state();
     let is_connected = auth.is_logged_in_with_oauth();
@@ -406,7 +405,7 @@ pub fn VideoUploader(
                             hashtags,
                             description,
                             video_uid: uid_value.clone(),
-                            creator_consent_for_inclusion_in_hot_or_not: enable_hot_or_not,
+                            creator_consent_for_inclusion_in_hot_or_not: false,
                         }
                     }));
 
@@ -423,8 +422,6 @@ pub fn VideoUploader(
                         global,
                         uid_value.clone(),
                         global_constants::CREATOR_COMMISSION_PERCENT,
-                        true,
-                        MixpanelPostGameType::HotOrNot,
                         Some("upload_video".to_string()),
                         "".to_string(), // Regular uploads don't use tokens
                     );
@@ -432,13 +429,7 @@ pub fn VideoUploader(
                 }
                 Err(_) => {
                     let e = res.as_ref().err().unwrap().to_string();
-                    VideoUploadUnsuccessful.send_event(
-                        ev_ctx,
-                        e,
-                        hashtags_len,
-                        is_nsfw,
-                        enable_hot_or_not,
-                    );
+                    VideoUploadUnsuccessful.send_event(ev_ctx, e, hashtags_len, is_nsfw);
                 }
             }
             try_or_redirect_opt!(res);

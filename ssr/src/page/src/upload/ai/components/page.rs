@@ -13,7 +13,7 @@ use leptos::prelude::*;
 use leptos_meta::Title;
 use leptos_use::storage::use_local_storage;
 use state::canisters::auth_state;
-use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps, MixpanelPostGameType};
+use utils::mixpanel::mixpanel_events::{MixPanelEvent, MixpanelGlobalProps};
 
 #[component]
 pub fn UploadAiPostPage() -> impl IntoView {
@@ -146,7 +146,6 @@ pub fn UploadAiPostPage() -> impl IntoView {
                             "".to_string(),
                             delegated_identity,
                             false, // is_nsfw
-                            false, // enable_hot_or_not
                         )
                         .await
                         {
@@ -162,8 +161,6 @@ pub fn UploadAiPostPage() -> impl IntoView {
                                         global,
                                         video_uid.clone(),
                                         global_constants::CREATOR_COMMISSION_PERCENT,
-                                        false, // is_game_enabled - AI videos don't have game enabled
-                                        MixpanelPostGameType::HotOrNot,
                                         Some("ai_video".to_string()),
                                         format!("{:?}", params.token_type).to_lowercase(),
                                     );

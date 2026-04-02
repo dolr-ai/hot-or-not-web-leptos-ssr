@@ -29,7 +29,6 @@ pub struct UploadParams {
     file_blob: FileWithUrl,
     hashtags: Vec<String>,
     description: String,
-    enable_hot_or_not: bool,
     is_nsfw: bool,
 }
 
@@ -57,7 +56,6 @@ fn PreUploadView(
                 || desc.get().map(|d| d.value().is_empty()).unwrap_or(true)
     });
     let hashtag_inp = NodeRef::<Input>::new();
-    let enable_hot_or_not = NodeRef::<Input>::new();
     let is_nsfw = NodeRef::<Input>::new();
 
     let auth = auth_state();
@@ -65,7 +63,7 @@ fn PreUploadView(
     VideoUploadInitiated.send_event(ev_ctx);
 
     let on_submit = move || {
-        VideoUploadUploadButtonClicked.send_event(ev_ctx, hashtag_inp, is_nsfw, enable_hot_or_not);
+        VideoUploadUploadButtonClicked.send_event(ev_ctx, hashtag_inp, is_nsfw);
 
         let description = desc.get_untracked().unwrap().value();
         let hashtags = hashtags.get_untracked();
@@ -85,7 +83,6 @@ fn PreUploadView(
             file_blob,
             hashtags,
             description,
-            enable_hot_or_not: false,
             is_nsfw: is_nsfw
                 .get_untracked()
                 .map(|v| v.checked())

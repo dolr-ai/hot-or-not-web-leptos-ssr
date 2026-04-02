@@ -16,7 +16,6 @@ pub async fn upload_ai_video_from_url(
     description: String,
     delegated_identity_wire: DelegatedIdentityWire,
     is_nsfw: bool,
-    enable_hot_or_not: bool,
 ) -> Result<String, ServerFnError> {
     leptos::logging::log!("Starting AI video upload from URL: {}", video_url);
 
@@ -124,7 +123,7 @@ pub async fn upload_ai_video_from_url(
             hashtags,
             description,
             video_uid: video_uid.clone(),
-            creator_consent_for_inclusion_in_hot_or_not: enable_hot_or_not,
+            creator_consent_for_inclusion_in_hot_or_not: false,
         }
     });
 
