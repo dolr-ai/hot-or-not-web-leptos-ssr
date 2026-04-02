@@ -33,15 +33,6 @@
     // build dependency for ml-feed-server bindings
     "ghcr.io/devcontainers-extra/features/protoc:1": {}
   },
-  // bind-mounts for local dev: SSH agent forwarding and gh CLI config.
-  // CI creates placeholder files/dirs for these before starting the container.
-  "mounts": [
-    "type=bind,source=${env:HOME}/.ssh/agent.sock,target=/ssh-agent,consistency=cached",
-    "type=bind,source=${env:HOME}/.config/gh,target=/home/vscode/.config/gh,consistency=cached"
-  ],
-  "remoteEnv": {
-    "SSH_AUTH_SOCK": "/ssh-agent"
-  },
   "onCreateCommand": "rustup install;",
   "postCreateCommand": "bash .devcontainer/setup.sh"
 }
