@@ -10,9 +10,6 @@
                 "leptos",
                 "watch",
             ],
-            "problemMatcher": [
-                "$rustc"
-            ],
             "presentation": {
                 "echo": true,
                 "reveal": "always",
@@ -27,9 +24,6 @@
             "label": "ci: cargo fmt --check",
             "type": "shell",
             "command": "cargo fmt --check",
-            "problemMatcher": [
-                "$rustc"
-            ],
             "presentation": {
                 "reveal": "always",
                 "panel": "shared",
@@ -41,9 +35,6 @@
             "label": "ci: cargo clippy",
             "type": "shell",
             "command": "cargo clippy --no-deps --all-features --release -- -Dwarnings",
-            "problemMatcher": [
-                "$rustc"
-            ],
             "presentation": {
                 "reveal": "always",
                 "panel": "shared",
@@ -55,12 +46,11 @@
             "label": "ci: cargo leptos build --release",
             "type": "shell",
             "command": "cargo leptos build --release --lib-features release-lib --bin-features release-bin",
-            "env": {
-                "LEPTOS_HASH_FILES": "true"
+            "options": {
+                "env": {
+                    "LEPTOS_HASH_FILES": "true"
+                }
             },
-            "problemMatcher": [
-                "$rustc"
-            ],
             "presentation": {
                 "reveal": "always",
                 "panel": "shared",
@@ -80,9 +70,6 @@
                 "kind": "build",
                 "isDefault": false
             },
-            "problemMatcher": [
-                "$rustc"
-            ],
             "presentation": {
                 "reveal": "always",
                 "panel": "shared",
