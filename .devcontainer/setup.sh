@@ -4,6 +4,9 @@ echo "Installing system packages..."
 sudo apt-get update -qq && sudo apt-get install -y -qq dnsutils whois;
 echo "✓ Installed dnsutils (dig, nslookup, host) and whois"
 
+# Ensure cargo and user-installed binaries are on PATH (non-interactive shells don't source profile)
+export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
+
 # Install cargo binstall
 curl -L https://github.com/cargo-bins/cargo-binstall/releases/latest/download/cargo-binstall-x86_64-unknown-linux-musl.tgz -o cargo-binstall.tgz;
 tar -xzf cargo-binstall.tgz;
