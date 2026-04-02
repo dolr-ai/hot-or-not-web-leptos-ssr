@@ -21,44 +21,6 @@
             }
         },
         {
-            "label": "ci: cargo fmt --check",
-            "type": "shell",
-            "command": "cargo fmt --check",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": false
-            }
-        },
-        {
-            "label": "ci: cargo clippy",
-            "type": "shell",
-            "command": "cargo clippy --no-deps --all-features --release -- -Dwarnings",
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": false
-            }
-        },
-        {
-            "label": "ci: cargo leptos build --release",
-            "type": "shell",
-            "command": "cargo leptos build --release --lib-features release-lib --bin-features release-bin",
-            "options": {
-                "env": {
-                    "LEPTOS_HASH_FILES": "true"
-                }
-            },
-            "presentation": {
-                "reveal": "always",
-                "panel": "shared",
-                "showReuseMessage": false,
-                "clear": false
-            }
-        },
-        {
             "label": "ci: build-check",
             "dependsOrder": "sequence",
             "dependsOn": [
