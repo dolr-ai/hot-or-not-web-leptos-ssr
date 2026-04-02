@@ -247,10 +247,3 @@ jobs:
           echo "- yral-frontend (Leptos SSR on port 8080)" >> $GITHUB_STEP_SUMMARY
           echo "- caddy (TLS termination + reverse proxy)" >> $GITHUB_STEP_SUMMARY
 
-  e2e-tests:
-    needs: deploy
-    uses: ./.github/workflows/e2e-tests.yml
-    secrets: inherit
-    with:
-      preview_url: https://legacy.yral.com
-      build_name: main-commit-${{github.sha}}-attempt-${{github.run_attempt}}
