@@ -1,4 +1,3 @@
-- remove percy and all nightwatch tests
 - remove home feed
 - remove profile
 - remove video upload
