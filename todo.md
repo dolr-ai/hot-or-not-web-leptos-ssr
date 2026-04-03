@@ -2,3 +2,4 @@
 - remove home feed
 - remove profile
 - remove video upload
+- build-check is pointless and should be removed. build-check-prod should just be renamed to build-check and used everywhere
