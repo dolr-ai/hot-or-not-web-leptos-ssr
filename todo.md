@@ -2,3 +2,5 @@
 - remove profile
 - remove video upload
 - build-check is pointless and should be removed. build-check-prod should just be renamed to build-check and used everywhere
+- remove all of the complicated build configuration and setup and just do basic simple bog-standard conventional rust builds how the leptos default project does it. We initially added all of this complexity to bring down build times but we are reverting all of that now
+- remove nix

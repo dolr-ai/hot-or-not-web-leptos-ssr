@@ -6,10 +6,7 @@ mod profile_iter;
 pub mod profile_post;
 
 use candid::Principal;
-use component::{
-    connect::ConnectLogin, icons::notification_icon::NotificationIcon,
-    notification::NotificationPage, spinner::FullScreenSpinner,
-};
+use component::{connect::ConnectLogin, spinner::FullScreenSpinner};
 use consts::MAX_VIDEO_ELEMENTS_FOR_FEED;
 use indexmap::IndexSet;
 use leptos::{html, prelude::*};
@@ -945,9 +942,6 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
     let nav_clone2 = nav.clone();
     let nav_menu = nav.clone();
 
-    // Notification panel signal
-    let notification_panel = RwSignal::new(false);
-
     // Followers/Following popup signals
     let show_followers_popup = RwSignal::new(false);
     let popup_initial_tab = RwSignal::new(0usize); // 0 = Followers, 1 = Following
@@ -987,9 +981,6 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
 
     view! {
         <div class="overflow-y-auto pb-12 min-h-screen text-white bg-black">
-            <Show when=move || notification_panel.get()>
-                <NotificationPage close=notification_panel />
-            </Show>
             // Header with title and navigation icons - aligned with content width
             <div class="flex justify-center w-full bg-black pt-4">
                 <div class="flex h-12 items-center justify-between px-4 sm:px-0 py-3 w-11/12 sm:w-6/12">
@@ -1003,15 +994,6 @@ fn ProfileViewInner(user: ProfileDetails) -> impl IntoView {
                         }}
                     </p>
                     <div class="flex gap-5 items-center justify-end">
-                        <Show when=is_own_profile>
-                            <button
-                                on:click=move |_| {
-                                    notification_panel.set(true);
-                                }
-                            >
-                                <NotificationIcon show_dot=false class="w-6 h-6 text-neutral-300" />
-                            </button>
-                        </Show>
                         <Show when=is_own_profile>
                             {
                                 let nav_menu = nav_menu.clone();

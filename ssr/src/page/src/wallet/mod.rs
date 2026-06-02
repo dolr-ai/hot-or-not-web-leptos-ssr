@@ -27,8 +27,6 @@ use utils::{send_wrap, UsernameOrPrincipal};
 use yral_canisters_common::utils::profile::ProfileDetails;
 use yral_metadata_client::MetadataClient;
 
-use component::notification::NotificationPage;
-
 /// Controller for the login modal, passed through context
 /// under wallet
 #[derive(Debug, Clone, Copy)]
@@ -87,7 +85,7 @@ fn ProfileCardLoading() -> impl IntoView {
 }
 
 #[component]
-fn Header(details: ProfileDetails, is_own_account: bool) -> impl IntoView {
+fn Header(details: ProfileDetails) -> impl IntoView {
     let share_link = {
         let id = details.username_or_principal();
         format!("/wallet/{id}")
@@ -99,19 +97,11 @@ fn Header(details: ProfileDetails, is_own_account: bool) -> impl IntoView {
         share_link
     );
 
-    let notification_panel = RwSignal::new(false);
-
     view! {
-        <NotificationPage close=notification_panel />
         <div class="flex gap-10 justify-between items-center py-3 px-4 w-full">
             <div class="text-xl font-bold text-white font-kumbh">My Wallet</div>
             <div class="flex gap-8 items-center">
                 <ShareButtonWithFallbackPopup share_link message />
-                <Show when=move || is_own_account>
-                    <button on:click=move |_| notification_panel.set(true)>
-                        <NotificationIcon show_dot=false class="w-6 h-6 text-neutral-300" />
-                    </button>
-                </Show>
             </div>
         </div>
     }
@@ -277,9 +267,9 @@ pub fn WalletImpl(id: UsernameOrPrincipal) -> impl IntoView {
             }>
                 {move || Suspend::new(async move {
                     match profile_details_and_is_owner_result.run(()).await {
-                        Ok((profile_details, is_own_account)) => {
+                        Ok((profile_details, _)) => {
                             Either::Left(
-                                view! { <Header details=profile_details is_own_account /> },
+                                view! { <Header details=profile_details /> },
                             )
                         },
                         Err(e) => {
