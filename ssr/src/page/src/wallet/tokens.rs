@@ -477,6 +477,7 @@ pub fn FastWalletCard(
     #[prop(optional)] is_utility_token: bool,
 ) -> impl IntoView {
     let _ = user_canister;
+    let _ = token_type;
 
     let TokenDisplayInfo {
         name,
