@@ -1,6 +1,5 @@
 use crate::token::RootType;
 use crate::token::TokenInfoParams;
-use crate::wallet::airdrop::AirdropPage;
 use component::show_any::ShowAny;
 use component::{
     back_btn::BackButton, share_popup::*, spinner::FullScreenSpinner, title::TitleText,
@@ -63,7 +62,7 @@ fn TokenDetails(meta: TokenMetadata) -> impl IntoView {
 }
 
 pub fn generate_share_link(root: &RootType, id: UsernameOrPrincipal) -> String {
-    format!("/token/info/{root}/{id}?airdrop_amt=100")
+    format!("/token/info/{root}/{id}")
 }
 
 #[component]
@@ -204,11 +203,6 @@ pub struct TokenKeyParam {
     id: UsernameOrPrincipal,
 }
 
-#[derive(Params, PartialEq, Clone, Serialize, Deserialize, Debug)]
-struct AirdropParam {
-    airdrop_amt: u64,
-}
-
 #[derive(Deserialize, Serialize, Clone, Debug)]
 struct TokenInfoResponse {
     meta: TokenMetadata,
@@ -218,14 +212,12 @@ struct TokenInfoResponse {
     #[serde(default)]
     key_principal: Option<Principal>,
     is_user_principal: bool,
-    is_token_viewer_airdrop_claimed: bool,
 }
 
 #[component]
 pub fn TokenInfo() -> impl IntoView {
     let params = use_params::<TokenInfoParams>();
     let id_param = use_params::<TokenKeyParam>();
-    let airdrop_param = use_query::<AirdropParam>();
     let id = move || id_param.get().map(|p| p.id).ok();
 
     let auth = auth_state();
