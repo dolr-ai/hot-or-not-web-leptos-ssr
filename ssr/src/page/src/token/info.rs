@@ -266,22 +266,15 @@ pub fn TokenInfo() -> impl IntoView {
                                 is_token_viewer_airdrop_claimed: true,
                             }));
                         };
-                        let is_airdrop_claimed = cans
-                            .get_airdrop_status(
-                                token_owner.canister_id,
-                                *root,
-                                cans.user_principal(),
-                            )
-                            .await
-                            .unwrap_or(true);
-
+                        // Airdrop status check removed — creator_dao canisters decommissioned.
+                        // Default to `true` (claimed) to preserve prior fallback behavior.
                         Some(TokenInfoResponse {
                             meta: m,
                             root: token_root.clone(),
                             id,
                             key_principal,
                             is_user_principal: Some(cans.user_principal()) == key_principal,
-                            is_token_viewer_airdrop_claimed: is_airdrop_claimed,
+                            is_token_viewer_airdrop_claimed: true,
                         })
                     }
                     (Some(m), _) => Some(TokenInfoResponse {
