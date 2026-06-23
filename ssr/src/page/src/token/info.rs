@@ -6,7 +6,6 @@ use component::{
 };
 use leptos_router::components::Redirect;
 use leptos_router::hooks::use_params;
-use leptos_router::hooks::use_query;
 use leptos_router::params::Params;
 use state::canisters::auth_state;
 use utils::send_wrap;
@@ -247,35 +246,12 @@ pub fn TokenInfo() -> impl IntoView {
 
                 let token_root = &params.token_root;
                 let res = match (meta, token_root) {
-                    (Some(m), RootType::Other(root)) => {
-                        let Some(token_owner) = m.token_owner.clone() else {
-                            return Ok(Some(TokenInfoResponse {
-                                meta: m,
-                                root: token_root.clone(),
-                                id,
-                                key_principal,
-                                is_user_principal: Some(cans.user_principal()) == key_principal,
-                                is_token_viewer_airdrop_claimed: true,
-                            }));
-                        };
-                        // Airdrop status check removed — creator_dao canisters decommissioned.
-                        // Default to `true` (claimed) to preserve prior fallback behavior.
-                        Some(TokenInfoResponse {
-                            meta: m,
-                            root: token_root.clone(),
-                            id,
-                            key_principal,
-                            is_user_principal: Some(cans.user_principal()) == key_principal,
-                            is_token_viewer_airdrop_claimed: true,
-                        })
-                    }
                     (Some(m), _) => Some(TokenInfoResponse {
                         meta: m,
                         root: token_root.clone(),
                         id,
                         key_principal,
                         is_user_principal: Some(cans.user_principal()) == key_principal,
-                        is_token_viewer_airdrop_claimed: true,
                     }),
                     _ => None,
                 };
@@ -301,21 +277,9 @@ pub fn TokenInfo() -> impl IntoView {
                                         id,
                                         key_principal,
                                         is_user_principal,
-                                        is_token_viewer_airdrop_claimed,
                                     }
                                 )
                             ) => {
-                                if let Ok(AirdropParam { airdrop_amt }) = airdrop_param.get() {
-                                    if !is_token_viewer_airdrop_claimed
-                                        && meta.token_owner.clone().map(|t| t.principal_id)
-                                            == key_principal && !is_user_principal
-                                    {
-                                        return view! {
-                                            <AirdropPage airdrop_amount=airdrop_amt meta />
-                                        }
-                                            .into_any();
-                                    }
-                                }
                                 view! {
                                     <TokenInfoInner
                                         root

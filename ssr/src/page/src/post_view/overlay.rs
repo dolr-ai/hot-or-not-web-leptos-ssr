@@ -6,11 +6,10 @@ use component::icons::volume_high_icon::VolumeHighIcon;
 use component::icons::volume_mute_icon::VolumeMuteIcon;
 use component::modal::Modal;
 
-use consts::{NSFW_ENABLED_COOKIE, WALLET_BALANCE_STORE_KEY};
+use consts::NSFW_ENABLED_COOKIE;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_router::hooks::use_location;
-use leptos_use::storage::use_local_storage;
 use leptos_use::use_window;
 use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use state::audio_state::AudioState;
@@ -19,10 +18,6 @@ use utils::host::show_nsfw_content;
 
 use utils::mixpanel::mixpanel_events::*;
 use yral_canisters_common::utils::posts::PostDetails;
-
-use crate::wallet::airdrop::sats_airdrop::claim_sats_airdrop;
-use crate::wallet::airdrop::SatsAirdropPopup;
-use leptos::prelude::ServerFnError;
 
 #[component]
 pub fn VideoDetailsOverlay(
@@ -154,76 +149,6 @@ pub fn VideoDetailsOverlay(
         );
     };
 
-    let auth = auth_state();
-
-    let show_sats_airdrop_popup = RwSignal::new(false);
-    let sats_airdrop_claimed = RwSignal::new(false);
-    let sats_airdrop_amount = RwSignal::new(0u64);
-    let sats_airdrop_error = RwSignal::new(false);
-
-    let claim_sats_airdrop_action = Action::new_local(move |_| async move {
-        show_sats_airdrop_popup.set(true);
-        sats_airdrop_claimed.set(false);
-        sats_airdrop_error.set(false);
-
-        let Ok(auth_cans) = auth.auth_cans().await else {
-            if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                MixPanelEvent::track_claim_airdrop_clicked(
-                    global,
-                    StakeType::Sats,
-                    "home".to_string(),
-                );
-            }
-            log::warn!("Failed to get authenticated canisters");
-            sats_airdrop_error.set(true);
-            return Err(ServerFnError::new("Failed to get authenticated canisters"));
-        };
-        if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-            MixPanelEvent::track_claim_airdrop_clicked(global, StakeType::Sats, "home".to_string());
-        }
-        let user_canister = auth_cans.user_canister();
-        let user_principal = auth_cans.user_principal();
-        let request = hon_worker_common::ClaimRequest { user_principal };
-        let signature =
-            hon_worker_common::sign_claim_request(auth_cans.identity(), request.clone()).unwrap();
-        claim_sats_airdrop(user_canister, request, signature)
-            .await
-            .inspect(|&amount| {
-                sats_airdrop_claimed.set(true);
-                sats_airdrop_amount.set(amount);
-
-                let (_, set_wallet_balance_store, _) =
-                    use_local_storage::<u64, FromToStringCodec>(WALLET_BALANCE_STORE_KEY);
-
-                set_wallet_balance_store.update(|balance| {
-                    *balance += amount;
-                });
-
-                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                    MixPanelEvent::track_airdrop_claimed(
-                        global,
-                        StakeType::Sats,
-                        true,
-                        amount,
-                        "home".to_string(),
-                    );
-                }
-            })
-            .inspect_err(|_| {
-                log::warn!("Something went wrong claiming airdrop");
-                sats_airdrop_error.set(true);
-                if let Some(global) = MixpanelGlobalProps::from_ev_ctx(ev_ctx) {
-                    MixPanelEvent::track_airdrop_claimed(
-                        global,
-                        StakeType::Sats,
-                        false,
-                        0,
-                        "home".to_string(),
-                    );
-                }
-            })
-    });
-
     let AudioState { muted, volume } = AudioState::get();
 
     view! {
@@ -309,13 +234,6 @@ pub fn VideoDetailsOverlay(
                 </HighlightedButton>
             </div>
         </Modal>
-        <SatsAirdropPopup
-            show=show_sats_airdrop_popup
-            claimed=sats_airdrop_claimed.read_only()
-            amount_claimed=sats_airdrop_amount.read_only()
-            error=sats_airdrop_error.read_only()
-            try_again=claim_sats_airdrop_action
-        />
     }.into_any()
 }
 

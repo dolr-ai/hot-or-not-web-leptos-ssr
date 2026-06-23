@@ -532,7 +532,7 @@ pub fn PostUploadScreen() -> impl IntoView {
         >
             <img
                 alt="bg"
-                src="/img/airdrop/bg.webp"
+                src="/img/common/success-bg.webp"
                 class="object-cover absolute inset-0 w-full h-full z-25 fade-in"
             />
             <div class="flex z-50 flex-col items-center text-white">

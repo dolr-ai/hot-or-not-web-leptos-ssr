@@ -12,7 +12,7 @@ pub fn PostUploadScreenAi(video_url: String) -> impl IntoView {
             // Background image with fade effect
             <img
                 alt="bg"
-                src="/img/airdrop/bg.webp"
+                src="/img/common/success-bg.webp"
                 class="object-cover absolute inset-0 w-full h-full z-25 fade-in"
             />
 

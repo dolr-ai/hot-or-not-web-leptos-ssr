@@ -585,24 +585,11 @@ derive_event!(track_withdraw_tokens_clicked {
     token_clicked: StakeType
 });
 
-derive_event!(track_claim_airdrop_clicked {
-    token_type: StakeType,
-    page_name: String
-});
-
-derive_event!(track_airdrop_claimed {
-    token_type: StakeType,
-    is_success: bool,
-    claimed_amount: u64,
-    page_name: String
-});
-
 derive_event!(track_referral_link_copied {
     referral_bonus: u64
 });
 
 derive_event!(track_refer_friend_clicked {
-    is_airdrop_eligible: bool,
     cta_type: String,
     page_name: String
 });
@@ -668,7 +655,6 @@ derive_event!(track_sats_to_btc_converted {
 derive_event!(track_enable_nsfw_popup_shown { page_name: String });
 
 derive_event!(track_low_on_sats_popup_shown {
-    is_airdrop_eligible: bool,
     page_name: String
 });
 

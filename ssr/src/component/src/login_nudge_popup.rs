@@ -96,10 +96,6 @@ pub fn LoginNudgePopup(
                                 <Icon icon=Dollar />
                                 <span>Enable withdrawals</span>
                             </div>
-                            <div class="flex items-center gap-2 text-neutral-200">
-                                <Icon icon=Airdrop />
-                                <span>Daily DOLR / YRAL airdrops</span>
-                            </div>
                         </div>
 
 
