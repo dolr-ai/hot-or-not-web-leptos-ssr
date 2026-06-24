@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use crate::canister_ids::USER_INDEX_ID;
 use consts::{YRAL_BACKEND_CONTAINER_TAG, YRAL_METADATA_CONTAINER_TAG};
 use ic_agent::{identity::Secp256k1Identity, AgentError, Identity};
 use k256::SecretKey;
@@ -57,14 +56,19 @@ impl TestContainers {
         let id = Secp256k1Identity::from_private_key(sk);
         let cans = AdminCanisters::new(id.clone());
 
-        let user_index = cans.user_index_with(USER_INDEX_ID).await;
         let admin_principal = id.sender().unwrap();
+        // user_index canister decommissioned — use user_info_service for admin canister lookup
+        let user_info = cans.user_info_service().await;
         let admin_canister = loop {
-            let res = user_index
-                .get_user_canister_id_from_user_principal_id(admin_principal)
+            let res = user_info
+                .get_profile_details(admin_principal)
                 .await;
             match res {
-                Ok(princ) => break princ.unwrap(),
+                Ok(Some(profile)) => break profile.canister_id,
+                Ok(None) => {
+                    tokio::time::sleep(Duration::from_secs(8)).await;
+                    continue;
+                }
                 Err(AgentError::HttpError(_) | AgentError::CertificateOutdated(_)) => {
                     tokio::time::sleep(Duration::from_secs(8)).await;
                     continue;
