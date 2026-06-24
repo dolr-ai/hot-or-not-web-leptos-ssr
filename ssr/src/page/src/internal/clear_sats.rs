@@ -6,20 +6,30 @@ use num_bigint::Sign;
 use reqwest::Url;
 use state::{canisters::auth_state, server::HonWorkerJwt};
 use utils::{send_wrap, try_or_redirect_opt};
-use yral_canisters_client::individual_user_template::{Result7, SessionType};
+use yral_canisters_client::user_info_service::{Result8, SessionType};
 use yral_canisters_common::{utils::token::load_sats_balance, Canisters};
 
 use crate::wallet::tokens::BalanceFetcherType;
 
 #[server(input = server_fn::codec::Json)]
 pub async fn clear_sats(
-    user_canister: Principal,
+    _user_canister: Principal,
     user_principal: Principal,
 ) -> Result<(), ServerFnError> {
     let cans: Canisters<false> = expect_context();
-    let user = cans.individual_user(user_canister).await;
-    let profile_owner = user.get_profile_details_v_2().await?;
-    let sess = user.get_session_type().await?;
+    let user_info_service = cans.user_info_service().await;
+    let profile_owner = user_info_service
+        .get_profile_details_v_4(user_principal)
+        .await?;
+    let profile_owner = match profile_owner {
+        yral_canisters_client::user_info_service::Result_3::Ok(details) => details,
+        yral_canisters_client::user_info_service::Result_3::Err(e) => {
+            return Err(ServerFnError::new(format!(
+                "failed to get profile details: {e}"
+            )));
+        }
+    };
+    let sess = user_info_service.get_user_session_type(user_principal).await?;
     if profile_owner.principal_id != user_principal {
         leptos::logging::log!(
             "sats clearing({user_principal}): doesn't match expected = {}",
@@ -31,7 +41,7 @@ pub async fn clear_sats(
         leptos::logging::log!("sats clearing({user_principal}): not whitelisted");
         return Err(ServerFnError::new(""));
     }
-    if !matches!(sess, Result7::Ok(SessionType::RegisteredSession)) {
+    if !matches!(sess, Result8::Ok(SessionType::RegisteredSession)) {
         leptos::logging::log!("sats clearing({user_principal}): not logged in");
         return Err(ServerFnError::new(""));
     }
@@ -87,13 +97,12 @@ pub fn ClearSats() -> impl IntoView {
             if !WHITELIST_FOR_SATS_CLEARING.contains(user_principal.to_text().as_str()) {
                 return Err(ServerFnError::new("who dis?"));
             }
+            let user_info_service = cans.user_info_service().await;
             let logged_in = send_wrap(
-                send_wrap(cans.individual_user(user_canister))
-                    .await
-                    .get_session_type(),
+                user_info_service.get_user_session_type(user_principal),
             )
             .await?;
-            if !matches!(logged_in, Result7::Ok(SessionType::RegisteredSession)) {
+            if !matches!(logged_in, Result8::Ok(SessionType::RegisteredSession)) {
                 return Err(ServerFnError::new("invalid session"));
             }
             let balance =

@@ -40,6 +40,7 @@ pub fn PostViewWithUpdatesProfile(
     let hard_refresh_target = RwSignal::new("/".to_string());
 
     let username = StoredValue::new(initial_post.username.clone());
+    let user_principal = initial_post.poster_principal;
 
     // Initialize cursor to fetch posts after the ones already in video_queue
     let initial_cursor_start =
@@ -84,6 +85,7 @@ pub fn PostViewWithUpdatesProfile(
                 DefProfileVidStream::fetch_next_posts(
                     cursor,
                     &canisters,
+                    user_principal,
                     user_canister,
                     username.get_value(),
                 )
@@ -92,6 +94,7 @@ pub fn PostViewWithUpdatesProfile(
                 DefProfileVidStream::fetch_next_posts(
                     cursor,
                     &canisters,
+                    user_principal,
                     user_canister,
                     username.get_value(),
                 )

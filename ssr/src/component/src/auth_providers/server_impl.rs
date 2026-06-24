@@ -34,7 +34,7 @@ async fn ensure_user_logged_in_with_oauth(user_principal: Principal) -> Result<(
         use std::env;
 
         use auth::server_impl::yral::YralAuthRefreshTokenClaims;
-        use axum_extra::extract::{cookie::Key, SignedCookieJar};
+        use axum_extra::extract::{SignedCookieJar, cookie::Key};
         use consts::{
             auth::REFRESH_TOKEN_COOKIE,
             yral_auth::{YRAL_AUTH_CLIENT_ID_ENV, YRAL_AUTH_ISSUER_URL, YRAL_AUTH_TRUSTED_KEY},
@@ -80,10 +80,8 @@ mod backend_admin {
     use hon_worker_common::WORKER_URL;
     use leptos::prelude::*;
     use state::server::HonWorkerJwt;
-    use yral_canisters_client::ic::USER_INFO_SERVICE_ID;
-    use yral_canisters_client::individual_user_template::{Result15, Result7};
-    use yral_canisters_client::user_info_service::Result8 as UserServiceResult8;
     use yral_canisters_client::user_info_service::Result_;
+    use yral_canisters_client::user_info_service::Result8 as UserServiceResult8;
 
     pub async fn issue_referral_rewards_impl(
         worker_req: ReferralReqWithSignature,
@@ -110,53 +108,34 @@ mod backend_admin {
 
     pub async fn mark_user_registered_impl(
         user_principal: Principal,
-        user_canister: Principal,
+        _user_canister: Principal,
     ) -> Result<bool, ServerFnError> {
         use state::admin_canisters::admin_canisters;
-        use yral_canisters_client::individual_user_template::SessionType;
         use yral_canisters_client::user_info_service::SessionType as UserServiceSessionType;
 
         let admin_cans = admin_canisters();
 
-        if user_canister == USER_INFO_SERVICE_ID {
-            let user_service = admin_cans.user_info_service().await;
-            if matches!(
-                user_service.get_user_session_type(user_principal).await?,
-                UserServiceResult8::Ok(UserServiceSessionType::RegisteredSession)
-            ) {
-                return Ok(false);
-            }
-            user_service
-                .update_session_type(user_principal, UserServiceSessionType::RegisteredSession)
-                .await
-                .map_err(ServerFnError::from)
-                .and_then(|res| match res {
-                    Result_::Ok => Ok(()),
-                    Result_::Err(e) => Err(ServerFnError::new(format!(
-                        "failed to mark user as registered {e}"
-                    ))),
-                })?;
-
-            Ok(true)
-        } else {
-            let user = admin_cans.individual_user_for(user_canister).await;
-            if matches!(
-                user.get_session_type().await?,
-                Result7::Ok(SessionType::RegisteredSession)
-            ) {
-                return Ok(false);
-            }
-            user.update_session_type(SessionType::RegisteredSession)
-                .await
-                .map_err(ServerFnError::from)
-                .and_then(|res| match res {
-                    Result15::Ok(_) => Ok(()),
-                    Result15::Err(e) => Err(ServerFnError::new(format!(
-                        "failed to mark user as registered {e}"
-                    ))),
-                })?;
-            Ok(true)
+        // All users now use user_info_service; individual_user_template canisters
+        // have been decommissioned.
+        let user_service = admin_cans.user_info_service().await;
+        if matches!(
+            user_service.get_user_session_type(user_principal).await?,
+            UserServiceResult8::Ok(UserServiceSessionType::RegisteredSession)
+        ) {
+            return Ok(false);
         }
+        user_service
+            .update_session_type(user_principal, UserServiceSessionType::RegisteredSession)
+            .await
+            .map_err(ServerFnError::from)
+            .and_then(|res| match res {
+                Result_::Ok => Ok(()),
+                Result_::Err(e) => Err(ServerFnError::new(format!(
+                    "failed to mark user as registered {e}"
+                ))),
+            })?;
+
+        Ok(true)
     }
 }
 

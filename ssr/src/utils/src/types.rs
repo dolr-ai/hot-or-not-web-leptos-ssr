@@ -1,6 +1,6 @@
 use candid::Principal;
 use serde::{Deserialize, Serialize};
-use yral_canisters_client::individual_user_template::PostStatus as PostStatusCandid;
+use yral_canisters_client::user_post_service::PostStatus as PostStatusCandid;
 use yral_types::delegated_identity::DelegatedIdentityWire;
 
 pub type PostId = (Principal, String);
@@ -14,6 +14,7 @@ pub struct PostParams {
 #[derive(PartialEq, Debug, Eq)]
 pub enum PostStatus {
     BannedForExplicitness,
+    Draft,
     BannedDueToUserReporting,
     Uploaded,
     CheckingExplicitness,
@@ -26,6 +27,7 @@ impl From<&PostStatusCandid> for PostStatus {
     fn from(status: &PostStatusCandid) -> Self {
         match status {
             PostStatusCandid::BannedForExplicitness => PostStatus::BannedForExplicitness,
+            PostStatusCandid::Draft => PostStatus::Draft,
             PostStatusCandid::BannedDueToUserReporting => PostStatus::BannedDueToUserReporting,
             PostStatusCandid::Uploaded => PostStatus::Uploaded,
             PostStatusCandid::CheckingExplicitness => PostStatus::CheckingExplicitness,
