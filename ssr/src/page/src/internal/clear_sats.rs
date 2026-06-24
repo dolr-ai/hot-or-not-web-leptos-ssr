@@ -22,8 +22,8 @@ pub async fn clear_sats(
         .get_profile_details_v_4(user_principal)
         .await?;
     let profile_owner = match profile_owner {
-        yral_canisters_client::user_info_service::Result_3::Ok(details) => details,
-        yral_canisters_client::user_info_service::Result_3::Err(e) => {
+        yral_canisters_client::user_info_service::Result3::Ok(details) => details,
+        yral_canisters_client::user_info_service::Result3::Err(e) => {
             return Err(ServerFnError::new(format!(
                 "failed to get profile details: {e}"
             )));
