@@ -274,7 +274,9 @@ pub fn TermsIos() -> impl IntoView {
                             )}
 
                             <p class="mb-3 text-xs">
-                                "This license is effective until terminated by you or by us. You may terminate the license at any time by uninstalling the App or deleting your account through the App's settings. Your rights under this license will also terminate automatically without notice if you fail to comply with any of its terms. Upon termination, you must cease all use of the App and destroy all copies, full or partial, of the App."
+                                "This license is effective until terminated by you or by us. You may terminate the license at any time by uninstalling the App or deleting your account by visiting "
+                                <a href="https://auth.yral.com/account" class="text-primary-600 underline">"auth.yral.com/account"</a>
+                                ". Your rights under this license will also terminate automatically without notice if you fail to comply with any of its terms. Upon termination, you must cease all use of the App and destroy all copies, full or partial, of the App."
                             </p>
                         </div>
                     },
@@ -296,7 +298,9 @@ pub fn TermsIos() -> impl IntoView {
                             )}
 
                             <p class="mb-3 text-xs">
-                                "You may delete your account at any time via the app's settings."
+                                "You may delete your account at any time by visiting "
+                                <a href="https://auth.yral.com/account" class="text-primary-600 underline">"auth.yral.com/account"</a>
+                                "."
                             </p>
                         </div>
                     },

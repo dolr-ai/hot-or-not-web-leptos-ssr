@@ -25,7 +25,6 @@ use page::{
         LoggedInUserProfileView, ProfilePostsContext, ProfileView,
     },
     refer_earn::ReferEarn,
-    settings::Settings,
     terms::TermsOfService,
     token::{info::TokenInfo, transfer::TokenTransfer},
     upload::UploadOptionsPage,
@@ -184,8 +183,6 @@ pub fn App() -> impl IntoView {
                         <Route path=path!("/upload-options") view=UploadOptionsPage />
                         <Route path=path!("/error") view=ServerErrorPage />
                         <Route path=path!("/menu") view=Menu />
-                        <Route path=path!("/settings") view=Settings />
-                        <Route path=path!("/settings/:action") view=Settings />
                         <Route path=path!("/refer-earn") view=ReferEarn />
                         <Route path=path!("/profile/edit") view=ProfileEdit />
                         <Route path=path!("/profile/edit/username") view=ProfileUsernameEdit />

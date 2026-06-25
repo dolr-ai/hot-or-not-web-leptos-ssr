@@ -12,7 +12,6 @@ pub mod profile;
 pub mod refer_earn;
 pub mod root;
 pub mod scrolling_post_view;
-pub mod settings;
 pub mod terms;
 pub mod terms_android;
 pub mod terms_ios;

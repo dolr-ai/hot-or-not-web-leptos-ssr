@@ -211,7 +211,9 @@ pub fn TermsAndroid() -> impl IntoView {
                                 ],
                             )}
                             <p class="mb-3 text-xs">
-                                "You may delete your account at any time via the app settings."
+                                "You may delete your account at any time by visiting "
+                                <a href="https://auth.yral.com/account" class="text-primary-600 underline">"auth.yral.com/account"</a>
+                                "."
                             </p>
                         </div>
                     },

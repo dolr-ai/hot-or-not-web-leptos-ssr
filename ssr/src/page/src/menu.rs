@@ -12,7 +12,7 @@ use leptos::prelude::window;
 use leptos::prelude::*;
 use leptos_icons::*;
 use leptos_meta::*;
-use leptos_router::{hooks::use_navigate, hooks::use_query_map};
+use leptos_router::hooks::use_query_map;
 use leptos_use::{use_cookie_with_options, UseCookieOptions};
 use state::app_state::AppState;
 use state::canisters::auth_state;
@@ -293,11 +293,8 @@ pub fn Menu() -> impl IntoView {
                         target="_blank"
                     />
                     <Show when=is_connected>
-                        <button
-                            on:click=move |_| {
-                                let nav = use_navigate();
-                                nav("/settings/delete", Default::default());
-                            }
+                        <a
+                            href="https://auth.yral.com/account"
                             class="flex items-center justify-between w-full"
                         >
                             <div class="flex flex-row gap-4 items-center">
@@ -305,7 +302,7 @@ pub fn Menu() -> impl IntoView {
                                 <span class="text-base">Delete Account</span>
                             </div>
                             <Icon attr:class="text-xl" icon=icondata::AiRightOutlined />
-                        </button>
+                        </a>
                         <MenuItem click_cta_type=MixpanelMenuClickedCTAType::LogOut href="/logout" text="Logout" icon=icondata::FiLogOut />
                     </Show>
                 </div>
